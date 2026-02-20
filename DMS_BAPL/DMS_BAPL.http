@@ -1,0 +1,6 @@
+@DMS_BAPL_HostAddress = http://localhost:5215
+
+GET {{DMS_BAPL_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
