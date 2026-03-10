@@ -18,6 +18,6 @@
 		<Reference Include="DMS_BAPL_Data">
 			<HintPath>..\DMS_BAPL_Data\bin\Debug\net8.0\DMS_BAPL_Data.dll</HintPath>
 		</Reference>
-	</ItemGroup>
+	</ItemGroup> 
 
 </Project>
