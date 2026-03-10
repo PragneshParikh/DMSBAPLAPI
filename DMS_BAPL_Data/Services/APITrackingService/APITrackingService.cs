@@ -25,9 +25,9 @@ namespace DMS_BAPL_Data.Services.APITrackingService
             return _apiTrackingRepo.GetAPITracking();
         }
 
-        Task<List<Apitracking>> IAPITrackingService.GetFilterRecords(DateTime fromDate, DateTime toDate, string endPoint, string status)
+        Task<List<Apitracking>> IAPITrackingService.GetFilterRecords(DateTime fromDate, DateTime toDate, string endPoint, string searchCriteria, string status)
         {
-            return _apiTrackingRepo.GetFilterRecords(fromDate, toDate, endPoint, status);
+            return _apiTrackingRepo.GetFilterRecords(fromDate, toDate, endPoint, searchCriteria, status);
         }
 
     }

@@ -12,6 +12,6 @@ namespace DMS_BAPL_Data.Repositories.APITracking
     {
         Task<List<Apitracking>> GetAPITracking();
 
-        Task<List<Apitracking>> GetFilterRecords(DateTime fromDate, DateTime toDate, string endPoint, string status);
+        Task<List<Apitracking>> GetFilterRecords(DateTime fromDate, DateTime toDate, string endPoint, string searchCriteria, string status);
     }
 }

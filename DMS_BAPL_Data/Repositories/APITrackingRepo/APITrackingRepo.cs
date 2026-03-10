@@ -21,7 +21,7 @@ namespace DMS_BAPL_Data.Repositories.APITracking
             return Task.FromResult(_context.Apitrackings.ToList());
         }
 
-        async Task<List<Apitracking>> IAPITrackingRepo.GetFilterRecords(DateTime startDate, DateTime endDate, string endPoint, string status)
+        async Task<List<Apitracking>> IAPITrackingRepo.GetFilterRecords(DateTime startDate, DateTime endDate, string endPoint, string searchCriteria, string status)
         {
 
             var query = _context.Apitrackings
@@ -35,6 +35,11 @@ namespace DMS_BAPL_Data.Repositories.APITracking
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(a => a.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(searchCriteria))
+            {
+                query = query.Where(a => a.Payload.Contains(searchCriteria));
             }
 
             return await query

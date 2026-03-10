@@ -38,12 +38,12 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("FilterData")]
-        public async Task<ActionResult> GetFilterData([FromQuery] DateTime fromDate, [FromQuery] DateTime ToDate, [FromQuery] string endPoint = "", [FromQuery] string status = "")
+        public async Task<ActionResult> GetFilterData([FromQuery] DateTime fromDate, [FromQuery] DateTime ToDate, [FromQuery] string endPoint = "", [FromQuery] string searchCriteria = "", [FromQuery] string status = "")
         {
             List<Apitracking>? apitrackings = null;
             try
             {
-                apitrackings = await _apiTrackingService.GetFilterRecords(fromDate, ToDate, endPoint, status);
+                apitrackings = await _apiTrackingService.GetFilterRecords(fromDate, ToDate, endPoint, searchCriteria, status);
                 return Ok(apitrackings);
             }
             catch (Exception ex)
