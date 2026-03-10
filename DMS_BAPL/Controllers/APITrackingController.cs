@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.Color;
+using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,11 @@ namespace DMS_BAPL_Api.Controllers
     [ApiController]
     public class APITrackingController : ControllerBase
     {
-        private readonly IAPITrackingRepo _apiTrackingRepo;
+        private readonly IAPITrackingService _apiTrackingService;
 
-        public APITrackingController(IAPITrackingRepo apiTrackingRepo)
+        public APITrackingController(IAPITrackingService apiTrackingService)
         {
-            _apiTrackingRepo = apiTrackingRepo;
+            _apiTrackingService = apiTrackingService;
         }
 
         [HttpGet]
@@ -24,7 +25,7 @@ namespace DMS_BAPL_Api.Controllers
             List<Apitracking>? apiTracking = null;
             try
             {
-                apiTracking = await _apiTrackingRepo.GetAPITracking();
+                apiTracking = await _apiTrackingService.GetAPITracking();
 
                 // Implement logic to retrieve API tracking data
                 return Ok(apiTracking);
@@ -42,7 +43,7 @@ namespace DMS_BAPL_Api.Controllers
             List<Apitracking>? apitrackings = null;
             try
             {
-                apitrackings = await _apiTrackingRepo.GetFilterRecords(fromDate, ToDate, endPoint, status);
+                apitrackings = await _apiTrackingService.GetFilterRecords(fromDate, ToDate, endPoint, status);
                 return Ok(apitrackings);
             }
             catch (Exception ex)

@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
+using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,13 +12,13 @@ namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/color")]
     [ApiController]
-    public class ColorController : ControllerBase
+    public class ColorMasterController : ControllerBase
     {
-        private readonly IColorRepo _colorRepo;
+        private readonly IColorMasterService _colorMasterService;
 
-        public ColorController(IColorRepo colorRepo)
+        public ColorMasterController(IColorMasterService colorMasterService)
         {
-            _colorRepo = colorRepo;
+            _colorMasterService = colorMasterService;
         }
 
         /// <summary>
@@ -30,7 +31,7 @@ namespace DMS_BAPL_Api.Controllers
             List<ColorMaster>? colors = null;
             try
             {
-                colors = await _colorRepo.GetColors();
+                colors = await _colorMasterService.GetColors();
 
                 if (colors is null)
                     return NoContent();
@@ -54,7 +55,7 @@ namespace DMS_BAPL_Api.Controllers
                     return BadRequest("Color data is required.");
                 }
 
-                var color = await _colorRepo.CreateColor(colorMasterViewModel);
+                var color = await _colorMasterService.CreateColor(colorMasterViewModel);
 
                 if (color == null)
                 {

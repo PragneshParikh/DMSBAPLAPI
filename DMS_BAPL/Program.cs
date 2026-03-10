@@ -1,7 +1,7 @@
+using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Api;
 using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.Repositories.DealerMasterRepository;
-using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Utils.Middleware;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +12,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngularApp",
         builder =>
         {
-            builder.WithOrigins("http://localhost:4200") 
+            builder.WithOrigins("http://localhost:4200")
                    .AllowAnyHeader()
                    .AllowAnyMethod();
         });
@@ -33,7 +33,7 @@ builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
-// Call Dependency Injection Configuration
+
 builder.Services.AddProjectServices();
 
 var app = builder.Build();
@@ -47,6 +47,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngularApp");
+
+app.UseMiddleware<ApiAuditMiddleware>();
 
 app.UseAuthorization();
 

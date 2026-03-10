@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Repositories.Color
 {
-    public class ColorRepo : IColorRepo
+    public class ColorMasterRepo : IColorMasterRepo
     {
         private readonly BapldmsvadContext _context;
 
-        public ColorRepo(BapldmsvadContext context)
+        public ColorMasterRepo(BapldmsvadContext context)
         {
             _context = context;
         }
-        Task<List<ColorMaster>> IColorRepo.GetColors()
+        Task<List<ColorMaster>> IColorMasterRepo.GetColors()
         {
             try
             {
@@ -31,7 +31,7 @@ namespace DMS_BAPL_Data.Repositories.Color
             }
         }
 
-        async Task<ColorMasterViewModel> IColorRepo.CreateColor(ColorMasterViewModel colorMasterViewModel)
+        async Task<ColorMasterViewModel> IColorMasterRepo.CreateColor(ColorMasterViewModel colorMasterViewModel)
         {
             try
             {
