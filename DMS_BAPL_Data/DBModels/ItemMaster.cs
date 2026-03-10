@@ -55,7 +55,7 @@ public partial class ItemMaster
 
     public decimal Fame2amount { get; set; }
 
-    public int Compcode { get; set; }
+    public string? Compcode { get; set; }
 
     public string? Displayname { get; set; }
 

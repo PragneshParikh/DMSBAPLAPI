@@ -1,11 +1,40 @@
+using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Services.DealerMasterService;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:4200") 
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
 
+// Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<BapldmsvadContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<BAPLdbIdentityContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IDealerMasterRepo, DealerMasterRepo>();
+builder.Services.AddScoped<IDealerMasterService, DealerMasterService>();
 
 var app = builder.Build();
 
@@ -17,6 +46,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAngularApp");
 
 app.UseAuthorization();
 

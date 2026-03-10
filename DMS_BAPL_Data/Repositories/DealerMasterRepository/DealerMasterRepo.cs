@@ -1,0 +1,120 @@
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
+{
+    public class DealerMasterRepo:IDealerMasterRepo
+    {
+        private readonly BapldmsvadContext _context;
+
+        public DealerMasterRepo(BapldmsvadContext context)
+        {
+            _context = context;
+        }
+
+       
+        public async Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer)
+        {
+            var newDealer = new DealerMaster
+            {
+                Compname = dealer.Compname,
+                Compcode = dealer.Compcode,
+                Adress1 = dealer.Adress1,
+                Adress2 = dealer.Adress2,
+                City = dealer.City,
+                State = dealer.State,
+                Pin = dealer.Pin,
+                Pan = dealer.Pan,
+                PhoneOff = dealer.PhoneOff,
+                Mobile = dealer.Mobile,
+                Email = dealer.Email,
+                Contactperson = dealer.Contactperson,
+                RegDate = dealer.RegDate,
+                TradCert = dealer.TradCert,
+                CompgstinNo = dealer.CompgstinNo,
+                BrandName = dealer.BrandName,
+                CompImage = dealer.CompImage,
+                Dealercode = dealer.Dealercode,
+                Areaofficeid = dealer.Areaofficeid,
+                CinNo = dealer.CinNo,
+                VatNo = dealer.VatNo,
+                IsTcs = dealer.IsTcs,
+                TcsPercent = dealer.TcsPercent,
+                FameiiCode = dealer.FameiiCode,
+                CeditLimit = dealer.CeditLimit,
+                RegAddress = dealer.RegAddress,
+                B2b = dealer.B2b,
+                CreatedBy = dealer.CreatedBy,
+                CreatedDate = DateTime.Now
+            };
+
+            await _context.DealerMasters.AddAsync(newDealer);
+            await _context.SaveChangesAsync();
+
+            return newDealer;
+        }
+        public async Task<List<DealerMaster>> GetAllDealersAsync()
+        {
+            return await _context.DealerMasters.ToListAsync();
+        }
+
+        public async Task<DealerMaster> GetDealerById(int id)
+        {
+           return await _context.DealerMasters.Where(i=>i.Id == id).FirstOrDefaultAsync();
+        }
+
+    
+
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealerDto)
+        {
+            var existingDealer = await _context.DealerMasters.FindAsync(id);
+
+            if (existingDealer == null)
+                return null;
+
+        
+            existingDealer.Compname = dealerDto.Compname;
+            existingDealer.Compcode = dealerDto.Compcode;
+            existingDealer.Adress1 = dealerDto.Adress1;
+            existingDealer.Adress2 = dealerDto.Adress2;
+            existingDealer.City = dealerDto.City;
+            existingDealer.State = dealerDto.State;
+            existingDealer.Pin = dealerDto.Pin;
+            existingDealer.Pan = dealerDto.Pan;
+            existingDealer.PhoneOff = dealerDto.PhoneOff;
+            existingDealer.Mobile = dealerDto.Mobile;
+            existingDealer.Email = dealerDto.Email;
+            existingDealer.Contactperson = dealerDto.Contactperson;
+            existingDealer.RegDate = dealerDto.RegDate;
+            existingDealer.TradCert = dealerDto.TradCert;
+            existingDealer.CompgstinNo = dealerDto.CompgstinNo;
+            existingDealer.BrandName = dealerDto.BrandName;
+            existingDealer.CompImage = dealerDto.CompImage;
+            existingDealer.Dealercode = dealerDto.Dealercode;
+            existingDealer.Areaofficeid = dealerDto.Areaofficeid;
+            existingDealer.CinNo = dealerDto.CinNo;
+            existingDealer.VatNo = dealerDto.VatNo;
+            existingDealer.IsTcs = dealerDto.IsTcs;
+            existingDealer.TcsPercent = dealerDto.TcsPercent;
+            existingDealer.FameiiCode = dealerDto.FameiiCode;
+            existingDealer.CeditLimit = dealerDto.CeditLimit;
+            existingDealer.RegAddress = dealerDto.RegAddress;
+            existingDealer.B2b = dealerDto.B2b;
+
+           
+            existingDealer.UpdatedBy = dealerDto.UpdatedBy;
+            existingDealer.UpdatedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return existingDealer;
+        }
+    }
+}
+

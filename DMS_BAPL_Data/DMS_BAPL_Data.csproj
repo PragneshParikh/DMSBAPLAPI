@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.5">
       <PrivateAssets>all</PrivateAssets>
@@ -21,10 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DMS_BAPL_Utils\DMS_BAPL_Utils.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DBModels\" />
   </ItemGroup>
 
 </Project>
