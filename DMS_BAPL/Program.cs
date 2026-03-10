@@ -1,3 +1,4 @@
+using DMS_BAPL_Api;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Services.DealerMasterService;
@@ -32,7 +33,8 @@ builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
-
+// Call Dependency Injection Configuration
+builder.Services.AddProjectServices();
 
 var app = builder.Build();
 
