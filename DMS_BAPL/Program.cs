@@ -33,8 +33,6 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddScoped<IDealerMasterRepo, DealerMasterRepo>();
-builder.Services.AddScoped<IDealerMasterService, DealerMasterService>();
 
 var app = builder.Build();
 
