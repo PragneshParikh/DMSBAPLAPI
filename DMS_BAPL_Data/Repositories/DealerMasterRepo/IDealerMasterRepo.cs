@@ -12,7 +12,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
     public interface IDealerMasterRepo
     {
         Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer);
-        Task<List<DealerMaster>> GetAllDealersAsync();
+        Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
         //Task<DealerMaster?> UpdateDealerAsync(int id, DealerMaster dealer);
         Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealerDto);

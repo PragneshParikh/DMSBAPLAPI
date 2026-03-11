@@ -32,9 +32,9 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetAllDealers()
+        public async Task<IActionResult> GetAllDealers(string? search)
         {
-            var dealers = await _dealerMasterService.GetAllDealersAsync();
+            var dealers = await _dealerMasterService.GetAllDealersAsync(search);
 
             if (dealers == null || dealers.Count == 0)
             {
@@ -80,6 +80,18 @@ namespace DMS_BAPL_Api.Controllers
                 message = StringConstants.DealerUpdated,
                 data = result
             });
+        }
+
+        [HttpGet("download")]
+        public async Task<IActionResult> Download()
+        {
+            var file = await _dealerMasterService.DownloadDealerExcel();
+
+            return File(
+                file,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "DealerList.xlsx"
+            );
         }
 
         [HttpGet("getDealerDropdown")]

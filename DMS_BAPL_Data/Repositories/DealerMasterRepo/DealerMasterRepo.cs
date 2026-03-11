@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 {
-    public class DealerMasterRepo:IDealerMasterRepo
+    public class DealerMasterRepo : IDealerMasterRepo
     {
         private readonly BapldmsvadContext _context;
 
@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             _context = context;
         }
 
-       
+
         public async Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer)
         {
             var newDealer = new DealerMaster
@@ -51,7 +51,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 CeditLimit = dealer.CeditLimit,
                 RegAddress = dealer.RegAddress,
                 B2b = dealer.B2b,
-                CreatedBy = dealer.CreatedBy,
+                CreatedBy = 1,
                 CreatedDate = DateTime.Now
             };
 
@@ -60,17 +60,59 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             return newDealer;
         }
-        public async Task<List<DealerMaster>> GetAllDealersAsync()
-        {
-            return await _context.DealerMasters.ToListAsync();
-        }
+        //public async Task<List<DealerMaster>> GetAllDealersAsync()
+        //{
+        //    return await _context.DealerMasters.ToListAsync();
+        //}
 
+        public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
+        {
+
+            IQueryable<DealerMaster> query = _context.DealerMasters;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(d =>
+                    EF.Functions.Like(d.Compname, $"%{search}%") ||
+                    EF.Functions.Like(d.Compcode, $"%{search}%") ||
+                    EF.Functions.Like(d.Adress1, $"%{search}%") ||
+                    EF.Functions.Like(d.Adress2, $"%{search}%") ||
+                    EF.Functions.Like(d.City, $"%{search}%") ||
+                    EF.Functions.Like(d.State, $"%{search}%") ||
+                    EF.Functions.Like(d.Pin, $"%{search}%") ||
+                    EF.Functions.Like(d.Pan, $"%{search}%") ||
+                    EF.Functions.Like(d.PhoneOff, $"%{search}%") ||
+                    EF.Functions.Like(d.Mobile, $"%{search}%") ||
+                    EF.Functions.Like(d.Email, $"%{search}%") ||
+                    EF.Functions.Like(d.Contactperson, $"%{search}%") ||
+                    EF.Functions.Like(d.CompgstinNo, $"%{search}%") ||
+                    EF.Functions.Like(d.Dealercode, $"%{search}%") ||
+                    EF.Functions.Like(d.Dealercode, $"%{search}%") ||
+                    // Boolean Yes/No search
+                    (search == "yes" && d.B2b) ||
+                    (search == "no" && !d.B2b) ||
+
+                    // Date search
+                    d.RegDate.ToString().Contains(search)
+
+                    //For future implementation if needed.
+                //EF.Functions.Like(d.TradCert, $"%{search}%") || 
+                //EF.Functions.Like(d.BrandName!, $"%{search}%") ||
+                //EF.Functions.Like(d.CinNo!, $"%{search}%") ||
+                //EF.Functions.Like(d.VatNo!, $"%{search}%") ||
+                //EF.Functions.Like(d.FameiiCode!, $"%{search}%") ||
+                //EF.Functions.Like(d.RegAddress!, $"%{search}%")
+                );
+            }
+
+            return await query.ToListAsync();
+        }
         public async Task<DealerMaster> GetDealerById(int id)
         {
-           return await _context.DealerMasters.Where(i=>i.Id == id).FirstOrDefaultAsync();
+            return await _context.DealerMasters.Where(i => i.Id == id).FirstOrDefaultAsync();
         }
 
-    
+
 
         public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealerDto)
         {
@@ -79,7 +121,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             if (existingDealer == null)
                 return null;
 
-        
+
             existingDealer.Compname = dealerDto.Compname;
             existingDealer.Compcode = dealerDto.Compcode;
             existingDealer.Adress1 = dealerDto.Adress1;
@@ -108,8 +150,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.RegAddress = dealerDto.RegAddress;
             existingDealer.B2b = dealerDto.B2b;
 
-           
-            existingDealer.UpdatedBy = dealerDto.UpdatedBy;
+
+            existingDealer.UpdatedBy = 0;
             existingDealer.UpdatedDate = DateTime.Now;
 
             await _context.SaveChangesAsync();
