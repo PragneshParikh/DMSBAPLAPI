@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -37,6 +38,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealer)
         {
             return await _dealerMasterRepo.UpdateDealerAsync(id, dealer);
+        }
+        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
+        {
+            return await _dealerMasterRepo.GetDealerDropdown();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -14,5 +15,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<List<DealerMaster>> GetAllDealersAsync();
         Task<DealerMaster> GetDealerById(int id);
         Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealer);
+        Task<List<DealerDropdownViewModel>> GetDealerDropdown();
+
     }
 }

@@ -16,7 +16,7 @@ namespace DMS_BAPL_Api.Controllers
         public DealerMasterController(IDealerMasterService dealerMasterService)
         {
             _dealerMasterService = dealerMasterService;
-            
+
         }
 
         [HttpPost("create")]
@@ -52,8 +52,8 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> GetDealerById(int id)
         {
             var dealer = await _dealerMasterService.GetDealerById(id);
-            
-            if(dealer == null)
+
+            if (dealer == null)
             {
                 return NotFound(StringConstants.DealerNotFound);
             }
@@ -80,6 +80,13 @@ namespace DMS_BAPL_Api.Controllers
                 message = StringConstants.DealerUpdated,
                 data = result
             });
+        }
+
+        [HttpGet("getDealerDropdown")]
+        public async Task<IActionResult> GetDealerDropdown()
+        {
+            var result = await _dealerMasterService.GetDealerDropdown();
+            return Ok(result);
         }
     }
 }

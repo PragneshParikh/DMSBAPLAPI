@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -114,6 +115,25 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             await _context.SaveChangesAsync();
 
             return existingDealer;
+        }
+        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
+        {
+            var dealerCodes = await _context.LocationMasters
+                .Select(x => x.Dealercode)
+                .Distinct()
+                .ToListAsync();
+
+            var result = await _context.DealerMasters
+                .Where(x => dealerCodes.Contains(x.Dealercode))
+                .Select(x => new DealerDropdownViewModel
+                {
+                    DealerCode = x.Dealercode,
+                    DealerName = x.Compname
+                })
+                .OrderBy(x => x.DealerName)
+                .ToListAsync();
+
+            return result;
         }
     }
 }
