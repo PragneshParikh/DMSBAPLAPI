@@ -35,15 +35,15 @@ public partial class LmsleadMaster
 
     public string Variant { get; set; } = null!;
 
-    public int DealerId { get; set; }
+    public int? DealerId { get; set; }
 
     public string Dealercode { get; set; } = null!;
 
-    public int Productcode { get; set; }
+    public string? Productcode { get; set; }
 
     public string Sourceapp { get; set; } = null!;
 
-    public int ColorId { get; set; }
+    public int? ColorId { get; set; }
 
     public string? Color { get; set; }
 
@@ -55,7 +55,7 @@ public partial class LmsleadMaster
 
     public DateTime UpdatedDate { get; set; }
 
-    public virtual ColorMaster ColorNavigation { get; set; } = null!;
+    public virtual ColorMaster? ColorNavigation { get; set; }
 
-    public virtual DealerMaster Dealer { get; set; } = null!;
+    public virtual DealerMaster? Dealer { get; set; }
 }

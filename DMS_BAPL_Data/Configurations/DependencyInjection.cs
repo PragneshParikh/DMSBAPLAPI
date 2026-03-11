@@ -3,12 +3,15 @@ using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
+using DMS_BAPL_Data.Repositories.LeadMasterRep;
+using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.itemMasterService;
+using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +25,7 @@ namespace DMS_BAPL_Data.Configurations
             #region Repositories Registration
 
             services.AddScoped<IitemMasterRepo, ItemMasterRepo>();
+            services.AddScoped<ILeadMasterRepo, LeadMasterRepo>();
             services.AddScoped<ILocationMasterRepo, LocationMasterRepo>();
             services.AddScoped<IDealerMasterRepo, DealerMasterRepo>();
             services.AddScoped<IColorMasterRepo, ColorMasterRepo>();
@@ -32,6 +36,7 @@ namespace DMS_BAPL_Data.Configurations
             #region Services Registration
 
             services.AddScoped<IitemMasterService, ItemMasterService>();
+            services.AddScoped<ILeadMasterService, LeadMasterService>();
             services.AddScoped<ILocationMasterService, LocationMasterService>();
             services.AddScoped<IDealerMasterService, DealerMasterService>();
             services.AddScoped<IColorMasterService, ColorMasterService>();

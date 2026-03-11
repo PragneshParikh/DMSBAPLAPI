@@ -29,15 +29,25 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<AspNetUserToken> AspNetUserTokens { get; set; }
 
+    public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
+
     public virtual DbSet<ColorMaster> ColorMasters { get; set; }
 
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
+
+    public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
     public virtual DbSet<LmsleadMaster> LmsleadMasters { get; set; }
 
     public virtual DbSet<LocationMaster> LocationMasters { get; set; }
+
+    public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,9 +143,23 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.AspNetUserTokens).HasForeignKey(d => d.UserId);
         });
 
+        modelBuilder.Entity<BatteryCapacityMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BatteryC__3214EC07BF68DD87");
+
+            entity.ToTable("BatteryCapacityMaster");
+
+            entity.Property(e => e.BatteryCapacity).HasMaxLength(50);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<ColorMaster>(entity =>
         {
             entity.ToTable("ColorMaster");
+
+            entity.HasIndex(e => e.Colorname, "UQ_ColorMaster_colorname").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Colorcode)
@@ -268,6 +292,39 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("vat_no");
+        });
+
+        modelBuilder.Entity<Form22Master>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Form22Ma__3214EC07F814C78A");
+
+            entity.ToTable("Form22Master");
+
+            entity.Property(e => e.ApprovalCertificateNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.OemModelName)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+            entity.Property(e => e.PassbyNoiseLevel)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.SoundLevelHorn)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.Form22Masters)
+                .HasForeignKey(d => d.OemmodelId)
+                .HasConstraintName("FK_Form22Master_OEMModelMaster");
         });
 
         modelBuilder.Entity<ItemMaster>(entity =>
@@ -422,7 +479,10 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("name");
             entity.Property(e => e.Pincode).HasColumnName("pincode");
-            entity.Property(e => e.Productcode).HasColumnName("productcode");
+            entity.Property(e => e.Productcode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("productcode");
             entity.Property(e => e.Sourceapp)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -442,12 +502,10 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasOne(d => d.ColorNavigation).WithMany(p => p.LmsleadMasters)
                 .HasForeignKey(d => d.ColorId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FKColorMaster");
 
             entity.HasOne(d => d.Dealer).WithMany(p => p.LmsleadMasters)
                 .HasForeignKey(d => d.DealerId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FKDealerMaster");
         });
 
@@ -555,6 +613,21 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
+        });
+
+        modelBuilder.Entity<OemmodelMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC07901A12F4");
+
+            entity.ToTable("OEMModelMaster");
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.ModelName).HasMaxLength(150);
+            entity.Property(e => e.ModelShortName).HasMaxLength(150);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         OnModelCreatingPartial(modelBuilder);

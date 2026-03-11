@@ -1,6 +1,7 @@
-using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Api;
+using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.Middleware;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +20,13 @@ builder.Services.AddCors(options =>
 });
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+}); 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<BapldmsvadContext>(options =>
