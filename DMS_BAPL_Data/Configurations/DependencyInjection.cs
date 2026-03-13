@@ -9,6 +9,7 @@ using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
+using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.ColorMasterService;
@@ -19,6 +20,7 @@ using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.MenuMasterService;
+using DMS_BAPL_Data.Services.OEMModelMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -39,6 +41,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IForm22MasterRepo, Form22MasterRepo>();
             services.AddScoped<IMenuRepo, MenuRepo>();
             services.AddScoped<IBatteryCapacityMasterRepo, BatteryCapacityMasterRepo>();
+            services.AddScoped<IOEMModelMasterRepo, OEMModelMasterRepo>();
 
             #endregion
 
@@ -52,6 +55,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IAPITrackingService, APITrackingService>();
             services.AddScoped<IExcelService, ExcelService>();
             services.AddScoped<IForm22Service, Form22Service>();
+            services.AddScoped<IMenuService, MenuService>();
+            services.AddScoped<IBatteryCapacityMasterService,BatteryCapacityMasterService>();
+            services.AddScoped<IOEMModelMasterService, OEMModelMasterService>();
 
             #endregion
 

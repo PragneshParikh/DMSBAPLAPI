@@ -39,5 +39,23 @@ namespace DMS_BAPL_Api.Controllers
             var result = await _service.UpdateLocationMaster(model);
             return Ok(result);
         }
+        [HttpGet("DownloadLocationMasterExcel")]
+        public async Task<IActionResult> DownloadLocationMasterExcel()
+        {
+            try
+            {
+                var file = await _service.DownloadLocationMasterExcel();
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "LocationMaster.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

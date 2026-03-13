@@ -13,5 +13,6 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<LocationMasterViewModel> GetLocationMasterById(int id);
         Task<bool> AddLocationMaster(LocationMasterViewModel model);
         Task<bool> UpdateLocationMaster(LocationMasterViewModel model);
+        Task<byte[]> DownloadLocationMasterExcel();
     }
 }
