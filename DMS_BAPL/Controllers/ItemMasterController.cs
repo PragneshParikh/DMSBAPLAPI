@@ -31,9 +31,9 @@ namespace DMS_BAPL_Api.Controllers
         // GET api/itemMaster
 
         [HttpGet]
-        public async Task<IActionResult> GetAllItems([FromQuery] int? grpidno)
+        public async Task<IActionResult> GetAllItems([FromQuery] int? grpidno, string? search)
         {
-            var items = await _itemMasterService.GetAllItemMastersAsync(grpidno);
+            var items = await _itemMasterService.GetAllItemMastersAsync(grpidno, search);
             return Ok(items);
 
 
@@ -47,6 +47,18 @@ namespace DMS_BAPL_Api.Controllers
             item.Id = id;
             await _itemMasterService.UpdateItemAsync(item);
             return Ok("Item updated successfully");
+        }
+
+        [HttpGet("download")]
+        public async Task<IActionResult> Download()
+        {
+            var file = await _itemMasterService.DownloadItemMasterExcel();
+
+            return File(
+                file,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "ItemMasterList.xlsx"
+            );
         }
     }
 }

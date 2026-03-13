@@ -1,6 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
-using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +34,6 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
 
         }
 
-       
+
     }
 }

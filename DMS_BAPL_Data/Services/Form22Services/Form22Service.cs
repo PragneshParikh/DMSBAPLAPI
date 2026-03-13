@@ -1,5 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.Repositories.itemMasterRepo;
+using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
@@ -9,47 +9,45 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DMS_BAPL_Data.Services.itemMasterService
+namespace DMS_BAPL_Data.Services.Form22Services
 {
-    public class ItemMasterService : IitemMasterService
+    public class Form22Service : IForm22Service
     {
-
-        private readonly IitemMasterRepo _itemMasterRepo;
+        private readonly IForm22MasterRepo _form22Repository;
         private readonly IExcelService _excelService;
-
-        public ItemMasterService(IitemMasterRepo itemMasterRepo, IExcelService excelService)
+        public Form22Service(IForm22MasterRepo form22Repository, IExcelService excelService)
         {
-            _itemMasterRepo = itemMasterRepo;
+            _form22Repository = form22Repository;
             _excelService = excelService;
         }
 
-        // add  itemserice to the database
-        public async Task InsertItemMasterAsync(ItemMaster itemMaster)
+        public async Task<Form22MasterViewModel> InsertForm22MasterAsync(Form22MasterViewModel form22MasterView)
         {
-            await _itemMasterRepo.InsertItemAsync(itemMaster);
+            return await _form22Repository.InsertForm22MasterAsync(form22MasterView);
         }
 
-        // get all itemservice from the database
-        public async Task<List<ItemMaster>> GetAllItemMastersAsync(int ? grpidno, string? search)
+        public async Task<List<Form22Master>> GetForm22MastersAsync(string? search)
+            {
+                return await _form22Repository.GetForm22MastersAsync(search);
+        }
+        public  async Task<Form22Master> GetForm22MasterByIdAsync(int id)
         {
-            return await _itemMasterRepo.GetAllItemsAsync(grpidno,search);
+            return await _form22Repository.GetForm22MasterByIdAsync(id);
         }
 
-        // update itemservice to the database
-
-        public async Task UpdateItemAsync(ItemMaster item)
+        public async Task<Form22Master> UpdateForm22MasterAsync(Form22Master form22Master)
         {
-            await _itemMasterRepo.UpdateItemAsync(item);
+                return await _form22Repository.UpdateForm22MasterAsync(form22Master);
         }
 
-        public async Task<byte[]> DownloadItemMasterExcel()
+        public async Task<byte[]> DownloadForm22MasterExcel()
         {
             try
             {
-                var data = await _itemMasterRepo.GetAllExcelItemsAsync();
+                var data = await _form22Repository.GetForm22MastersAsync(null);
 
                 // Get all DTO properties for columns
-                var properties = typeof(ItemMaster)
+                var properties = typeof(Form22MasterViewModel)
                     .GetProperties()
                     .ToList();
 
@@ -87,5 +85,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
                 throw;
             }
         }
+
+
     }
 }

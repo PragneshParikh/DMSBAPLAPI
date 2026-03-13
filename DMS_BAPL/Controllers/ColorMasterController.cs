@@ -4,7 +4,6 @@ using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Utils.ViewModels;
-using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

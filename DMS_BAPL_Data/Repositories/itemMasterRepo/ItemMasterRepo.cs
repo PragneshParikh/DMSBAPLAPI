@@ -25,17 +25,38 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         }
 
         //Get all items from the database
-        public async Task<List<ItemMaster>> GetAllItemsAsync(int ? grpidno)
+        public async Task<List<ItemMaster>> GetAllItemsAsync(int? grpidno, string? search)
         {
             var query = _context.ItemMasters.AsQueryable();
 
+            // Filter by Group Id
             if (grpidno.HasValue)
             {
                 query = query.Where(i => i.Grpidno == grpidno.Value);
             }
+
+            // Search in multiple columns
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(i =>
+                    i.Itemname.Contains(search) ||
+                    i.Itemcode.Contains(search) ||
+                    i.Itemdesc.Contains(search) ||
+                    i.Hsncode.Contains(search)  ||
+                    i.Oemmodelname.Contains(search)||
+                    i.Displayname.Contains(search)
+
+
+                );
+            }
+
             return await query.ToListAsync();
         }
 
+        public async Task<List<ItemMaster>> GetAllExcelItemsAsync()
+        {
+            return await _context.ItemMasters.ToListAsync();
+        }
         //update data particular on Item ID
         public async Task UpdateItemAsync(ItemMaster item)
         {

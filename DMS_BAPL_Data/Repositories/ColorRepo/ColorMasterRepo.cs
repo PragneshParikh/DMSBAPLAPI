@@ -2,7 +2,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DMS_BAPL_Data.Services.ColorMasterService;
-using DMS_BAPL_Data.ViewModels;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;

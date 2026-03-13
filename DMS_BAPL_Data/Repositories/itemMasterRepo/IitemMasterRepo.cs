@@ -12,8 +12,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
     {
         
             Task InsertItemAsync(ItemMaster item);
-            Task<List<ItemMaster>> GetAllItemsAsync(int ? grpidno);
+            Task<List<ItemMaster>> GetAllItemsAsync(int? grpidno, string? search);
+            Task<List<ItemMaster>> GetAllExcelItemsAsync();
             Task UpdateItemAsync(ItemMaster item);
-
     }
 }

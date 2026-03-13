@@ -1,6 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
-using DMS_BAPL_Data.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System;
@@ -9,6 +8,8 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.ViewModels;
 
 namespace DMS_BAPL_Data.Repositories.LeadMasterRep
 {

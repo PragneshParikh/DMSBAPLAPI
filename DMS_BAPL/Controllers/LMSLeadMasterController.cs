@@ -2,7 +2,7 @@
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
-using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
@@ -21,7 +21,7 @@ namespace DMS_BAPL_Api.Controllers
 
         // POST api/itemMaster
         [HttpPost]
-        public async Task<IActionResult> InsertLMSLead([FromBody] List<LeadViewModel> leadViewModels )
+        public async Task<IActionResult> InsertLMSLead([FromBody] List<LeadViewModel> leadViewModels)
         {
             foreach (var lmsLeadData in leadViewModels)
             {

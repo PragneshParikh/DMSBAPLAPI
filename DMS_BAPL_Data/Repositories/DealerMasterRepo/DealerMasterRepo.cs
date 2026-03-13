@@ -24,7 +24,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         {
             DateTime parsedRegDate;
 
-            
+
 
             var newDealer = new DealerMaster
             {
@@ -124,7 +124,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             if (existingDealer == null)
                 return null;
-           
+
 
             existingDealer.Compname = dealerDto.Compname;
             existingDealer.Compcode = dealerDto.Compcode;
@@ -218,5 +218,5 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             throw new Exception($"Invalid registration date format: {regDate}");
         }
     }
-    }
+}
 
