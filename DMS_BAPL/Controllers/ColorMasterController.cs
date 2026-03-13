@@ -4,6 +4,7 @@ using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing;
@@ -21,30 +22,78 @@ namespace DMS_BAPL_Api.Controllers
             _colorMasterService = colorMasterService;
         }
 
+
         /// <summary>
-        /// Get the list of colors
+        /// Retrieves the full list of colors.
         /// </summary>
-        /// <returns></returns>
+        /// <remarks>
+        /// This endpoint returns all colors available in the system for the authenticated user.
+        /// If no colors are found, it returns a 204 No Content response.
+        /// </remarks>
+        /// <returns>
+        /// Returns an <see cref="IEnumerable{ColorMaster}"/> containing the list of colors.
+        /// </returns>
         [HttpGet]
-        public async Task<ActionResult> GetColors()
+        [ProducesResponseType(typeof(IEnumerable<ColorMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ColorMaster>>> GetColors()
         {
-            List<ColorMaster>? colors = null;
             try
             {
-                colors = await _colorMasterService.GetColors();
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-                if (colors is null)
-                    return NoContent();
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var colors = await _colorMasterService.GetColors();
+
+                return Ok(colors);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error.");
+            }
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of colors along with the total count.
+        /// </summary>
+        /// <param name="searchTerm">Optional search string to filter colors by name.</param>
+        /// <param name="pageIndex">Page number (starting from 1).</param>
+        /// <param name="pageSize">Number of items per page.</param>
+        /// <returns>A <see cref="PagedResponse{ColorMaster}"/> containing the list of colors and total count.</returns>
+        [HttpGet("paged")]
+        [ProducesResponseType(typeof(PagedResponse<ColorMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> GetColorByPaged([FromQuery] string? searchTerm, [FromQuery] int pageIndex, [FromQuery] int pageSize)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var colors = await _colorMasterService.getColorsByPaged(searchTerm, pageIndex, pageSize);
+
+                return Ok(colors);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-
-            return Ok(colors);
         }
 
+        /// <summary>
+        /// Add new color into the table
+        /// This prevent from adding duplicate color and the field name is "colorname"
+        /// </summary>
+        /// <param name="colorMasterViewModel"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult> InsertColor(ColorMasterViewModel colorMasterViewModel)
         {

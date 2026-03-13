@@ -1,0 +1,75 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace DMS_BAPL_Data.Middleware
+{
+    public class AuthorizationMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly string _secretKey;
+
+        public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration)
+        {
+            _next = next;
+            _secretKey = configuration["Jwt:Key"]
+                 ?? throw new ArgumentNullException("Jwt:Key missing in configuration"); ;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+
+            if (context.Request.Path.StartsWithSegments("/api/auth"))
+            {
+                await _next(context);
+                return;
+            }
+
+            if (!context.Request.Headers.TryGetValue("Authorization", out StringValues authHeader))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Authorization header missing");
+                return;
+            }
+
+            var token = authHeader.ToString().Replace("Bearer ", "");
+
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.UTF8.GetBytes(_secretKey);
+
+                var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = "DMS_BAPL_Api",
+                    ValidAudience = "DMS_BAPL_Angular",
+                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                }, out SecurityToken validatedToken);
+
+                // Extract user ID from claim
+                var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ??
+                                  principal.FindFirst("userId"); // fallback if custom claim
+                var userId = userIdClaim?.Value;
+
+                // You can now attach it to HttpContext for later use
+                context.Items["UserId"] = userId;
+
+                // Token is valid, proceed
+                await _next(context);
+            }
+            catch
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Invalid or expired token");
+            }
+        }
+    }
+}

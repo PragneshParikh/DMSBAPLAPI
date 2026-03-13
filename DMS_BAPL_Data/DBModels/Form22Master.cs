@@ -25,5 +25,7 @@ public partial class Form22Master
 
     public int? OemmodelId { get; set; }
 
+    public bool? Isactive { get; set; }
+
     public virtual OemmodelMaster? Oemmodel { get; set; }
 }

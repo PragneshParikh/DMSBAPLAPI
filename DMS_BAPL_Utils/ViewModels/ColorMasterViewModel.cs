@@ -8,6 +8,7 @@ namespace DMS_BAPL_Data.ViewModels
 {
     public class ColorMasterViewModel
     {
+        public int SrNo { get; set; }
         public int rrgcoloridno { get; set; }
         public string? colorname { get; set; } = null!;
         public string? colorcode { get; set; } = null!;

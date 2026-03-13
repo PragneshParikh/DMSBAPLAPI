@@ -10,8 +10,8 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRepo
 {
     public interface ILeadMasterRepo
     {
-        Task <LeadViewModel>InsertLmsleadAsync(LeadViewModel leadViewModel);
+        Task<LeadViewModel> InsertLmsleadAsync(LeadViewModel leadViewModel);
         Task<List<LmsleadMaster>> GetAlllmsleadMasters();
-       
+
     }
 }

@@ -43,6 +43,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<LocationMaster> LocationMasters { get; set; }
 
+    public virtual DbSet<MenuMaster> MenuMasters { get; set; }
+
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -610,6 +612,35 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("state");
             entity.Property(e => e.UpdateBy).HasColumnName("updateBy");
+            entity.Property(e => e.UpdatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("updatedDate");
+        });
+
+        modelBuilder.Entity<MenuMaster>(entity =>
+        {
+            entity.ToTable("MenuMaster");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("createdDate");
+            entity.Property(e => e.MenuName)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("menuName");
+            entity.Property(e => e.ModuleName)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("moduleName");
+            entity.Property(e => e.ParentMenuId).HasColumnName("parentMenuId");
+            entity.Property(e => e.PathName)
+                .HasMaxLength(1000)
+                .IsUnicode(false)
+                .HasColumnName("pathName");
+            entity.Property(e => e.SerialNo).HasColumnName("serialNo");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("updatedDate");

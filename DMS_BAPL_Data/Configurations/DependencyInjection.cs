@@ -6,6 +6,7 @@ using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
+using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
@@ -13,6 +14,7 @@ using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
+using DMS_BAPL_Data.Services.MenuMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -30,6 +32,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDealerMasterRepo, DealerMasterRepo>();
             services.AddScoped<IColorMasterRepo, ColorMasterRepo>();
             services.AddScoped<IAPITrackingRepo, APITrackingRepo>();
+            services.AddScoped<IMenuRepo, MenuRepo>();
 
             #endregion
 
@@ -42,6 +45,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IColorMasterService, ColorMasterService>();
             services.AddScoped<IAPITrackingService, APITrackingService>();
             services.AddScoped<IExcelService, ExcelService>();
+            services.AddScoped<IMenuService, MenuService>();
 
             #endregion
 

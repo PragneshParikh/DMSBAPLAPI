@@ -1,5 +1,9 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.ViewModels;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +28,57 @@ namespace DMS_BAPL_Data.Repositories.Color
                 var color = _context.ColorMasters.OrderBy(c => c.Colorname).ToList();
 
                 return Task.FromResult(color);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize)
+        {
+            try
+            {
+                var query = _context.ColorMasters.AsNoTracking();
+
+                // 1. Apply Search Filter if searchTerms is provided
+                if (!string.IsNullOrWhiteSpace(searchTerms))
+                {
+                    // Update these property names to match your actual database columns
+                    query = query.Where(c => c.Colorname.Contains(searchTerms) ||
+                                             c.Colorcode.Contains(searchTerms));
+                }
+
+                // 2. Get total count AFTER filtering, but BEFORE paging
+                int totalRecords = await query.CountAsync();
+
+                // 3. Get paged data
+                var items = await query
+                    .OrderBy(c => c.Rrgcoloridno)
+                    .Skip(pageIndex * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                // Calculate starting serial number
+                int startSrNo = (pageIndex * pageSize) + 1;
+
+                var viewModelItems = items.Select((item, index) => new ColorMaster
+                {
+                    Id = startSrNo + index,
+                    Rrgcoloridno = item.Rrgcoloridno,
+                    Colorname = item.Colorname,
+                    Colorcode = item.Colorcode,
+                    CreatedBy = item.CreatedBy,
+                    CreatedDate = item.CreatedDate,
+                    UpdatedBy = item.UpdatedBy,
+                    UpdatedDate = item.UpdatedDate
+                }).ToList();
+
+                return new PagedResponse<ColorMaster>
+                {
+                    Data = viewModelItems,
+                    TotalRecords = totalRecords
+                };
             }
             catch (Exception)
             {
@@ -62,8 +117,19 @@ namespace DMS_BAPL_Data.Repositories.Color
                     updateddatetime = colorMaster.UpdatedDate
                 };
             }
-            catch (Exception)
+            catch (DbUpdateException ex)
             {
+                // Access the SQL-specific exception
+                if (ex.InnerException is SqlException sqlEx)
+                {
+                    int errorCode = sqlEx.Number;
+
+                    if (errorCode == 2601 || errorCode == 2627)
+                    {
+                        // Handle duplicate logic here
+                        return null;
+                    }
+                }
                 throw;
             }
         }

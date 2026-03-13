@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.ViewModels;
 using System;
@@ -12,7 +13,7 @@ namespace DMS_BAPL_Data.Services.ColorMasterService
     public interface IColorMasterService
     {
         Task<List<ColorMaster>> GetColors();
-
+        Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize);
         Task<ColorMasterViewModel> CreateColor(ColorMasterViewModel colorMasterViewModel);
 
     }

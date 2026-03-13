@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.ViewModels;
@@ -20,32 +21,10 @@ namespace DMS_BAPL_Data.Services.ColorMasterService
             _colorMasterRepo = colorMasterRepo;
         }
 
-        Task<List<ColorMaster>> IColorMasterService.GetColors()
-        {
-            try
-            {
+        Task<List<ColorMaster>> IColorMasterService.GetColors() => _colorMasterRepo.GetColors();
 
-                return _colorMasterRepo.GetColors();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+        Task<PagedResponse<ColorMaster>> IColorMasterService.getColorsByPaged(string? searchTerms, int pageIndex, int pageSize) => _colorMasterRepo.getColorsByPaged(searchTerms, pageIndex, pageSize);
 
-        async Task<ColorMasterViewModel> IColorMasterService.CreateColor(ColorMasterViewModel colorMasterViewModel)
-        {
-            try
-            {
-
-                return await _colorMasterRepo.CreateColor(colorMasterViewModel);
-
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
+        async Task<ColorMasterViewModel> IColorMasterService.CreateColor(ColorMasterViewModel colorMasterViewModel) => await _colorMasterRepo.CreateColor(colorMasterViewModel);
     }
 }
