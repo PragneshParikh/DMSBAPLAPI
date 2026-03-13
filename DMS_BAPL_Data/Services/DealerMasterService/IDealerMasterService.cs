@@ -1,5 +1,4 @@
 ﻿using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -11,10 +10,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 {
     public interface IDealerMasterService
     {
-        Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer);
+        Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer);
         Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
-        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealer);
+        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer);
         Task<byte[]> DownloadDealerExcel();
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
 

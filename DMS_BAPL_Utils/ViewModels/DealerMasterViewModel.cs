@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
-    public class DealerMasterDto
+    public class DealerMasterViewModel
     {
         public string Compname { get; set; } = null!;
 
@@ -24,7 +25,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Pan { get; set; } = null!;
 
-        public string PhoneOff { get; set; } = null!;
+        public string? PhoneOff { get; set; } = null!;
 
         public string Mobile { get; set; } = null!;
 
@@ -32,11 +33,12 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Contactperson { get; set; } = null!;
 
-        public DateTime RegDate { get; set; }
+        [JsonPropertyName("reg_date")]
+        public string RegDate { get; set; } = null!;
 
-        public string TradCert { get; set; } = null!;
+        public string? TradCert { get; set; } = null!;
 
-        public string CompgstinNo { get; set; } = null!;
+        public string? CompgstinNo { get; set; } = null!;
 
         public string? BrandName { get; set; }
 

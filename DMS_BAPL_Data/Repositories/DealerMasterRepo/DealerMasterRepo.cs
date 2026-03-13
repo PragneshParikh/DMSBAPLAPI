@@ -1,9 +1,9 @@
 ﻿using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,8 +20,12 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         }
 
 
-        public async Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer)
+        public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
         {
+            DateTime parsedRegDate;
+
+            
+
             var newDealer = new DealerMaster
             {
                 Compname = dealer.Compname,
@@ -32,13 +36,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 State = dealer.State,
                 Pin = dealer.Pin,
                 Pan = dealer.Pan,
-                PhoneOff = dealer.PhoneOff,
+                PhoneOff = dealer.PhoneOff ?? "",
                 Mobile = dealer.Mobile,
                 Email = dealer.Email,
                 Contactperson = dealer.Contactperson,
-                RegDate = dealer.RegDate,
-                TradCert = dealer.TradCert,
-                CompgstinNo = dealer.CompgstinNo,
+                RegDate = ParseRegDate(dealer.RegDate),
+                TradCert = dealer.TradCert ?? "",
+                CompgstinNo = dealer.CompgstinNo ?? "",
                 BrandName = dealer.BrandName,
                 CompImage = dealer.CompImage,
                 Dealercode = dealer.Dealercode,
@@ -95,7 +99,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     // Date search
                     d.RegDate.ToString().Contains(search)
 
-                    //For future implementation if needed.
+                //For future implementation if needed.
                 //EF.Functions.Like(d.TradCert, $"%{search}%") || 
                 //EF.Functions.Like(d.BrandName!, $"%{search}%") ||
                 //EF.Functions.Like(d.CinNo!, $"%{search}%") ||
@@ -114,13 +118,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
 
 
-        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealerDto)
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto)
         {
             var existingDealer = await _context.DealerMasters.FindAsync(id);
 
             if (existingDealer == null)
                 return null;
-
+           
 
             existingDealer.Compname = dealerDto.Compname;
             existingDealer.Compcode = dealerDto.Compcode;
@@ -130,13 +134,14 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.State = dealerDto.State;
             existingDealer.Pin = dealerDto.Pin;
             existingDealer.Pan = dealerDto.Pan;
-            existingDealer.PhoneOff = dealerDto.PhoneOff;
+            existingDealer.PhoneOff = dealerDto.PhoneOff ?? "";
             existingDealer.Mobile = dealerDto.Mobile;
             existingDealer.Email = dealerDto.Email;
             existingDealer.Contactperson = dealerDto.Contactperson;
-            existingDealer.RegDate = dealerDto.RegDate;
-            existingDealer.TradCert = dealerDto.TradCert;
-            existingDealer.CompgstinNo = dealerDto.CompgstinNo;
+            existingDealer.RegDate = ParseRegDate(dealerDto.RegDate);
+
+            existingDealer.TradCert = dealerDto.TradCert ?? "";
+            existingDealer.CompgstinNo = dealerDto.CompgstinNo ?? "";
             existingDealer.BrandName = dealerDto.BrandName;
             existingDealer.CompImage = dealerDto.CompImage;
             existingDealer.Dealercode = dealerDto.Dealercode;
@@ -177,6 +182,41 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             return result;
         }
+
+        //    private DateTime ParseRegDate(string regDate)
+        //    {
+        //        string[] formats =
+        //        {
+        //    "dd/MM/yyyy hh:mm:ss tt",
+        //    "dd/MM/yyyy hh:mm:sstt",
+        //    "dd/MM/yyyy HH:mm:ss",
+        //    "dd/MM/yyyy hh:mm tt"
+        //};
+
+        //        if (!DateTime.TryParseExact(
+        //                regDate,
+        //                formats,
+        //                CultureInfo.InvariantCulture,
+        //                DateTimeStyles.None,
+        //                out DateTime parsedDate))
+        //        {
+        //            throw new Exception($"Invalid registration date format: {regDate}");
+        //        }
+
+        //        return parsedDate;
+        //    }
+        //}
+        private DateTime ParseRegDate(string regDate)
+        {
+            var culture = new CultureInfo("en-IN");
+
+            if (DateTime.TryParse(regDate, culture, DateTimeStyles.None, out DateTime parsedDate))
+            {
+                return parsedDate;
+            }
+
+            throw new Exception($"Invalid registration date format: {regDate}");
+        }
     }
-}
+    }
 

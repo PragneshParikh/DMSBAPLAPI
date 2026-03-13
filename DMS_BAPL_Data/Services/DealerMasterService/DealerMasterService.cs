@@ -2,7 +2,6 @@
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
-using DMS_BAPL_Data.ViewModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         }
 
 
-        public async Task<DealerMaster> AddDealerAsync(DealerMasterDto dealer)
+        public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
         {
             return await _dealerMasterRepo.AddDealerAsync(dealer);
         }
@@ -40,7 +39,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             return await _dealerMasterRepo.GetDealerById(id);
         }
 
-        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterDto dealer)
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer)
         {
             return await _dealerMasterRepo.UpdateDealerAsync(id, dealer);
         }
@@ -53,7 +52,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                 var data = await _dealerMasterRepo.GetAllDealersAsync(null);
 
                 // Get all DTO properties for columns
-                var properties = typeof(DealerMasterDto)
+                var properties = typeof(DealerMasterViewModel)
                     .GetProperties()
                     .ToList();
 

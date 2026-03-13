@@ -2,7 +2,7 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
-using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

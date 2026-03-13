@@ -18,7 +18,9 @@ namespace DMS_BAPL_Utils.Constants
 
         // Excel Constants
         public const string DealerExcelSheetName = "Dealer List";
+        public const string BatteryCapacityMasterExcelSheetName = "Battery Capacity Master List";
         public const string DealerExcelFileName = "DealerList.xlsx";
+        public const string BatteryCapacityMasterName = "BatteryCapacityMaster.xlsx";
         public const string SlNo = "SL No";
 
         // Audit Fields (Exclude from Excel)
@@ -30,5 +32,10 @@ namespace DMS_BAPL_Utils.Constants
         public const string ModifiedDate = "ModifiedDate";
         public const string DeletedBy = "DeletedBy";
         public const string DeletedDate = "DeletedDate";
+
+        //
+        public const string BatteryCapacityMasterCreated ="Battery Capacity Master created successfully.";
+        public const string BatteryCapacityMasterUpdateFailed ="Battery Capacity Master Update failed.";
+        public const string BatteryCapacityMasterUpdated = "Battery Capacity Master Updated successfully.";
     }
 }

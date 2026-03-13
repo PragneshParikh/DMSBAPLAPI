@@ -20,7 +20,7 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreateDealer([FromBody] DealerMasterDto dealer)
+        public async Task<IActionResult> CreateDealer([FromBody] DealerMasterViewModel dealer)
         {
             var result = await _dealerMasterService.AddDealerAsync(dealer);
 
@@ -36,15 +36,10 @@ namespace DMS_BAPL_Api.Controllers
         {
             var dealers = await _dealerMasterService.GetAllDealersAsync(search);
 
-            if (dealers == null || dealers.Count == 0)
-            {
-                return NotFound(StringConstants.DealerNotFound);
-            }
-
             return Ok(new
             {
                 message = StringConstants.DealerFetched,
-                data = dealers
+                data = dealers ?? new List<DealerMaster>()
             });
         }
 
@@ -66,7 +61,7 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPut("update/{id}")]
-        public async Task<IActionResult> UpdateDealer(int id, [FromBody] DealerMasterDto dealer)
+        public async Task<IActionResult> UpdateDealer(int id, [FromBody] DealerMasterViewModel dealer)
         {
             var result = await _dealerMasterService.UpdateDealerAsync(id, dealer);
 
