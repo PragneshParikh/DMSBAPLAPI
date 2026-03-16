@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.APITrackingService;
+using DMS_BAPL_Data.Services.itemMasterService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +50,18 @@ namespace DMS_BAPL_Api.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet("DownloadExcel")]
+        public async Task<IActionResult> DownloadOEMModelExcel()
+        {
+            var fileBytes = await _apiTrackingService.DownloadAPIExcel();
+
+            return File(
+                fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "APIExcel.xlsx"
+            );
         }
     }
 }

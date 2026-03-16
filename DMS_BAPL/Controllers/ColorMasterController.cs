@@ -3,8 +3,9 @@ using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.ColorMasterService;
-using DMS_BAPL_Utils.ViewModels;
+using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing;
@@ -149,6 +150,18 @@ namespace DMS_BAPL_Api.Controllers
                 Console.WriteLine(ex);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpGet("downloadColorExcel")]
+        public async Task<IActionResult> DownloadOEMModelExcel()
+        {
+            var fileBytes = await _colorMasterService.downloadColorExcel();
+
+            return File(
+                fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "ColorMasterExcel.xlsx"
+            );
         }
     }
 }

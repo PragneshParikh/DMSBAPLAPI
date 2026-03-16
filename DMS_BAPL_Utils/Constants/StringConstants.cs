@@ -18,6 +18,8 @@ namespace DMS_BAPL_Utils.Constants
 
         // Excel Constants
         public const string DealerExcelSheetName = "Dealer List";
+        public const string ColorExcelSheet = "Color List";
+        public const string APIExcelSheetName = "API List";
         public const string BatteryCapacityMasterExcelSheetName = "Battery Capacity Master List";
         public const string DealerExcelFileName = "DealerList.xlsx";
         public const string BatteryCapacityMasterName = "BatteryCapacityMaster.xlsx";
