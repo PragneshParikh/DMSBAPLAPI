@@ -15,6 +15,8 @@ public partial class BapldmsvadContext : DbContext
     {
     }
 
+    public virtual DbSet<AggregateTaxCode> AggregateTaxCodes { get; set; }
+
     public virtual DbSet<Apitracking> Apitrackings { get; set; }
 
     public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
@@ -37,6 +39,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
+    public virtual DbSet<HsncodeMaster> HsncodeMasters { get; set; }
+
+    public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
+
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
     public virtual DbSet<LmsleadMaster> LmsleadMasters { get; set; }
@@ -47,12 +53,38 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
+    public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AggregateTaxCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Aggregat__3214EC07F8C7B74F");
+
+            entity.ToTable("AggregateTaxCode");
+
+            entity.Property(e => e.AtaxCode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("ATaxCode");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Description)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 0)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<Apitracking>(entity =>
         {
             entity.ToTable("APITracking");
@@ -329,6 +361,61 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_Form22Master_OEMModelMaster");
         });
 
+        modelBuilder.Entity<HsncodeMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__HSNCodeM__3214EC07751AF33E");
+
+            entity.ToTable("HSNCodeMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Description)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.Hsncode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("HSNCode");
+            entity.Property(e => e.Type)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<HsnwiseTaxCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__HSNWiseT__3214EC07CF7F1937");
+
+            entity.ToTable("HSNWiseTaxCode");
+
+            entity.Property(e => e.AtaxCode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("ATaxCode");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.Hsncode)
+                .HasMaxLength(250)
+                .IsUnicode(false)
+                .HasColumnName("HSNCode");
+            entity.Property(e => e.StateFlag)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<ItemMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__ItemMast__3213E83FA7C38EFE");
@@ -374,6 +461,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("hsncode");
+            entity.Property(e => e.HsncodeId).HasColumnName("HSNCodeId");
             entity.Property(e => e.Igst)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("igst");
@@ -417,6 +505,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
             entity.Property(e => e.Vehtype).HasColumnName("vehtype");
+
+            entity.HasOne(d => d.HsncodeNavigation).WithMany(p => p.ItemMasters)
+                .HasForeignKey(d => d.HsncodeId)
+                .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
         });
 
         modelBuilder.Entity<LmsleadMaster>(entity =>
@@ -658,6 +750,30 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModelName).HasMaxLength(150);
             entity.Property(e => e.ModelShortName).HasMaxLength(150);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<TaxCodeMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__TaxCodeM__3214EC0754AFA1A1");
+
+            entity.ToTable("TaxCodeMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Description)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.TaxCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 

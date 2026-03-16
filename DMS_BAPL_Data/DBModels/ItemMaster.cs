@@ -68,4 +68,8 @@ public partial class ItemMaster
     public string UpdatedBy { get; set; } = null!;
 
     public DateTime UpdatedDate { get; set; }
+
+    public int? HsncodeId { get; set; }
+
+    public virtual HsncodeMaster? HsncodeNavigation { get; set; }
 }
