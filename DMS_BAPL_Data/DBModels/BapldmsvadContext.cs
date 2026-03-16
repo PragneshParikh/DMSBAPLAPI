@@ -78,6 +78,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(250)
                 .IsUnicode(false);
+            entity.Property(e => e.TaxCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 0)");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)

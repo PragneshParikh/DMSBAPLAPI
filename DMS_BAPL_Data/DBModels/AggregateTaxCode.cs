@@ -13,7 +13,7 @@ public partial class AggregateTaxCode
 
     public int SrNo { get; set; }
 
-    public int TaxCode { get; set; }
+    public string? TaxCode { get; set; }
 
     public decimal TaxRate { get; set; }
 
