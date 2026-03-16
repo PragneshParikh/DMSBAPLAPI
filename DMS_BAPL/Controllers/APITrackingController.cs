@@ -3,6 +3,7 @@ using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.itemMasterService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/api-tracking")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin")]
     public class APITrackingController : ControllerBase
     {
         private readonly IAPITrackingService _apiTrackingService;

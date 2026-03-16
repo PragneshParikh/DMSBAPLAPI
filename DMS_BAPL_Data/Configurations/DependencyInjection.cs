@@ -14,6 +14,7 @@ using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.itemMasterService;
@@ -56,8 +57,11 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IExcelService, ExcelService>();
             services.AddScoped<IForm22Service, Form22Service>();
             services.AddScoped<IMenuService, MenuService>();
-            services.AddScoped<IBatteryCapacityMasterService,BatteryCapacityMasterService>();
+            services.AddScoped<IBatteryCapacityMasterService, BatteryCapacityMasterService>();
             services.AddScoped<IOEMModelMasterService, OEMModelMasterService>();
+
+            // Email SErvice
+            services.AddScoped<IEmailService, EmailService>();
 
             #endregion
 

@@ -6,14 +6,18 @@ using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Drawing;
 
 namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/color")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin, User")]
     public class ColorMasterController : ControllerBase
     {
         private readonly IColorMasterService _colorMasterService;
