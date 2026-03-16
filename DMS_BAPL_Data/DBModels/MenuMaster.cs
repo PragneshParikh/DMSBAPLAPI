@@ -24,4 +24,6 @@ public partial class MenuMaster
     public int? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual ICollection<RoleWiseMenuRight> RoleWiseMenuRights { get; set; } = new List<RoleWiseMenuRight>();
 }

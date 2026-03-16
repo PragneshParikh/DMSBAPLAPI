@@ -28,43 +28,42 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                 var menus = await _menuRepo.GetMenuItems();
 
                 var parentMenus = menus
-    .Where(x => x.ParentMenuId == null)
-    .Select(parent =>
-    {
-        // Only build children; no isCollapsed for subitems
-        var children = menus
-            .Where(x => x.ParentMenuId == parent.Id)
-            .Select(child => new MenuMasterViewModel
-            {
-                id = child.Id,
-                label = child.MenuName,
-                link = child.PathName,
-                parentId = child.ParentMenuId,
-                module = child.ModuleName,
-                subItems = null // or [] if you prefer empty array for Angular
-            })
-            .ToList();
+                        .Where(x => x.ParentMenuId == null)
+                        .Select(parent =>
+                        {
+                            var children = menus
+                                .Where(x => x.ParentMenuId == parent.Id)
+                                .Select(child => new MenuMasterViewModel
+                                {
+                                    id = child.Id,
+                                    label = child.MenuName,
+                                    link = child.PathName,
+                                    parentId = child.ParentMenuId,
+                                    module = child.ModuleName,
+                                    subItems = null // or [] if you prefer empty array for Angular
+                                })
+                                .ToList();
 
-        return new MenuMasterViewModel
-        {
-            id = parent.Id,
-            label = parent.MenuName,
-            icon = "ri-dashboard-2-line",
-            isCollapsed = true, // only parent has this
-            subItems = children.Any() ? children : null
-        };
-    })
-    .ToList();
+                            return new MenuMasterViewModel
+                            {
+                                id = parent.Id,
+                                label = parent.MenuName,
+                                icon = "ri-dashboard-2-line",
+                                isCollapsed = true, // only parent has this
+                                subItems = children.Any() ? children : null
+                            };
+                        })
+                        .ToList();
 
                 var result = new List<MenuMasterViewModel>
-{
-    new MenuMasterViewModel
-    {
-        id = 1000,
-        label = "MENUITEMS.MENU.TEXT",
-        isTitle = true
-    }
-};
+                    {
+                        new MenuMasterViewModel
+                        {
+                            id = 1000,
+                            label = "MENUITEMS.MENU.TEXT",
+                            isTitle = true
+                        }
+                    };
 
                 result.AddRange(parentMenus);
 

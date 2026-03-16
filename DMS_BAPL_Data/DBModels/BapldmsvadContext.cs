@@ -53,6 +53,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
+    public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
+
     public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -754,6 +756,35 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ModelName).HasMaxLength(150);
             entity.Property(e => e.ModelShortName).HasMaxLength(150);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<RoleWiseMenuRight>(entity =>
+        {
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("createdDate");
+            entity.Property(e => e.RoleId).HasMaxLength(450);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("updatedDate");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.RoleWiseMenuRights)
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_User_RoleWiseMenuRights");
+
+            entity.HasOne(d => d.SubMenu).WithMany(p => p.RoleWiseMenuRights)
+                .HasForeignKey(d => d.SubMenuId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MenuMaster_RoleWiseMenuRights");
         });
 
         modelBuilder.Entity<TaxCodeMaster>(entity =>

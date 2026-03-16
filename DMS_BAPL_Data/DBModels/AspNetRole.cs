@@ -15,5 +15,7 @@ public partial class AspNetRole
 
     public virtual ICollection<AspNetRoleClaim> AspNetRoleClaims { get; set; } = new List<AspNetRoleClaim>();
 
+    public virtual ICollection<RoleWiseMenuRight> RoleWiseMenuRights { get; set; } = new List<RoleWiseMenuRight>();
+
     public virtual ICollection<AspNetUser> Users { get; set; } = new List<AspNetUser>();
 }
