@@ -93,7 +93,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                                 new MenuMasterViewModel
                                 {
                                     id = 1000,
-                                    label = "MENUITEMS.MENU.TEXT",
+                                    label = "MENU",
                                     isTitle = true
                                 }
                             };
