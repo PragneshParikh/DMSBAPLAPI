@@ -10,6 +10,8 @@ using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
+using DMS_BAPL_Data.Repositories.RoleRepo;
+using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.ColorMasterService;
@@ -22,6 +24,8 @@ using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
+using DMS_BAPL_Data.Services.RoleService;
+using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -43,6 +47,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IMenuRepo, MenuRepo>();
             services.AddScoped<IBatteryCapacityMasterRepo, BatteryCapacityMasterRepo>();
             services.AddScoped<IOEMModelMasterRepo, OEMModelMasterRepo>();
+            services.AddScoped<IRoleRepo, RoleRepo>();
+            services.AddScoped<IRoleWiseMenuRightRepo, RoleWiseMenuRightRepo>();
 
             #endregion
 
@@ -59,6 +65,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IMenuService, MenuService>();
             services.AddScoped<IBatteryCapacityMasterService, BatteryCapacityMasterService>();
             services.AddScoped<IOEMModelMasterService, OEMModelMasterService>();
+            services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<IRoleWiseMenuRightService, RoleWiseMenuRightService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
