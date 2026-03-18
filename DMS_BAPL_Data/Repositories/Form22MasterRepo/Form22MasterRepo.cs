@@ -80,7 +80,7 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
             return await _context.Form22Masters.FirstOrDefaultAsync(f => f.Id == id);
         }
 
-        public async Task<Form22Master> UpdateForm22MasterAsync(Form22Master form22Master)
+        public async Task<Form22Master> UpdateForm22MasterAsync(int id, Form22Master form22Master)
         {
             //particular one id find then update
             var existingForm22Master = await _context.Form22Masters

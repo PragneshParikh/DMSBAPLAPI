@@ -40,6 +40,16 @@ namespace DMS_BAPL_Utils.Constants
         public const string BatteryCapacityMasterUpdateFailed ="Battery Capacity Master Update failed.";
         public const string BatteryCapacityMasterUpdated = "Battery Capacity Master Updated successfully.";
 
+        // Form22Master
+        public const string Form22MasterCreated = "Form22Master created successfully.";
+        public const string Form22MasterFetched = "Form22Masters fetched successfully.";
+        public const string Form22MasterUpdated = "Form22Master updated successfully.";
+
+        // Aggregate Tax Code
+        public const string AggregateTaxCodeCreated = "Aggregate Tax Code created successfully.";
+        public const string AggregateTaxCodeFetched = "Aggregate Tax Codes fetched successfully.";
+        public const string AggregateTaxCodeUpdated = "Aggregate Tax Code updated successfully.";
+
         //HSNCode Related
         public const string HSNCodeCreatedSuccessfully = "HSN Code created successfully";
         public const string HSNCodeUpdatedSuccessfully = "HSN Code updated successfully";

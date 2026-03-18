@@ -35,9 +35,9 @@ namespace DMS_BAPL_Data.Services.Form22Services
             return await _form22Repository.GetForm22MasterByIdAsync(id);
         }
 
-        public async Task<Form22Master> UpdateForm22MasterAsync(Form22Master form22Master)
+        public async Task<Form22Master> UpdateForm22MasterAsync(int id, Form22Master form22Master)
         {
-                return await _form22Repository.UpdateForm22MasterAsync(form22Master);
+                return await _form22Repository.UpdateForm22MasterAsync(id, form22Master);
         }
 
         public async Task<byte[]> DownloadForm22MasterExcel()
