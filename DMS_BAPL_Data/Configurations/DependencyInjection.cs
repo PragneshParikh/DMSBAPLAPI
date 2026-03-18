@@ -13,6 +13,7 @@ using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
+using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.ColorMasterService;
@@ -28,6 +29,7 @@ using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
+using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -52,6 +54,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IRoleRepo, RoleRepo>();
             services.AddScoped<IRoleWiseMenuRightRepo, RoleWiseMenuRightRepo>();
             services.AddScoped<IHSNCodeMaterRepo, HSNCodeMaterRepo>();
+            services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
 
             #endregion
 
@@ -71,6 +74,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRoleWiseMenuRightService, RoleWiseMenuRightService>();
             services.AddScoped<IHSNCodeMaterService, HSNCodeMaterService>();
+            services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
