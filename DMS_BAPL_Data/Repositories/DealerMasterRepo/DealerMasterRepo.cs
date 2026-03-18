@@ -1,10 +1,12 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,9 +24,6 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
         public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
         {
-            DateTime parsedRegDate;
-
-
 
             var newDealer = new DealerMaster
             {
@@ -182,30 +181,6 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             return result;
         }
-
-        //    private DateTime ParseRegDate(string regDate)
-        //    {
-        //        string[] formats =
-        //        {
-        //    "dd/MM/yyyy hh:mm:ss tt",
-        //    "dd/MM/yyyy hh:mm:sstt",
-        //    "dd/MM/yyyy HH:mm:ss",
-        //    "dd/MM/yyyy hh:mm tt"
-        //};
-
-        //        if (!DateTime.TryParseExact(
-        //                regDate,
-        //                formats,
-        //                CultureInfo.InvariantCulture,
-        //                DateTimeStyles.None,
-        //                out DateTime parsedDate))
-        //        {
-        //            throw new Exception($"Invalid registration date format: {regDate}");
-        //        }
-
-        //        return parsedDate;
-        //    }
-        //}
         private DateTime ParseRegDate(string regDate)
         {
             var culture = new CultureInfo("en-IN");

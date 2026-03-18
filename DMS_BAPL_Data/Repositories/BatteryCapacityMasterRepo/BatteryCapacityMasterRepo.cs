@@ -25,7 +25,7 @@ namespace DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo
             var newBatteryCapacity = new BatteryCapacityMaster
             {
                 BatteryCapacity = batteryCapacityMaster.BatteryCapacity,
-                IsActive = true,
+                IsActive = batteryCapacityMaster.IsActive ?? true,
                 CreatedBy = 1,
                 CreatedDate = DateTime.Now
             };

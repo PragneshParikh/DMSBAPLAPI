@@ -13,6 +13,7 @@ namespace DMS_BAPL_Api.Controllers
     public class BatteryCapacityMasterController : ControllerBase
     {
         private readonly IBatteryCapacityMasterService _batteryCapacityMasterService;
+
         public BatteryCapacityMasterController(IBatteryCapacityMasterService batteryCapacityMasterService)
         {
             _batteryCapacityMasterService = batteryCapacityMasterService;

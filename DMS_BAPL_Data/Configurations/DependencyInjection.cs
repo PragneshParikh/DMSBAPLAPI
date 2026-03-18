@@ -4,6 +4,7 @@ using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
+using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
@@ -19,6 +20,7 @@ using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.Form22Services;
+using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
@@ -49,6 +51,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelMasterRepo, OEMModelMasterRepo>();
             services.AddScoped<IRoleRepo, RoleRepo>();
             services.AddScoped<IRoleWiseMenuRightRepo, RoleWiseMenuRightRepo>();
+            services.AddScoped<IHSNCodeMaterRepo, HSNCodeMaterRepo>();
 
             #endregion
 
@@ -67,6 +70,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelMasterService, OEMModelMasterService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRoleWiseMenuRightService, RoleWiseMenuRightService>();
+            services.AddScoped<IHSNCodeMaterService, HSNCodeMaterService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

@@ -35,9 +35,15 @@ namespace DMS_BAPL_Utils.Constants
         public const string DeletedBy = "DeletedBy";
         public const string DeletedDate = "DeletedDate";
 
-        //
+        //Battery Capacity Master related
         public const string BatteryCapacityMasterCreated ="Battery Capacity Master created successfully.";
         public const string BatteryCapacityMasterUpdateFailed ="Battery Capacity Master Update failed.";
         public const string BatteryCapacityMasterUpdated = "Battery Capacity Master Updated successfully.";
+
+        //HSNCode Related
+        public const string HSNCodeCreatedSuccessfully = "HSN Code created successfully";
+        public const string HSNCodeUpdatedSuccessfully = "HSN Code updated successfully";
+        public const string HSNCodeExcelSheetName = "HSN Code List";
+        public const string HSNCodeExists = "HSN Code already exists";
     }
 }
