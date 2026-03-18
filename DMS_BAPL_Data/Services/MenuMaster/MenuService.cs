@@ -52,16 +52,19 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                 var roleRights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
 
                 var allowedSubMenuIds = roleRights
+                                        .Where(x => x.Permission > 0)
                                         .Select(x => x.SubMenuId)
                                         .ToHashSet();
 
                 var parentMenus = menus
                     .Where(x => x.ParentMenuId == null)
+                    .OrderBy(x => x.MenuName)
                     .Select(parent =>
                     {
                         var children = menus
                             .Where(x => x.ParentMenuId == parent.Id
-                                     && allowedSubMenuIds.Contains(x.Id)) // ✅ filter هنا
+                                     && allowedSubMenuIds.Contains(x.Id))
+                            .OrderBy(x => x.MenuName)
                             .Select(child => new MenuMasterViewModel
                             {
                                 id = child.Id,
@@ -73,7 +76,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                             })
                             .ToList();
 
-                        if (!children.Any())
+                        if (!children.Any() && string.IsNullOrEmpty(parent.PathName))
                             return null;
 
                         return new MenuMasterViewModel
@@ -82,10 +85,11 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                             label = parent.MenuName,
                             icon = "ri-dashboard-2-line",
                             isCollapsed = true,
+                            link = parent.PathName,
                             subItems = children
                         };
                     })
-                    .Where(x => x != null) // ✅ remove null parents
+                    .Where(x => x != null)
                     .ToList();
 
                 var result = new List<MenuMasterViewModel>
@@ -102,7 +106,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
 
                 return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 throw;
             }
