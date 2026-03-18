@@ -21,14 +21,17 @@ namespace DMS_BAPL_Api.Controllers
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _env;
+
         public AuthController(UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager, IEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration, IWebHostEnvironment env)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _emailService = emailService;
+            _env = env;
         }
 
         [HttpPost]
@@ -67,24 +70,39 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPassword model)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
 
-            if (user == null)
-                return Ok();
+                if (user == null)
+                    return Ok();
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            var encodedToken = HttpUtility.UrlEncode(token);
+                var encodedToken = HttpUtility.UrlEncode(token);
 
-            var resetLink = $"http://localhost:4200/reset-password?email={model.Email}&token={encodedToken}";
+                string baseUrl = _env.IsDevelopment() ? "http://localhost:4200" : "https://yourdomain.com";
 
-            await _emailService.SendEmailAsync(model.Email,
-                "Reset Password",
-                $"Reset password by clicking here: {resetLink}");
+                var resetLink = $"{baseUrl}/reset-password?email={model.Email}&token={encodedToken}";
 
-            return Ok("Password reset link sent.");
+                var body = $@"
+                        <p>Click the link below to reset your password:</p>
+                        <p><a href='{resetLink}'>Reset Password</a></p>
+                    ";
+
+                await _emailService.SendEmailAsync(model.Email,
+                        "Reset Password",
+                    body);
+
+                return Ok(new { success = true, message = "Password reset link sent." });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { success = false, message = "An error occurred while sending the reset email." });
+            }
         }
 
         [HttpPost("reset-password")]
