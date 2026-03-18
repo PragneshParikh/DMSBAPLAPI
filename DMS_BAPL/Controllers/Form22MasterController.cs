@@ -1,4 +1,6 @@
-﻿using DMS_BAPL_Data.Services.Form22Services;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.Form22Services;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +14,7 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IForm22Service _form22Service;
 
+        string message = string.Empty;
         public Form22MasterController(IForm22Service form22Service)
         {
             _form22Service = form22Service;
@@ -40,23 +43,18 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(result);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateForm22Master(int id, [FromBody] Form22MasterViewModel form22MasterViewModel)
+        public async Task<IActionResult> UpdateForm22Master(int id, [FromBody] Form22Master form22MasterViewModel)
         {
-            var existingForm22Master = await _form22Service.GetForm22MasterByIdAsync(id);
+            var existingForm22Master = await _form22Service.UpdateForm22MasterAsync(id, form22MasterViewModel);
             if (existingForm22Master == null)
             {
                 return NotFound($"Form22Master with ID {id} not found.");
             }
-
-            // Update the existing Form22Master with new values
-            existingForm22Master.SoundLevelHorn = form22MasterViewModel.SoundLevelHorn;
-            existingForm22Master.PassbyNoiseLevel = form22MasterViewModel.PassbyNoiseLevel;
-            existingForm22Master.ApprovalCertificateNo = form22MasterViewModel.ApprovalCertificateNo;
-            existingForm22Master.CreatedBy = form22MasterViewModel.CreatedBy;
-            existingForm22Master.CreatedDate = DateTime.UtcNow;
-
-            var updatedForm22Master = await _form22Service.UpdateForm22MasterAsync(existingForm22Master);
-            return Ok("FORM22 Master details updated." + updatedForm22Master);
+            return Ok(new
+            {
+                Message = StringConstants.AggregateTaxCodeUpdated,
+                Data = existingForm22Master
+            });
 
 
         }

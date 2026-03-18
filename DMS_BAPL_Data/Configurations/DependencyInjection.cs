@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data;
+using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
 using DMS_BAPL_Data.Repositories.Color;
@@ -13,6 +14,7 @@ using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
+using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -53,6 +55,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelMasterRepo, OEMModelMasterRepo>();
             services.AddScoped<IRoleRepo, RoleRepo>();
             services.AddScoped<IRoleWiseMenuRightRepo, RoleWiseMenuRightRepo>();
+            services.AddScoped<IAgreetaxcodeRepo, AgreetaxcodeRepo>();
             services.AddScoped<IHSNCodeMaterRepo, HSNCodeMaterRepo>();
             services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
 
@@ -73,6 +76,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelMasterService, OEMModelMasterService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRoleWiseMenuRightService, RoleWiseMenuRightService>();
+            services.AddScoped<IAgreegateTaxcodeService, AgreegateTaxcodeService>();
             services.AddScoped<IHSNCodeMaterService, HSNCodeMaterService>();
             services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
 

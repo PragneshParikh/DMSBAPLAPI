@@ -17,6 +17,6 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
 
         Task<Form22Master> GetForm22MasterByIdAsync(int id);
 
-        Task<Form22Master> UpdateForm22MasterAsync(Form22Master form22Master);
+        Task<Form22Master> UpdateForm22MasterAsync(int id, Form22Master form22Master);
     }
 }
