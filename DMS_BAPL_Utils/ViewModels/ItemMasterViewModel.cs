@@ -8,7 +8,7 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class ItemMasterViewModel
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
         public int Itemtype { get; set; }
 
@@ -50,7 +50,64 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Colorcode { get; set; } = null!;
 
-        public string ColorName { get; set; } = null!;
+        public string? ColorName { get; set; } = null!;
+
+        public int Rrgitemidno { get; set; }
+
+        public int Itemcc { get; set; }
+
+        public int Batterytypeidno { get; set; }
+
+        public decimal Fame2amount { get; set; }
+
+        public string? Compcode { get; set; }
+
+        public string? Displayname { get; set; }
+
+        public string? Oemmodelname { get; set; }
+    }
+
+    public class insertItemMasterViewModel
+    {
+        public int Itemtype { get; set; }
+
+        public string Itemname { get; set; } = null!;
+
+        public string Itemcode { get; set; } = null!;
+
+        public string Itemdesc { get; set; } = null!;
+
+        public bool Status { get; set; }
+
+        public string Hsncode { get; set; } = null!;
+
+        public decimal Dlrprice { get; set; }
+
+        public decimal Custprice { get; set; }
+
+        public int Moq { get; set; }
+
+        public int Boq { get; set; }
+
+        public decimal Sgst { get; set; }
+
+        public decimal Cgst { get; set; }
+
+        public decimal Igst { get; set; }
+
+        public decimal Ugst { get; set; }
+
+        public int Grpidno { get; set; }
+
+        public decimal Ipurrate { get; set; }
+
+        public bool Iselectric { get; set; }
+
+        public int Vehtype { get; set; }
+
+        public int Noofbatteries { get; set; }
+
+        public string Colorcode { get; set; } = null!;
 
         public int Rrgitemidno { get; set; }
 
@@ -69,4 +126,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
     }
+
+
 }

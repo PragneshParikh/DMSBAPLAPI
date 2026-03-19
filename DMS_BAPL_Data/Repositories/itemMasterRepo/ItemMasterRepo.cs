@@ -20,12 +20,13 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         }
 
         // add new item to the database
-     async Task<ItemMasterViewModel> IitemMasterRepo.InsertItemAsync(ItemMasterViewModel item)
+        async Task<insertItemMasterViewModel> IitemMasterRepo.InsertItemAsync(insertItemMasterViewModel item, string userId)
         {
             try
             {
                 var itemMasterEntity = new ItemMaster
                 {
+                    Id = 0,
                     Itemtype = item.Itemtype,
                     Itemname = item.Itemname,
                     Itemcode = item.Itemcode,
@@ -53,7 +54,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     Compcode = item.Compcode,
                     Displayname = item.Displayname,
                     Oemmodelname = item.Oemmodelname,
-                    CreatedBy = "Kajal Tiwari",
+                    CreatedBy = userId,
                     CreatedDate = DateTime.UtcNow
                 };
                 _context.ItemMasters.Add(itemMasterEntity);
@@ -75,7 +76,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         from c in colorGroup.DefaultIfEmpty() // LEFT JOIN
                         select new ItemMasterViewModel
                         {
-                            Id = i.Id,
+
                             Itemtype = i.Itemtype,
                             Itemname = i.Itemname,
                             Itemcode = i.Itemcode,
@@ -101,7 +102,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                             Fame2amount = i.Fame2amount,
                             Compcode = i.Compcode,
                             Displayname = i.Displayname,
-                            Oemmodelname = i.Oemmodelname
+                            Oemmodelname = i.Oemmodelname,
                         };
 
             // Filter by Group Id

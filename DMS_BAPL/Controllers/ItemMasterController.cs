@@ -2,7 +2,9 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2016.Drawing.Command;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
@@ -20,11 +22,16 @@ namespace DMS_BAPL_Api.Controllers
 
         // POST api/itemMaster
         [HttpPost]
-        public async Task<IActionResult> InsertItem([FromBody] ItemMasterViewModel items)
+        public async Task<IActionResult> InsertItem([FromBody] insertItemMasterViewModel items)
         {
             try
             {
-                var result = await _itemMasterService.InsertItemAsync(items);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not found");
+
+                var result = await _itemMasterService.InsertItemAsync(items, userId);
                 return Ok(new
                 {
 

@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
     public interface IitemMasterService
     {
 
-        Task<ItemMasterViewModel> InsertItemAsync(ItemMasterViewModel item);
+        Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId);
         Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search);
 
         Task UpdateItemAsync(ItemMaster item);

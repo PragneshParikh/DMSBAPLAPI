@@ -3,6 +3,7 @@ using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Packaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,15 +25,15 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         }
 
         // add  itemserice to the database
-        
-        public async Task<ItemMasterViewModel> InsertItemAsync(ItemMasterViewModel item)
+
+        public async Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId)
         {
-            return await _itemMasterRepo.InsertItemAsync(item);
+            return await _itemMasterRepo.InsertItemAsync(item, userId);
         }
         // get all itemservice from the database
-        public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int ? grpidno, string? search)
+        public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search)
         {
-            return await _itemMasterRepo.GetAllItemsAsync(grpidno,search);
+            return await _itemMasterRepo.GetAllItemsAsync(grpidno, search);
         }
 
         // update itemservice to the database
