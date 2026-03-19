@@ -55,5 +55,8 @@ namespace DMS_BAPL_Utils.Constants
         public const string HSNCodeUpdatedSuccessfully = "HSN Code updated successfully";
         public const string HSNCodeExcelSheetName = "HSN Code List";
         public const string HSNCodeExists = "HSN Code already exists";
+
+        //HSNWiseTaxCode Related
+        public const string HSNWiseTaxCodeCreatedSuccessfully = "HSN-wise Tax Code created successfully";
     }
 }

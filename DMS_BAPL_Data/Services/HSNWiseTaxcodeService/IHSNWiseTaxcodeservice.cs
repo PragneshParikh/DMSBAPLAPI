@@ -6,16 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo
+namespace DMS_BAPL_Data.Services.HSNWiseTaxcodeService
 {
-    public interface IHSNWiseTaxcodeRepo
+    public interface IHSNWiseTaxcodeservice
     {
         Task<List<HSNCodeList>> GetHsncodeList();
-
         Task<List<AggregateTaxCode>> GetAggregateTaxCodeList();
-
         Task<HsnwiseTaxCodeViewModel> InsertHsnwiseTaxcodedetails(HsnwiseTaxCodeViewModel hsnwiseTaxCodeViewModel);
-
         Task<List<HsnwiseTaxCode>> GetHsnwiseTaxcodedetails(string? search);
     }
 }

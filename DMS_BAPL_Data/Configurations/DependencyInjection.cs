@@ -33,6 +33,8 @@ using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using Microsoft.Extensions.DependencyInjection;
+using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
+using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -58,6 +60,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IAgreetaxcodeRepo, AgreetaxcodeRepo>();
             services.AddScoped<IHSNCodeMaterRepo, HSNCodeMaterRepo>();
             services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
+            services.AddScoped<IHSNWiseTaxcodeRepo, HSNWiseTaxcodeRepo>();
 
             #endregion
 
@@ -79,6 +82,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IAgreegateTaxcodeService, AgreegateTaxcodeService>();
             services.AddScoped<IHSNCodeMaterService, HSNCodeMaterService>();
             services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
+            services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

@@ -27,4 +27,9 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateTime? UpdatedDate { get; set; }
     }
+
+    public class HSNCodeList 
+    {
+        public string HsnCodeDD { get; set; }
+    }
 }
