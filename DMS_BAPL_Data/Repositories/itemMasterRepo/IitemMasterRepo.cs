@@ -5,14 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using DMS_BAPL_Data;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 
 namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 {
     public interface IitemMasterRepo
     {
         
-            Task InsertItemAsync(ItemMaster item);
-            Task<List<ItemMaster>> GetAllItemsAsync(int? grpidno, string? search);
+            Task <ItemMasterViewModel> InsertItemAsync(ItemMasterViewModel item);
+            Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search);
             Task<List<ItemMaster>> GetAllExcelItemsAsync();
             Task UpdateItemAsync(ItemMaster item);
     }

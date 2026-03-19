@@ -50,6 +50,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Colorcode { get; set; } = null!;
 
+        public string ColorName { get; set; } = null!;
+
         public int Rrgitemidno { get; set; }
 
         public int Itemcc { get; set; }
@@ -64,12 +66,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Oemmodelname { get; set; }
 
-        public string CreatedBy { get; set; } = null!;
-
-        public DateTime CreatedDate { get; set; }
-
-        public string UpdatedBy { get; set; } = null!;
-
-        public DateTime UpdatedDate { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
     }
 }

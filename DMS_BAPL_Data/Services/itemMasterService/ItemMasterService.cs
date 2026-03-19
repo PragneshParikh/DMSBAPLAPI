@@ -24,13 +24,13 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         }
 
         // add  itemserice to the database
-        public async Task InsertItemMasterAsync(ItemMaster itemMaster)
+        
+        public async Task<ItemMasterViewModel> InsertItemAsync(ItemMasterViewModel item)
         {
-            await _itemMasterRepo.InsertItemAsync(itemMaster);
+            return await _itemMasterRepo.InsertItemAsync(item);
         }
-
         // get all itemservice from the database
-        public async Task<List<ItemMaster>> GetAllItemMastersAsync(int ? grpidno, string? search)
+        public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int ? grpidno, string? search)
         {
             return await _itemMasterRepo.GetAllItemsAsync(grpidno,search);
         }

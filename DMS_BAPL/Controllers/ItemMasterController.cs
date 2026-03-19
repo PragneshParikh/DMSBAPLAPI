@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DMS_BAPL_Data;
-using DMS_BAPL_Data.Services.itemMasterService;
+﻿using DMS_BAPL_Data;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.itemMasterService;
+using DMS_BAPL_Utils.Constants;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -18,18 +19,25 @@ namespace DMS_BAPL_Api.Controllers
 
         // POST api/itemMaster
         [HttpPost]
-        public async Task<IActionResult> InsertItem([FromBody] List<ItemMaster> items)
+        public async Task<IActionResult> InsertItem([FromBody] ItemMaster items)
         {
-            foreach (var item in items)
+            try
             {
-                await _itemMasterService.InsertItemMasterAsync(item);
+                var result = await _itemMasterService.InsertItemAsync(items);
+                return Ok(new
+                {
+
+                    Message = "Item Master details inserted successfully",
+                    Data = result
+                });
+
             }
-
-            return Ok("Item Master details inserted Successfully !");
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-
         // GET api/itemMaster
-
         [HttpGet]
         public async Task<IActionResult> GetAllItems([FromQuery] int? grpidno, string? search)
         {

@@ -1,4 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -18,16 +20,89 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         }
 
         // add new item to the database
-        public async Task InsertItemAsync(ItemMaster item)
+     async Task<ItemMasterViewModel> IitemMasterRepo.InsertItemAsync(ItemMasterViewModel item)
         {
-            await _context.ItemMasters.AddAsync(item);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var itemMasterEntity = new ItemMaster
+                {
+                    Itemtype = item.Itemtype,
+                    Itemname = item.Itemname,
+                    Itemcode = item.Itemcode,
+                    Itemdesc = item.Itemdesc,
+                    Status = item.Status,
+                    Hsncode = item.Hsncode,
+                    Dlrprice = item.Dlrprice,
+                    Custprice = item.Custprice,
+                    Moq = item.Moq,
+                    Boq = item.Boq,
+                    Sgst = item.Sgst,
+                    Cgst = item.Cgst,
+                    Igst = item.Igst,
+                    Ugst = item.Ugst,
+                    Grpidno = item.Grpidno,
+                    Ipurrate = item.Ipurrate,
+                    Iselectric = item.Iselectric,
+                    Vehtype = item.Vehtype,
+                    Noofbatteries = item.Noofbatteries,
+                    Colorcode = item.Colorcode,
+                    Rrgitemidno = item.Rrgitemidno,
+                    Itemcc = item.Itemcc,
+                    Batterytypeidno = item.Batterytypeidno,
+                    Fame2amount = item.Fame2amount,
+                    Compcode = item.Compcode,
+                    Displayname = item.Displayname,
+                    Oemmodelname = item.Oemmodelname,
+                    CreatedBy = "Kajal Tiwari",
+                    CreatedDate = DateTime.UtcNow
+                };
+                _context.ItemMasters.Add(itemMasterEntity);
+                await _context.SaveChangesAsync();
+                return item;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
         //Get all items from the database
-        public async Task<List<ItemMaster>> GetAllItemsAsync(int? grpidno, string? search)
+        public async Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search)
         {
-            var query = _context.ItemMasters.AsQueryable();
+            var query = from i in _context.ItemMasters
+                        join c in _context.ColorMasters
+                        on i.Colorcode equals c.Colorcode into colorGroup
+                        from c in colorGroup.DefaultIfEmpty() // LEFT JOIN
+                        select new ItemMasterViewModel
+                        {
+                            Id = i.Id,
+                            Itemtype = i.Itemtype,
+                            Itemname = i.Itemname,
+                            Itemcode = i.Itemcode,
+                            Itemdesc = i.Itemdesc,
+                            Status = i.Status,
+                            Hsncode = i.Hsncode,
+                            Dlrprice = i.Dlrprice,
+                            Custprice = i.Custprice,
+                            Moq = i.Moq,
+                            Boq = i.Boq,
+                            Sgst = i.Sgst,
+                            Cgst = i.Cgst,
+                            Igst = i.Igst,
+                            Ugst = i.Ugst,
+                            Grpidno = i.Grpidno,
+                            Ipurrate = i.Ipurrate,
+                            Iselectric = i.Iselectric,
+                            Vehtype = i.Vehtype,
+                            Noofbatteries = i.Noofbatteries,
+                            ColorName = c != null ? c.Colorname : null,
+                            Itemcc = i.Itemcc,
+                            Batterytypeidno = i.Batterytypeidno,
+                            Fame2amount = i.Fame2amount,
+                            Compcode = i.Compcode,
+                            Displayname = i.Displayname,
+                            Oemmodelname = i.Oemmodelname
+                        };
 
             // Filter by Group Id
             if (grpidno.HasValue)
@@ -35,18 +110,17 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 query = query.Where(i => i.Grpidno == grpidno.Value);
             }
 
-            // Search in multiple columns
+            // Search
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(i =>
                     i.Itemname.Contains(search) ||
                     i.Itemcode.Contains(search) ||
                     i.Itemdesc.Contains(search) ||
-                    i.Hsncode.Contains(search)  ||
-                    i.Oemmodelname.Contains(search)||
-                    i.Displayname.Contains(search)
-
-
+                    i.Hsncode.Contains(search) ||
+                    i.Oemmodelname.Contains(search) ||
+                    i.Displayname.Contains(search) ||
+                    i.ColorName.Contains(search)   // optional
                 );
             }
 
