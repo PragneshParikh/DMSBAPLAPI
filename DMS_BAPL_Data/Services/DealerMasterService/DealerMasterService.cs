@@ -18,9 +18,9 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
     {
         private readonly IDealerMasterRepo _dealerMasterRepo;
         private readonly IExcelService _excelService;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService, UserManager<IdentityUser> userManager)
+        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService, UserManager<ApplicationUser> userManager)
         {
             _dealerMasterRepo = dealerMasterRepo;
             _excelService = excelService;
@@ -44,7 +44,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             //  Create Identity User
             if (result is not null)
             {
-                var newUser = new IdentityUser
+                var newUser = new ApplicationUser
                 {
                     UserName = result.Dealercode,
                     Email = result.Email,
@@ -73,9 +73,9 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             return await _dealerMasterRepo.GetDealerById(id);
         }
 
-        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer,string userId)
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer, string userId)
         {
-            return await _dealerMasterRepo.UpdateDealerAsync(id, dealer,userId);
+            return await _dealerMasterRepo.UpdateDealerAsync(id, dealer, userId);
         }
 
 

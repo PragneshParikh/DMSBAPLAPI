@@ -68,7 +68,7 @@ builder.Services.AddDbContext<BapldmsvadContext>(options =>
 builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
 

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public class BAPLdbIdentityContext: IdentityDbContext
+public class BAPLdbIdentityContext : IdentityDbContext<ApplicationUser>
 {
     public BAPLdbIdentityContext(DbContextOptions<BAPLdbIdentityContext> options)
     : base(options)
