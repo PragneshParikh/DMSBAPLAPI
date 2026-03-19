@@ -20,13 +20,13 @@ namespace DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo
 
         }
 
-        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster)
+        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster, string userId)
         {
             var newBatteryCapacity = new BatteryCapacityMaster
             {
                 BatteryCapacity = batteryCapacityMaster.BatteryCapacity,
                 IsActive = batteryCapacityMaster.IsActive ?? true,
-                CreatedBy = 1,
+                CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
 
@@ -43,7 +43,7 @@ namespace DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo
 
 
 
-        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
+        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel,string userId)
         {
             var existingBatterCapacityMaster = await _dbContext.BatteryCapacityMasters.FindAsync(id);
 
@@ -54,7 +54,7 @@ namespace DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo
             existingBatterCapacityMaster.BatteryCapacity = batteryCapacityMasterViewModel.BatteryCapacity;
             existingBatterCapacityMaster.IsActive = batteryCapacityMasterViewModel.IsActive ?? true;
 
-            existingBatterCapacityMaster.UpdatedBy = 0;
+            existingBatterCapacityMaster.UpdatedBy = userId;
             existingBatterCapacityMaster.UpdatedDate = DateTime.Now;
 
             await _dbContext.SaveChangesAsync();

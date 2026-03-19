@@ -11,9 +11,9 @@ namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
 {
     public interface IBatteryCapacityMasterService
     {
-        Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster);
+        Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster,string userId);
         Task<List<BatteryCapacityMaster>> GetBatteryCapacityMastersAsync();
-        Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel);
+        Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel,string userId);
         Task<PagedResponseBattery<BatteryCapacityMaster>> GetPaginatedBatteryCapacityMastersAsync(string? batteryCapacity, int? page, int? pageSize);
         Task<byte[]> DownloadDealerExcel();
     }

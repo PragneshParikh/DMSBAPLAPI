@@ -72,4 +72,6 @@ public partial class ItemMaster
     public int? HsncodeId { get; set; }
 
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
+
+    public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
 }

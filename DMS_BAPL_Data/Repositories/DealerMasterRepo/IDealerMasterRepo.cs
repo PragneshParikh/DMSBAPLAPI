@@ -10,12 +10,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 {
     public interface IDealerMasterRepo
     {
-        Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer);
+        Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer, string userId);
         Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
         //Task<DealerMaster?> UpdateDealerAsync(int id, DealerMaster dealer);
-        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto);
+        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto,string userId);
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
+        Task<DealerMaster> GetDealerByCode(string dealerCode);
 
 
     }

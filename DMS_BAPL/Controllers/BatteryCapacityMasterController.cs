@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Utils;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,11 @@ namespace DMS_BAPL_Api.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateBatterCapacityMaster([FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
         {
-            var result = await _batteryCapacityMasterService.AddBatteryCapacityMasterAsync(batteryCapacityMasterViewModel);
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User not found");
+            var result = await _batteryCapacityMasterService.AddBatteryCapacityMasterAsync(batteryCapacityMasterViewModel, userId);
 
             return Ok(new
             {
@@ -48,7 +53,11 @@ namespace DMS_BAPL_Api.Controllers
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateBatteryCapacityMasterAsync(int id, [FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
         {
-            var result = await _batteryCapacityMasterService.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel);
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User not found");
+            var result = await _batteryCapacityMasterService.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel, userId);
 
             if (result == null)
             {

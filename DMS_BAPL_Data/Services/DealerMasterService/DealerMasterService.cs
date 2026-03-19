@@ -3,7 +3,9 @@ using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,10 +33,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         //{
         //    return await _dealerMasterRepo.AddDealerAsync(dealer);
         //}'
-        public async Task<DealerMaster?> AddDealerAsync(DealerMasterViewModel dealer)
+        public async Task<DealerMaster?> AddDealerAsync(DealerMasterViewModel dealer, string userId)
         {
 
-            var result = await _dealerMasterRepo.AddDealerAsync(dealer);
+            var result = await _dealerMasterRepo.AddDealerAsync(dealer, userId);
 
             if (result == null)
                 return null;
@@ -71,9 +73,9 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             return await _dealerMasterRepo.GetDealerById(id);
         }
 
-        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer)
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer,string userId)
         {
-            return await _dealerMasterRepo.UpdateDealerAsync(id, dealer);
+            return await _dealerMasterRepo.UpdateDealerAsync(id, dealer,userId);
         }
 
 
@@ -125,6 +127,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
         {
             return await _dealerMasterRepo.GetDealerDropdown();
+        }
+        public async Task<DealerMaster> GetDealerByCode(string dealerCode)
+        {
+            return await _dealerMasterRepo.GetDealerByCode(dealerCode);
         }
     }
 }

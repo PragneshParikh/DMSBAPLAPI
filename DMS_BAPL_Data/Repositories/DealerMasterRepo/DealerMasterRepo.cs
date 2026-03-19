@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -15,14 +16,17 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
     public class DealerMasterRepo : IDealerMasterRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public DealerMasterRepo(BapldmsvadContext context)
+
+        public DealerMasterRepo(BapldmsvadContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
 
-        public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
+        public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer, string userId)
         {
 
             var newDealer = new DealerMaster
@@ -54,7 +58,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 CeditLimit = dealer.CeditLimit,
                 RegAddress = dealer.RegAddress,
                 B2b = dealer.B2b,
-                CreatedBy = 1,
+                CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
 
@@ -115,9 +119,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             return await _context.DealerMasters.Where(i => i.Id == id).FirstOrDefaultAsync();
         }
 
+        public async Task<DealerMaster> GetDealerByCode(string dealerCode)
+        {
+            return await _context.DealerMasters.Where(i => i.Dealercode == dealerCode).FirstOrDefaultAsync();
+        }
 
 
-        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto)
+        public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto, string userId)
         {
             var existingDealer = await _context.DealerMasters.FindAsync(id);
 
@@ -155,7 +163,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.B2b = dealerDto.B2b;
 
 
-            existingDealer.UpdatedBy = 0;
+            existingDealer.UpdatedBy = userId;
             existingDealer.UpdatedDate = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -181,6 +189,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             return result;
         }
+
+
         private DateTime ParseRegDate(string regDate)
         {
             var culture = new CultureInfo("en-IN");

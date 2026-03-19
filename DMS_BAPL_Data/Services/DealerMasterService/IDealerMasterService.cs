@@ -10,12 +10,13 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 {
     public interface IDealerMasterService
     {
-        Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer);
+        Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer, string userId);
         Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
-        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer);
+        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer,string userId);
         Task<byte[]> DownloadDealerExcel();
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
+        Task<DealerMaster> GetDealerByCode(string dealerCode);
 
     }
 }

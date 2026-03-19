@@ -13,8 +13,8 @@ public partial class HsncodeMaster
 
     public string Type { get; set; } = null!;
 
-
     public string CreatedBy { get; set; } = null!;
+
     public DateTime CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }

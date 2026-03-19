@@ -1,7 +1,10 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +12,7 @@ namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin, Dealer")]
     public class DealerMasterController : ControllerBase
     {
         private readonly IDealerMasterService _dealerMasterService;
@@ -22,7 +26,12 @@ namespace DMS_BAPL_Api.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateDealer([FromBody] DealerMasterViewModel dealer)
         {
-            var result = await _dealerMasterService.AddDealerAsync(dealer);
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User not found");
+
+            var result = await _dealerMasterService.AddDealerAsync(dealer, userId);
 
             return Ok(new
             {
@@ -60,10 +69,31 @@ namespace DMS_BAPL_Api.Controllers
 
         }
 
-        [HttpPut("update/{id}")]
+        [HttpGet("dealerCode")]
+        public async Task<IActionResult> GetDealerByDealerCode(string dealerCode)
+        {
+            var dealer = await _dealerMasterService.GetDealerByCode(dealerCode);
+
+            if (dealer == null)
+            {
+                return NotFound(StringConstants.DealerNotFound);
+            }
+            return Ok(new
+            {
+                message = StringConstants.DealerFetched,
+                data = dealer
+            });
+
+        }
+
+            [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateDealer(int id, [FromBody] DealerMasterViewModel dealer)
         {
-            var result = await _dealerMasterService.UpdateDealerAsync(id, dealer);
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User not found");
+            var result = await _dealerMasterService.UpdateDealerAsync(id, dealer,userId);
 
             if (result == null)
             {

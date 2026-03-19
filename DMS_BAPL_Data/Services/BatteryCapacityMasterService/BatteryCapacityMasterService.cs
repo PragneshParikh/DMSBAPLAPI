@@ -22,9 +22,9 @@ namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
             _excelService = excelService;
         }
 
-        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster)
+        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster, string userId)
         {
-            return await _batteryCapacityMasterRepo.AddBatteryCapacityMasterAsync(batteryCapacityMaster);
+            return await _batteryCapacityMasterRepo.AddBatteryCapacityMasterAsync(batteryCapacityMaster,userId);
 
         }
 
@@ -32,9 +32,9 @@ namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
         {
             return await _batteryCapacityMasterRepo.GetBatteryCapacityMastersAsync();
         }
-        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
+        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel,string userId)
         {
-            return await _batteryCapacityMasterRepo.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel);
+            return await _batteryCapacityMasterRepo.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel,userId);
         }
         public async Task<PagedResponseBattery<BatteryCapacityMaster>> GetPaginatedBatteryCapacityMastersAsync(string? batteryCapacity, int? page, int? pageSize)
         {
