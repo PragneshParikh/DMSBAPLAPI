@@ -3,6 +3,7 @@ using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,18 +16,49 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
     {
         private readonly IDealerMasterRepo _dealerMasterRepo;
         private readonly IExcelService _excelService;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService)
+        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService, UserManager<IdentityUser> userManager)
         {
             _dealerMasterRepo = dealerMasterRepo;
             _excelService = excelService;
+            _userManager = userManager;
 
         }
 
 
-        public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
+        //public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
+        //{
+        //    return await _dealerMasterRepo.AddDealerAsync(dealer);
+        //}'
+        public async Task<DealerMaster?> AddDealerAsync(DealerMasterViewModel dealer)
         {
-            return await _dealerMasterRepo.AddDealerAsync(dealer);
+
+            var result = await _dealerMasterRepo.AddDealerAsync(dealer);
+
+            if (result == null)
+                return null;
+
+            //  Create Identity User
+            if (result is not null)
+            {
+                var newUser = new IdentityUser
+                {
+                    UserName = result.Dealercode,
+                    Email = result.Email,
+                    EmailConfirmed = true
+                };
+                const string password = StringConstants.DealerDefaultPassword;
+                var user = await _userManager.CreateAsync(newUser, password);
+
+                if (user.Succeeded)
+                {
+                    var existingUser = await _userManager.FindByIdAsync(newUser.Id);
+                    await _userManager.AddToRoleAsync(existingUser, StringConstants.DealerText);
+                }
+            }
+
+            return result;
         }
 
         public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
@@ -44,7 +76,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             return await _dealerMasterRepo.UpdateDealerAsync(id, dealer);
         }
 
-      
+
         public async Task<byte[]> DownloadDealerExcel()
         {
             try

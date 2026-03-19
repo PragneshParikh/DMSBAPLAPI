@@ -15,6 +15,10 @@ namespace DMS_BAPL_Utils.Constants
         public const string DealerCreationFailed = "Failed to create dealer.";
         public const string DealerUpdated = "Dealer updated successfully.";
         public const string DealerUpdateFailed = "Failed to update dealer.";
+        public const string DealerDefaultPassword = "Dealer@123";
+        public const string DealerText = "Dealer";
+
+
 
         // Excel Constants
         public const string DealerExcelSheetName = "Dealer List";
