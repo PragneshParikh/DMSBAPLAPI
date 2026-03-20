@@ -45,6 +45,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
+    public virtual DbSet<LedgerMaster> LedgerMasters { get; set; }
+
     public virtual DbSet<LmsleadMaster> LmsleadMasters { get; set; }
 
     public virtual DbSet<LocationMaster> LocationMasters { get; set; }
@@ -62,6 +64,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
 
     public virtual DbSet<TaxDetail> TaxDetails { get; set; }
+
+    public virtual DbSet<VehicleDispatch> VehicleDispatches { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -451,7 +455,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("colorcode");
             entity.Property(e => e.Compcode)
                 .HasMaxLength(150)
-                .IsUnicode(false)
                 .HasColumnName("compcode");
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
@@ -526,6 +529,70 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.HsncodeNavigation).WithMany(p => p.ItemMasters)
                 .HasForeignKey(d => d.HsncodeId)
                 .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
+        });
+
+        modelBuilder.Entity<LedgerMaster>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("LedgerMaster");
+
+            entity.Property(e => e.AadharNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Address)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.City)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("createdDate");
+            entity.Property(e => e.EMail)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("eMail");
+            entity.Property(e => e.Gender)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Gstno)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("GSTNo");
+            entity.Property(e => e.LedgerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LedgerName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LedgerType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.MobileNumber)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Pan)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("PAN");
+            entity.Property(e => e.Pin)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.State)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("updatedDate");
         });
 
         modelBuilder.Entity<LmsleadMaster>(entity =>
@@ -827,8 +894,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.ItemCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.LineAmount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Ponumber).HasColumnName("PONumber");
+            entity.Property(e => e.Ponumber)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("PONumber");
             entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Status).HasDefaultValue(true);
             entity.Property(e => e.Subsidy).HasColumnType("decimal(18, 2)");
@@ -839,16 +912,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
-
-            entity.HasOne(d => d.ItemCodeNavigation).WithMany(p => p.PurchaseOrderDetails)
-                .HasForeignKey(d => d.ItemCode)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PurchaseOrderDetails_Item");
-
-            entity.HasOne(d => d.PonumberNavigation).WithMany(p => p.PurchaseOrderDetails)
-                .HasForeignKey(d => d.Ponumber)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PurchaseOrderDetails_PO");
         });
 
         modelBuilder.Entity<RoleWiseMenuRight>(entity =>
@@ -922,6 +985,140 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.TaxRate).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<VehicleDispatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__VehicleD__3214EC0732A91997");
+
+            entity.ToTable("VehicleDispatch");
+
+            entity.Property(e => e.BatteryCapacity)
+                .HasMaxLength(20)
+                .HasColumnName("battery_capacity");
+            entity.Property(e => e.BatteryChemistry)
+                .HasMaxLength(20)
+                .HasColumnName("battery_chemistry");
+            entity.Property(e => e.BatteryId)
+                .HasMaxLength(50)
+                .HasColumnName("battery_id");
+            entity.Property(e => e.BatteryIdno).HasColumnName("battery_idno");
+            entity.Property(e => e.BatteryMake)
+                .HasMaxLength(100)
+                .HasColumnName("battery_make");
+            entity.Property(e => e.BatteryNo)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no");
+            entity.Property(e => e.BatteryNo2)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no2");
+            entity.Property(e => e.BatteryNo3)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no3");
+            entity.Property(e => e.BatteryNo4)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no4");
+            entity.Property(e => e.BatteryNo5)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no5");
+            entity.Property(e => e.BatteryNo6)
+                .HasMaxLength(50)
+                .HasColumnName("battery_no6");
+            entity.Property(e => e.BikeMobileno)
+                .HasMaxLength(15)
+                .HasColumnName("bike_mobileno");
+            entity.Property(e => e.BikeSimid)
+                .HasMaxLength(10)
+                .HasColumnName("bike_simid");
+            entity.Property(e => e.ChargerNo)
+                .HasMaxLength(50)
+                .HasColumnName("charger_no");
+            entity.Property(e => e.ChasisNo)
+                .HasMaxLength(50)
+                .HasColumnName("chasis_no");
+            entity.Property(e => e.ColrCode)
+                .HasMaxLength(10)
+                .HasColumnName("colr_code");
+            entity.Property(e => e.ControllerNo)
+                .HasMaxLength(50)
+                .HasColumnName("controller_no");
+            entity.Property(e => e.Converter)
+                .HasMaxLength(50)
+                .HasColumnName("converter");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(20)
+                .HasColumnName("dealer_code");
+            entity.Property(e => e.EcuBalMac)
+                .HasMaxLength(50)
+                .HasColumnName("ecu_bal_mac");
+            entity.Property(e => e.EcuImEi)
+                .HasMaxLength(50)
+                .HasColumnName("ecu_im_ei");
+            entity.Property(e => e.EcuSerno)
+                .HasMaxLength(50)
+                .HasColumnName("ecu_serno");
+            entity.Property(e => e.Fame2Discount)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("fame2_discount");
+            entity.Property(e => e.GstIdno).HasColumnName("gst_idno");
+            entity.Property(e => e.ImmoblizerNo)
+                .HasMaxLength(50)
+                .HasColumnName("immoblizer_no");
+            entity.Property(e => e.ImmoblizerStatus)
+                .HasMaxLength(10)
+                .HasColumnName("immoblizer_status");
+            entity.Property(e => e.InvoiceDate).HasColumnName("invoice_date");
+            entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(50)
+                .HasColumnName("invoice_no");
+            entity.Property(e => e.IsAccepted)
+                .HasDefaultValue(false)
+                .HasColumnName("isAccepted");
+            entity.Property(e => e.ItemCode)
+                .HasMaxLength(50)
+                .HasColumnName("item_code");
+            entity.Property(e => e.KeyNo)
+                .HasMaxLength(50)
+                .HasColumnName("key_no");
+            entity.Property(e => e.LocCode)
+                .HasMaxLength(20)
+                .HasColumnName("loc_code");
+            entity.Property(e => e.MfgMonth).HasColumnName("mfg_month");
+            entity.Property(e => e.MfgYear).HasColumnName("mfg_year");
+            entity.Property(e => e.MotorNo)
+                .HasMaxLength(50)
+                .HasColumnName("motor_no");
+            entity.Property(e => e.Ordertype)
+                .HasMaxLength(50)
+                .HasColumnName("ordertype");
+            entity.Property(e => e.Regnumber)
+                .HasMaxLength(20)
+                .HasColumnName("regnumber");
+            entity.Property(e => e.ServBkno)
+                .HasMaxLength(50)
+                .HasColumnName("serv_bkno");
+            entity.Property(e => e.SoundbarBalMac)
+                .HasMaxLength(50)
+                .HasColumnName("soundbar_bal_mac");
+            entity.Property(e => e.SoundbarSerno)
+                .HasMaxLength(50)
+                .HasColumnName("soundbar_serno");
+            entity.Property(e => e.Startdate).HasColumnName("startdate");
+            entity.Property(e => e.TyreNo1)
+                .HasMaxLength(50)
+                .HasColumnName("tyre_no1");
+            entity.Property(e => e.TyreNo2)
+                .HasMaxLength(50)
+                .HasColumnName("tyre_no2");
+            entity.Property(e => e.Validity)
+                .HasMaxLength(20)
+                .HasColumnName("validity");
+            entity.Property(e => e.Vcu)
+                .HasMaxLength(50)
+                .HasColumnName("vcu");
+            entity.Property(e => e.Voltage)
+                .HasMaxLength(20)
+                .HasColumnName("voltage");
         });
 
         OnModelCreatingPartial(modelBuilder);

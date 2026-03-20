@@ -36,6 +36,4 @@ public partial class PurchaseOrder
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
-
-    public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
 }

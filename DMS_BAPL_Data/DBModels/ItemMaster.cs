@@ -61,17 +61,15 @@ public partial class ItemMaster
 
     public string? Oemmodelname { get; set; }
 
+    public int? HsncodeId { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
 
-    public string UpdatedBy { get; set; } = null!;
+    public string? UpdatedBy { get; set; }
 
-    public DateTime UpdatedDate { get; set; }
-
-    public int? HsncodeId { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
-
-    public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
 }
