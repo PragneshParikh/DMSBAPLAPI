@@ -24,7 +24,7 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> InsertForm22Master([FromBody] Form22MasterViewModel form22MasterViewModel)
         {
             var result = await _form22Service.InsertForm22MasterAsync(form22MasterViewModel);
-            return Ok("FORM22Master Details added." + result);
+            return Ok(result);
         }
         [HttpGet]
         public async Task<IActionResult> GetForm22Masters(string? search)
