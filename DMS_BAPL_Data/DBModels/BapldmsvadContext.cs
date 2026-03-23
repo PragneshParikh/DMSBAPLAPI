@@ -537,9 +537,7 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<LedgerMaster>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("LedgerMaster");
+            entity.ToTable("LedgerMaster");
 
             entity.Property(e => e.AadharNumber)
                 .HasMaxLength(50)

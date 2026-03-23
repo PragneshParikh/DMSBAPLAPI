@@ -17,6 +17,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto,string userId);
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
+        Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId);
+
+        Task BeginTransactionAsync();
+        Task CommitTransactionAsync();
+        Task RollbackTransactionAsync();
+
+        Task SaveAsync();
 
 
     }

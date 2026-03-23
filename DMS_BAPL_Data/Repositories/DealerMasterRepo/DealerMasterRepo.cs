@@ -2,6 +2,7 @@
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,6 +15,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
     {
         private readonly BapldmsvadContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private IDbContextTransaction _transaction;
+
 
         public DealerMasterRepo(BapldmsvadContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -60,7 +63,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 };
 
                 await _context.DealerMasters.AddAsync(newDealer);
-                await _context.SaveChangesAsync();
+               // await _context.SaveChangesAsync();
 
                 return newDealer;
             }
@@ -70,6 +73,32 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             }
         }
 
+
+        public async Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId)
+        {
+            var ledger = new LedgerMaster
+            {
+                LedgerCode = dealer.Dealercode,
+                LedgerName = dealer.Compname,
+                LedgerType = "Dealer",
+                Gstno = dealer.CompgstinNo,
+                Pan = dealer.Pan,
+                MobileNumber = dealer.Mobile,
+                Address = string.Join(" ", new[] { dealer.Adress1, dealer.Adress2 }
+                                .Where(x => !string.IsNullOrEmpty(x))),
+                City = dealer.City,
+                State = dealer.State,
+                Pin = dealer.Pin,
+                EMail = dealer.Email,
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+
+            await _context.LedgerMasters.AddAsync(ledger);
+          //  await _context.SaveChangesAsync();
+
+        }
+        
         // Get all dealers with optional search
         public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
         {
@@ -239,6 +268,28 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             {
                 throw;
             }
+        }
+
+        public async Task BeginTransactionAsync()
+        {
+            _transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        public async Task CommitTransactionAsync()
+        {
+            if (_transaction != null)
+                await _transaction.CommitAsync();
+        }
+
+        public async Task RollbackTransactionAsync()
+        {
+            if (_transaction != null)
+                await _transaction.RollbackAsync();
+        }
+
+        public async Task SaveAsync()
+        {
+            await _context.SaveChangesAsync();
         }
     }
 }
