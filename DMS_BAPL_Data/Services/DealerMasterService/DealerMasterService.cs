@@ -24,14 +24,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             _userManager = userManager;
         }
 
-        
-
-        // Get all dealers with optional search
-
+        // Create dealer and corresponding identity user
         public async Task<DealerMaster?> AddDealerAsync(DealerMasterViewModel dealer, string userId)
         {
             await _dealerMasterRepo.BeginTransactionAsync();
-
             try
             {
                 
@@ -77,6 +73,8 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                 throw;
             }
         }
+
+        // Get all dealers with optional search
         public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
         {
             try
