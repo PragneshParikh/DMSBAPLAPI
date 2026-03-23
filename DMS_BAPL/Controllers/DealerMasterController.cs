@@ -29,6 +29,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>Created dealer details</returns>
 
         [HttpPost("create")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateDealer([FromBody] DealerMasterViewModel dealer)
         {
             try
@@ -64,6 +67,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="search">Search keyword</param>
         /// <returns>List of dealers</returns>
         [HttpGet("list")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllDealers(string? search)
         {
             try
@@ -95,6 +101,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>Dealer details</returns>
 
         [HttpGet("dealer")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDealerById(int id)
         {
             try
@@ -130,6 +139,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>Dealer details</returns>
 
         [HttpGet("dealerCode")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDealerByDealerCode(string dealerCode)
         {
             try
@@ -166,6 +178,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="dealer">Updated dealer data</param>
         /// <returns>Updated dealer details</returns>
         [HttpPut("update/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateDealer(int id, [FromBody] DealerMasterViewModel dealer)
         {
             try
@@ -205,6 +220,9 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         /// <returns>Excel file containing dealer data</returns>
         [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Download()
         {
             try
@@ -233,6 +251,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>List of dealers for dropdown</returns>
 
         [HttpGet("getDealerDropdown")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDealerDropdown()
         {
             try

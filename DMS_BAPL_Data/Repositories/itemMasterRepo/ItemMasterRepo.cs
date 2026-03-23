@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -131,6 +132,23 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         public async Task<List<ItemMaster>> GetAllExcelItemsAsync()
         {
             return await _context.ItemMasters.ToListAsync();
+        }
+
+
+
+        public async Task<ItemMaster> GetItemByCodeAsync(string itemCode)
+        {
+            try
+            {
+                var item = await _context.ItemMasters
+                    .FirstOrDefaultAsync(i => i.Itemcode == itemCode);
+
+                return item;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
         //update data particular on Item ID
         public async Task UpdateItemAsync(ItemMaster item)

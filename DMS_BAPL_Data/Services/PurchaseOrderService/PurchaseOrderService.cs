@@ -1,25 +1,32 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Org.BouncyCastle.Asn1.Crmf;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
-    
-   
+
+
     public class PurchaseOrderService : IPurchaseOrderService
     {
         private readonly IPurchaseOrderRepo _repo;
         private readonly IDealerMasterRepo _dealerRepo;
+        private readonly IColorMasterRepo _colorRepo;
+        private readonly IitemMasterRepo _itemRepo;
 
-        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo)
+        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo,IitemMasterRepo itemMaster,IColorMasterRepo colorMasterRepo)
         {
             _repo = repo;
             _dealerRepo = dealerMasterRepo;
+            _colorRepo = colorMasterRepo;
+            _itemRepo = itemMaster;
         }
 
         /// <summary>
@@ -33,7 +40,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             {
                 int lineNumber = 1;
                 decimal totalAmount = 0;
-                decimal subsidy = 20;
+                decimal subsidy = await _repo.GetSubsidyValue();
 
                 // Get Dealer
                 var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
@@ -149,7 +156,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             catch (Exception)
             {
                 await _repo.RollbackTransactionAsync();
-                throw; 
+                throw;
             }
         }
 
@@ -164,7 +171,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
             catch (Exception)
             {
-                throw; 
+                throw;
             }
         }
 
@@ -182,5 +189,73 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 throw;
             }
         }
+
+
+        public async Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber)
+        {
+            try
+            {
+                // Get PO
+                var po = await _repo.GetPOByNumberAsync(poNumber);
+
+                if (po == null)
+                    throw new Exception(StringConstants.PONotFound);
+
+                // Consignee Logic
+                string suffix = "S1";
+                string consigneeCode = po.CustomerCode + suffix;
+
+                var soLines = new List<SOLine>();
+
+                foreach (var item in po.Items)
+                {
+                    // Get Item Master
+                    var itemMaster = await _itemRepo.GetItemByCodeAsync(item.ItemCode);
+
+                    if (itemMaster == null)
+                        throw new Exception(StringConstants.ItemNotFound + " " + item.ItemCode);
+
+                    // Get Color
+                    var color = await _colorRepo.GetColorByCode(itemMaster.Colorcode);
+
+                    // Build SO Line
+                    soLines.Add(new SOLine
+                    {
+                        Itemname = item.ItemCode,
+                        modlname = item.ItemCode,
+                        descriptions = itemMaster.Itemname,
+                        Unit = "NOS",
+                        qty = item.Qty.ToString(),
+                        itemmodelname = "",
+                        colridno = color?.Rrgcoloridno.ToString() ?? "0",
+                        colrcode = color?.Colorcode ?? "",
+                        dmspordridno = po.PONumber
+                    });
+                }
+
+                // Return ERP JSON
+                return new POERPRequestViewModel
+                {
+                    soHeader = new SOHeader
+                    {
+                        refno = po.PONumber,
+                        pordrdate = po.PODate?.ToString("dd-MM-yyyy") ?? "",
+                        pordr_type = "",
+                        ordrtype = "V",
+                        testcertificate = "N",
+                        consigneecode = consigneeCode,
+                        customercode = po.CustomerCode,
+                        amount = po.TotalAmount.ToString(),
+                        FameIIFlag = "Y"
+                    },
+                    soLine = soLines
+                };
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
     }
 }

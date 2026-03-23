@@ -12,6 +12,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<bool> CreatePOAsync(PurchaseOrderViewModel model,string userId);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
+        Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
+
 
 
     }

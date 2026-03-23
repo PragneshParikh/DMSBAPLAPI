@@ -134,6 +134,18 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
+        // Get ParameterValue of Subsidy
+        public async Task<decimal> GetSubsidyValue()
+        {
+            var param = await _context.ParameterMasterTables
+                .FirstOrDefaultAsync(x => x.ParameterName == StringConstants.SubsidyParam);
+
+            if (param == null)
+                throw new Exception(StringConstants.SubsidyParameterNotFound);
+
+            return param.ParameterValue;
+        }
+        //Add PO Details
         public async Task AddPODetailAsync(PurchaseOrderDetail detail)
         {
             try
@@ -322,5 +334,26 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 throw;
             }
         }
+        public async Task<List<PurchaseOrderDetail>> GetPODetails(string poNumber)
+        {
+            return await _context.PurchaseOrderDetails
+                .Where(x => x.Ponumber == poNumber)
+                .ToListAsync();
+        }
+
+        public async Task DeletePODetailAsync(PurchaseOrderDetail detail)
+        {
+            _context.PurchaseOrderDetails.Remove(detail);
+        }
+
+        public async Task DeleteTaxByItemAsync(string poNumber, string itemCode)
+        {
+            var taxes = await _context.TaxDetails
+                .Where(x => x.Ponumber == poNumber && x.ItemCode == itemCode)
+                .ToListAsync();
+
+            _context.TaxDetails.RemoveRange(taxes);
+        }
+
     }
 }

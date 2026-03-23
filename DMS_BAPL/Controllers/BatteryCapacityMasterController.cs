@@ -27,6 +27,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>Created record</returns>
 
         [HttpPost("create")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateBatterCapacityMaster([FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
         {
             try
@@ -61,6 +64,9 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         /// <returns>List of battery capacity records</returns>
         [HttpGet("list")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllBatteryCapacityMasterAsync()
         {
             try
@@ -90,6 +96,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="batteryCapacityMasterViewModel">Updated data</param>
         /// <returns>Updated record</returns>
         [HttpPut("update/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateBatteryCapacityMasterAsync(int id, [FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
         {
             try
@@ -132,6 +141,9 @@ namespace DMS_BAPL_Api.Controllers
         /// <returns>Paginated result set</returns>
 
         [HttpGet("listPaginated")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPaginatedResultAsync(string? batteryCapacity, int? page = null, int? pageSize = null)
         {
             try
@@ -170,6 +182,9 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         /// <returns>Excel file</returns>
         [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Download()
         {
             try

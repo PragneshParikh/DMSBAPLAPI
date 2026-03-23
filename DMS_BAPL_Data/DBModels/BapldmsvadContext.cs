@@ -57,6 +57,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
+    public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
+
     public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
 
     public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
@@ -942,6 +944,26 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModelName).HasMaxLength(150);
             entity.Property(e => e.ModelShortName).HasMaxLength(150);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ParameterMasterTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Paramete__3214EC073BC8EE12");
+
+            entity.ToTable("ParameterMasterTable");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.ParameterName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.ParameterValue).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 

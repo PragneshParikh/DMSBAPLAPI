@@ -14,7 +14,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string BadRequest = "Invalid request data";
         public const string CompanyLocation = "maharashtra";
 
-        
+
         //Dealer Master
         public const string DealerCreated = "Dealer created successfully.";
         public const string DealerFetched = "Dealers fetched successfully.";
@@ -47,8 +47,8 @@ namespace DMS_BAPL_Utils.Constants
         public const string DeletedDate = "DeletedDate";
 
         //Battery Capacity Master related
-        public const string BatteryCapacityMasterCreated ="Battery Capacity Master created successfully.";
-        public const string BatteryCapacityMasterUpdateFailed ="Battery Capacity Master Update failed.";
+        public const string BatteryCapacityMasterCreated = "Battery Capacity Master created successfully.";
+        public const string BatteryCapacityMasterUpdateFailed = "Battery Capacity Master Update failed.";
         public const string BatteryCapacityMasterUpdated = "Battery Capacity Master Updated successfully.";
 
         // Form22Master
@@ -68,7 +68,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string HSNCodeExcelSheetName = "HSN Code List";
         public const string HSNCodeExists = "HSN Code already exists";
         public const string HSNCodeMissing = "HSN Code missing for item:";
-        public const string  HSNTaxMapMissing = "HSN Tax mapping not found";
+        public const string HSNTaxMapMissing = "HSN Tax mapping not found";
 
 
         //HSNWiseTaxCode Related
@@ -80,10 +80,17 @@ namespace DMS_BAPL_Utils.Constants
         public const string POCreatedPOCreationailed = "Purchase Order creation failed.";
         public const string NoTaxConfig = "No tax config found for HSN";
         public const string TaxCodeNotFound = "TaxCode not found";
+        public const string PORequired = "PO Number is required";
 
 
         //Item related
         public const string ItemNotFound = "Item not found";
+
+        //ParameterMaster Table Related
+
+        public const string SubsidyParameterNotFound="Subsidy parameter not found";
+        public const string SubsidyParam = "Subsidy";
+
 
 
     }

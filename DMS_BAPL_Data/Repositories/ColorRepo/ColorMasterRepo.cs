@@ -35,6 +35,21 @@ namespace DMS_BAPL_Data.Repositories.Color
             }
         }
 
+         Task<ColorMaster> IColorMasterRepo.GetColorByCode(string colorCode)
+        {
+            try
+            {
+
+                var color = _context.ColorMasters.Where(c => c.Colorcode == colorCode).FirstOrDefaultAsync();
+
+                return (color);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public async Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize)
         {
             try

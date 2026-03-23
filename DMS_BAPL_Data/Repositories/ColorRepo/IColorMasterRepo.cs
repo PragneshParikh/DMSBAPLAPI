@@ -14,5 +14,7 @@ namespace DMS_BAPL_Data.Repositories.Color
         Task<List<ColorMaster>> GetColors();
         Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize);
         Task<ColorMasterViewModel> CreateColor(ColorMasterViewModel colorMasterViewModel);
+        Task<ColorMaster>GetColorByCode(string colorCode);
+
     }
 }

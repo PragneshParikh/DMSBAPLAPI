@@ -16,5 +16,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search);
         Task<List<ItemMaster>> GetAllExcelItemsAsync();
         Task UpdateItemAsync(ItemMaster item);
+        Task<ItemMaster> GetItemByCodeAsync(string itemCode);
     }
 }
