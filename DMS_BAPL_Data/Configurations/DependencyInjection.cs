@@ -6,16 +6,19 @@ using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
+using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
+using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
-using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
+using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
+using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.ColorMasterService;
@@ -24,19 +27,18 @@ using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
+using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
+using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
+using DMS_BAPL_Data.Services.VehicleDispatchService;
 using Microsoft.Extensions.DependencyInjection;
-using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
-using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
-using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
-using DMS_BAPL_Data.Services.PurchaseOrder;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -64,6 +66,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
             services.AddScoped<IHSNWiseTaxcodeRepo, HSNWiseTaxcodeRepo>();
             services.AddScoped<IPurchaseOrderRepo, PurchaseOrderRepo>();
+            services.AddScoped<IVehicleDispatchRepo, VehicleDispatchRepo>();
 
             #endregion
 
@@ -87,6 +90,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
             services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+            services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
