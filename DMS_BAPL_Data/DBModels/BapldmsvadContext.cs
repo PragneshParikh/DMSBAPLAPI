@@ -51,6 +51,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<LocationMaster> LocationMasters { get; set; }
 
+    public virtual DbSet<Lotinspection> Lotinspections { get; set; }
+
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
@@ -793,6 +795,112 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("updatedDate");
         });
 
+        modelBuilder.Entity<Lotinspection>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__LOTInspe__3213E83F20BD68DA");
+
+            entity.ToTable("LOTInspection");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ArrivalDate).HasColumnName("arrivalDate");
+            entity.Property(e => e.ArrivalTime).HasColumnName("arrivalTime");
+            entity.Property(e => e.AttributeCard).HasColumnName("attributeCard");
+            entity.Property(e => e.BatteryNo)
+                .HasMaxLength(100)
+                .HasColumnName("batteryNo");
+            entity.Property(e => e.ChargerNo)
+                .HasMaxLength(100)
+                .HasColumnName("chargerNo");
+            entity.Property(e => e.ChargingKit).HasColumnName("chargingKit");
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(100)
+                .HasColumnName("chassisNo");
+            entity.Property(e => e.ChassisWiseRemarks)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("chassisWiseRemarks");
+            entity.Property(e => e.CommonReMarks)
+                .HasMaxLength(250)
+                .IsUnicode(false)
+                .HasColumnName("commonReMarks");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate).HasColumnName("createdDate");
+            entity.Property(e => e.DamageDetails)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("damageDetails");
+            entity.Property(e => e.DriverContact)
+                .HasMaxLength(100)
+                .HasColumnName("driverContact");
+            entity.Property(e => e.DriverName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("driverName");
+            entity.Property(e => e.IgnitionKeyset).HasColumnName("ignitionKeyset");
+            entity.Property(e => e.InspectionDate).HasColumnName("inspectionDate");
+            entity.Property(e => e.InvoiceDate).HasColumnName("invoiceDate");
+            entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(100)
+                .HasColumnName("invoiceNo");
+            entity.Property(e => e.LocationName)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("locationName");
+            entity.Property(e => e.LotVehicleDamageImage)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("lotVehicleDamageImage");
+            entity.Property(e => e.Lotno).HasColumnName("LOTNo");
+            entity.Property(e => e.Lrdate).HasColumnName("LRDate");
+            entity.Property(e => e.Lrno)
+                .HasMaxLength(100)
+                .HasColumnName("LRNo");
+            entity.Property(e => e.ModelName)
+                .HasMaxLength(200)
+                .HasColumnName("modelName");
+            entity.Property(e => e.MotorNo)
+                .HasMaxLength(100)
+                .HasColumnName("motorNo");
+            entity.Property(e => e.NameSupervisor)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("nameSupervisor");
+            entity.Property(e => e.NoofCharger).HasColumnName("noofCharger");
+            entity.Property(e => e.NoofFirstaidkit).HasColumnName("noofFirstaidkit");
+            entity.Property(e => e.NoofKeyFobSet).HasColumnName("noofKeyFobSet");
+            entity.Property(e => e.NoofMirrorset).HasColumnName("noofMirrorset");
+            entity.Property(e => e.NoofToolKit).HasColumnName("noofToolKit");
+            entity.Property(e => e.NoofVehicle).HasColumnName("noofVehicle");
+            entity.Property(e => e.OwnersManual).HasColumnName("ownersManual");
+            entity.Property(e => e.PlasticCover)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("plasticCover");
+            entity.Property(e => e.TransporterName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("transporterName");
+            entity.Property(e => e.TruckNo)
+                .HasMaxLength(100)
+                .HasColumnName("truckNo");
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updateBy");
+            entity.Property(e => e.UpdatedDate).HasColumnName("updatedDate");
+            entity.Property(e => e.VehicleFasteningBracket)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("vehicleFasteningBracket");
+            entity.Property(e => e.VehicleStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("vehicleStatus");
+        });
+
         modelBuilder.Entity<MenuMaster>(entity =>
         {
             entity.ToTable("MenuMaster");
@@ -1120,6 +1228,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("voltage");
         });
+        modelBuilder.HasSequence("LotNo_Seq");
 
         OnModelCreatingPartial(modelBuilder);
     }
