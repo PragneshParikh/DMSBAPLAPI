@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,12 @@ namespace DMS_BAPL_Utils.Constants
 {
     public class StringConstants
     {
+        //Auth Related
+        public const string UserUnauthorized = "User not authorized";
+        public const string BadRequest = "Invalid request data";
+        public const string CompanyLocation = "maharashtra";
+
+        
         //Dealer Master
         public const string DealerCreated = "Dealer created successfully.";
         public const string DealerFetched = "Dealers fetched successfully.";
@@ -57,10 +64,27 @@ namespace DMS_BAPL_Utils.Constants
         //HSNCode Related
         public const string HSNCodeCreatedSuccessfully = "HSN Code created successfully";
         public const string HSNCodeUpdatedSuccessfully = "HSN Code updated successfully";
+        public const string HSNNotFound = "HSN Code not found";
         public const string HSNCodeExcelSheetName = "HSN Code List";
         public const string HSNCodeExists = "HSN Code already exists";
+        public const string HSNCodeMissing = "HSN Code missing for item:";
+        public const string  HSNTaxMapMissing = "HSN Tax mapping not found";
+
 
         //HSNWiseTaxCode Related
         public const string HSNWiseTaxCodeCreatedSuccessfully = "HSN-wise Tax Code created successfully";
+
+        //PO related
+        public const string POCreated = "Purchase Order created successfully.";
+        public const string PONotFound = "Purchase Order not found.";
+        public const string POCreatedPOCreationailed = "Purchase Order creation failed.";
+        public const string NoTaxConfig = "No tax config found for HSN";
+        public const string TaxCodeNotFound = "TaxCode not found";
+
+
+        //Item related
+        public const string ItemNotFound = "Item not found";
+
+
     }
 }

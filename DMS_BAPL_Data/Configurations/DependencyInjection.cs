@@ -35,6 +35,8 @@ using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using Microsoft.Extensions.DependencyInjection;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
+using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
+using DMS_BAPL_Data.Services.PurchaseOrder;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -61,6 +63,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IHSNCodeMaterRepo, HSNCodeMaterRepo>();
             services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
             services.AddScoped<IHSNWiseTaxcodeRepo, HSNWiseTaxcodeRepo>();
+            services.AddScoped<IPurchaseOrderRepo, PurchaseOrderRepo>();
 
             #endregion
 
@@ -83,6 +86,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IHSNCodeMaterService, HSNCodeMaterService>();
             services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
             services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
+            services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

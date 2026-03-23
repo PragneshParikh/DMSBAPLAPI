@@ -22,108 +22,238 @@ namespace DMS_BAPL_Api.Controllers
             _dealerMasterService = dealerMasterService;
 
         }
+        /// <summary>
+        /// Creates a new dealer.
+        /// </summary>
+        /// <param name="dealer">Dealer data</param>
+        /// <returns>Created dealer details</returns>
 
         [HttpPost("create")]
         public async Task<IActionResult> CreateDealer([FromBody] DealerMasterViewModel dealer)
         {
-            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-
-            if (string.IsNullOrEmpty(userId))
-                return BadRequest("User not found");
-
-            var result = await _dealerMasterService.AddDealerAsync(dealer, userId);
-
-            return Ok(new
+            try
             {
-                message = StringConstants.DealerCreated,
-                data = result
-            });
-        }
+                if (dealer == null)
+                    return BadRequest(StringConstants.BadRequest);
 
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return BadRequest(StringConstants.UserUnauthorized);
+
+                var result = await _dealerMasterService.AddDealerAsync(dealer, userId);
+
+                return Ok(new
+                {
+                    message = StringConstants.DealerCreated,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+        /// <summary>
+        /// Retrieves all dealers with optional search filter.
+        /// </summary>
+        /// <param name="search">Search keyword</param>
+        /// <returns>List of dealers</returns>
         [HttpGet("list")]
         public async Task<IActionResult> GetAllDealers(string? search)
         {
-            var dealers = await _dealerMasterService.GetAllDealersAsync(search);
-
-            return Ok(new
+            try
             {
-                message = StringConstants.DealerFetched,
-                data = dealers ?? new List<DealerMaster>()
-            });
+
+                var dealers = await _dealerMasterService.GetAllDealersAsync(search);
+
+                return Ok(new
+                {
+                    message = StringConstants.DealerFetched,
+                    data = dealers ?? new List<DealerMaster>()
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
+
+        /// <summary>
+        /// Retrieves dealer by ID.
+        /// </summary>
+        /// <param name="id">Dealer ID</param>
+        /// <returns>Dealer details</returns>
 
         [HttpGet("dealer")]
         public async Task<IActionResult> GetDealerById(int id)
         {
-            var dealer = await _dealerMasterService.GetDealerById(id);
+            try
+            {
 
-            if (dealer == null)
-            {
-                return NotFound(StringConstants.DealerNotFound);
+                var dealer = await _dealerMasterService.GetDealerById(id);
+
+                if (dealer == null)
+                {
+                    return NotFound(StringConstants.DealerNotFound);
+                }
+                return Ok(new
+                {
+                    message = StringConstants.DealerFetched,
+                    data = dealer
+                });
             }
-            return Ok(new
+            catch (Exception ex)
             {
-                message = StringConstants.DealerFetched,
-                data = dealer
-            });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
 
         }
+
+        /// <summary>
+        /// Retrieves dealer by dealer code.
+        /// </summary>
+        /// <param name="dealerCode">Dealer code</param>
+        /// <returns>Dealer details</returns>
 
         [HttpGet("dealerCode")]
         public async Task<IActionResult> GetDealerByDealerCode(string dealerCode)
         {
-            var dealer = await _dealerMasterService.GetDealerByCode(dealerCode);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(dealerCode))
+                    return BadRequest(StringConstants.BadRequest);
 
-            if (dealer == null)
-            {
-                return NotFound(StringConstants.DealerNotFound);
+                var dealer = await _dealerMasterService.GetDealerByCode(dealerCode);
+
+                if (dealer == null)
+                {
+                    return NotFound(StringConstants.DealerNotFound);
+                }
+                return Ok(new
+                {
+                    message = StringConstants.DealerFetched,
+                    data = dealer
+                });
             }
-            return Ok(new
+            catch (Exception ex)
             {
-                message = StringConstants.DealerFetched,
-                data = dealer
-            });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
 
         }
-
-            [HttpPut("update/{id}")]
+        /// <summary>
+        /// Updates dealer information.
+        /// </summary>
+        /// <param name="id">Dealer ID</param>
+        /// <param name="dealer">Updated dealer data</param>
+        /// <returns>Updated dealer details</returns>
+        [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateDealer(int id, [FromBody] DealerMasterViewModel dealer)
         {
-            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-
-            if (string.IsNullOrEmpty(userId))
-                return BadRequest("User not found");
-            var result = await _dealerMasterService.UpdateDealerAsync(id, dealer,userId);
-
-            if (result == null)
+            try
             {
-                return NotFound(StringConstants.DealerUpdateFailed);
+                if (dealer == null)
+                    return BadRequest(StringConstants.BadRequest);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return BadRequest(StringConstants.UserUnauthorized);
+                var result = await _dealerMasterService.UpdateDealerAsync(id, dealer, userId);
+
+                if (result == null)
+                {
+                    return NotFound(StringConstants.DealerUpdateFailed);
+                }
+
+                return Ok(new
+                {
+                    message = StringConstants.DealerUpdated,
+                    data = result
+                });
             }
 
-            return Ok(new
+            catch (Exception ex)
             {
-                message = StringConstants.DealerUpdated,
-                data = result
-            });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
+        /// <summary>
+        /// Downloads dealer list as an Excel file.
+        /// </summary>
+        /// <returns>Excel file containing dealer data</returns>
         [HttpGet("download")]
         public async Task<IActionResult> Download()
         {
-            var file = await _dealerMasterService.DownloadDealerExcel();
+            try
+            {
 
-            return File(
-                file,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "DealerList.xlsx"
-            );
+                var file = await _dealerMasterService.DownloadDealerExcel();
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "DealerList.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
+        /// <summary>
+        /// Retrieves dealer dropdown list (for UI selection).
+        /// </summary>
+        /// <returns>List of dealers for dropdown</returns>
 
         [HttpGet("getDealerDropdown")]
         public async Task<IActionResult> GetDealerDropdown()
         {
-            var result = await _dealerMasterService.GetDealerDropdown();
-            return Ok(result);
+            try
+            {
+                var result = await _dealerMasterService.GetDealerDropdown();
+
+                return Ok(new
+                {
+                    success = true,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
+
     }
 }

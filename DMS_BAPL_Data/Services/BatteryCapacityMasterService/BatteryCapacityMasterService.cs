@@ -7,7 +7,6 @@ using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
@@ -16,38 +15,87 @@ namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
     {
         private readonly IBatteryCapacityMasterRepo _batteryCapacityMasterRepo;
         private readonly IExcelService _excelService;
-        public BatteryCapacityMasterService(IBatteryCapacityMasterRepo batteryCapacityMasterRepo, IExcelService excelService    )
+
+        public BatteryCapacityMasterService(
+            IBatteryCapacityMasterRepo batteryCapacityMasterRepo,
+            IExcelService excelService)
         {
             _batteryCapacityMasterRepo = batteryCapacityMasterRepo;
             _excelService = excelService;
         }
 
-        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(BatteryCapacityMasterViewModel batteryCapacityMaster, string userId)
+        // Add new battery capacity record
+        public async Task<BatteryCapacityMaster> AddBatteryCapacityMasterAsync(
+            BatteryCapacityMasterViewModel batteryCapacityMaster,
+            string userId)
         {
-            return await _batteryCapacityMasterRepo.AddBatteryCapacityMasterAsync(batteryCapacityMaster,userId);
-
+            try
+            {
+                return await _batteryCapacityMasterRepo
+                    .AddBatteryCapacityMasterAsync(batteryCapacityMaster, userId);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        // Get all battery capacity records
         public async Task<List<BatteryCapacityMaster>> GetBatteryCapacityMastersAsync()
         {
-            return await _batteryCapacityMasterRepo.GetBatteryCapacityMastersAsync();
-        }
-        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(int id, BatteryCapacityMasterViewModel batteryCapacityMasterViewModel,string userId)
-        {
-            return await _batteryCapacityMasterRepo.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel,userId);
-        }
-        public async Task<PagedResponseBattery<BatteryCapacityMaster>> GetPaginatedBatteryCapacityMastersAsync(string? batteryCapacity, int? page, int? pageSize)
-        {
-            return await _batteryCapacityMasterRepo.GetPaginatedBatteryCapacityMastersAsync(batteryCapacity, page, pageSize);
+            try
+            {
+                return await _batteryCapacityMasterRepo
+                    .GetBatteryCapacityMastersAsync();
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        // Update battery capacity record
+        public async Task<BatteryCapacityMaster?> UpdateBatteryCapacityMasterAsync(
+            int id,
+            BatteryCapacityMasterViewModel batteryCapacityMasterViewModel,
+            string userId)
+        {
+            try
+            {
+                return await _batteryCapacityMasterRepo
+                    .UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel, userId);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        // Get paginated battery capacity data
+        public async Task<PagedResponseBattery<BatteryCapacityMaster>> GetPaginatedBatteryCapacityMastersAsync(
+            string? batteryCapacity,
+            int? page,
+            int? pageSize)
+        {
+            try
+            {
+                return await _batteryCapacityMasterRepo
+                    .GetPaginatedBatteryCapacityMastersAsync(batteryCapacity, page, pageSize);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        // Export battery capacity data to Excel
         public async Task<byte[]> DownloadDealerExcel()
         {
             try
             {
-                var data = await _batteryCapacityMasterRepo.GetBatteryCapacityMastersAsync();
+                var data = await _batteryCapacityMasterRepo
+                    .GetBatteryCapacityMastersAsync();
 
-                // Get all DTO properties for columns
                 var properties = typeof(BatteryCapacityMasterViewModel)
                     .GetProperties()
                     .ToList();
@@ -62,10 +110,9 @@ namespace DMS_BAPL_Data.Services.BatteryCapacityMasterService
                     {
                         var entityProp = d.GetType().GetProperty(prop.Name);
 
-                        if (entityProp != null)
-                            dict[prop.Name] = entityProp.GetValue(d);
-                        else
-                            dict[prop.Name] = null;
+                        dict[prop.Name] = entityProp != null
+                            ? entityProp.GetValue(d)
+                            : null;
                     }
 
                     return dict;

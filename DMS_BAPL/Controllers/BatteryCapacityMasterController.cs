@@ -20,88 +20,161 @@ namespace DMS_BAPL_Api.Controllers
             _batteryCapacityMasterService = batteryCapacityMasterService;
 
         }
+        /// <summary>
+        /// Creates a new battery capacity record.
+        /// </summary>
+        /// <param name="batteryCapacityMasterViewModel">Battery capacity data</param>
+        /// <returns>Created record</returns>
 
         [HttpPost("create")]
         public async Task<IActionResult> CreateBatterCapacityMaster([FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
         {
-            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-
-            if (string.IsNullOrEmpty(userId))
-                return BadRequest("User not found");
-            var result = await _batteryCapacityMasterService.AddBatteryCapacityMasterAsync(batteryCapacityMasterViewModel, userId);
-
-            return Ok(new
+            try
             {
-                message = StringConstants.BatteryCapacityMasterCreated,
-                data = result
-            });
-        }
+                if (batteryCapacityMasterViewModel == null)
+                    return BadRequest(StringConstants.BadRequest);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-        [HttpGet("list")]
-        public async Task<IActionResult> GetAllBatteryCapacityMasterAsync()
-        {
-            var batteryCapacityMasters = await _batteryCapacityMasterService.GetBatteryCapacityMastersAsync();
+                if (string.IsNullOrEmpty(userId))
+                    return BadRequest("User not found");
+                var result = await _batteryCapacityMasterService.AddBatteryCapacityMasterAsync(batteryCapacityMasterViewModel, userId);
 
-            return Ok(new
-            {
-                message = StringConstants.DealerFetched,
-                data = batteryCapacityMasters ?? new List<BatteryCapacityMaster>()
-            });
-        }
-
-
-        [HttpPut("update/{id}")]
-        public async Task<IActionResult> UpdateBatteryCapacityMasterAsync(int id, [FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
-        {
-            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-
-            if (string.IsNullOrEmpty(userId))
-                return BadRequest("User not found");
-            var result = await _batteryCapacityMasterService.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel, userId);
-
-            if (result == null)
-            {
-                return NotFound(StringConstants.BatteryCapacityMasterUpdateFailed);
-            }
-
-            return Ok(new
-            {
-                message = StringConstants.BatteryCapacityMasterUpdated,
-                data = result
-            });
-        }
-
-
-        [HttpGet("listPaginated")]
-        public async Task<IActionResult> GetPaginatedResultAsync(
-      string? batteryCapacity,
-      int? page = null,
-      int? pageSize = null)
-        {
-            var result = await _batteryCapacityMasterService
-                .GetPaginatedBatteryCapacityMastersAsync(batteryCapacity, page, pageSize);
-
-            if (result == null || result.Data == null || !result.Data.Any())
-            {
                 return Ok(new
                 {
-                    message = "No records found",
-                    totalRecords = 0,
-                    data = new List<BatteryCapacityMaster>()
+                    message = StringConstants.BatteryCapacityMasterCreated,
+                    data = result
                 });
             }
 
-            return Ok(new
+            catch (Exception ex)
             {
-                message = "Battery Capacity fetched successfully",
-                totalRecords = result.TotalRecords,
-                data = result.Data
-            });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
+        /// <summary>
+        /// Retrieves all battery capacity records.
+        /// </summary>
+        /// <returns>List of battery capacity records</returns>
+        [HttpGet("list")]
+        public async Task<IActionResult> GetAllBatteryCapacityMasterAsync()
+        {
+            try
+            {
+                var batteryCapacityMasters = await _batteryCapacityMasterService.GetBatteryCapacityMastersAsync();
+
+                return Ok(new
+                {
+                    message = StringConstants.DealerFetched,
+                    data = batteryCapacityMasters ?? new List<BatteryCapacityMaster>()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing battery capacity record.
+        /// </summary>
+        /// <param name="id">Record ID</param>
+        /// <param name="batteryCapacityMasterViewModel">Updated data</param>
+        /// <returns>Updated record</returns>
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateBatteryCapacityMasterAsync(int id, [FromBody] BatteryCapacityMasterViewModel batteryCapacityMasterViewModel)
+        {
+            try
+            {
+                if (batteryCapacityMasterViewModel == null)
+                    return BadRequest(StringConstants.BadRequest);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return BadRequest("User not found");
+                var result = await _batteryCapacityMasterService.UpdateBatteryCapacityMasterAsync(id, batteryCapacityMasterViewModel, userId);
+
+                if (result == null)
+                {
+                    return NotFound(StringConstants.BatteryCapacityMasterUpdateFailed);
+                }
+
+                return Ok(new
+                {
+                    message = StringConstants.BatteryCapacityMasterUpdated,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Retrieves paginated battery capacity records with optional filtering.
+        /// </summary>
+        /// <param name="batteryCapacity">Filter by battery capacity</param>
+        /// <param name="page">Page number</param>
+        /// <param name="pageSize">Number of records per page</param>
+        /// <returns>Paginated result set</returns>
+
+        [HttpGet("listPaginated")]
+        public async Task<IActionResult> GetPaginatedResultAsync(string? batteryCapacity, int? page = null, int? pageSize = null)
+        {
+            try
+            {
+                var result = await _batteryCapacityMasterService
+                    .GetPaginatedBatteryCapacityMastersAsync(batteryCapacity, page, pageSize);
+
+                if (result == null || result.Data == null || !result.Data.Any())
+                {
+                    return Ok(new
+                    {
+                        message = "No records found",
+                        totalRecords = 0,
+                        data = new List<BatteryCapacityMaster>()
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "Battery Capacity fetched successfully",
+                    totalRecords = result.TotalRecords,
+                    data = result.Data
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+        /// <summary>
+        /// Downloads battery capacity data as an Excel file.
+        /// </summary>
+        /// <returns>Excel file</returns>
         [HttpGet("download")]
         public async Task<IActionResult> Download()
         {
+            try
+            {
+
             var file = await _batteryCapacityMasterService.DownloadDealerExcel();
 
             return File(
@@ -109,6 +182,15 @@ namespace DMS_BAPL_Api.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "Battery Capacity Master List.xlsx"
             );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
     }
 }

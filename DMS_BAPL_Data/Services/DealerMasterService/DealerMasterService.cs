@@ -3,13 +3,10 @@ using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
-using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.DealerMasterService
@@ -20,36 +17,34 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         private readonly IExcelService _excelService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService, UserManager<ApplicationUser> userManager)
+        public DealerMasterService(
+            IDealerMasterRepo dealerMasterRepo,
+            IExcelService excelService,
+            UserManager<ApplicationUser> userManager)
         {
             _dealerMasterRepo = dealerMasterRepo;
             _excelService = excelService;
             _userManager = userManager;
-
         }
 
-
-        //public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer)
-        //{
-        //    return await _dealerMasterRepo.AddDealerAsync(dealer);
-        //}'
+        // Create dealer and corresponding identity user
         public async Task<DealerMaster?> AddDealerAsync(DealerMasterViewModel dealer, string userId)
         {
-
-            var result = await _dealerMasterRepo.AddDealerAsync(dealer, userId);
-
-            if (result == null)
-                return null;
-
-            //  Create Identity User
-            if (result is not null)
+            try
             {
+                var result = await _dealerMasterRepo.AddDealerAsync(dealer, userId);
+
+                if (result == null)
+                    return null;
+
+                // Create Identity User
                 var newUser = new ApplicationUser
                 {
                     UserName = result.Dealercode,
                     Email = result.Email,
                     EmailConfirmed = true
                 };
+
                 const string password = StringConstants.DealerDefaultPassword;
                 var user = await _userManager.CreateAsync(newUser, password);
 
@@ -58,34 +53,61 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                     var existingUser = await _userManager.FindByIdAsync(newUser.Id);
                     await _userManager.AddToRoleAsync(existingUser, StringConstants.DealerText);
                 }
-            }
 
-            return result;
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        // Get all dealers with optional search
         public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
         {
-            return await _dealerMasterRepo.GetAllDealersAsync(search);
+            try
+            {
+                return await _dealerMasterRepo.GetAllDealersAsync(search);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        // Get dealer by ID
         public async Task<DealerMaster> GetDealerById(int id)
         {
-            return await _dealerMasterRepo.GetDealerById(id);
+            try
+            {
+                return await _dealerMasterRepo.GetDealerById(id);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        // Update dealer details
         public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer, string userId)
         {
-            return await _dealerMasterRepo.UpdateDealerAsync(id, dealer, userId);
+            try
+            {
+                return await _dealerMasterRepo.UpdateDealerAsync(id, dealer, userId);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
-
+        // Export dealer list to Excel
         public async Task<byte[]> DownloadDealerExcel()
         {
             try
             {
                 var data = await _dealerMasterRepo.GetAllDealersAsync(null);
 
-                // Get all DTO properties for columns
                 var properties = typeof(DealerMasterViewModel)
                     .GetProperties()
                     .ToList();
@@ -99,11 +121,9 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                     foreach (var prop in properties)
                     {
                         var entityProp = d.GetType().GetProperty(prop.Name);
-
-                        if (entityProp != null)
-                            dict[prop.Name] = entityProp.GetValue(d);
-                        else
-                            dict[prop.Name] = null;
+                        dict[prop.Name] = entityProp != null
+                            ? entityProp.GetValue(d)
+                            : null;
                     }
 
                     return dict;
@@ -120,17 +140,35 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.ToString()); // optional logging
                 throw;
             }
         }
+
+        // Get dealer dropdown list
         public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
         {
-            return await _dealerMasterRepo.GetDealerDropdown();
+            try
+            {
+                return await _dealerMasterRepo.GetDealerDropdown();
+            }
+            catch
+            {
+                throw;
+            }
         }
+
+        // Get dealer by dealer code
         public async Task<DealerMaster> GetDealerByCode(string dealerCode)
         {
-            return await _dealerMasterRepo.GetDealerByCode(dealerCode);
+            try
+            {
+                return await _dealerMasterRepo.GetDealerByCode(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }
