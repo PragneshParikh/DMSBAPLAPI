@@ -27,11 +27,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
-        async Task<IEnumerable<VehicleDispatch>> IVehicleDispatchRepo.GetVehicleByStatus(bool status)
+        async Task<IEnumerable<VehicleDispatch>> IVehicleDispatchRepo.GetVehicleByStatus(string dealerCode, bool status)
         {
             try
             {
-                return _context.VehicleDispatches.Where(x => x.IsAccepted == status).ToList();
+                return await _context.VehicleDispatches
+                    .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
+                    .ToListAsync();
             }
             catch (Exception)
             {

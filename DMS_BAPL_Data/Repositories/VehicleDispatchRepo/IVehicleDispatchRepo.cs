@@ -10,6 +10,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
     public interface IVehicleDispatchRepo
     {
         Task<IEnumerable<VehicleDispatch>> Get();
-        Task<IEnumerable<VehicleDispatch>> GetVehicleByStatus(Boolean status);
+        Task<IEnumerable<VehicleDispatch>> GetVehicleByStatus(string dealerCode, Boolean status);
     }
 }

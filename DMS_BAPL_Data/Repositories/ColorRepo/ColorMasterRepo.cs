@@ -35,7 +35,7 @@ namespace DMS_BAPL_Data.Repositories.Color
             }
         }
 
-         Task<ColorMaster> IColorMasterRepo.GetColorByCode(string colorCode)
+        Task<ColorMaster> IColorMasterRepo.GetColorByCode(string colorCode)
         {
             try
             {
@@ -134,7 +134,7 @@ namespace DMS_BAPL_Data.Repositories.Color
             }
             catch (DbUpdateException ex)
             {
-                // Access the SQL-specific exception
+                //Access the SQL - specific exception
                 if (ex.InnerException is SqlException sqlEx)
                 {
                     int errorCode = sqlEx.Number;

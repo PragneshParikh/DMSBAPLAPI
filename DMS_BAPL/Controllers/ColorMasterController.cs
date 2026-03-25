@@ -1,9 +1,6 @@
-﻿using DMS_BAPL_Data;
-using DMS_BAPL_Data.CustomModel;
+﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Services.ColorMasterService;
-using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +12,13 @@ namespace DMS_BAPL_Api.Controllers
     public class ColorMasterController : ControllerBase
     {
         private readonly IColorMasterService _colorMasterService;
+        private readonly ILogger<ColorMasterController> _logger;
 
-        public ColorMasterController(IColorMasterService colorMasterService)
+        public ColorMasterController(IColorMasterService colorMasterService, ILogger<ColorMasterController> logger)
         {
             _colorMasterService = colorMasterService;
+            _logger = logger;
         }
-
 
         /// <summary>
         /// Retrieves the full list of colors.
@@ -51,8 +49,8 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error.");
+                _logger.LogError("Failed to retrieve colors");
+                throw;
             }
         }
 
@@ -82,8 +80,8 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                _logger.LogError($"Internal server error: {ex.Message}");
+                throw;
             }
         }
 
@@ -94,14 +92,17 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="colorMasterViewModel"></param>
         /// <returns></returns>
         [HttpPost]
+        [ProducesResponseType(typeof(ColorMaster), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> InsertColor(ColorMasterViewModel colorMasterViewModel)
         {
             try
             {
-                if (colorMasterViewModel == null)
-                {
-                    return BadRequest("Color data is required.");
-                }
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
                 var color = await _colorMasterService.CreateColor(colorMasterViewModel);
 
@@ -145,21 +146,38 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                _logger.LogError($"Internal server error: {ex.Message}");
+                throw;
             }
         }
 
         [HttpGet("downloadColorExcel")]
+        [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DownloadOEMModelExcel()
         {
-            var fileBytes = await _colorMasterService.downloadColorExcel();
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-            return File(
-                fileBytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "ColorMasterExcel.xlsx"
-            );
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var fileBytes = await _colorMasterService.downloadColorExcel();
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "ColorMasterExcel.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error while downloading color excel");
+                throw;
+            }
         }
     }
 }

@@ -1,8 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Utils.Helpers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
@@ -12,11 +10,17 @@ namespace DMS_BAPL_Api.Controllers
     public class RoleController : ControllerBase
     {
         private readonly IRoleService _roleService;
-        public RoleController(IRoleService roleService)
+        private readonly ILogger<RoleController> _logger;
+        public RoleController(IRoleService roleService, ILogger<RoleController> logger)
         {
             _roleService = roleService;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Retrieves all roles available in the system.
+        /// </summary>
+        /// <returns>A list of <see cref="AspNetRole"/> objects representing all system roles.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<AspNetRole>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -36,8 +40,8 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error.");
+                _logger.LogError(ex, "Error occurred while fetching roles");
+                throw;
             }
         }
     }

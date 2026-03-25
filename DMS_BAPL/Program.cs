@@ -114,6 +114,7 @@ app.UseCors("AllowAngularApp");
 
 app.UseMiddleware<AuthorizationMiddleware>();
 app.UseMiddleware<ApiAuditMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

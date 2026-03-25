@@ -21,9 +21,9 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             return _vehicleDispatchRepo.Get();
         }
 
-        Task<IEnumerable<VehicleDispatch>> IVehicleDispatchService.GetVehicleByStatus(bool status)
+        Task<IEnumerable<VehicleDispatch>> IVehicleDispatchService.GetVehicleByStatus(string dealerCode, bool status)
         {
-            return _vehicleDispatchRepo.GetVehicleByStatus(status);
+            return _vehicleDispatchRepo.GetVehicleByStatus(dealerCode, status);
         }
     }
 }
