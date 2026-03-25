@@ -11,6 +11,7 @@ using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
+using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
@@ -31,6 +32,7 @@ using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
+using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
@@ -67,6 +69,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IHSNWiseTaxcodeRepo, HSNWiseTaxcodeRepo>();
             services.AddScoped<IPurchaseOrderRepo, PurchaseOrderRepo>();
             services.AddScoped<IVehicleDispatchRepo, VehicleDispatchRepo>();
+            services.AddScoped<ILotInspection, LotInspectionRepo>();
+            services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
 
             #endregion
 
@@ -91,7 +95,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();
-
+            services.AddScoped<ILotInspectionService, LotInspectionService>();
+            services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
 
