@@ -15,15 +15,13 @@ namespace DMS_BAPL_Data.Middleware
         private readonly RequestDelegate _next;
         private readonly string _secretKey;
         private readonly List<string> _validApiKeys;
-        private readonly BapldmsvadContext _bapldmsvadContext;
 
-        public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration, BapldmsvadContext bapldmsvadContext)
+        public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration)
         {
             _next = next;
             _secretKey = configuration["Jwt:Key"]
                  ?? throw new ArgumentNullException("Jwt:Key missing in configuration");
-            //_validApiKeys = configuration.GetSection("ApiKeys").Get<List<string>>() ?? new List<string>();
-            _bapldmsvadContext = bapldmsvadContext;
+            _validApiKeys = configuration.GetSection("ApiKeys").Get<List<string>>() ?? new List<string>();
         }
 
         public async Task InvokeAsync(HttpContext context)
