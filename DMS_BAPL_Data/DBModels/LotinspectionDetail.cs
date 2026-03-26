@@ -53,11 +53,11 @@ public partial class LotinspectionDetail
 
     public string CreatedBy { get; set; } = null!;
 
-    public DateOnly CreatedDate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
-    public string UpdateBy { get; set; } = null!;
+    public string? UpdateBy { get; set; }
 
-    public DateOnly UpdatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual LotinspectionHeader LotHeader { get; set; } = null!;
 }

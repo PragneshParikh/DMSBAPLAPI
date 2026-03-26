@@ -106,7 +106,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class TempNumber
     {
-        public int Value { get; set; }
+        public int? Value { get; set; }
     }
     public class InsertDetailsByInvoiceViewModel
     {

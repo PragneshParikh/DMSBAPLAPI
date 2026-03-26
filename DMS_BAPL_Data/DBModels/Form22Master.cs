@@ -15,17 +15,17 @@ public partial class Form22Master
 
     public string? ApprovalCertificateNo { get; set; }
 
-    public string? CreatedBy { get; set; }
+    public int? OemmodelId { get; set; }
 
-    public DateTime? CreatedDate { get; set; }
+    public bool? Isactive { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public DateTime CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public int? OemmodelId { get; set; }
-
-    public bool? Isactive { get; set; }
 
     public virtual OemmodelMaster? Oemmodel { get; set; }
 }

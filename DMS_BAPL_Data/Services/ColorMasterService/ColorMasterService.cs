@@ -19,24 +19,23 @@ namespace DMS_BAPL_Data.Services.ColorMasterService
         private readonly IColorMasterRepo _colorMasterRepo;
         private readonly IExcelService _excelService;
 
-        public ColorMasterService(IColorMasterRepo colorMasterRepo,IExcelService excelService)
+        public ColorMasterService(IColorMasterRepo colorMasterRepo, IExcelService excelService)
         {
             _colorMasterRepo = colorMasterRepo;
             _excelService = excelService;
         }
 
-        Task<List<ColorMaster>> IColorMasterService.GetColors() => _colorMasterRepo.GetColors();
+        Task<List<ColorMaster>> IColorMasterService.GetColorsAsync() => _colorMasterRepo.GetColorsAsync();
 
-        Task<PagedResponse<ColorMaster>> IColorMasterService.getColorsByPaged(string? searchTerms, int pageIndex, int pageSize) => _colorMasterRepo.getColorsByPaged(searchTerms, pageIndex, pageSize);
+        Task<PagedResponse<ColorMaster>> IColorMasterService.getColorsByPagedAsync(string? searchTerms, int pageIndex, int pageSize) => _colorMasterRepo.getColorsByPagedAsync(searchTerms, pageIndex, pageSize);
 
-        async Task<ColorMasterViewModel> IColorMasterService.CreateColor(ColorMasterViewModel colorMasterViewModel) => await _colorMasterRepo.CreateColor(colorMasterViewModel);
+        async Task<ColorMasterViewModel> IColorMasterService.CreateColorAsync(ColorMasterViewModel colorMasterViewModel) => await _colorMasterRepo.CreateColorAsync(colorMasterViewModel);
 
-
-        public async Task<byte[]> downloadColorExcel()
+        public async Task<byte[]> downloadColorExcelAsync()
         {
             try
             {
-                var data = await _colorMasterRepo.GetColors();
+                var data = await _colorMasterRepo.GetColorsAsync();
 
                 // Get all DTO properties for columns
                 var properties = typeof(ColorExcelViewModel)

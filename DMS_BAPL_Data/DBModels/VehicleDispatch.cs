@@ -67,7 +67,7 @@ public partial class VehicleDispatch
 
     public string? Validity { get; set; }
 
-    public DateOnly? Startdate { get; set; }
+    public string? Startdate { get; set; }
 
     public string? TyreNo1 { get; set; }
 

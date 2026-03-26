@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
 
         public async Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId)
         {
-            return await _lotInspection.InsertLotInspectionHeaderAsync(invoiceNo,userId);
+            return await _lotInspection.InsertLotInspectionHeaderAsync(invoiceNo, userId);
         }
     }
 }

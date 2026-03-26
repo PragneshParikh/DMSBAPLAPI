@@ -11,10 +11,10 @@ namespace DMS_BAPL_Data.Repositories.Color
 {
     public interface IColorMasterRepo
     {
-        Task<List<ColorMaster>> GetColors();
-        Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize);
-        Task<ColorMasterViewModel> CreateColor(ColorMasterViewModel colorMasterViewModel);
-        Task<ColorMaster>GetColorByCode(string colorCode);
+        Task<List<ColorMaster>> GetColorsAsync();
+        Task<PagedResponse<ColorMaster>> getColorsByPagedAsync(string? searchTerms, int pageIndex, int pageSize);
+        Task<ColorMasterViewModel> CreateColorAsync(ColorMasterViewModel colorMasterViewModel);
+        Task<ColorMaster> GetColorByCodeAsync(string colorCode);
 
     }
 }

@@ -11,6 +11,8 @@ public partial class ReceiptEntry
 
     public string ReceiptNo { get; set; } = null!;
 
+    public string? MobileNo { get; set; }
+
     public DateOnly ReceiptDate { get; set; }
 
     public string? SaleType { get; set; }
@@ -35,7 +37,7 @@ public partial class ReceiptEntry
 
     public string CreatedBy { get; set; } = null!;
 
-    public DateTime? CreatedDate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }
 

@@ -17,6 +17,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<AggregateTaxCode> AggregateTaxCodes { get; set; }
 
+    public virtual DbSet<Apikey> Apikeys { get; set; }
+
     public virtual DbSet<Apitracking> Apitrackings { get; set; }
 
     public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
@@ -110,6 +112,18 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<Apikey>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("APIKeys");
+
+            entity.Property(e => e.Apikey1)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("APIKey");
+        });
+
         modelBuilder.Entity<Apitracking>(entity =>
         {
             entity.ToTable("APITracking");
@@ -123,11 +137,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("endpoint");
             entity.Property(e => e.Payload)
-                .HasMaxLength(5000)
                 .IsUnicode(false)
                 .HasColumnName("payload");
             entity.Property(e => e.Response)
-                .HasMaxLength(5000)
                 .IsUnicode(false)
                 .HasColumnName("response");
             entity.Property(e => e.Status)
@@ -865,6 +877,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("createdBy");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
                 .HasColumnName("createdDate");
             entity.Property(e => e.DamageDetails)
                 .HasMaxLength(150)
@@ -899,6 +912,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("updateBy");
             entity.Property(e => e.UpdatedDate)
                 .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
             entity.Property(e => e.VehicleStatus)
                 .HasMaxLength(50)
@@ -1144,6 +1158,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Location)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.MobileNo).HasMaxLength(15);
             entity.Property(e => e.Narration)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1364,7 +1379,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.SoundbarSerno)
                 .HasMaxLength(50)
                 .HasColumnName("soundbar_serno");
-            entity.Property(e => e.Startdate).HasColumnName("startdate");
+            entity.Property(e => e.Startdate)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("startdate");
             entity.Property(e => e.TyreNo1)
                 .HasMaxLength(50)
                 .HasColumnName("tyre_no1");

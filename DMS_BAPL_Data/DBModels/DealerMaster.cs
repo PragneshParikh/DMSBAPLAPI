@@ -61,7 +61,7 @@ public partial class DealerMaster
 
     public bool B2b { get; set; }
 
-    public string? CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
 

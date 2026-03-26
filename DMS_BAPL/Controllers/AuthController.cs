@@ -23,11 +23,12 @@ namespace DMS_BAPL_Api.Controllers
         private readonly IEmailService _emailService;
         private readonly IWebHostEnvironment _env;
         private readonly IDealerMasterService _dealerMasterService;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager, IEmailService emailService,
             IConfiguration configuration, IWebHostEnvironment env,
-            IDealerMasterService dealerMasterService)
+            IDealerMasterService dealerMasterService, ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -35,38 +36,46 @@ namespace DMS_BAPL_Api.Controllers
             _emailService = emailService;
             _env = env;
             _dealerMasterService = dealerMasterService;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Authenticates a user and returns JWT token along with user info.
+        /// </summary>
+        /// <param name="model">Login model containing username and password.</param>
+        /// <returns>
+        /// 200 OK if login succeeds,
+        /// 401 Unauthorized if username not found or password invalid,
+        /// 500 Internal Server Error if an exception occurs.
+        /// </returns>
         [HttpPost]
         [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Login([FromBody] Login model)
         {
-            // 1. Find the user in AspNetUsers by Username
-            var user = await _userManager.FindByNameAsync(model.Username);
-
-            if (user == null)
+            try
             {
-                return Unauthorized(new { message = "Username not found." });
-            }
+                var user = await _userManager.FindByNameAsync(model.Username);
 
-            // 2. Validate password using Identity's built-in hashing check
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: false);
+                if (user == null)
+                    return Unauthorized(new { message = "Username not found." });
 
-            if (result.Succeeded)
-            {
+                var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: false);
+
+                if (!result.Succeeded)
+                    return Unauthorized(new { message = "Invalid password." });
+
                 var dealerInfo = await _dealerMasterService.GetDealerByCode(model.Username);
 
-                // Get roles
                 var roles = await _userManager.GetRolesAsync(user);
 
                 user.LastLoginDate = DateTime.UtcNow;
-
                 await _userManager.UpdateAsync(user);
 
-                var token = GenerateJwtToken(user);
+                var token = await GenerateJwtToken(user);
 
-                // For Angular, you'll eventually return a JWT here. 
-                // For now, let's return basic user info.
                 return Ok(new
                 {
                     userId = user.Id,
@@ -80,12 +89,27 @@ namespace DMS_BAPL_Api.Controllers
                     message = "Login successful"
                 });
             }
-
-            return Unauthorized(new { message = "Invalid password." });
+            catch (Exception)
+            {
+                _logger.LogError("Error occurred during Login");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Initiates the password reset process for a user.
+        /// If the provided email exists, generates a password reset token,
+        /// creates a reset link, and sends it to the user's email.
+        /// </summary>
+        /// <param name="model">ForgotPassword model containing the user's email.</param>
+        /// <returns>
+        /// 200 OK if the reset link is sent successfully or if the email does not exist (to avoid exposing user info),
+        /// 500 Internal Server Error if an exception occurs while processing.
+        /// </returns>
         [HttpPost("forgot-password")]
         [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ForgotPassword(ForgotPassword model)
         {
             try
@@ -116,43 +140,71 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { success = false, message = "An error occurred while sending the reset email." });
+                _logger.LogError("An error occurred while sending the reset email.");
+                throw;
             }
         }
 
+        /// <summary>
+        /// Resets the password for a user using the provided reset token.
+        /// Validates the token and updates the user's password if valid.
+        /// </summary>
+        /// <param name="model">ResetPassword model containing Email, Token, and new Password.</param>
+        /// <returns>
+        /// 200 OK if the password is reset successfully,
+        /// 400 Bad Request if the user is not found or the token is invalid,
+        /// 500 Internal Server Error if an exception occurs during processing.
+        /// </returns>
         [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPassword model)
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPassword model)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
 
-            if (user == null)
-                return BadRequest("Invalid request");
+                if (user == null)
+                    return BadRequest(new { success = false, message = "Invalid request: user not found." });
 
-            var result = await _userManager.ResetPasswordAsync(
-                user,
-                model.Token,
-                model.Password
-            );
+                var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
 
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    return BadRequest(new { success = false, message = "Password reset failed", errors });
+                }
 
-            return Ok("Password reset successful");
+                return Ok(new { success = true, message = "Password reset successful" });
+            }
+            catch (Exception)
+            {
+                _logger.LogError("Error occurred while resetting password");
+                throw;
+            }
         }
-        private string GenerateJwtToken(ApplicationUser user)
+
+        /// <summary>
+        /// Generates a JWT token for the given user including roles and standard claims.
+        /// </summary>
+        /// <param name="user">The authenticated ApplicationUser.</param>
+        /// <returns>A JWT token string valid for 24 hours.</returns>
+        private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
             var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
 
-            var roles = _userManager.GetRolesAsync(user).Result;
+            var roles = await _userManager.GetRolesAsync(user);
 
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
+                    new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
@@ -160,7 +212,9 @@ namespace DMS_BAPL_Api.Controllers
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(24),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature),
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"]
             };

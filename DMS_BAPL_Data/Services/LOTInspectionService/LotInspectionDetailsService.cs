@@ -27,5 +27,10 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
                 throw new Exception($"Error inserting details by invoice: {ex.Message}", ex);
             }
         }
+
+        public async Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId)
+        {
+            return await _lotInspectionDetails.InsertLotDetailsByInvoiceNo(invoiceNo, id, userId);
+        }
     }
 }

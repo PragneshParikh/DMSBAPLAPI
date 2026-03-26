@@ -7,11 +7,15 @@ public partial class LotinspectionHeader
 {
     public int Id { get; set; }
 
-    public string? InvoiceNo { get; set; }
+    public string DealerCode { get; set; } = null!;
 
-    public DateOnly? InvoiceDate { get; set; }
+    public string LocCode { get; set; } = null!;
 
-    public int? LotNo { get; set; }
+    public string InvoiceNo { get; set; } = null!;
+
+    public DateOnly InvoiceDate { get; set; }
+
+    public int LotNo { get; set; }
 
     public DateOnly? ArrivalDate { get; set; }
 
@@ -41,13 +45,9 @@ public partial class LotinspectionHeader
 
     public DateOnly CreatedDate { get; set; }
 
-    public string UpdateBy { get; set; } = null!;
+    public string? UpdateBy { get; set; }
 
-    public DateOnly UpdatedDate { get; set; }
-
-    public string LocCode { get; set; } = null!;
-
-    public string DealerCode { get; set; } = null!;
+    public DateOnly? UpdatedDate { get; set; }
 
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }

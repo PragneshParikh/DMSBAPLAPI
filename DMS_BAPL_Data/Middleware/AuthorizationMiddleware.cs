@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using DMS_BAPL_Data.DBModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
@@ -12,19 +14,45 @@ namespace DMS_BAPL_Data.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly string _secretKey;
+        private readonly List<string> _validApiKeys;
+        private readonly BapldmsvadContext _bapldmsvadContext;
 
-        public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration)
+        public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration, BapldmsvadContext bapldmsvadContext)
         {
             _next = next;
             _secretKey = configuration["Jwt:Key"]
-                 ?? throw new ArgumentNullException("Jwt:Key missing in configuration"); ;
+                 ?? throw new ArgumentNullException("Jwt:Key missing in configuration");
+            //_validApiKeys = configuration.GetSection("ApiKeys").Get<List<string>>() ?? new List<string>();
+            _bapldmsvadContext = bapldmsvadContext;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
+            var endpoint = context.GetEndpoint();
 
             if (context.Request.Path.StartsWithSegments("/api/auth"))
             {
+                await _next(context);
+                return;
+            }
+
+            if (context.Request.Path.StartsWithSegments("/api/vehicle-dispatch")
+                && endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() != null)
+            {
+                if (!context.Request.Headers.TryGetValue("x-api-key", out var extractedApiKey))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("x-api-key header missing");
+                    return;
+                }
+
+                if (!_validApiKeys.Contains(extractedApiKey))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Invalid API Key");
+                    return;
+                }
+
                 await _next(context);
                 return;
             }
@@ -54,15 +82,12 @@ namespace DMS_BAPL_Data.Middleware
                     IssuerSigningKey = new SymmetricSecurityKey(key)
                 }, out SecurityToken validatedToken);
 
-                // Extract user ID from claim
                 var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ??
-                                  principal.FindFirst("userId"); // fallback if custom claim
+                                  principal.FindFirst("userId");
                 var userId = userIdClaim?.Value;
 
-                // You can now attach it to HttpContext for later use
                 context.Items["UserId"] = userId;
 
-                // Token is valid, proceed
                 await _next(context);
             }
             catch

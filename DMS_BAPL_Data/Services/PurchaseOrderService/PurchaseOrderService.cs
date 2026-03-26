@@ -21,7 +21,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         private readonly IColorMasterRepo _colorRepo;
         private readonly IitemMasterRepo _itemRepo;
 
-        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo,IitemMasterRepo itemMaster,IColorMasterRepo colorMasterRepo)
+        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo, IitemMasterRepo itemMaster, IColorMasterRepo colorMasterRepo)
         {
             _repo = repo;
             _dealerRepo = dealerMasterRepo;
@@ -216,7 +216,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         throw new Exception(StringConstants.ItemNotFound + " " + item.ItemCode);
 
                     // Get Color
-                    var color = await _colorRepo.GetColorByCode(itemMaster.Colorcode);
+                    var color = await _colorRepo.GetColorByCodeAsync(itemMaster.Colorcode);
 
                     // Build SO Line
                     soLines.Add(new SOLine

@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
     {
         Task<IEnumerable<VehicleDispatch>> Get();
         Task<IEnumerable<VehicleDispatch>> GetVehicleByStatus(string dealerCode, Boolean status);
+        Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
+        Task<bool> InsertVehicleDispatchDetail(List<VehicleDispatch> vehicleDispatches);
     }
 }

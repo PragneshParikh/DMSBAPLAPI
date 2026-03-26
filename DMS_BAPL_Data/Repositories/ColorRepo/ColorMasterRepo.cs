@@ -20,12 +20,15 @@ namespace DMS_BAPL_Data.Repositories.Color
         {
             _context = context;
         }
-        Task<List<ColorMaster>> IColorMasterRepo.GetColors()
+        Task<List<ColorMaster>> IColorMasterRepo.GetColorsAsync()
         {
             try
             {
 
-                var color = _context.ColorMasters.OrderBy(c => c.Colorname).ToList();
+                var color = _context.ColorMasters
+                                    .AsNoTracking()
+                                    .OrderBy(c => c.Colorname)
+                                    .ToList();
 
                 return Task.FromResult(color);
             }
@@ -34,8 +37,7 @@ namespace DMS_BAPL_Data.Repositories.Color
                 throw;
             }
         }
-
-        Task<ColorMaster> IColorMasterRepo.GetColorByCode(string colorCode)
+        Task<ColorMaster> IColorMasterRepo.GetColorByCodeAsync(string colorCode)
         {
             try
             {
@@ -49,8 +51,7 @@ namespace DMS_BAPL_Data.Repositories.Color
                 throw;
             }
         }
-
-        public async Task<PagedResponse<ColorMaster>> getColorsByPaged(string? searchTerms, int pageIndex, int pageSize)
+        public async Task<PagedResponse<ColorMaster>> getColorsByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
         {
             try
             {
@@ -100,8 +101,7 @@ namespace DMS_BAPL_Data.Repositories.Color
                 throw;
             }
         }
-
-        async Task<ColorMasterViewModel> IColorMasterRepo.CreateColor(ColorMasterViewModel colorMasterViewModel)
+        async Task<ColorMasterViewModel> IColorMasterRepo.CreateColorAsync(ColorMasterViewModel colorMasterViewModel)
         {
             try
             {

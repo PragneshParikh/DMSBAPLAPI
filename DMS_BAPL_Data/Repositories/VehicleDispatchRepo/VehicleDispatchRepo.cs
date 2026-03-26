@@ -40,5 +40,37 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 throw;
             }
         }
+        async Task<bool> IVehicleDispatchRepo.UpdateInvoiceStatus(string invoiceNo, string userId)
+        {
+            try
+            {
+                var affectedRows = await _context.VehicleDispatches
+                        .Where(x => x.InvoiceNo == invoiceNo)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(x => x.IsAccepted, true)
+                        );
+
+                return affectedRows > 0;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        async Task<bool> IVehicleDispatchRepo.InsertVehicleDispatchDetail(List<VehicleDispatch> vehicleDispatches)
+        {
+            try
+            {
+                _context.VehicleDispatches.AddRange(vehicleDispatches);
+                _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
     }
 }

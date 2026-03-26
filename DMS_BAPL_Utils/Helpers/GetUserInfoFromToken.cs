@@ -23,5 +23,11 @@ namespace DMS_BAPL_Utils.Helpers
                 return null;
             }
         }
+
+        public static string GetDealerCode(HttpContext context)
+        {
+            var username = context.User?.FindFirstValue(ClaimTypes.Name);
+            return username;
+        }
     }
 }

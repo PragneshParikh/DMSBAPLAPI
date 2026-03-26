@@ -34,7 +34,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ColorMaster>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<ColorMaster>>> GetColors()
+        public async Task<ActionResult<IEnumerable<ColorMaster>>> GetColorsAsync()
         {
             try
             {
@@ -43,7 +43,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var colors = await _colorMasterService.GetColors();
+                var colors = await _colorMasterService.GetColorsAsync();
 
                 return Ok(colors);
             }
@@ -65,7 +65,10 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<ColorMaster>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GetColorByPaged([FromQuery] string? searchTerm, [FromQuery] int pageIndex, [FromQuery] int pageSize)
+        public async Task<ActionResult<PagedResponse<ColorMaster>>> GetColorByPagedAsync(
+            [FromQuery] string? searchTerm,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -74,7 +77,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
-                var colors = await _colorMasterService.getColorsByPaged(searchTerm, pageIndex, pageSize);
+                var colors = await _colorMasterService.getColorsByPagedAsync(searchTerm, pageIndex, pageSize);
 
                 return Ok(colors);
             }
@@ -95,7 +98,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(ColorMaster), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> InsertColor(ColorMasterViewModel colorMasterViewModel)
+        public async Task<ActionResult> InsertColorAsync(ColorMasterViewModel colorMasterViewModel)
         {
             try
             {
@@ -104,7 +107,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var color = await _colorMasterService.CreateColor(colorMasterViewModel);
+                var color = await _colorMasterService.CreateColorAsync(colorMasterViewModel);
 
                 if (color == null)
                 {
@@ -126,7 +129,6 @@ namespace DMS_BAPL_Api.Controllers
                     return Conflict(response);
                 }
 
-                // Success case - include inserted ID
                 var successResponse = new ApiResponse
                 {
                     Valid = true,
@@ -156,7 +158,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DownloadOEMModelExcel()
+        public async Task<IActionResult> DownloadOEMModelExcelAsync()
         {
             try
             {
@@ -165,7 +167,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var fileBytes = await _colorMasterService.downloadColorExcel();
+                var fileBytes = await _colorMasterService.downloadColorExcelAsync();
 
                 return File(
                     fileBytes,

@@ -30,43 +30,42 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     .AnyAsync(x => x.InvoiceNo == invoiceNo);
 
                 if (isExist)
-                    throw new Exception("Invoice already accepted");
+                    return 0;
 
                 // Get invoice data from DB table
-                var invoiceData = await _context.LotinspectionHeaders
+                var invoiceData = await _context.VehicleDispatches
                     .FirstOrDefaultAsync(x => x.InvoiceNo == invoiceNo);
 
                 if (invoiceData == null)
-                    throw new Exception("Invoice not found");
+                    return 0;
 
                 //Get sequence LOT No
-                var lotNo = await _context
-                    .Set<TempNumber>()
-                    .FromSqlRaw("SELECT NEXT VALUE FOR LotNo_Seq AS Value")
-                    .Select(x => x.Value)
-                    .FirstAsync();
+                var maxLotNo = await _context.LotinspectionHeaders
+                                .MaxAsync(x => (int?)x.LotNo) ?? 0;
+
+                var nextLotNo = maxLotNo + 1;
 
                 //  Create LOT inspaction Header
                 var header = new LotinspectionHeader
                 {
                     InvoiceNo = invoiceData.InvoiceNo,
-                    InvoiceDate = invoiceData.InvoiceDate,
-                    LotNo = lotNo, //  sequence used LOT No
-                    ArrivalDate = invoiceData.ArrivalDate,
-                    ArrivalTime = invoiceData.ArrivalTime,
-                    LrNo = invoiceData.LrNo,
-                    LrDate = invoiceData.LrDate,
-                    TruckNo = invoiceData.TruckNo,
-                    TransporterName = invoiceData.TransporterName,
-                    DriverName = invoiceData.DriverName,
-                    DriverContact = invoiceData.DriverContact,
-                    CommonRemarks = invoiceData.CommonRemarks,
-                    VehicleFasteningBracket = invoiceData.VehicleFasteningBracket,
-                    PlasticCover = invoiceData.PlasticCover,
-                    SupervisorName = invoiceData.SupervisorName,
+                    InvoiceDate = (DateOnly)invoiceData.InvoiceDate,
+                    LotNo = nextLotNo,
+                    ArrivalDate = null,
+                    ArrivalTime = null,
+                    LrNo = null,
+                    LrDate = null,
+                    TruckNo = null,
+                    TransporterName = null,
+                    DriverName = null,
+                    DriverContact = null,
+                    CommonRemarks = null,
+                    VehicleFasteningBracket = null,
+                    PlasticCover = null,
+                    SupervisorName = null,
                     DealerCode = invoiceData.DealerCode,
                     LocCode = invoiceData.LocCode,
-                    CreatedBy =  userId,
+                    CreatedBy = userId,
                     CreatedDate = DateOnly.FromDateTime(DateTime.Now),
                 };
 
@@ -75,9 +74,9 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 await transaction.CommitAsync();
 
-                return header.Id; 
+                return header.Id;
             }
-            catch
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw;

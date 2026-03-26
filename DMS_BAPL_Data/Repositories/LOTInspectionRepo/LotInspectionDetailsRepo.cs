@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Drawing;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -75,7 +76,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         LocationName = item.LocationName,
                         LotVehicleDamageImage = item.LotVehicleDamageImage,
                         CreatedBy = userId,
-                        CreatedDate = DateOnly.FromDateTime(DateTime.Now),
+                        CreatedDate = DateTime.Now
                     });
                 }
 
@@ -92,6 +93,55 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
             catch
             {
                 await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId)
+        {
+            try
+            {
+                var invoiceLot = await _context.VehicleDispatches.Where(x => x.InvoiceNo == invoiceNo).ToListAsync();
+
+                if (invoiceLot == null || !invoiceLot.Any())
+                    return 0;
+
+                var lotDetails = invoiceLot.Select(x => new LotinspectionDetail
+                {
+                    Id = 0,
+                    LotHeaderId = id,
+                    ModelName = x.ItemCode,
+                    NoofVehicle = 1,
+                    ChassisNo = x.ChasisNo,
+                    MotorNo = x.MotorNo,
+                    BatteryNo = x.BatteryNo,
+                    ChargerNo = x.ChargerNo,
+                    KeyFobSetQty = null,
+                    ChargerQty = null,
+                    MirrorsetQty = null,
+                    FirstaidkitQty = null,
+                    ToolKitQty = null,
+                    OwnersManual = null,
+                    IgnitionKeyset = null,
+                    AttributeCard = null,
+                    ChargingKit = null,
+                    InspectionDate = null,
+                    VehicleStatus = null,
+                    DamageDetails = null,
+                    ChassisWiseRemarks = null,
+                    LocationName = null,
+                    LotVehicleDamageImage = null,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now,
+                }).ToList();
+
+                await _context.LotinspectionDetails.AddRangeAsync(lotDetails);
+                await _context.SaveChangesAsync();
+
+                return lotDetails.Count;
+            }
+            catch (Exception ex)
+            {
                 throw;
             }
         }

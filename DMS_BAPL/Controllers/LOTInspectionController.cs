@@ -11,13 +11,17 @@ namespace DMS_BAPL_Api.Controllers
     public class LOTInspectionController : ControllerBase
     {
         private readonly ILotInspectionService _invoiceService;
-        public LOTInspectionController(ILotInspectionService invoiceService)
+        private readonly ILotInspectionDetailsService _lotInspectionDetailsService;
+        public LOTInspectionController(ILotInspectionService invoiceService,
+            ILotInspectionDetailsService lotInspectionDetailsService)
         {
             _invoiceService = invoiceService;
+            _lotInspectionDetailsService = lotInspectionDetailsService;
         }
+        
         [HttpPost]
         [Route("AcceptInvoices")]
-        public async Task<IActionResult> AcceptInvoices(string invoiceNo)
+        public async Task<IActionResult> AcceptInvoices([FromBody] string invoiceNo)
         {
             try
             {
@@ -26,7 +30,12 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not found");
 
-                var result = await _invoiceService.InsertLotInspectionHeaderAsync(invoiceNo,userId);
+                var result = await _invoiceService.InsertLotInspectionHeaderAsync(invoiceNo, userId);
+
+                if (result > 0)
+                {
+                    await _lotInspectionDetailsService.InsertLotDetailsByInvoiceNo(invoiceNo, result, userId);
+                }
 
                 return Ok(new
                 {

@@ -51,9 +51,9 @@ public partial class LmsleadMaster
 
     public DateTime CreatedDate { get; set; }
 
-    public string UpdatedBy { get; set; } = null!;
+    public string? UpdatedBy { get; set; }
 
-    public DateTime UpdatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual ColorMaster? ColorNavigation { get; set; }
 

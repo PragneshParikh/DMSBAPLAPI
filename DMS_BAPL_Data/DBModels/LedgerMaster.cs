@@ -35,9 +35,9 @@ public partial class LedgerMaster
 
     public DateOnly? DateOfBirth { get; set; }
 
-    public string? CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
-    public DateTime? CreatedDate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }
 
