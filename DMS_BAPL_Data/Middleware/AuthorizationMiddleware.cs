@@ -1,7 +1,9 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,14 +16,12 @@ namespace DMS_BAPL_Data.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly string _secretKey;
-        private readonly List<string> _validApiKeys;
 
         public AuthorizationMiddleware(RequestDelegate next, IConfiguration configuration)
         {
             _next = next;
             _secretKey = configuration["Jwt:Key"]
                  ?? throw new ArgumentNullException("Jwt:Key missing in configuration");
-            _validApiKeys = configuration.GetSection("ApiKeys").Get<List<string>>() ?? new List<string>();
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -44,11 +44,20 @@ namespace DMS_BAPL_Data.Middleware
                     return;
                 }
 
-                if (!_validApiKeys.Contains(extractedApiKey))
+                using (var scope = context.RequestServices.CreateScope())
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    await context.Response.WriteAsync("Invalid API Key");
-                    return;
+                    var dbcontext = scope.ServiceProvider.GetRequiredService<BapldmsvadContext>();
+
+                    var isValid = await dbcontext.Apikeys
+                                        .AnyAsync(k => k.Apikey1 == extractedApiKey.ToString() && k.IsActive);
+
+                    if (!isValid)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        await context.Response.WriteAsync("Invalid API Key");
+                        return;
+                    }
+
                 }
 
                 await _next(context);
