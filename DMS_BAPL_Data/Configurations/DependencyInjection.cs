@@ -15,6 +15,7 @@ using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
+using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
@@ -36,6 +37,7 @@ using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
+using DMS_BAPL_Data.Services.ReceiptEntryService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
@@ -71,6 +73,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IVehicleDispatchRepo, VehicleDispatchRepo>();
             services.AddScoped<ILotInspection, LotInspectionRepo>();
             services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
+            services.AddScoped<IReceiptEntryRepo, ReceiptEntryRepo>();
 
             #endregion
 
@@ -97,6 +100,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
+            services.AddScoped<IReceiptEntryService, ReceiptEntryService>();
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
 

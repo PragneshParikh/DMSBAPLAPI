@@ -114,9 +114,7 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<Apikey>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("APIKeys");
+            entity.ToTable("APIKeys");
 
             entity.Property(e => e.Apikey1)
                 .HasMaxLength(500)
@@ -1146,6 +1144,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.BookingId)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.BusinessType).HasMaxLength(50);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);

@@ -1,4 +1,6 @@
-﻿using DMS_BAPL_Data.Services.LocationMasterService;
+﻿using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Data.Services.LocationMasterService;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +12,12 @@ namespace DMS_BAPL_Api.Controllers
     public class LocationMasterController : ControllerBase
     {
         private readonly ILocationMasterService _service;
+        private readonly IDealerMasterService _dealerService;
 
-        public LocationMasterController(ILocationMasterService service)
+        public LocationMasterController(ILocationMasterService service,IDealerMasterService dealerMasterService)
         {
             _service = service;
+            _dealerService = dealerMasterService;
         }
         [HttpGet("GetAllLocationMaster")]
         public async Task<IActionResult> GetAllLocationMaster()
@@ -57,5 +61,13 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpGet("GetAllShowroomLocationsofCurrentDelaer")]
+        public async Task<IActionResult> GetAllShowroomlocation(string dealerCode)
+        {
+            var result =  await _service.GetLocationByDealerCode(dealerCode);
+            return Ok(result);
+
+        }
+
     }
 }

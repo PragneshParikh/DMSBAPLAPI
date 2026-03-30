@@ -12,6 +12,7 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRepo
     {
         Task<LeadViewModel> InsertLmsleadAsync(LeadViewModel leadViewModel);
         Task<List<LmsleadMaster>> GetAlllmsleadMasters();
+        Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId);
 
     }
 }

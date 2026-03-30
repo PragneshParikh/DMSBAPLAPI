@@ -22,9 +22,11 @@ namespace DMS_BAPL_Data.Repositories.HSNCodeMaterRepo
         }
 
 
-
+        ///To fetch HSNCode list with the given search parameter
         public async Task<List<HsncodeMaster>> GetAllHSNCodeListAsync(string? search)
         {
+            try
+            {
 
             IQueryable<HsncodeMaster> query = _bapldmsvadContext.HsncodeMasters;
 
@@ -38,15 +40,33 @@ namespace DMS_BAPL_Data.Repositories.HSNCodeMaterRepo
             }
 
             return await query.ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
         }
+       
+        //To fetch the HSNCode based on the HSN id
         public async Task<HsncodeMaster?> GetByIdAsync(int id)
         {
+            try
+            {
             return await _bapldmsvadContext.HsncodeMasters
                 .FirstOrDefaultAsync(x => x.Id == id);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
+        //Add new HSN code
         public async Task<HsncodeMaster> AddAsync(HSNCodeMasterViewModel entity)
         {
+            try
+            {
+
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var exists = await _bapldmsvadContext.HsncodeMasters.AnyAsync(x => x.Hsncode == entity.Hsncode);
 
@@ -69,11 +89,20 @@ namespace DMS_BAPL_Data.Repositories.HSNCodeMaterRepo
             await _bapldmsvadContext.SaveChangesAsync();
 
             return newHsnCode;
+            }
+            catch
+            {
+                throw;
+            }
 
         }
 
+        //Update the HSN code
         public async Task<bool> UpdateAsync(int id, HSNCodeMasterViewModel entity)
         {
+            try
+            {
+
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var exists = await _bapldmsvadContext.HsncodeMasters.AnyAsync(x => x.Hsncode == entity.Hsncode && x.Id != id);
 
@@ -96,6 +125,11 @@ namespace DMS_BAPL_Data.Repositories.HSNCodeMaterRepo
             await _bapldmsvadContext.SaveChangesAsync();
 
             return true;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
 

@@ -34,6 +34,18 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
 
         }
 
+        public async Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId)
+        {
+            try
+            {
+                return await _leadMasterRepo.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
 
     }
 }

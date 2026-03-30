@@ -116,5 +116,11 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
                 throw;
             }
         }
+
+        public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
+        {
+          return  await _repo.GetLocationByDealerCode(dealerCode);
+
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<bool> AddLocationMaster(LocationMasterViewModel model);
         Task<bool> UpdateLocationMaster(LocationMasterViewModel model);
         Task<byte[]> DownloadLocationMasterExcel();
+        Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode);
     }
 }

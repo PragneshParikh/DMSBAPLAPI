@@ -42,5 +42,18 @@ namespace DMS_BAPL_Api.Controllers
 
 
         }
+
+        [HttpGet("lmsLeadbyMob")]
+        public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo,int? bookingId)
+        {
+            try
+            {
+                var item = await _leadMasterService.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
+                return Ok(item);
+            }
+            catch (Exception ex){
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

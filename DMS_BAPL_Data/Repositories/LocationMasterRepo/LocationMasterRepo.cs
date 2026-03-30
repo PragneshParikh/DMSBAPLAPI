@@ -181,5 +181,33 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             return true;
         }
 
+
+        public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
+        {
+            try
+            {
+                var data = await _context.LocationMasters
+                            .Where(x => x.Dealercode == dealerCode && x.Locareaidno == 1)
+                            .ToListAsync();
+
+                List<LocationNameViewModel> list = new List<LocationNameViewModel>();
+
+                foreach (var item in data)
+                {
+                    LocationNameViewModel locationName = new LocationNameViewModel();
+
+                    locationName.Locname = item.Locname;
+
+                    list.Add(locationName);
+                }
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error while fetching location names", ex);
+            }
+        }
+
     }
 }

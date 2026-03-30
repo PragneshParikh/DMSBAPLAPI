@@ -19,18 +19,41 @@ namespace DMS_BAPL_Api.Controllers
         [HttpGet("list")]
         public async Task<IActionResult> GetAll(string? search)
         {
-            return Ok(await _hSNCodeMaterService.GetAllHSNCodeListAsync(search));
+            try
+            {
+                return Ok(await _hSNCodeMaterService.GetAllHSNCodeListAsync(search));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpGet("update/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _hSNCodeMaterService.GetByIdAsync(id);
+            try
+            {
 
-            if (data == null)
-                return NotFound();
+                var data = await _hSNCodeMaterService.GetByIdAsync(id);
 
-            return Ok(data);
+                if (data == null)
+                    return NotFound();
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpPost("create")]
@@ -43,24 +66,42 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message); 
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
         [HttpPut("update/{id}")]
-        public async Task<IActionResult> Update(int id,HSNCodeMasterViewModel model)
+        public async Task<IActionResult> Update(int id, HSNCodeMasterViewModel model)
         {
-            var result=await _hSNCodeMaterService.UpdateAsync(id,model);
-            return Ok(new
+            try
             {
-                message = StringConstants.HSNCodeUpdatedSuccessfully,
-                data = result
-            });
+                var result = await _hSNCodeMaterService.UpdateAsync(id, model);
+                return Ok(new
+                {
+                    message = StringConstants.HSNCodeUpdatedSuccessfully,
+                    data = result
+                });
+            }
+
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpGet("download")]
         public async Task<IActionResult> Download()
         {
+            try
+            {
             var file = await _hSNCodeMaterService.downloadHSNCodeExcel();
 
             return File(
@@ -68,6 +109,15 @@ namespace DMS_BAPL_Api.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "HSNCodeMasterList.xlsx"
             );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
 

@@ -99,6 +99,32 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
             return await query.ToListAsync();
         }
 
+        //Fetch LeadMaster with mobileno or bookingID
+        public async Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId)
+        {
+            var query = _context.LmsleadMasters.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(mobileNo))
+            {
+                var normalizedMobile = mobileNo.Trim();
+                query = query.Where(x => x.Mobile.Trim() == normalizedMobile);
+            }
+            else if (bookingId.HasValue)
+            {
+                query = query.Where(x => x.Leadid == bookingId.Value);
+            }
+            else
+            {
+                throw new Exception("Please provide Mobile No or Booking Id");
+            }
+
+            var result = await query.FirstOrDefaultAsync();
+
+            if (result == null)
+                throw new Exception("Record not found");
+
+            return result;
+        }
 
 
 

@@ -27,16 +27,38 @@ namespace DMS_BAPL_Data.Services.HSNCodeMaterService
         }
         public async Task<HsncodeMaster?> GetByIdAsync(int id)
         {
+            try
+            {
             return await _hSNCodeMaterRepo.GetByIdAsync(id);
+            }
+            catch
+            {
+                throw;
+            }
 
         }
         public async Task<HsncodeMaster> AddAsync(HSNCodeMasterViewModel entity)
         {
+            try
+            {
             return await _hSNCodeMaterRepo.AddAsync(entity);
+            }
+            catch
+            {
+                throw;
+            }
         }
         public async Task<bool> UpdateAsync(int id, HSNCodeMasterViewModel entity)
         {
+            try
+            {
             return await _hSNCodeMaterRepo.UpdateAsync(id, entity);
+            }
+            catch
+            {
+                throw;
+            }
+
         }
 
         public async Task<byte[]> downloadHSNCodeExcel()

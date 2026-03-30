@@ -42,4 +42,6 @@ public partial class ReceiptEntry
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public string? BusinessType { get; set; }
 }
