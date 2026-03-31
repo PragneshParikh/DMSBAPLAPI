@@ -898,6 +898,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ModelName)
                 .HasMaxLength(200)
                 .HasColumnName("modelName");
+            entity.Property(e => e.ModelWiseSupervisor)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("modelWiseSupervisor");
             entity.Property(e => e.MotorNo)
                 .HasMaxLength(100)
                 .HasColumnName("motorNo");

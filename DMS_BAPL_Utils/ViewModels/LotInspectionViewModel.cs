@@ -107,6 +107,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? VehicleStatus { get; set; }
         public string? DamageDetails { get; set; }
         public string? ChassisWiseRemarks { get; set; }
+        public string? modelWiseSupervisorName { get; set; }
         public string? LocationName { get; set; }
         public string? LotVehicleDamageImage { get; set; }
     }
@@ -116,8 +117,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? invoiceNo { get; set; }
         public string? invoiceDate { get; set; }
         public int lotNo { get; set; }
-        public string? dateOfArrival { get; set; }
-        public string? timeOfArrival { get; set; }
+        public string? arrivalDate { get; set; }
+        public string? arrivalTime { get; set; }
         public string? lrNo { get; set; }
         public string? lrDate { get; set; }
         public string? truckNo { get; set; }
@@ -155,6 +156,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleStatus { get; set; }
         public string? damageDetails { get; set; }
         public string? chassisWiseRemarks { get; set; }
+        public string? modelWiseSupervisorName { get; set; }
         public string? locationName { get; set; }
         // public IFormFile? lotVehicleDamageImage { get; set; }
         public string updatedBy { get; set; }
@@ -170,7 +172,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateOnly? invoiceDate { get; set; }
         public int? lotNo { get; set; }
         public DateOnly? arrivalDate { get; set; }
-        public TimeOnly? arrivalTime { get; set; }
+        public string? arrivalTime { get; set; }
         public string? lrNo { get; set; }
         public DateOnly? lrDate { get; set; }
         public string? truckNo { get; set; }
@@ -203,6 +205,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleStatus { get; set; }
         public string? damageDetails { get; set; }
         public string? chassisWiseRemarks { get; set; }
+        public string? modelWiseSupervisorName { get; set; }
+
         public string? locationName { get; set; }
         public string? lotVehicleDamageImage { get; set; }
     }

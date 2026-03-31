@@ -59,5 +59,7 @@ public partial class LotinspectionDetail
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? ModelWiseSupervisor { get; set; }
+
     public virtual LotinspectionHeader LotHeader { get; set; } = null!;
 }

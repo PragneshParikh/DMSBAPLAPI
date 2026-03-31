@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -73,6 +74,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         VehicleStatus = item.VehicleStatus,
                         DamageDetails = item.DamageDetails,
                         ChassisWiseRemarks = item.ChassisWiseRemarks,
+                        ModelWiseSupervisor = item.modelWiseSupervisorName,
                         LocationName = item.LocationName,
                         LotVehicleDamageImage = item.LotVehicleDamageImage,
                         CreatedBy = userId,
@@ -117,12 +119,18 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         invoiceNo = lotHeader.InvoiceNo,
                         invoiceDate = lotHeader.InvoiceDate,
                         lotNo = lotHeader.LotNo,
+                        arrivalDate=lotHeader.ArrivalDate,
+                        arrivalTime=lotHeader.ArrivalTime,
                         lrNo = lotHeader.LrNo,
                         lrDate = lotHeader.LrDate,
                         truckNo = lotHeader.TruckNo,
                         transporterName = lotHeader.TransporterName,
                         driverName = lotHeader.DriverName,
                         driverContact = lotHeader.DriverContact,
+                        commonRemarks=lotHeader.CommonRemarks,
+                        vehicleFasteningBracket=lotHeader.VehicleFasteningBracket,
+                        plasticCover=lotHeader.PlasticCover,
+                        nameSupervisor=lotHeader.SupervisorName,
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,
@@ -145,6 +153,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         vehicleStatus = lotDetail.VehicleStatus,
                         damageDetails = lotDetail.DamageDetails,
                         chassisWiseRemarks = lotDetail.ChassisWiseRemarks,
+                        modelWiseSupervisorName = lotDetail.ModelWiseSupervisor,
                         locationName = lotDetail.LocationName,
                         lotVehicleDamageImage = lotDetail.LotVehicleDamageImage
                     }).ToListAsync();

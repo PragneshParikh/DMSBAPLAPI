@@ -101,13 +101,13 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 if (header == null) return false;
 
-                if (!string.IsNullOrEmpty(model.lotInspectedHeaderDetails.dateOfArrival) &&
-                    DateTime.TryParse(model.lotInspectedHeaderDetails.dateOfArrival, out var parsedDate))
+                if (!string.IsNullOrEmpty(model.lotInspectedHeaderDetails.arrivalDate) &&
+                    DateTime.TryParse(model.lotInspectedHeaderDetails.arrivalDate, out var parsedDate))
                 {
                     header.ArrivalDate = DateOnly.FromDateTime(parsedDate);
                 }
 
-                header.ArrivalTime = model.lotInspectedHeaderDetails.timeOfArrival;
+                header.ArrivalTime = model.lotInspectedHeaderDetails.arrivalTime;
                 header.LrNo = model.lotInspectedHeaderDetails.lrNo;
                 if (!string.IsNullOrEmpty(model.lotInspectedHeaderDetails.lrDate) &&
                  DateTime.TryParse(model.lotInspectedHeaderDetails.lrDate, out var lrParsedDate))
@@ -157,6 +157,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                         detail.OwnersManual = item.ownersManual;
                         detail.IgnitionKeyset = item.ignitionKeyset;
+                        detail.AttributeCard = item.attributeCard;
+                        detail.ChargingKit = item.chargingKit;
                         if (!string.IsNullOrEmpty(item.inspectionDate) &&
                          DateTime.TryParse(item.inspectionDate, out var inspectionparsedDate))
                         {
@@ -165,6 +167,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         detail.VehicleStatus = item.vehicleStatus;
                         detail.DamageDetails = item.damageDetails;
                         detail.ChassisWiseRemarks = item.chassisWiseRemarks;
+                        detail.ModelWiseSupervisor = item.modelWiseSupervisorName;
                         detail.LocationName = item.locationName;
                         detail.UpdateBy = userId;
                         detail.UpdatedDate = DateTime.Now;
