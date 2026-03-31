@@ -59,11 +59,11 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                 var parentMenus = menus
                     .Where(x => x.ParentMenuId == null)
                     .OrderBy(x => x.MenuName)
-                    .Select(parent =>
+                    .Select(menu =>
                     {
                         var children = menus
-                            .Where(x => x.ParentMenuId == parent.Id
-                                     && allowedSubMenuIds.Contains(x.Id))
+                            .Where(x => x.ParentMenuId == menu.Id
+                                && roleRights.Any(r => r.SubMenuId == x.Id && r.Permission > 0))
                             .OrderBy(x => x.MenuName)
                             .Select(child => new MenuMasterViewModel
                             {
@@ -71,23 +71,39 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                                 label = child.MenuName,
                                 link = child.PathName,
                                 parentId = child.ParentMenuId,
-                                module = child.ModuleName,
-                                subItems = null
+                                module = child.ModuleName
                             })
                             .ToList();
 
-                        if (!children.Any() && string.IsNullOrEmpty(parent.PathName))
-                            return null;
+                        var hasChildren = children.Any();
 
-                        return new MenuMasterViewModel
+                        var hasAccess = roleRights
+                            .Any(r => r.SubMenuId == menu.Id && r.Permission > 0);
+
+                        if (hasChildren)
                         {
-                            id = parent.Id,
-                            label = parent.MenuName,
-                            icon = "ri-dashboard-2-line",
-                            isCollapsed = true,
-                            link = parent.PathName,
-                            subItems = children
-                        };
+                            return new MenuMasterViewModel
+                            {
+                                id = menu.Id,
+                                label = menu.MenuName,
+                                icon = "ri-dashboard-2-line",
+                                isCollapsed = true,
+                                subItems = children
+                            };
+                        }
+
+                        if (hasAccess)
+                        {
+                            return new MenuMasterViewModel
+                            {
+                                id = menu.Id,
+                                label = menu.MenuName,
+                                link = menu.PathName,
+                                icon = "ri-dashboard-2-line"
+                            };
+                        }
+
+                        return null;
                     })
                     .Where(x => x != null)
                     .ToList();
