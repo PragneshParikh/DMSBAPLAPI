@@ -97,6 +97,72 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
             }
         }
 
+        // Get all Lot inspection details based on invoice no
+        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(string? invoiceNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(invoiceNo))
+                    return new List<LotInspectionHeaderDetailsViewModel>();
+
+                var details = await (
+                    from lotHeader in _context.LotinspectionHeaders
+                    join lotDetail in _context.LotinspectionDetails
+                        on lotHeader.Id equals lotDetail.LotHeaderId
+                    where lotHeader.InvoiceNo != null &&
+                          lotHeader.InvoiceNo.Trim().ToLower() == invoiceNo.Trim().ToLower()
+                    select new LotInspectionHeaderDetailsViewModel
+                    {
+
+                        invoiceNo = lotHeader.InvoiceNo,
+                        invoiceDate = lotHeader.InvoiceDate,
+                        lotNo = lotHeader.LotNo,
+                        lrNo = lotHeader.LrNo,
+                        lrDate = lotHeader.LrDate,
+                        truckNo = lotHeader.TruckNo,
+                        transporterName = lotHeader.TransporterName,
+                        driverName = lotHeader.DriverName,
+                        driverContact = lotHeader.DriverContact,
+
+                        id = lotDetail.Id,
+                        lotHeaderID = lotDetail.LotHeaderId,
+                        modelName = lotDetail.ModelName,
+                        noofVehicle = lotDetail.NoofVehicle,
+                        chassisNo = lotDetail.ChassisNo,
+                        motorNo = lotDetail.MotorNo,
+                        batteryNo = lotDetail.BatteryNo,
+                        chargerNo = lotDetail.ChargerNo,
+                        keyFobSetQty = lotDetail.KeyFobSetQty,
+                        chargerQty = lotDetail.ChargerQty,
+                        mirrorsetQty = lotDetail.MirrorsetQty,
+                        firstaidkitQty = lotDetail.FirstaidkitQty,
+                        toolKitQty = lotDetail.ToolKitQty,
+                        ownersManual = lotDetail.OwnersManual,
+                        ignitionKeyset = lotDetail.IgnitionKeyset,
+                        attributeCard = lotDetail.AttributeCard,
+                        chargingKit = lotDetail.ChargingKit,
+                        inspectionDate = lotDetail.InspectionDate,
+                        vehicleStatus = lotDetail.VehicleStatus,
+                        damageDetails = lotDetail.DamageDetails,
+                        chassisWiseRemarks = lotDetail.ChassisWiseRemarks,
+                        locationName = lotDetail.LocationName,
+                        lotVehicleDamageImage = lotDetail.LotVehicleDamageImage
+                    }).ToListAsync();
+
+                return details;
+            }
+            catch (Exception ex)
+            {
+                //  log error (recommended)
+                Console.WriteLine($"Error in GetAllDetailsByInvoiceAsync: {ex.Message}");
+
+                // Option 1: return empty list (safe for UI)
+                return new List<LotInspectionHeaderDetailsViewModel>();
+
+                throw;
+            }
+        }
+
         public async Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId)
         {
             try

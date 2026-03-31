@@ -19,7 +19,7 @@ public partial class LotinspectionHeader
 
     public DateOnly? ArrivalDate { get; set; }
 
-    public TimeOnly? ArrivalTime { get; set; }
+    public string? ArrivalTime { get; set; }
 
     public string? LrNo { get; set; }
 
@@ -43,11 +43,11 @@ public partial class LotinspectionHeader
 
     public string CreatedBy { get; set; } = null!;
 
-    public DateOnly CreatedDate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public string? UpdateBy { get; set; }
 
-    public DateOnly? UpdatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }

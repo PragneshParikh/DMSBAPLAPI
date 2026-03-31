@@ -930,7 +930,10 @@ public partial class BapldmsvadContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.ArrivalDate).HasColumnName("arrivalDate");
-            entity.Property(e => e.ArrivalTime).HasColumnName("arrivalTime");
+            entity.Property(e => e.ArrivalTime)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("arrivalTime");
             entity.Property(e => e.CommonRemarks)
                 .HasMaxLength(250)
                 .IsUnicode(false)
@@ -941,6 +944,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("createdBy");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
                 .HasColumnName("createdDate");
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(100)
@@ -987,6 +991,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("updateBy");
             entity.Property(e => e.UpdatedDate)
                 .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
             entity.Property(e => e.VehicleFasteningBracket)
                 .HasMaxLength(20)

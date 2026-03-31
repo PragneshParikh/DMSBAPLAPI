@@ -41,5 +41,24 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet]
+        [Route("GetAllDetailsByInvoice")]
+        public async Task<IActionResult> GetAllDetailsByInvoice([FromQuery] string invoiceNo)
+        {
+            try
+            {
+                var result = await _lotInspectionDetailsService.GetAllDetailsByInvoiceAsync(invoiceNo);
+                return Ok(new
+                {
+                    Message = "Invoice based model Details retrieved successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

@@ -27,6 +27,18 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
                 throw new Exception($"Error inserting details by invoice: {ex.Message}", ex);
             }
         }
+        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(string? invoiceNo)
+        {
+            try
+            {
+                return await _lotInspectionDetails.GetAllDetailsByInvoiceAsync(invoiceNo);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                throw new Exception($"Error retrieving details by invoice: {ex.Message}", ex);
+            }
+        }
 
         public async Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId)
         {

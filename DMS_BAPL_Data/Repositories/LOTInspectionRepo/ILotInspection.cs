@@ -12,5 +12,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
     public interface ILotInspection
     {
         Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId);
+        Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId);
+        Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? search);
     }
 }
