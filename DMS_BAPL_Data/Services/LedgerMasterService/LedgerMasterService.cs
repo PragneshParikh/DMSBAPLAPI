@@ -32,6 +32,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             ledgerMaster.UpdatedBy = userId;
             ledgerMaster.UpdatedDate = DateTime.Now;
             return _ledgerMasterRepo.UpdateLedgerDetail(ledgerMaster);
-        }
+        }      
     }
 }
