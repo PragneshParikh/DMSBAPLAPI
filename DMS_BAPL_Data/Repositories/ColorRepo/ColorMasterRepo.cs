@@ -20,36 +20,30 @@ namespace DMS_BAPL_Data.Repositories.Color
         {
             _context = context;
         }
-        Task<List<ColorMaster>> IColorMasterRepo.GetColorsAsync()
+        async Task<List<ColorMaster>> IColorMasterRepo.GetColorsAsync()
         {
             try
             {
 
-                var color = _context.ColorMasters
+                return await _context.ColorMasters
                                     .AsNoTracking()
-                                    .OrderBy(c => c.Colorname)
-                                    .ToList();
+                                    .OrderBy(c => c.Colorname.ToLower())
+                                    .ToListAsync();
 
-                return Task.FromResult(color);
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            catch { throw; }
         }
         Task<ColorMaster> IColorMasterRepo.GetColorByCodeAsync(string colorCode)
         {
             try
             {
 
-                var color = _context.ColorMasters.Where(c => c.Colorcode == colorCode).FirstOrDefaultAsync();
+                var color = _context.ColorMasters.Where(c => c.Colorcode == colorCode)
+                                                .FirstOrDefaultAsync();
 
                 return (color);
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            catch { throw; }
         }
         public async Task<PagedResponse<ColorMaster>> getColorsByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
         {
@@ -57,25 +51,21 @@ namespace DMS_BAPL_Data.Repositories.Color
             {
                 var query = _context.ColorMasters.AsNoTracking();
 
-                // 1. Apply Search Filter if searchTerms is provided
                 if (!string.IsNullOrWhiteSpace(searchTerms))
                 {
-                    // Update these property names to match your actual database columns
                     query = query.Where(c => c.Colorname.Contains(searchTerms) ||
                                              c.Colorcode.Contains(searchTerms));
                 }
 
-                // 2. Get total count AFTER filtering, but BEFORE paging
                 int totalRecords = await query.CountAsync();
 
-                // 3. Get paged data
                 var items = await query
-                    .OrderBy(c => c.Rrgcoloridno)
+                    .AsNoTracking()
+                    .OrderBy(c => c.Colorname)
                     .Skip(pageIndex * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // Calculate starting serial number
                 int startSrNo = (pageIndex * pageSize) + 1;
 
                 var viewModelItems = items.Select((item, index) => new ColorMaster
@@ -96,10 +86,7 @@ namespace DMS_BAPL_Data.Repositories.Color
                     TotalRecords = totalRecords
                 };
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            catch { throw; }
         }
         async Task<ColorMasterViewModel> IColorMasterRepo.CreateColorAsync(ColorMasterViewModel colorMasterViewModel)
         {
