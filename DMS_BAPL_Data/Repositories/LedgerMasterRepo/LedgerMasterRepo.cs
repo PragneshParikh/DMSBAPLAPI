@@ -99,5 +99,69 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
             catch { throw; }
         }
+
+        public async Task<bool> CheckLedgerExist(string? email,string? mobile) 
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var result = await _context.LedgerMasters.Where(i=>i.EMail == email).FirstOrDefaultAsync();
+                    if(result==null)
+                        return false;
+                }
+                if (!string.IsNullOrWhiteSpace(mobile))
+                {
+                    var result = await _context.LedgerMasters.Where(i=>i.MobileNumber == mobile).FirstOrDefaultAsync();
+                    if(result==null)
+                    return false;
+                }
+                return true;
+            }
+            catch 
+            {
+                throw;
+            }
+        }
+
+        public async Task CreateLedgerFromLead(LmsleadMaster lead, string userId)
+        {
+            var lastParty = await _context.LedgerMasters
+                .Where(x => x.LedgerType == "Party" && x.LedgerCode != null)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (lastParty != null)
+            {
+                var numberPart = new string(lastParty.LedgerCode
+                    .Where(char.IsDigit)
+                    .ToArray());
+
+                if (int.TryParse(numberPart, out int lastNumber))
+                {
+                    nextNumber = lastNumber + 1;
+                }
+            }
+
+            var firstName = lead.Name.Split(' ')[0];
+            var ledgerCode = $"{firstName.ToUpper()}{nextNumber:D3}";
+
+            var newLedger = new LedgerMaster
+            {
+                LedgerCode = ledgerCode,
+                LedgerName = lead.Name,
+                LedgerType = "Party",
+                MobileNumber = lead.Mobile,
+                EMail = lead.Email,
+                City = lead.City,
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+
+            _context.LedgerMasters.Add(newLedger);
+            await _context.SaveChangesAsync();
+        }
     }
 }

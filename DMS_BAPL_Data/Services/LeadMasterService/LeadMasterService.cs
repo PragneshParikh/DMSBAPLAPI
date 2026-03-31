@@ -1,6 +1,9 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
+using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,9 +15,13 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
     public class LeadMasterService : ILeadMasterService
     {
         private readonly ILeadMasterRepo _leadMasterRepo;
-        public LeadMasterService(ILeadMasterRepo leadMasterRepo)
+        private readonly ILedgerMasterRepo _ledgerMasterRepo;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public LeadMasterService(ILeadMasterRepo leadMasterRepo,ILedgerMasterRepo ledgerMasterRepo, IHttpContextAccessor httpContextAccessor)
         {
             _leadMasterRepo = leadMasterRepo;
+            _ledgerMasterRepo = ledgerMasterRepo;
+            _httpContextAccessor = httpContextAccessor;
         }
         async Task<LeadViewModel> ILeadMasterService.InsertLmsleadMasterAsync(LeadViewModel leadViewModel)
         {
@@ -38,7 +45,23 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
         {
             try
             {
-                return await _leadMasterRepo.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
+                var result= await _leadMasterRepo.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
+                bool checkIfExistInLedger= await _ledgerMasterRepo.CheckLedgerExist(result.Email,mobileNo);
+                if (checkIfExistInLedger == false)
+                {
+                    var httpContext = _httpContextAccessor.HttpContext;
+
+                    if (httpContext == null)
+                    {
+                        throw new Exception("HttpContext is null");
+                    }
+
+                    string userId = GetUserInfoFromToken.GetUserIdFromToken(httpContext);
+                    await _ledgerMasterRepo.CreateLedgerFromLead(result,userId);
+
+                }
+                return result;
+
             }
             catch (Exception)
             {

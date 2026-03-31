@@ -61,7 +61,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
             }
         }
 
-        //public async Task<List<ReceiptEntry>> GetReceiptEntryListAsync()
+        //public async Task<List<ReceiptEntry>> GetAllReceiptEntryListAsync()
         //{
         //    try
         //    {
@@ -80,41 +80,44 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
             {
                 var query = _bapldmsvadContext.ReceiptEntries.AsQueryable();
 
-                // Date filters
-                if (filter.FromDate.HasValue)
-                    query = query.Where(x => x.ReceiptDate >= filter.FromDate.Value);
-
-                if (filter.ToDate.HasValue)
-                    query = query.Where(x => x.ReceiptDate <= filter.ToDate.Value);
-
-                // String filters
-                if (!string.IsNullOrWhiteSpace(filter.ReceiptNo))
-                    query = query.Where(x => x.ReceiptNo.Contains(filter.ReceiptNo));
-
-                if (!string.IsNullOrWhiteSpace(filter.PartyName))
-                    query = query.Where(x => x.PartyName.Contains(filter.PartyName));
-
-                if (!string.IsNullOrWhiteSpace(filter.MobileNo))
-                    query = query.Where(x => x.MobileNo.Contains(filter.MobileNo));
-
-                if (!string.IsNullOrWhiteSpace(filter.BookingId))
-                    query = query.Where(x => x.BookingId.Contains(filter.BookingId));
-
-                if (!string.IsNullOrWhiteSpace(filter.Location))
-                    query = query.Where(x => x.Location.Contains(filter.Location));
-
-                // SaleType filter
-                if (!string.IsNullOrWhiteSpace(filter.SaleType))
+                if (filter != null)
                 {
-                    var saleType = filter.SaleType.Trim().ToLower();
+                    // Date filters
+                    if (filter.FromDate.HasValue)
+                        query = query.Where(x => x.ReceiptDate >= filter.FromDate.Value);
 
-                    if (saleType == "cash")
+                    if (filter.ToDate.HasValue)
+                        query = query.Where(x => x.ReceiptDate <= filter.ToDate.Value);
+
+                    // String filters
+                    if (!string.IsNullOrWhiteSpace(filter.ReceiptNo))
+                        query = query.Where(x => x.ReceiptNo.Contains(filter.ReceiptNo));
+
+                    if (!string.IsNullOrWhiteSpace(filter.PartyName))
+                        query = query.Where(x => x.PartyName.Contains(filter.PartyName));
+
+                    if (!string.IsNullOrWhiteSpace(filter.MobileNo))
+                        query = query.Where(x => x.MobileNo.Contains(filter.MobileNo));
+
+                    if (!string.IsNullOrWhiteSpace(filter.BookingId))
+                        query = query.Where(x => x.BookingId.Contains(filter.BookingId));
+
+                    if (!string.IsNullOrWhiteSpace(filter.Location))
+                        query = query.Where(x => x.Location.Contains(filter.Location));
+
+                    // SaleType filter
+                    if (!string.IsNullOrWhiteSpace(filter.SaleType))
                     {
-                        query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
-                    }
-                    else if (saleType == "credit")
-                    {
-                        query = query.Where(x => !string.IsNullOrWhiteSpace(x.Financier));
+                        var saleType = filter.SaleType.Trim().ToLower();
+
+                        if (saleType == "cash")
+                        {
+                            query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
+                        }
+                        else if (saleType == "credit")
+                        {
+                            query = query.Where(x => !string.IsNullOrWhiteSpace(x.Financier));
+                        }
                     }
                 }
 
@@ -279,5 +282,102 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 throw;
             }
         }
+
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? search)
+        {
+            try
+            {
+                var query =
+                    from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
+
+                    join i in _bapldmsvadContext.ItemMasters
+                        on r.ProductCode equals i.Itemcode into itemGroup
+                    from i in itemGroup.DefaultIfEmpty()
+
+                    join c in _bapldmsvadContext.ColorMasters
+                        on i.Colorcode equals c.Colorcode into colorGroup
+                    from c in colorGroup.DefaultIfEmpty()
+
+                    select new ReceiptEntryEditViewModel
+                    {
+                        Id = r.Id,
+                        Location = r.Location,
+                        ReceiptNo = r.ReceiptNo,
+                        MobileNo = r.MobileNo,
+                        ReceiptDate = r.ReceiptDate,
+                        SaleType = r.SaleType,
+                        BookingId = r.BookingId,
+                        PartyName = r.PartyName,
+                        Financier = r.Financier,
+                        ProductCode = r.ProductCode,
+                        BusinessType = r.BusinessType,
+
+                        // ✅ Product Details
+                        ProductName = i.Itemname,
+                        ProductDescription = i.Itemdesc,
+                        ProductColor = c.Colorname,
+
+                        SalesExecutive = r.SalesExecutive,
+                        ReceiptType = r.ReceiptType,
+                        RefNo = r.RefNo,
+                        Narration = r.Narration,
+                        TotalAmount = r.TotalAmount,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate
+                    };
+
+                // APPLY SEARCH
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    search = search.Trim().ToLower();
+
+                    query = query.Where(x =>
+                        (x.ReceiptNo != null && x.ReceiptNo.ToLower().Contains(search)) ||
+                        (x.PartyName != null && x.PartyName.ToLower().Contains(search)) ||
+                        (x.MobileNo != null && x.MobileNo.ToLower().Contains(search)) ||
+                        (x.BookingId != null && x.BookingId.ToLower().Contains(search)) ||
+                        (x.Location != null && x.Location.ToLower().Contains(search)) ||
+                        (x.Financier != null && x.Financier.ToLower().Contains(search))||
+
+                        // ✅ PRODUCT SEARCH INCLUDED
+                        (x.ProductCode != null && x.ProductCode.ToLower().Contains(search)) ||
+                        (x.ProductName != null && x.ProductName.ToLower().Contains(search)) ||
+                        (x.ProductDescription != null && x.ProductDescription.ToLower().Contains(search)) ||
+                        (x.ProductColor != null && x.ProductColor.ToLower().Contains(search)) ||
+
+                        (x.SalesExecutive != null && x.SalesExecutive.ToLower().Contains(search)) ||
+                        (x.ReceiptType != null && x.ReceiptType.ToLower().Contains(search)) ||
+                        (x.RefNo != null && x.RefNo.ToLower().Contains(search)) ||
+                        (x.Narration != null && x.Narration.ToLower().Contains(search))
+                    );
+
+                    if (int.TryParse(search, out int number))
+                    {
+                        query = query.Where(x =>
+                            x.ReceiptDate.Day == number ||
+                            x.ReceiptDate.Month == number ||
+                            x.ReceiptDate.Year == number
+                        );
+                    }
+                    //Smart filters
+                    if (search == "cash")
+                        query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
+
+                    if (search == "credit")
+                        query = query.Where(x => !string.IsNullOrWhiteSpace(x.Financier));
+                }
+
+                return await query
+                    .OrderByDescending(x => x.CreatedDate)
+                    .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

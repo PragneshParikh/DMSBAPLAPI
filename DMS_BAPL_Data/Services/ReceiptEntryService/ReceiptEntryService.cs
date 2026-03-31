@@ -169,5 +169,18 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             }
         }
 
+       public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm)
+        {
+            try
+            {
+                return await _receiptEntryRepo.GetReceiptEntryListAsyncWithSearch(searchTerm);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+
     }
 }

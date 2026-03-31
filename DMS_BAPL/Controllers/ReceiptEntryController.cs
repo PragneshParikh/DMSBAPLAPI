@@ -185,7 +185,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Download()
+        public async Task<IActionResult> downloadExcel()
         {
             try
             {
@@ -197,6 +197,27 @@ namespace DMS_BAPL_Api.Controllers
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "ReceiptEntry.xlsx"
                 );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpGet("getAllReceiptList")]
+        public async Task<IActionResult> GetReceiptEntryListAsyncWithSearch(string? searchTerm)
+        {
+            try
+            {
+                var result = await _receiptEntryService.GetReceiptEntryListAsyncWithSearch(searchTerm);
+                return Ok(result);
             }
             catch (Exception ex)
             {
