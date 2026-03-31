@@ -10,6 +10,7 @@ using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
+using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
@@ -32,6 +33,7 @@ using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
+using DMS_BAPL_Data.Services.LedgerMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Data.Services.MenuMasterService;
@@ -74,6 +76,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspection, LotInspectionRepo>();
             services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
             services.AddScoped<IReceiptEntryRepo, ReceiptEntryRepo>();
+            services.AddScoped<ILedgerMasterRepo, LedgerMasterRepo>();
 
             #endregion
 
@@ -101,6 +104,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();
+            services.AddScoped<ILedgerMasterService, LedgerMasterService>();
+
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
 
