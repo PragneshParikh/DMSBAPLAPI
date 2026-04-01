@@ -62,7 +62,7 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
         {
             IQueryable<Form22Master> query = _context.Form22Masters;
 
-            if(!string.IsNullOrEmpty(search))
+            if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(f => EF.Functions.Like(f.OemModelName, $"%{search}%") ||
                 EF.Functions.Like(f.SoundLevelHorn, $"%{search}%") ||
@@ -70,8 +70,9 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
                 EF.Functions.Like(f.ApprovalCertificateNo, $"%{search}%")
                 //(search == "yes" && f.Isactive) ||
                 //(search == "no" && !f.Isactive);
-                );                       
+                );
             }
+            query = query.OrderByDescending(f => f.Id);
             return await query.ToListAsync();
         }
 
@@ -80,11 +81,16 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
             return await _context.Form22Masters.FirstOrDefaultAsync(f => f.Id == id);
         }
 
-        public async Task<Form22Master> UpdateForm22MasterAsync(int id, Form22Master form22Master)
+        public async Task<Form22Master> UpdateForm22MasterAsync(int id, Form22MasterViewModel form22MasterViewModel)
         {
             //particular one id find then update
             var existingForm22Master = await _context.Form22Masters
-                                                     .FindAsync(form22Master.Id);
+                                                     .FindAsync(form22MasterViewModel.Id);
+
+            var oemModel = await _context.OemmodelMasters
+                    .Where(o => o.Id == form22MasterViewModel.OemmodelId)
+                    .Select(o => o.ModelName)
+                    .FirstOrDefaultAsync();
 
             if (existingForm22Master == null)
             {
@@ -92,13 +98,14 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
             }
 
             // Update fields
-            existingForm22Master.OemModelName = form22Master.OemModelName;
-            existingForm22Master.SoundLevelHorn = form22Master.SoundLevelHorn;
-            existingForm22Master.PassbyNoiseLevel = form22Master.PassbyNoiseLevel;
-            existingForm22Master.ApprovalCertificateNo = form22Master.ApprovalCertificateNo;
-            existingForm22Master.Isactive = form22Master.Isactive;
+            existingForm22Master.OemModelName = oemModel;
+            existingForm22Master.OemmodelId = form22MasterViewModel.OemmodelId;
+            existingForm22Master.SoundLevelHorn = form22MasterViewModel.SoundLevelHorn;
+            existingForm22Master.PassbyNoiseLevel = form22MasterViewModel.PassbyNoiseLevel;
+            existingForm22Master.ApprovalCertificateNo = form22MasterViewModel.ApprovalCertificateNo;
+            existingForm22Master.Isactive = form22MasterViewModel.IsActive;
 
-            existingForm22Master.UpdatedBy = form22Master.UpdatedBy;
+            existingForm22Master.UpdatedBy = form22MasterViewModel.UpdatedBy;
             existingForm22Master.UpdatedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

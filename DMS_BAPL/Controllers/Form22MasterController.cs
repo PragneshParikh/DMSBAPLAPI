@@ -43,7 +43,8 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(result);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateForm22Master(int id, [FromBody] Form22Master form22MasterViewModel)
+        //[Route("UpdateForm22Master")]
+        public async Task<IActionResult> UpdateForm22Master(int id, [FromBody] Form22MasterViewModel form22MasterViewModel)
         {
             var existingForm22Master = await _form22Service.UpdateForm22MasterAsync(id, form22MasterViewModel);
             if (existingForm22Master == null)

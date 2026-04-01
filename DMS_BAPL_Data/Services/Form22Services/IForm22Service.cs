@@ -15,7 +15,7 @@ namespace DMS_BAPL_Data.Services.Form22Services
             Task<List<Form22Master>> GetForm22MastersAsync(string? search);
 
             Task<Form22Master> GetForm22MasterByIdAsync(int id);
-            Task<Form22Master> UpdateForm22MasterAsync(int id, Form22Master form22Master);
+            Task<Form22Master> UpdateForm22MasterAsync(int id, Form22MasterViewModel form22MasterViewModel);
 
             Task<byte[]> DownloadForm22MasterExcel();
 
