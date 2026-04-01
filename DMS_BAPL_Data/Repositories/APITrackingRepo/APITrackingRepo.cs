@@ -29,12 +29,12 @@ namespace DMS_BAPL_Data.Repositories.APITracking
 
             if (!string.IsNullOrEmpty(endPoint))
             {
-                query = query.Where(a => a.Endpoint == endPoint);
+                query = query.Where(a => a.Endpoint.ToLower() == endPoint);
             }
 
             if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(a => a.Status == status);
+                query = query.Where(a => a.Status.ToLower() == status);
             }
 
             if (!string.IsNullOrEmpty(searchCriteria))
