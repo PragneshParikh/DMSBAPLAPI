@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
@@ -12,8 +12,6 @@ using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
-
-
     public class PurchaseOrderService : IPurchaseOrderService
     {
         private readonly IPurchaseOrderRepo _repo;
@@ -61,6 +59,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     CustomerCode = model.CustomerCode,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now,
+                    TransactionType = model.TransactionType,
                     Status = false
                 };
 
@@ -76,15 +75,15 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     decimal rate = itemMaster.Dlrprice;
                     decimal lineAmount = item.Qty * rate;
 
-                    if (itemMaster.Itemtype == 2)
-                        lineAmount -= 20;
+                    //if (itemMaster.Itemtype == 2)
+                    //    lineAmount -= 20;
 
                     var detail = new PurchaseOrderDetail
                     {
                         Ponumber = model.PONumber,
                         ItemCode = item.ItemCode,
                         Qty = (int)item.Qty,
-                        Subsidy = itemMaster.Itemtype == 1 ? 0 : 20 * item.Qty,
+                        Subsidy = itemMaster.Itemtype == 11 ? subsidy * item.Qty : 0,
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
@@ -200,7 +199,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
 
                 if (po == null)
                     throw new Exception(StringConstants.PONotFound);
-
+                await _repo.UpdateStatus(po.PONumber);
                 // Consignee Logic
                 string suffix = "S1";
                 string consigneeCode = po.CustomerCode + suffix;
@@ -246,7 +245,10 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         consigneecode = consigneeCode,
                         customercode = po.CustomerCode,
                         amount = po.TotalAmount.ToString(),
-                        FameIIFlag = "Y"
+                        FameIIFlag = "Y",
+                        TransactionType = "",
+
+
                     },
                     soLine = soLines
                 };
@@ -257,5 +259,138 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
+        public async Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string userId)
+        {
+            await _repo.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Update Header
+                var po = new DBModels.PurchaseOrder
+                {
+                    Ponumber = model.PONumber,
+                    PurchaseDate = model.PODate,
+                    OrderType = model.POType,
+                    CustomerCode = model.CustomerCode,
+                    TransactionType = model.TransactionType
+                };
+                await _repo.UpdatePOHeaderAsync(po);
+
+                // 2. Clear Existing Details & Taxes
+                await _repo.DeleteTaxesByPOAsync(model.PONumber);
+                await _repo.DeleteDetailsByPOAsync(model.PONumber);
+
+                // 3. Re-insert Details & Taxes (Synchronized with Create logic)
+                int lineNumber = 1;
+                decimal totalAmount = 0;
+                decimal subsidyValue = await _repo.GetSubsidyValue();
+
+                var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
+                if (dealer == null)
+                    throw new Exception(StringConstants.DealerNotFound);
+
+                string dealerState = dealer.State?.Trim().ToLower();
+                string companyState = StringConstants.CompanyLocation;
+                string preferredFlag = dealerState == companyState ? "S" : "O";
+
+                foreach (var item in model.Items)
+                {
+                    var itemMaster = await _repo.GetItemAsync(item.ItemCode);
+                    if (itemMaster == null)
+                        throw new Exception($"{StringConstants.ItemNotFound} {item.ItemCode}");
+
+                    decimal rate = itemMaster.Dlrprice;
+                    decimal lineAmount = item.Qty * rate;
+
+                    var detail = new PurchaseOrderDetail
+                    {
+                        Ponumber = model.PONumber,
+                        ItemCode = item.ItemCode,
+                        Qty = (int)item.Qty,
+                        Subsidy = itemMaster.Itemtype == 11 ? subsidyValue * item.Qty : 0,
+                        Rate = rate,
+                        LineAmount = lineAmount,
+                        LineNumber = lineNumber,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        Status = false
+                    };
+                    await _repo.AddPODetailAsync(detail);
+
+                    // TAX FLOW
+                    if (itemMaster.Hsncode == null)
+                        throw new Exception($"{StringConstants.HSNCodeMissing} {item.ItemCode}");
+
+                    var hsn = await _repo.GetHSNByCodeAsync(itemMaster.Hsncode);
+                    if (hsn == null)
+                        throw new Exception(StringConstants.HSNNotFound);
+
+                    var hsnTax = await _repo.GetHSNTaxWithFallbackAsync(hsn.Hsncode, preferredFlag, model.PODate);
+                    if (hsnTax == null)
+                        throw new Exception($"{StringConstants.NoTaxConfig} {hsn.Hsncode} on {model.PODate}");
+
+                    var aggregateTaxes = await _repo.GetAggregateTaxesAsync(hsnTax.AtaxCode);
+
+                    int taxLine = 1;
+                    decimal totalTax = 0;
+                    foreach (var agg in aggregateTaxes)
+                    {
+                        var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode);
+                        if (taxMaster == null) continue;
+
+                        decimal taxAmount = (lineAmount * taxMaster.TaxRate) / 100;
+                        totalTax += taxAmount;
+
+                        await _repo.AddTaxAsync(new TaxDetail
+                        {
+                            Ponumber = model.PONumber,
+                            ItemCode = item.ItemCode,
+                            PodetailsLineNumber = lineNumber,
+                            TaxLineNumber = taxLine++,
+                            TaxCode = taxMaster.TaxCode,
+                            TaxRate = taxMaster.TaxRate,
+                            TaxAmount = taxAmount,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        });
+                    }
+
+                    totalAmount += lineAmount + totalTax;
+                    lineNumber++;
+                }
+
+                await _repo.UpdatePOAmountAsync(model.PONumber, totalAmount);
+                await _repo.CommitTransactionAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await _repo.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<bool> DeletePOItemsAsync(string poNumber)
+        {
+            await _repo.BeginTransactionAsync();
+            try
+            {
+                await _repo.DeleteTaxesByPOAsync(poNumber);
+                await _repo.DeleteDetailsByPOAsync(poNumber);
+                await _repo.UpdatePOAmountAsync(poNumber, 0);
+                await _repo.CommitTransactionAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await _repo.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<decimal> GetSubsidyValueAsync()
+        {
+            return await _repo.GetSubsidyValue();
+        }
     }
 }

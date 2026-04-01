@@ -17,5 +17,6 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         Task UpdateItemAsync(ItemMaster item);
 
         Task<byte[]> DownloadItemMasterExcel();
+        Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
     }
 }

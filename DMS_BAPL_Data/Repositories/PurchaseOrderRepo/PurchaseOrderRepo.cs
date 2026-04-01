@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -85,6 +85,29 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         }
 
         // Update Amount
+        public async Task UpdatePOHeaderAsync(PurchaseOrder po)
+        {
+            try
+            {
+                var existing = await _context.PurchaseOrders
+                    .FirstOrDefaultAsync(x => x.Ponumber == po.Ponumber);
+
+                if (existing == null)
+                    throw new Exception(StringConstants.PONotFound);
+
+                existing.CustomerCode = po.CustomerCode;
+                existing.PurchaseDate = po.PurchaseDate;
+                existing.OrderType = po.OrderType;
+                existing.TransactionType = po.TransactionType;
+                
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         public async Task UpdatePOAmountAsync(string poNumber, decimal amount)
         {
             try
@@ -253,6 +276,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     PODate = po.PurchaseDate,
                     CustomerCode = po.CustomerCode,
                     TotalAmount = po.Amount,
+                    IsSubmitted = po.Status,
+                    TransactionType = po.TransactionType,
 
                     Items = details.Select(d => new PurchaseOrderItemViewModel
                     {
@@ -260,6 +285,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         Qty = d.Qty,
                         Rate = d.Rate,
                         LineAmount = d.LineAmount,
+                        Subsidy = d.Subsidy,
 
                         Taxes = taxes
                             .Where(t => t.ItemCode == d.ItemCode &&
@@ -306,6 +332,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         PODate = po.PurchaseDate,
                         CustomerCode = po.CustomerCode,
                         TotalAmount = po.Amount.GetValueOrDefault(),
+                        IsSubmitted = po.Status,
+                        TransactionType = po.TransactionType,
 
                         Items = details.Select(d => new PurchaseOrderItemViewModel
                         {
@@ -353,6 +381,31 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 .ToListAsync();
 
             _context.TaxDetails.RemoveRange(taxes);
+        }
+
+        public async Task DeleteTaxesByPOAsync(string poNumber)
+        {
+            var taxes = await _context.TaxDetails
+                .Where(x => x.Ponumber == poNumber)
+                .ToListAsync();
+            _context.TaxDetails.RemoveRange(taxes);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteDetailsByPOAsync(string poNumber)
+        {
+            var details = await _context.PurchaseOrderDetails
+                .Where(x => x.Ponumber == poNumber)
+                .ToListAsync();
+            _context.PurchaseOrderDetails.RemoveRange(details);
+            await _context.SaveChangesAsync();
+        }
+
+       public async Task UpdateStatus(string PoNumber)
+        {
+            var result = await _context.PurchaseOrders.Where(i=>i.Ponumber == PoNumber).FirstOrDefaultAsync();
+            result.Status = true;
+            await _context.SaveChangesAsync();
         }
 
     }

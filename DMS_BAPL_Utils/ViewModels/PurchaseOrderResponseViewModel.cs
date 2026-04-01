@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DMS_BAPL_Utils.ViewModels
@@ -9,6 +9,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? PODate { get; set; }
         public string CustomerCode { get; set; }
         public decimal? TotalAmount { get; set; }
+        public string? Status { get; set; }
+        public bool? IsSubmitted { get; set; }
+        public string TransactionType { get; set; }
 
         public List<PurchaseOrderItemViewModel> Items { get; set; }
     }
@@ -19,6 +22,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? Qty { get; set; }
         public decimal? Rate { get; set; }
         public decimal? LineAmount { get; set; }
+        public decimal? Subsidy { get; set; }
 
         public List<TaxViewModel> Taxes { get; set; }
     }

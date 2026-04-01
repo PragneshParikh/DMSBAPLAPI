@@ -76,5 +76,24 @@ namespace DMS_BAPL_Api.Controllers
                 "ItemMasterList.xlsx"
             );
         }
+        [HttpGet("GetPurchaseDetailsByModelNo/{modelNo}")]
+        [ProducesResponseType(typeof(ItemMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPurchaseDetailsByModelNo(string modelNo)
+        {
+            try
+            {
+                var data = await _itemMasterService.GetPurchaseDetailsByModelNo(modelNo);
+
+                if (data == null)
+                    return NotFound("Model not found");
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

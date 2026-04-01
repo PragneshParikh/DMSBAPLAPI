@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Utils.ViewModels;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
         Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
 
-
-
+        Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string userId);
+        Task<bool> DeletePOItemsAsync(string poNumber);
+        Task<decimal> GetSubsidyValueAsync();
     }
 }

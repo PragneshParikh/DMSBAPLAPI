@@ -23,6 +23,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string customercode { get; set; }
         public string amount { get; set; }
         public string FameIIFlag { get; set; }
+        public string? TransactionType { get; set; }
+
     }
 
     public class SOLine

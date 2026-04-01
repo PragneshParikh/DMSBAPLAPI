@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -81,8 +81,10 @@ namespace DMS_BAPL_Utils.Constants
         public const string NoTaxConfig = "No tax config found for HSN";
         public const string TaxCodeNotFound = "TaxCode not found";
         public const string PORequired = "PO Number is required";
-
-
+        public const string POUpdated = "Purchase Order updated successfully.";
+        public const string POUpdateFailed = "Purchase Order update failed.";
+        public const string POItemsDeleted = "Purchase Order items deleted successfully.";
+        public const string PODeleteFailed = "Failed to delete Purchase Order items.";
         //Item related
         public const string ItemNotFound = "Item not found";
 

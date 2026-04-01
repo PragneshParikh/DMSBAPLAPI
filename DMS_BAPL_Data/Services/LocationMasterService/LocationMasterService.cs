@@ -14,7 +14,7 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
     {
         private readonly ILocationMasterRepo _repo;
         private readonly IExcelService _excelService;
-        public LocationMasterService(ILocationMasterRepo repo , IExcelService excelService)
+        public LocationMasterService(ILocationMasterRepo repo, IExcelService excelService)
         {
             _repo = repo;
             _excelService = excelService;

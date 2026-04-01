@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 
 namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
@@ -17,6 +17,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task AddTaxAsync(TaxDetail tax);
 
        
+        Task UpdatePOHeaderAsync(PurchaseOrder po);
         Task UpdatePOAmountAsync(string poNumber, decimal amount);
 
         
@@ -29,8 +30,11 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
         Task<decimal> GetSubsidyValue();
+        Task UpdateStatus(string PoNumber);
 
-
-
-    }
+        Task<List<PurchaseOrderDetail>> GetPODetails(string poNumber);
+        Task DeletePODetailAsync(PurchaseOrderDetail detail);
+        Task DeleteTaxByItemAsync(string poNumber, string itemCode);
+        Task DeleteTaxesByPOAsync(string poNumber);
+        Task DeleteDetailsByPOAsync(string poNumber);    }
 }

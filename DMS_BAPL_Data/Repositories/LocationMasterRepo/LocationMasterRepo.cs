@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -180,8 +180,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
 
             return true;
         }
-
-
+        
         public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
         {
             try

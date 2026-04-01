@@ -88,5 +88,11 @@ namespace DMS_BAPL_Data.Services.itemMasterService
                 throw;
             }
         }
+        /// Get PurchaseDetails By ModelNo 
+        /// </summary>
+        public async Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo)
+        {
+            return await _itemMasterRepo.GetPurchaseDetailsByModelNo(modelNo);
+        }
     }
 }

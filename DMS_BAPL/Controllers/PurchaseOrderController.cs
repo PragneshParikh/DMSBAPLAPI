@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
@@ -49,7 +49,7 @@ namespace DMS_BAPL_Api.Controllers
         /// Retrieves the list of all purchase orders.
         /// </summary>
         /// <returns>List of purchase orders</returns>
-        [HttpGet]
+        [HttpGet("Polist")]
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -153,8 +153,117 @@ namespace DMS_BAPL_Api.Controllers
                     message = ex.Message
                 });
             }
+        }
 
+        /// <summary>
+        /// Updates an existing purchase order.
+        /// </summary>
+        /// <param name="model">Purchase order data</param>
+        /// <returns>Success response</returns>
+        [HttpPut("update")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdatePurchaseOrder([FromBody] PurchaseOrderViewModel model)
+        {
+            if (model == null)
+                return BadRequest(StringConstants.BadRequest);
 
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(StringConstants.UserUnauthorized);
+
+                var result = await _purchaseOrderService.UpdatePOAsync(model, userId);
+
+                if (result)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = StringConstants.POUpdated,
+                        poNumber = model.PONumber
+                    });
+                }
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = StringConstants.POUpdateFailed
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Deletes all items and taxes for a purchase order (preserving the header).
+        /// </summary>
+        /// <param name="poNumber">PO Number</param>
+        /// <returns>Success response</returns>
+        [HttpDelete("items/{poNumber}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeletePurchaseOrderItems(string poNumber)
+        {
+            if (string.IsNullOrEmpty(poNumber))
+                return BadRequest(StringConstants.PORequired);
+
+            try
+            {
+                var result = await _purchaseOrderService.DeletePOItemsAsync(poNumber);
+
+                if (result)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = StringConstants.POItemsDeleted
+                    });
+                }
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = StringConstants.PODeleteFailed
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("subsidy")]
+        [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetSubsidy()
+        {
+            try
+            {
+                var result = await _purchaseOrderService.GetSubsidyValueAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
     }
 }

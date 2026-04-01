@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime PODate { get; set; }
         public string POType { get; set; }
         public string CustomerCode { get; set; }
+        public string? TransactionType { get; set; }
         public List<PurchaseOrderDetailsViewModel> Items { get; set; }
     }
 

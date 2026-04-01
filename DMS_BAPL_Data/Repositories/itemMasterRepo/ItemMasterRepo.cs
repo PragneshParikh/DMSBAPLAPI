@@ -193,5 +193,37 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 await _context.SaveChangesAsync();
             }
         }
+        //Get purchase details by model no
+        public async Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo)
+        {
+            try
+            {
+                var item = await _context.ItemMasters
+                            .FirstOrDefaultAsync(x => x.Itemcode == modelNo);
+
+                if (item == null)
+                    return null;
+
+                ItemMasterViewModel modelItemDetail = new ItemMasterViewModel();
+                modelItemDetail.Grpidno = item.Grpidno;
+                modelItemDetail.Itemtype = item.Itemtype;
+                modelItemDetail.Itemcode = item.Itemcode;
+                modelItemDetail.Itemdesc = item.Itemdesc;
+                //modelItemDetail.Colorcode = item.Colorcode;
+                //modelItemDetail.ColorName = item.Colorcode;
+                modelItemDetail.Colorcode = _context.ColorMasters.Where(x => x.Colorcode == item.Colorcode).Select(x => x.Colorname).FirstOrDefault();
+                modelItemDetail.Ipurrate = item.Ipurrate;
+                modelItemDetail.Sgst = item.Sgst;
+                modelItemDetail.Cgst = item.Cgst;
+                modelItemDetail.Igst = item.Igst;
+                modelItemDetail.Fame2amount = item.Fame2amount;
+
+                return modelItemDetail;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error while fetching purchase details by Model No", ex);
+            }
+        }
     }
 }
