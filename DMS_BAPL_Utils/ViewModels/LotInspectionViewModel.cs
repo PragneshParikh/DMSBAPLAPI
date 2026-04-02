@@ -49,6 +49,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? PlasticCover { get; set; }
 
         public string? NameSupervisor { get; set; }
+
+        public string? LocationName { get; set; }
     }
     public class InvoiceAcceptHeaderViewModel
     {
@@ -67,6 +69,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string VehicleFasteningBracket { get; set; }
         public string PlasticCover { get; set; }
         public string SupervisorName { get; set; }
+        public string? LocationName { get; set; }
         public string LocCode { get; set; }
         public string DealerCode { get; set; }
         public string CreatedBy { get; set; }
@@ -107,8 +110,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? VehicleStatus { get; set; }
         public string? DamageDetails { get; set; }
         public string? ChassisWiseRemarks { get; set; }
-        public string? modelWiseSupervisorName { get; set; }
-        public string? LocationName { get; set; }
         public string? LotVehicleDamageImage { get; set; }
     }
 
@@ -129,6 +130,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleFasteningBracket { get; set; }
         public string? plasticCover { get; set; }
         public string? nameSupervisor { get; set; }
+        public string? locationName { get; set; }
         public string dealerCode { get; set; }
         public string? updatedBy { get; set; }
         public string? updatedDate { get; set; }
@@ -156,8 +158,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleStatus { get; set; }
         public string? damageDetails { get; set; }
         public string? chassisWiseRemarks { get; set; }
-        public string? modelWiseSupervisorName { get; set; }
-        public string? locationName { get; set; }
         // public IFormFile? lotVehicleDamageImage { get; set; }
         public string updatedBy { get; set; }
         public string updatedDate { get; set; }
@@ -183,7 +183,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleFasteningBracket { get; set; }
         public string? plasticCover { get; set; }
         public string? nameSupervisor { get; set; }
-
+        public string? locationName { get; set; }
         public int id { get; set; }
         public int lotHeaderID { get; set; }
         public string? modelName { get; set; }
@@ -205,9 +205,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? vehicleStatus { get; set; }
         public string? damageDetails { get; set; }
         public string? chassisWiseRemarks { get; set; }
-        public string? modelWiseSupervisorName { get; set; }
-
-        public string? locationName { get; set; }
         public string? lotVehicleDamageImage { get; set; }
     }
 }

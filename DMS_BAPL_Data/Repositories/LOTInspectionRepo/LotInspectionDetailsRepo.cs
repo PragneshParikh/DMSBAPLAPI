@@ -74,8 +74,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         VehicleStatus = item.VehicleStatus,
                         DamageDetails = item.DamageDetails,
                         ChassisWiseRemarks = item.ChassisWiseRemarks,
-                        ModelWiseSupervisor = item.modelWiseSupervisorName,
-                        LocationName = item.LocationName,
                         LotVehicleDamageImage = item.LotVehicleDamageImage,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now
@@ -131,6 +129,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         vehicleFasteningBracket=lotHeader.VehicleFasteningBracket,
                         plasticCover=lotHeader.PlasticCover,
                         nameSupervisor=lotHeader.SupervisorName,
+                        locationName=lotHeader.LocationName,
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,
@@ -153,8 +152,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         vehicleStatus = lotDetail.VehicleStatus,
                         damageDetails = lotDetail.DamageDetails,
                         chassisWiseRemarks = lotDetail.ChassisWiseRemarks,
-                        modelWiseSupervisorName = lotDetail.ModelWiseSupervisor,
-                        locationName = lotDetail.LocationName,
                         lotVehicleDamageImage = lotDetail.LotVehicleDamageImage
                     }).ToListAsync();
 
@@ -204,7 +201,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     VehicleStatus = null,
                     DamageDetails = null,
                     ChassisWiseRemarks = null,
-                    LocationName = null,
                     LotVehicleDamageImage = null,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now,

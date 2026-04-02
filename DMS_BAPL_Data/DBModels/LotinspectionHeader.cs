@@ -49,5 +49,7 @@ public partial class LotinspectionHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? LocationName { get; set; }
+
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }

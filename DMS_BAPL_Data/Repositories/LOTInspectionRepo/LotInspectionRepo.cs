@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -66,6 +67,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     VehicleFasteningBracket = null,
                     PlasticCover = null,
                     SupervisorName = null,
+                    LocationName = null,
                     DealerCode = invoiceData.DealerCode,
                     LocCode = invoiceData.LocCode,
                     CreatedBy = userId,
@@ -123,6 +125,9 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 header.VehicleFasteningBracket = model.lotInspectedHeaderDetails.vehicleFasteningBracket;
                 header.PlasticCover = model.lotInspectedHeaderDetails.plasticCover;
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
+                header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
+                header.LocationName = model.lotInspectedHeaderDetails.locationName;
+
                 header.UpdateBy = userId;
                 //                if (!(string.IsNullOrEmpty(model.lotInspectedHeaderDetails.updatedDate) &&
                 //!DateTime.            TryParse(model.lotInspectedHeaderDetails.updatedDate, out var parsedUpdateDate)))
@@ -167,8 +172,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         detail.VehicleStatus = item.vehicleStatus;
                         detail.DamageDetails = item.damageDetails;
                         detail.ChassisWiseRemarks = item.chassisWiseRemarks;
-                        detail.ModelWiseSupervisor = item.modelWiseSupervisorName;
-                        detail.LocationName = item.locationName;
                         detail.UpdateBy = userId;
                         detail.UpdatedDate = DateTime.Now;
 
@@ -260,7 +263,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         CommonReMarks = x.CommonRemarks,
                         VehicleFasteningBracket = x.VehicleFasteningBracket,
                         PlasticCover = x.PlasticCover,
-                        NameSupervisor = x.SupervisorName
+                        NameSupervisor = x.SupervisorName,
+                        LocationName = x.LocationName
                     })
                     .ToListAsync();
 

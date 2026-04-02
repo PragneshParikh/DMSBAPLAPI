@@ -47,8 +47,6 @@ public partial class LotinspectionDetail
 
     public string? ChassisWiseRemarks { get; set; }
 
-    public string? LocationName { get; set; }
-
     public string? LotVehicleDamageImage { get; set; }
 
     public string CreatedBy { get; set; } = null!;
@@ -62,4 +60,6 @@ public partial class LotinspectionDetail
     public string? ModelWiseSupervisor { get; set; }
 
     public virtual LotinspectionHeader LotHeader { get; set; } = null!;
+
+    public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 }
