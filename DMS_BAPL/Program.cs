@@ -17,7 +17,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngularApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.WithOrigins("http://localhost:4200", "https://bapldmssite-emfwfqb7dqe8hwa9.centralindia-01.azurewebsites.net")
                    .AllowAnyHeader()
                    .AllowAnyMethod();
         });
@@ -117,7 +117,7 @@ builder.Services.AddProjectServices();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
 {
     app.UseSwagger();
     app.UseSwaggerUI();

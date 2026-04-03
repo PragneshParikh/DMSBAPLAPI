@@ -94,5 +94,8 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         {
             return await _itemMasterRepo.GetPurchaseDetailsByModelNo(modelNo);
         }
+
+        public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);
+
     }
 }

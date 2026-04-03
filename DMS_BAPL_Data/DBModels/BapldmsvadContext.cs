@@ -49,6 +49,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
+    public virtual DbSet<KitDetail> KitDetails { get; set; }
+
+    public virtual DbSet<KitHeader> KitHeaders { get; set; }
+
     public virtual DbSet<LedgerMaster> LedgerMasters { get; set; }
 
     public virtual DbSet<LmsleadMaster> LmsleadMasters { get; set; }
@@ -64,6 +68,12 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
     public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
+
+    public virtual DbSet<PartsInventory> PartsInventories { get; set; }
+
+    public virtual DbSet<PdichecklistChassisWise> PdichecklistChassisWises { get; set; }
+
+    public virtual DbSet<PdichecklistMaster> PdichecklistMasters { get; set; }
 
     public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
 
@@ -586,6 +596,46 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
         });
 
+        modelBuilder.Entity<KitDetail>(entity =>
+        {
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Item).WithMany(p => p.KitDetails)
+                .HasForeignKey(d => d.ItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KitDetails_ItemMaster");
+
+            entity.HasOne(d => d.KitHeader).WithMany(p => p.KitDetails)
+                .HasForeignKey(d => d.KitHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KitDetails_KitHeader");
+        });
+
+        modelBuilder.Entity<KitHeader>(entity =>
+        {
+            entity.ToTable("KitHeader");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.KitDate).HasColumnType("datetime");
+            entity.Property(e => e.KitName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<LedgerMaster>(entity =>
         {
             entity.ToTable("LedgerMaster");
@@ -1065,6 +1115,113 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<PartsInventory>(entity =>
+        {
+            entity.ToTable("PartsInventory");
+
+            entity.Property(e => e.BatchNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerLocation)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.FinalStockFlag)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ItemCode)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Potype)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("POType");
+            entity.Property(e => e.PurchaseRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TransId)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.TransType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.VendorCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.VoucherNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<PdichecklistChassisWise>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PDICheck__3214EC073DCBEF00");
+
+            entity.ToTable("PDIChecklistChassisWise");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("createdDate");
+            entity.Property(e => e.PdichecklistMasterId).HasColumnName("PDIChecklistMasterId");
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updateBy");
+            entity.Property(e => e.UpdatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("updatedDate");
+
+            entity.HasOne(d => d.LotInspectionDetails).WithMany(p => p.PdichecklistChassisWises)
+                .HasForeignKey(d => d.LotInspectionDetailsId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PDIChecklistChassisWise_LotInspection");
+
+            entity.HasOne(d => d.PdichecklistMaster).WithMany(p => p.PdichecklistChassisWises)
+                .HasForeignKey(d => d.PdichecklistMasterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PDIChecklistChassisWise_Master");
+        });
+
+        modelBuilder.Entity<PdichecklistMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PDICheck__3214EC0750181595");
+
+            entity.ToTable("PDIChecklistMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("createdDate");
+            entity.Property(e => e.PdicheckName)
+                .HasMaxLength(200)
+                .IsUnicode(false)
+                .HasColumnName("PDICheckName");
+            entity.Property(e => e.Pdidescription)
+                .HasMaxLength(200)
+                .IsUnicode(false)
+                .HasColumnName("PDIDescription");
+            entity.Property(e => e.PdiheadName)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("PDIHeadName");
         });
 
         modelBuilder.Entity<PurchaseOrder>(entity =>

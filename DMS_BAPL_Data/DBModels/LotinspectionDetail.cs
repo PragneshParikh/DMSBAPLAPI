@@ -62,4 +62,6 @@ public partial class LotinspectionDetail
     public string? ModelWiseSupervisor { get; set; }
 
     public virtual LotinspectionHeader LotHeader { get; set; } = null!;
+
+    public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 }

@@ -44,41 +44,42 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                 var menus = await _menuRepo.GetMenuItems();
 
                 var userRoles = await _context.Set<IdentityUserRole<string>>()
-                              .Where(x => x.UserId == userId)
-                              .ToListAsync();
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
 
                 var roleId = userRoles.Select(x => x.RoleId).FirstOrDefault();
 
                 var roleRights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
 
                 var allowedSubMenuIds = roleRights
-                                        .Where(x => x.Permission > 0)
-                                        .Select(x => x.SubMenuId)
-                                        .ToHashSet();
+                    .Where(x => x.Permission > 0)
+                    .Select(x => x.SubMenuId)
+                    .ToHashSet();
 
                 var parentMenus = menus
                     .Where(x => x.ParentMenuId == null)
                     .OrderBy(x => x.MenuName)
+                    .ThenBy(x => x.SerialNo)
                     .Select(menu =>
                     {
                         var children = menus
-                            .Where(x => x.ParentMenuId == menu.Id
-                                && roleRights.Any(r => r.SubMenuId == x.Id && r.Permission > 0))
-                            .OrderBy(x => x.MenuName)
-                            .Select(child => new MenuMasterViewModel
-                            {
-                                id = child.Id,
-                                label = child.MenuName,
-                                link = child.PathName,
-                                parentId = child.ParentMenuId,
-                                module = child.ModuleName
-                            })
-                            .ToList();
+                        .Where(x => x.ParentMenuId == menu.Id
+                        && roleRights.Any(r => r.SubMenuId == x.Id && r.Permission > 0))
+                        .OrderBy(x => x.SerialNo)
+                        .Select(child => new MenuMasterViewModel
+                        {
+                            id = child.Id,
+                            label = child.MenuName,
+                            link = child.PathName,
+                            parentId = child.ParentMenuId,
+                            module = child.ModuleName
+                        })
+                        .ToList();
 
                         var hasChildren = children.Any();
 
                         var hasAccess = roleRights
-                            .Any(r => r.SubMenuId == menu.Id && r.Permission > 0);
+                        .Any(r => r.SubMenuId == menu.Id && r.Permission > 0);
 
                         if (hasChildren)
                         {
@@ -109,14 +110,14 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     .ToList();
 
                 var result = new List<MenuMasterViewModel>
-                            {
-                                new MenuMasterViewModel
-                                {
-                                    id = 1000,
-                                    label = "MENU",
-                                    isTitle = true
-                                }
-                            };
+                {
+                    new MenuMasterViewModel
+                    {
+                        id = 1000,
+                        label = "MENU",
+                        isTitle = true
+                    }
+                };
 
                 result.AddRange(parentMenus);
 

@@ -10,13 +10,11 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 {
     public interface IitemMasterService
     {
-
         Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId);
         Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search);
-
         Task UpdateItemAsync(ItemMaster item);
-
         Task<byte[]> DownloadItemMasterExcel();
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
+        Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
     }
 }

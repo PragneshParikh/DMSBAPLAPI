@@ -95,5 +95,26 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet("GetByItemType/{itemType}")]
+        [ProducesResponseType(typeof(IEnumerable<ItemMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ItemMaster>>> GetItemByItemType(int itemType)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemByItemType(itemType);
+
+                return Ok(items);
+
+            }
+            catch { throw; }
+        }
     }
 }
