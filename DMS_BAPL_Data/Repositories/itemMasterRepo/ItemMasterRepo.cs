@@ -73,59 +73,64 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             var query = from i in _context.ItemMasters
                         join c in _context.ColorMasters
                         on i.Colorcode equals c.Colorcode into colorGroup
-                        from c in colorGroup.DefaultIfEmpty() // LEFT JOIN
-                        select new ItemMasterViewModel
-                        {
-
-                            Itemtype = i.Itemtype,
-                            Itemname = i.Itemname,
-                            Itemcode = i.Itemcode,
-                            Itemdesc = i.Itemdesc,
-                            Status = i.Status,
-                            Hsncode = i.Hsncode,
-                            Dlrprice = i.Dlrprice,
-                            Custprice = i.Custprice,
-                            Moq = i.Moq,
-                            Boq = i.Boq,
-                            Sgst = i.Sgst,
-                            Cgst = i.Cgst,
-                            Igst = i.Igst,
-                            Ugst = i.Ugst,
-                            Grpidno = i.Grpidno,
-                            Ipurrate = i.Ipurrate,
-                            Iselectric = i.Iselectric,
-                            Vehtype = i.Vehtype,
-                            Noofbatteries = i.Noofbatteries,
-                            ColorName = c != null ? c.Colorname : null,
-                            Itemcc = i.Itemcc,
-                            Batterytypeidno = i.Batterytypeidno,
-                            Fame2amount = i.Fame2amount,
-                            Compcode = i.Compcode,
-                            Displayname = i.Displayname,
-                            Oemmodelname = i.Oemmodelname,
-                        };
+                        from c in colorGroup.DefaultIfEmpty()
+                        select new { i, c }; //  keep original entity
 
             // Filter by Group Id
             if (grpidno.HasValue)
             {
-                query = query.Where(i => i.Grpidno == grpidno.Value);
+                query = query.Where(x => x.i.Grpidno == grpidno.Value);
             }
 
             // Search
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(i =>
-                    i.Itemname.Contains(search) ||
-                    i.Itemcode.Contains(search) ||
-                    i.Itemdesc.Contains(search) ||
-                    i.Hsncode.Contains(search) ||
-                    i.Oemmodelname.Contains(search) ||
-                    i.Displayname.Contains(search) ||
-                    i.ColorName.Contains(search)   // optional
+                query = query.Where(x =>
+                    x.i.Itemname.Contains(search) ||
+                    x.i.Itemcode.Contains(search) ||
+                    x.i.Itemdesc.Contains(search) ||
+                    x.i.Hsncode.Contains(search) ||
+                    x.i.Oemmodelname.Contains(search) ||
+                    x.i.Displayname.Contains(search) ||
+                    (x.c != null && x.c.Colorname.Contains(search))
                 );
             }
 
-            return await query.ToListAsync();
+            //  Apply OrderBy BEFORE projection
+            var result = await query
+                .OrderByDescending(x => x.i.CreatedDate)
+                .Select(x => new ItemMasterViewModel
+                {
+                    Itemtype = x.i.Itemtype,
+                    Itemname = x.i.Itemname,
+                    Itemcode = x.i.Itemcode,
+                    Itemdesc = x.i.Itemdesc,
+                    Status = x.i.Status,
+                    Hsncode = x.i.Hsncode,
+                    Dlrprice = x.i.Dlrprice,
+                    Custprice = x.i.Custprice,
+                    Moq = x.i.Moq,
+                    Boq = x.i.Boq,
+                    Sgst = x.i.Sgst,
+                    Cgst = x.i.Cgst,
+                    Igst = x.i.Igst,
+                    Ugst = x.i.Ugst,
+                    Grpidno = x.i.Grpidno,
+                    Ipurrate = x.i.Ipurrate,
+                    Iselectric = x.i.Iselectric,
+                    Vehtype = x.i.Vehtype,
+                    Noofbatteries = x.i.Noofbatteries,
+                    ColorName = x.c != null ? x.c.Colorname : null,
+                    Itemcc = x.i.Itemcc,
+                    Batterytypeidno = x.i.Batterytypeidno,
+                    Fame2amount = x.i.Fame2amount,
+                    Compcode = x.i.Compcode,
+                    Displayname = x.i.Displayname,
+                    Oemmodelname = x.i.Oemmodelname,
+                })
+                .ToListAsync();
+
+            return result;
         }
         public async Task<List<ItemMaster>> GetAllExcelItemsAsync()
         {

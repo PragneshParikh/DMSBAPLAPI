@@ -72,7 +72,7 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
                 //(search == "no" && !f.Isactive);
                 );
             }
-            query = query.OrderByDescending(f => f.Id);
+            query = query.OrderByDescending(f => f.CreatedDate);
             return await query.ToListAsync();
         }
 

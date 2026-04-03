@@ -96,8 +96,10 @@ namespace DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo
                 }
             }
 
-            return await query.ToListAsync();
+            //Order by CreatedDate descending (latest first)
+            return await query
+                .OrderByDescending(h => h.CreatedDate)
+                .ToListAsync();
         }
-
     }
 }

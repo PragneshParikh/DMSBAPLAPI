@@ -87,16 +87,22 @@ namespace DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo
 
             var result = await query
                 .GroupBy(a => new { a.AtaxCode, a.Description })
-                .Select(g => new AggregateTaxCode
+                .Select(g => new
                 {
                     AtaxCode = g.Key.AtaxCode,
-                    Description = g.Key.Description
+                    Description = g.Key.Description,
+                    LatestCreatedDate = g.Max(x => x.CreatedDate) // important
+                })
+                .OrderByDescending(x => x.LatestCreatedDate) // sorting here
+                .Select(x => new AggregateTaxCode
+                {
+                    AtaxCode = x.AtaxCode,
+                    Description = x.Description
                 })
                 .ToListAsync();
 
             return result;
         }
-
         //agreecode tax based show the details
         async Task<List<AggregateTaxCode>> IAgreetaxcodeRepo.GetAggregateTaxDetailsAsync(string ataxCode)
 
