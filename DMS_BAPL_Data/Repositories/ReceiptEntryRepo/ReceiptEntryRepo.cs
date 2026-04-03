@@ -121,7 +121,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                     }
                 }
 
-                return await query.ToListAsync();
+                return await query.OrderByDescending(i => i.CreatedDate).ToListAsync();
             }
             catch
             {

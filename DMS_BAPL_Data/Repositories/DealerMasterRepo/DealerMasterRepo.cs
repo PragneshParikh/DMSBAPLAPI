@@ -1,4 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -123,6 +125,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                         EF.Functions.Like(d.Contactperson, $"%{search}%") ||
                         EF.Functions.Like(d.CompgstinNo, $"%{search}%") ||
                         EF.Functions.Like(d.Dealercode, $"%{search}%") ||
+                        EF.Functions.Like(d.TradCert, $"%{search}%") ||
 
                         // Boolean search
                         (search == "yes" && d.B2b) ||
@@ -133,7 +136,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     );
                 }
 
-                return await query.ToListAsync();
+                return await query.OrderByDescending(i=>i.CreatedDate).ToListAsync();
             }
             catch
             {
@@ -290,6 +293,30 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate)
+        {
+            try
+            {
+                var dealer = await _context.DealerMasters
+                    .FirstOrDefaultAsync(d => d.Id == dealerId);
+
+                if (dealer == null)
+                    throw new KeyNotFoundException(StringConstants.DealerNotFound);
+
+                dealer.TradCert = tradeCertificate;
+                dealer.UpdatedDate = DateTime.Now;
+                dealer.UpdatedBy = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+
+                await _context.SaveChangesAsync();
+
+                return dealer;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

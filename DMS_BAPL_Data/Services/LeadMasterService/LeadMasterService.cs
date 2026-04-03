@@ -41,34 +41,38 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
 
         }
 
-        public async Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId)
+        public async Task<(LmsleadMaster lead, int? ledgerId, bool isNew)> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId)
         {
             try
             {
-                var result= await _leadMasterRepo.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
-                bool checkIfExistInLedger= await _ledgerMasterRepo.CheckLedgerExist(result.Email,mobileNo);
-                if (checkIfExistInLedger == false)
+                var result = await _leadMasterRepo.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
+
+                bool exists = await _ledgerMasterRepo.CheckLedgerExist(result.Email, mobileNo);
+
+                int? ledgerId = null;
+                bool isNew = false;
+
+                if (!exists)
                 {
                     var httpContext = _httpContextAccessor.HttpContext;
-
-                    if (httpContext == null)
-                    {
-                        throw new Exception("HttpContext is null");
-                    }
-
                     string userId = GetUserInfoFromToken.GetUserIdFromToken(httpContext);
-                    await _ledgerMasterRepo.CreateLedgerFromLead(result,userId);
 
+                   var ledger = await _ledgerMasterRepo.CreateLedgerFromLead(result, userId);
+                    ledgerId = ledger.Id;
+                    isNew = true;
                 }
-                return result;
+                else
+                {
+                    var ledger = await _ledgerMasterRepo.GetLedgerByEmailOrMobile(result.Email, mobileNo);
+                    ledgerId = ledger?.Id;
+                }
 
+                return (result, ledgerId, isNew);
             }
-            catch (Exception)
+            catch
             {
                 throw;
             }
         }
-
-
     }
 }

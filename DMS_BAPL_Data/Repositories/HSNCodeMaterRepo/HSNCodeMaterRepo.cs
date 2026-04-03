@@ -39,7 +39,7 @@ namespace DMS_BAPL_Data.Repositories.HSNCodeMaterRepo
                 );
             }
 
-            return await query.ToListAsync();
+            return await query.OrderByDescending(i => i.CreatedDate).ToListAsync();
             }
             catch
             {

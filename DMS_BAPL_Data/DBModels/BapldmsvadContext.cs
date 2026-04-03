@@ -89,6 +89,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleDispatch> VehicleDispatches { get; set; }
 
+    public virtual DbSet<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; }
+
+    public virtual DbSet<VehicleSaleBillHeader> VehicleSaleBillHeaders { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -1563,6 +1567,77 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Voltage)
                 .HasMaxLength(20)
                 .HasColumnName("voltage");
+        });
+
+        modelBuilder.Entity<VehicleSaleBillDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07E02F8CDE");
+
+            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.InstitutionalType).HasMaxLength(50);
+            entity.Property(e => e.InsuranceAmount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Narration).HasMaxLength(255);
+            entity.Property(e => e.PreGstDiscount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.RegAmount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SchemeName).HasMaxLength(100);
+            entity.Property(e => e.Segment).HasMaxLength(50);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
+                .HasForeignKey(d => d.VehicleSaleBillId)
+                .HasConstraintName("FK_VehicleSaleBillDetails_Header");
+        });
+
+        modelBuilder.Entity<VehicleSaleBillHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC0703CE9932");
+
+            entity.ToTable("VehicleSaleBillHeader");
+
+            entity.HasIndex(e => e.SaleBillNo, "UQ__VehicleS__591B9B95AB63AB2D").IsUnique();
+
+            entity.Property(e => e.BillFrom).HasMaxLength(50);
+            entity.Property(e => e.BillType).HasMaxLength(50);
+            entity.Property(e => e.BillingName).HasMaxLength(150);
+            entity.Property(e => e.BookingId).HasMaxLength(50);
+            entity.Property(e => e.CashAccount).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.CustomerName).HasMaxLength(150);
+            entity.Property(e => e.CustomerType)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Financier).HasMaxLength(100);
+            entity.Property(e => e.IsD2d).HasColumnName("IsD2D");
+            entity.Property(e => e.Location).HasMaxLength(100);
+            entity.Property(e => e.PrintType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.RefAddress).HasMaxLength(255);
+            entity.Property(e => e.RefEmail).HasMaxLength(150);
+            entity.Property(e => e.RefName).HasMaxLength(150);
+            entity.Property(e => e.RefRemarks).HasMaxLength(255);
+            entity.Property(e => e.SaleBillNo).HasMaxLength(50);
+            entity.Property(e => e.SaleDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.SaleType)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.SalesExecutive).HasMaxLength(100);
+            entity.Property(e => e.TempRegNo).HasMaxLength(50);
+            entity.Property(e => e.TotalAmount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
         });
         modelBuilder.HasSequence("LotNo_Seq");
 

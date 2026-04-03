@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         private readonly IExcelService _excelService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public DealerMasterService(IDealerMasterRepo dealerMasterRepo,IExcelService excelService,UserManager<ApplicationUser> userManager)
+        public DealerMasterService(IDealerMasterRepo dealerMasterRepo, IExcelService excelService, UserManager<ApplicationUser> userManager)
         {
             _dealerMasterRepo = dealerMasterRepo;
             _excelService = excelService;
@@ -30,16 +30,16 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             await _dealerMasterRepo.BeginTransactionAsync();
             try
             {
-                
+
                 var result = await _dealerMasterRepo.AddDealerAsync(dealer, userId);
 
-                
+
                 await _dealerMasterRepo.AddDealerToLedgerAsync(dealer, userId);
 
-              
+
                 await _dealerMasterRepo.SaveAsync();
 
-                
+
                 var newUser = new ApplicationUser
                 {
                     UserName = result.Dealercode,
@@ -55,20 +55,20 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                 if (!user.Succeeded)
                     throw new Exception(string.Join(", ", user.Errors.Select(e => e.Description)));
 
-             
+
                 var roleResult = await _userManager.AddToRoleAsync(newUser, StringConstants.DealerText);
 
                 if (!roleResult.Succeeded)
                     throw new Exception("Role assignment failed");
 
-                
+
                 await _dealerMasterRepo.CommitTransactionAsync();
 
                 return result;
             }
             catch
             {
-              
+
                 await _dealerMasterRepo.RollbackTransactionAsync();
                 throw;
             }
@@ -181,6 +181,21 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             {
                 throw;
             }
+        }
+
+        //Update Trade Certificate
+        public async Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate)
+        {
+            try
+            {
+                return await _dealerMasterRepo.EditTradeCertificate(dealerId, tradeCertificate);
+            }
+            catch
+            {
+                throw;
+            }
+
+
         }
     }
 }
