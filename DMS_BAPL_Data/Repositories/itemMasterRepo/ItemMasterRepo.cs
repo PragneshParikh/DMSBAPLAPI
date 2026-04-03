@@ -67,7 +67,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 throw new Exception(ex.Message);
             }
         }
-
         //Get all items from the database
         public async Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search)
         {
@@ -128,14 +127,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
             return await query.ToListAsync();
         }
-
         public async Task<List<ItemMaster>> GetAllExcelItemsAsync()
         {
             return await _context.ItemMasters.ToListAsync();
         }
-
-
-
         public async Task<ItemMaster> GetItemByCodeAsync(string itemCode)
         {
             try
@@ -224,6 +219,17 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             {
                 throw new Exception("Error while fetching purchase details by Model No", ex);
             }
+        }
+        public async Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType)
+        {
+            try
+            {
+                return await _context.ItemMasters
+                    .AsNoTracking()
+                    .Where(x => x.Itemtype == itemType)
+                    .ToListAsync();
+            }
+            catch { throw; }
         }
     }
 }

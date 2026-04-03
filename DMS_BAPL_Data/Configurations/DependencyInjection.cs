@@ -8,6 +8,8 @@ using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
+using DMS_BAPL_Data.Repositories.KitDetailsRepo;
+using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
@@ -32,6 +34,8 @@ using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.itemMasterService;
+using DMS_BAPL_Data.Services.KitDetailsService;
+using DMS_BAPL_Data.Services.KitHeaderService;
 using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LedgerMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
@@ -77,6 +81,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
             services.AddScoped<IReceiptEntryRepo, ReceiptEntryRepo>();
             services.AddScoped<ILedgerMasterRepo, LedgerMasterRepo>();
+            services.AddScoped<IKitHeaderRepo, KitHeaderRepo>();
+            services.AddScoped<IKitDetailsRepo, KitDetailsRepo>();
 
             #endregion
 
@@ -105,6 +111,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();
             services.AddScoped<ILedgerMasterService, LedgerMasterService>();
+            services.AddScoped<IKitHeaderService, KitHeaderService>();
+            services.AddScoped<IKitDetailsService, KitDetailsService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
