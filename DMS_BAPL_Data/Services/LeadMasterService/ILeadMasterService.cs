@@ -13,6 +13,7 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
 
         Task<LeadViewModel> InsertLmsleadMasterAsync(LeadViewModel leadViewModels);
         Task<List<LmsleadMaster>> GetAlllmsleadMasters();
-        Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId);
+        //Task<LmsleadMaster> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId);
+        Task<(LmsleadMaster lead, int? ledgerId, bool isNew)> GetLMSLeadMasterByMobileNo(string? mobileNo, int? bookingId);
     }
 }

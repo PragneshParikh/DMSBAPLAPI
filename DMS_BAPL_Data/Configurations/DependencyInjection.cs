@@ -23,6 +23,7 @@ using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
+using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -48,6 +49,7 @@ using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
+using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -81,6 +83,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
             services.AddScoped<IReceiptEntryRepo, ReceiptEntryRepo>();
             services.AddScoped<ILedgerMasterRepo, LedgerMasterRepo>();
+            services.AddScoped<IVehicleSaleBillRepo, VehicleSaleBillRepo>();
             services.AddScoped<IKitHeaderRepo, KitHeaderRepo>();
             services.AddScoped<IKitDetailsRepo, KitDetailsRepo>();
 
@@ -111,6 +114,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();
             services.AddScoped<ILedgerMasterService, LedgerMasterService>();
+            services.AddScoped<IVehicleSaleBillService, VehicleSaleBillService>();
             services.AddScoped<IKitHeaderService, KitHeaderService>();
             services.AddScoped<IKitDetailsService, KitDetailsService>();
 

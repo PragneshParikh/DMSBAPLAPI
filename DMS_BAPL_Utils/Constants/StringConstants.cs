@@ -24,6 +24,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string DealerUpdateFailed = "Failed to update dealer.";
         public const string DealerDefaultPassword = "Dealer@123";
         public const string DealerText = "Dealer";
+        public const string TradeCertificateUpdated = "Trade Certificate Updated ";
 
 
 

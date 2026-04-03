@@ -18,12 +18,11 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId);
-
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
-
         Task SaveAsync();
+        Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
 
 
     }

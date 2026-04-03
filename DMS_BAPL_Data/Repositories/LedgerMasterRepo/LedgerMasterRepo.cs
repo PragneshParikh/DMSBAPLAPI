@@ -85,7 +85,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             try
             {
                 await _context.LedgerMasters.AddAsync(ledgerMaster);
-                return await _context.SaveChangesAsync();
+                var result = await _context.SaveChangesAsync();
+                return ledgerMaster.Id;
             }
             catch { throw; }
         }
@@ -100,31 +101,31 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
-        public async Task<bool> CheckLedgerExist(string? email,string? mobile) 
+        public async Task<bool> CheckLedgerExist(string? email, string? mobile)
         {
             try
             {
                 if (!string.IsNullOrWhiteSpace(email))
                 {
-                    var result = await _context.LedgerMasters.Where(i=>i.EMail == email).FirstOrDefaultAsync();
-                    if(result==null)
+                    var result = await _context.LedgerMasters.Where(i => i.EMail == email).FirstOrDefaultAsync();
+                    if (result == null)
                         return false;
                 }
                 if (!string.IsNullOrWhiteSpace(mobile))
                 {
-                    var result = await _context.LedgerMasters.Where(i=>i.MobileNumber == mobile).FirstOrDefaultAsync();
-                    if(result==null)
-                    return false;
+                    var result = await _context.LedgerMasters.Where(i => i.MobileNumber == mobile).FirstOrDefaultAsync();
+                    if (result == null)
+                        return false;
                 }
                 return true;
             }
-            catch 
+            catch
             {
                 throw;
             }
         }
 
-        public async Task CreateLedgerFromLead(LmsleadMaster lead, string userId)
+        public async Task<LedgerMaster> CreateLedgerFromLead(LmsleadMaster lead, string userId)
         {
             var lastParty = await _context.LedgerMasters
                 .Where(x => x.LedgerType == "Party" && x.LedgerCode != null)
@@ -162,6 +163,35 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
 
             _context.LedgerMasters.Add(newLedger);
             await _context.SaveChangesAsync();
+            return newLedger;
+        }
+
+        public async Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var result = await _context.LedgerMasters.Where(i => i.EMail == email).FirstOrDefaultAsync();
+                    if (result != null)
+                        return result;
+                }
+                if (!string.IsNullOrWhiteSpace(mobile))
+                {
+                    var result = await _context.LedgerMasters.Where(i => i.MobileNumber == mobile).FirstOrDefaultAsync();
+                    if (result != null)
+                        return result;
+                }
+                else
+                {
+                    throw new Exception("Email or Mobile number must be provided.");
+                }
+                return null;
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }

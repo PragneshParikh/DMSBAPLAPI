@@ -49,7 +49,7 @@ namespace DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo
         {
             try
             {
-                return await _dbContext.BatteryCapacityMasters.ToListAsync();
+                return await _dbContext.BatteryCapacityMasters.OrderByDescending(i=>i.CreatedDate).ToListAsync();
             }
             catch
             {

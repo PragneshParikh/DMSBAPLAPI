@@ -276,5 +276,36 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpPut("updateTradeCertificate")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+        public async Task<IActionResult> UpdateTradeCertificate(int dealerId, [FromBody] string tradeCertificate)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(tradeCertificate))
+                    return BadRequest(StringConstants.BadRequest);
+                var result = await _dealerMasterService.EditTradeCertificate(dealerId, tradeCertificate);
+                if (result == null)
+                {
+                    return NotFound(StringConstants.DealerNotFound);
+                }
+                return Ok(new
+                {
+                    message = StringConstants.TradeCertificateUpdated,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

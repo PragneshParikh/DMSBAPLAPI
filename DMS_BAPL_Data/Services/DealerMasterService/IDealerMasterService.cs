@@ -17,6 +17,6 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<byte[]> DownloadDealerExcel();
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
-
+        Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
     }
 }

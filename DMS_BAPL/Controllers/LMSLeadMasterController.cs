@@ -49,7 +49,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 var item = await _leadMasterService.GetLMSLeadMasterByMobileNo(mobileNo, bookingId);
-                return Ok(item);
+                return Ok(new
+                {
+                    lead = item.lead,
+                    ledgerId = item.ledgerId,
+                    isNew = item.isNew
+                });
             }
             catch (Exception ex){
                 return BadRequest(ex.Message);

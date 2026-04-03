@@ -1,0 +1,18 @@
+﻿using DMS_BAPL_Utils.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DMS_BAPL_Data.Services.VehicleSaleBillService
+{
+    public interface IVehicleSaleBillService
+    {
+        Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model);
+        Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id);
+        Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync();
+        Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model);
+        Task DeleteAsync(int id);
+    }
+}

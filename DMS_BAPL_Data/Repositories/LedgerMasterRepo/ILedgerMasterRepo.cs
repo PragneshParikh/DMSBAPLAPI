@@ -16,7 +16,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster);
         Task<bool> CheckLedgerExist(string? email, string? mobile);
-        Task CreateLedgerFromLead(LmsleadMaster lead,string userId);
+        Task <LedgerMaster>CreateLedgerFromLead(LmsleadMaster lead,string userId);
+        Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile);
 
     }
 }
