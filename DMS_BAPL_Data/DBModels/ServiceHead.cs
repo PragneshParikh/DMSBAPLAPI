@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace DMS_BAPL_Data.DBModels;
+
+public partial class ServiceHead
+{
+    public int Id { get; set; }
+
+    public int? JobTypeId { get; set; }
+
+    public string? ServiceHead1 { get; set; }
+
+    public string? CreatedBy { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
+}

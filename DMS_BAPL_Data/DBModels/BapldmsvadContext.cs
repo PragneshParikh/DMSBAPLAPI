@@ -49,6 +49,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
+    public virtual DbSet<JobType> JobTypes { get; set; }
+
     public virtual DbSet<KitDetail> KitDetails { get; set; }
 
     public virtual DbSet<KitHeader> KitHeaders { get; set; }
@@ -64,6 +66,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<LotinspectionHeader> LotinspectionHeaders { get; set; }
 
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
+
+    public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
@@ -82,6 +86,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
 
     public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
+
+    public virtual DbSet<ServiceHead> ServiceHeads { get; set; }
+
+    public virtual DbSet<ServiceType> ServiceTypes { get; set; }
 
     public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
 
@@ -119,7 +127,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.TaxCode)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 0)");
+            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -600,6 +608,25 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
         });
 
+        modelBuilder.Entity<JobType>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("JobType");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.JobType1)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("JobType");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<KitDetail>(entity =>
         {
             entity.Property(e => e.CreatedBy)
@@ -948,10 +975,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ModelName)
                 .HasMaxLength(200)
                 .HasColumnName("modelName");
-            entity.Property(e => e.ModelWiseSupervisor)
-                .HasMaxLength(100)
-                .IsUnicode(false)
-                .HasColumnName("modelWiseSupervisor");
             entity.Property(e => e.MotorNo)
                 .HasMaxLength(100)
                 .HasColumnName("motorNo");
@@ -1084,6 +1107,28 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
+        });
+
+        modelBuilder.Entity<NumberSequence>(entity =>
+        {
+            entity.ToTable("NumberSequence");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Format)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.SequenceCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.SequenceName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<OemmodelMaster>(entity =>
@@ -1386,6 +1431,44 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(d => d.SubMenuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MenuMaster_RoleWiseMenuRights");
+        });
+
+        modelBuilder.Entity<ServiceHead>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ServiceHead");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.ServiceHead1)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("ServiceHead");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(50);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ServiceType>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ServiceType");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.ServiceType1)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("ServiceType");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<TaxCodeMaster>(entity =>
