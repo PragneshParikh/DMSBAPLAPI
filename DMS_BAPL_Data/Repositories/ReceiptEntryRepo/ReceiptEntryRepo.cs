@@ -283,7 +283,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
             }
         }
 
-        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? search)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? search,DateOnly? fromDate,DateOnly? toDate)
         {
             try
             {
@@ -327,7 +327,15 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         UpdatedBy = r.UpdatedBy,
                         UpdatedDate = r.UpdatedDate
                     };
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x => x.ReceiptDate >= fromDate.Value);
+                }
 
+                if (toDate.HasValue)
+                {
+                    query = query.Where(x => x.ReceiptDate <= toDate.Value);
+                }
                 // APPLY SEARCH
                 if (!string.IsNullOrWhiteSpace(search))
                 {

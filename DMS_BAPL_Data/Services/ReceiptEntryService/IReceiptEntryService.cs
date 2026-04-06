@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
         Task<ReceiptEntryEditViewModel?> GetReceiptByIdAsync(int id);
         Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId);
         Task<byte[]> downloadReceiptExcel();
-        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm);
+        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate);
 
     }
 }
