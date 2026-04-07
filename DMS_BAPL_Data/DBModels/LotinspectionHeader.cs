@@ -41,6 +41,10 @@ public partial class LotinspectionHeader
 
     public string? SupervisorName { get; set; }
 
+    public string? LocationName { get; set; }
+
+    public bool? IsLotInspected { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -48,10 +52,6 @@ public partial class LotinspectionHeader
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? LocationName { get; set; }
-
-    public bool? IsLotInspected { get; set; }
 
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }

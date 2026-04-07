@@ -134,6 +134,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string dealerCode { get; set; }
         public string? updatedBy { get; set; }
         public string? updatedDate { get; set; }
+        public bool IsLotInspected { get; set; } = false;
     }
 
     public class LotInspectedDetails

@@ -7,7 +7,7 @@ public partial class JobType
 {
     public int Id { get; set; }
 
-    public string? JobType1 { get; set; }
+    public string? JobTypeName { get; set; }
 
     public string? CreatedBy { get; set; }
 

@@ -9,7 +9,7 @@ public partial class ServiceType
 
     public int? ServiceHeadId { get; set; }
 
-    public string? ServiceType1 { get; set; }
+    public string? ServiceTypeName { get; set; }
 
     public string? CreatedBy { get; set; }
 

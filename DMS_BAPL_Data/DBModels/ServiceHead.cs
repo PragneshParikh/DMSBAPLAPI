@@ -9,7 +9,7 @@ public partial class ServiceHead
 
     public int? JobTypeId { get; set; }
 
-    public string? ServiceHead1 { get; set; }
+    public string? ServiceHeadName { get; set; }
 
     public string? CreatedBy { get; set; }
 

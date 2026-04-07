@@ -27,17 +27,22 @@ namespace DMS_BAPL_Data.Services.Form22Services
         }
 
         public async Task<List<Form22Master>> GetForm22MastersAsync(string? search)
-            {
-                return await _form22Repository.GetForm22MastersAsync(search);
+        {
+            return await _form22Repository.GetForm22MastersAsync(search);
         }
-        public  async Task<Form22Master> GetForm22MasterByIdAsync(int id)
+        public async Task<Form22Master> GetForm22MasterByIdAsync(int id)
         {
             return await _form22Repository.GetForm22MasterByIdAsync(id);
         }
 
         public async Task<Form22Master> UpdateForm22MasterAsync(int id, Form22MasterViewModel form22MasterViewModel)
         {
-                return await _form22Repository.UpdateForm22MasterAsync(id, form22MasterViewModel);
+            return await _form22Repository.UpdateForm22MasterAsync(id, form22MasterViewModel);
+        }
+
+        public async Task<List<OemModelViewModel>> GetOemModelListAsync()
+        {
+            return await _form22Repository.GetOemmodelMastersList();
         }
 
         public async Task<byte[]> DownloadForm22MasterExcel()

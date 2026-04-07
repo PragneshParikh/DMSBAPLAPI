@@ -30,4 +30,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? UpdatedDate { get; set; }
 
     }
+    public class OemModelViewModel
+    {
+        public int OemmodelId { get; set; }
+        public string OemModelName { get; set; }
+    }
 }

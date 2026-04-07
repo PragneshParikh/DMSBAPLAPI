@@ -137,6 +137,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
 
                 header.UpdatedDate = DateTime.Now;
+                header.IsLotInspected = true;
 
                 await _context.SaveChangesAsync();
 

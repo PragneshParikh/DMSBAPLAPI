@@ -8,6 +8,7 @@ using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
@@ -89,6 +90,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IKitHeaderRepo, KitHeaderRepo>();
             services.AddScoped<IKitDetailsRepo, KitDetailsRepo>();
             services.AddScoped<IPrefixRepo, PrefixRepo>();
+            services.AddScoped<IJobCardRepo, JobCardRepo>();
 
             #endregion
 

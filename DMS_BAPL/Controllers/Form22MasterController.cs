@@ -26,6 +26,12 @@ namespace DMS_BAPL_Api.Controllers
             var result = await _form22Service.InsertForm22MasterAsync(form22MasterViewModel);
             return Ok(result);
         }
+        [HttpGet("GetOemModelList")]
+        public async Task<IActionResult> GetOemModelList()
+        {
+            var result = await _form22Service.GetOemModelListAsync();
+            return Ok(result);
+        }
         [HttpGet]
         public async Task<IActionResult> GetForm22Masters(string? search)
         {

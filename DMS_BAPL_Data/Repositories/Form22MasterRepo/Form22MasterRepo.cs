@@ -76,6 +76,17 @@ namespace DMS_BAPL_Data.Repositories.Form22MasterRepo
             return await query.ToListAsync();
         }
 
+        public async Task<List<OemModelViewModel>> GetOemmodelMastersList()
+        {
+            return await _context.OemmodelMasters
+                .Where(o => o.IsActive)
+                .Select(o => new OemModelViewModel
+                {
+                    OemmodelId = o.Id,
+                    OemModelName = o.ModelName.Trim()
+                })
+                .ToListAsync();
+        }
         public async Task<Form22Master> GetForm22MasterByIdAsync(int id)
         {
             return await _context.Form22Masters.FirstOrDefaultAsync(f => f.Id == id);

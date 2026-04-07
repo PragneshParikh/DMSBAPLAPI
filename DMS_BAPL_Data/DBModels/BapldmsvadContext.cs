@@ -653,10 +653,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
-            entity.Property(e => e.JobType1)
+            entity.Property(e => e.JobTypeName)
                 .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("JobType");
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
@@ -1534,10 +1533,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
-            entity.Property(e => e.ServiceHead1)
+            entity.Property(e => e.ServiceHeadName)
                 .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("ServiceHead");
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(50);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
@@ -1553,10 +1551,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
-            entity.Property(e => e.ServiceType1)
+            entity.Property(e => e.ServiceTypeName)
                 .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("ServiceType");
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
