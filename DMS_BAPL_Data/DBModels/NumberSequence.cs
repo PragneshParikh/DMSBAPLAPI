@@ -19,7 +19,7 @@ public partial class NumberSequence
 
     public string DealerCode { get; set; } = null!;
 
-    public int Year { get; set; }
+    public string Year { get; set; } = null!;
 
     public bool IsActive { get; set; }
 

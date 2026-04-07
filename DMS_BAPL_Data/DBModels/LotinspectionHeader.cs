@@ -51,5 +51,7 @@ public partial class LotinspectionHeader
 
     public string? LocationName { get; set; }
 
+    public bool? IsLotInspected { get; set; }
+
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }

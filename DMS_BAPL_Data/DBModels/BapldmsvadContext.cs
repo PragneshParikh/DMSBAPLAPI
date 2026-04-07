@@ -43,6 +43,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
+    public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
+
     public virtual DbSet<HsncodeMaster> HsncodeMasters { get; set; }
 
     public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
@@ -67,6 +69,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
 
+    public virtual DbSet<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; }
+
     public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
@@ -86,6 +90,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
 
     public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
+
+    public virtual DbSet<SalesServicesCondition> SalesServicesConditions { get; set; }
 
     public virtual DbSet<ServiceHead> ServiceHeads { get; set; }
 
@@ -457,6 +463,34 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.Oemmodel).WithMany(p => p.Form22Masters)
                 .HasForeignKey(d => d.OemmodelId)
                 .HasConstraintName("FK_Form22Master_OEMModelMaster");
+        });
+
+        modelBuilder.Entity<FreeServiceRate>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("FreeServiceRate");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.MetroGst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("MetroGST");
+            entity.Property(e => e.MetroRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.NonMetroGst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("NonMetroGST");
+            entity.Property(e => e.NonMetroRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+            entity.Property(e => e.ServiceName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<HsncodeMaster>(entity =>
@@ -1109,6 +1143,35 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("updatedDate");
         });
 
+        modelBuilder.Entity<ModelwiseServiceSchedule>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ModelwiseServiceSchedule");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+            entity.Property(e => e.ServiceFrom)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ServiceHead)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ServiceType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SrNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<NumberSequence>(entity =>
         {
             entity.ToTable("NumberSequence");
@@ -1129,6 +1192,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.SequenceName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.Year)
+                .HasMaxLength(30)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<OemmodelMaster>(entity =>
@@ -1136,6 +1202,8 @@ public partial class BapldmsvadContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC07901A12F4");
 
             entity.ToTable("OEMModelMaster");
+
+            entity.HasIndex(e => e.ModelName, "OEM_NameUnique").IsUnique();
 
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
@@ -1431,6 +1499,28 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(d => d.SubMenuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MenuMaster_RoleWiseMenuRights");
+        });
+
+        modelBuilder.Entity<SalesServicesCondition>(entity =>
+        {
+            entity.HasNoKey();
+
+            entity.Property(e => e.ConditionText)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.ConditionType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<ServiceHead>(entity =>
