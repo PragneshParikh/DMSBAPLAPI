@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data;
+using DMS_BAPL_Data;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Constants;
@@ -84,6 +84,30 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 var data = await _itemMasterService.GetPurchaseDetailsByModelNo(modelNo);
+
+                if (data == null)
+                    return NotFound("Model not found");
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        /// <summary>
+        /// Get Purchase Details With HsnTax ByModelNo
+        /// </summary>
+        /// <param name="modelNo"></param>
+        /// <returns></returns>
+        [HttpGet("GetPurchaseDetailsWithHsnTaxByModelNo/{modelNo}")]
+        [ProducesResponseType(typeof(ItemMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo)
+        {
+            try
+            {
+                var data = await _itemMasterService.GetPurchaseDetailsWithHsnTaxByModelNo(modelNo);
 
                 if (data == null)
                     return NotFound("Model not found");

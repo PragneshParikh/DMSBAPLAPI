@@ -32,13 +32,18 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// </summary>
         public async Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string userId)
         {
-            await _repo.BeginTransactionAsync();
-
             try
             {
+                // Check if PO already exists, if so redirect to Update
+                var existing = await _repo.GetPOByNumberAsync(model.PONumber);
+                if (existing != null)
+                {
+                    return await UpdatePOAsync(model, userId);
+                }
+
+                await _repo.BeginTransactionAsync();
                 int lineNumber = 1;
                 decimal totalAmount = 0;
-                decimal subsidy = await _repo.GetSubsidyValue();
 
                 // Get Dealer
                 var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
@@ -83,7 +88,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Ponumber = model.PONumber,
                         ItemCode = item.ItemCode,
                         Qty = (int)item.Qty,
-                        Subsidy = itemMaster.Itemtype == 11 ? subsidy * item.Qty : 0,
+                        Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
@@ -283,7 +288,6 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 // 3. Re-insert Details & Taxes (Synchronized with Create logic)
                 int lineNumber = 1;
                 decimal totalAmount = 0;
-                decimal subsidyValue = await _repo.GetSubsidyValue();
 
                 var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
                 if (dealer == null)
@@ -307,7 +311,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Ponumber = model.PONumber,
                         ItemCode = item.ItemCode,
                         Qty = (int)item.Qty,
-                        Subsidy = itemMaster.Itemtype == 11 ? subsidyValue * item.Qty : 0,
+                        Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,

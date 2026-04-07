@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
@@ -93,6 +93,15 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         public async Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo)
         {
             return await _itemMasterRepo.GetPurchaseDetailsByModelNo(modelNo);
+        }
+        /// <summary>
+        /// Get Purchase Details With HsnTax By ModelNo
+        /// </summary>
+        /// <param name="modelNo"></param>
+        /// <returns></returns>
+        public async Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo)
+        {
+            return await _itemMasterRepo.GetPurchaseDetailsWithHsnTaxByModelNo(modelNo);
         }
 
         public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);

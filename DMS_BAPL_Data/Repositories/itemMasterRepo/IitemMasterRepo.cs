@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +17,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         Task UpdateItemAsync(ItemMaster item);
         Task<ItemMaster> GetItemByCodeAsync(string itemCode);
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
+        Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo);
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
     }
 }

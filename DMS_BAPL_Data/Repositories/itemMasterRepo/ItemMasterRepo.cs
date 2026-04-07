@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -235,6 +235,105 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     .ToListAsync();
             }
             catch { throw; }
+        }
+        //Get Purchase Details With Hsn Tax By Model No
+        public async Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(modelNo)) return null;
+                var searchModel = modelNo.Trim().ToUpper();
+
+                // 1. Find the item
+                var items = await _context.ItemMasters
+                            .Include(x => x.HsncodeNavigation)
+                            .Where(x => x.Itemcode.Trim().ToUpper() == searchModel)
+                            .ToListAsync();
+
+                if (items == null || !items.Any()) return null;
+
+                // Pick the best record (one with HSN data)
+                var item = items.OrderByDescending(x => !string.IsNullOrEmpty(x.Hsncode) || x.HsncodeId != null).First();
+
+                // Initial ViewModel (baseline metadata)
+                ItemMasterViewModel modelItemDetail = new ItemMasterViewModel
+                {
+                    Id = item.Id,
+                    Itemtype = item.Itemtype,
+                    Itemcode = item.Itemcode,
+                    Itemdesc = item.Itemdesc,
+                    Hsncode = item.Hsncode,
+                    Colorcode = _context.ColorMasters.Where(x => x.Colorcode == item.Colorcode).Select(x => x.Colorname).FirstOrDefault(),
+                    Ipurrate = item.Ipurrate,
+                    Fame2amount = item.Fame2amount,
+                    Grpidno = item.Grpidno,
+                    Sgst = 0, Cgst = 0, Igst = 0 // Start with 0 as per "no static" request
+                };
+
+                // 2. Determine HSN string
+                string hsn = (item.Hsncode ?? "").Trim();
+                if (string.IsNullOrEmpty(hsn) && item.HsncodeNavigation != null) hsn = (item.HsncodeNavigation.Hsncode ?? "").Trim();
+
+                if (!string.IsNullOrEmpty(hsn))
+                {
+                    if (string.IsNullOrEmpty(modelItemDetail.Hsncode)) modelItemDetail.Hsncode = hsn;
+
+                    // Fetch mappings using prefix matching
+                    var allHsnCodes = await _context.HsnwiseTaxCodes.ToListAsync();
+                    var matchedMappings = allHsnCodes
+                        .Where(x => x.Hsncode != null && (hsn.StartsWith(x.Hsncode.Trim()) || x.Hsncode.Trim().StartsWith(hsn)))
+                        .ToList();
+
+                    if (matchedMappings.Any())
+                    {
+                        var latestMappings = matchedMappings
+                            .GroupBy(x => (x.StateFlag ?? "").Trim().ToUpper())
+                            .Select(g => g.OrderByDescending(x => x.EffectiveDate).First())
+                            .ToList();
+
+                        foreach (var mapping in latestMappings)
+                        {
+                            var sFlag = (mapping.StateFlag ?? "").Trim().ToUpper();
+                            var taxRates = await _context.AggregateTaxCodes
+                                .Where(x => x.AtaxCode == mapping.AtaxCode)
+                                .ToListAsync();
+
+                            if (taxRates != null && taxRates.Any())
+                            {
+                                // Priority mapping based on flag
+                                var isLocalEntry = sFlag.StartsWith("L") || sFlag.Contains("LOC");
+                                var isInterEntry = sFlag.StartsWith("I") || sFlag.Contains("INT");
+                                
+                                // Local taxes
+                                if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("S") || (x.TaxCode ?? "").ToUpper().Contains("C"))))
+                                {
+                                    var sgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("S"))?.TaxRate;
+                                    var cgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("C"))?.TaxRate;
+                                    if (sgst != null) modelItemDetail.Sgst = sgst.Value;
+                                    if (cgst != null) modelItemDetail.Cgst = cgst.Value;
+                                }
+                                
+                                // Interstate taxes (IGST)
+                                if (isInterEntry || (!isLocalEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("I"))))
+                                {
+                                    var igst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("I"))?.TaxRate;
+                                    if (igst == null && taxRates.Count == 1) igst = taxRates[0].TaxRate;
+                                    if (igst != null) modelItemDetail.Igst = igst.Value;
+                                }
+                            }
+                        }
+                    }
+                }
+                return modelItemDetail;
+            }
+            catch (Exception ex)
+            {
+                try {
+                   var item = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Itemcode == modelNo);
+                   if (item != null) return new ItemMasterViewModel { Itemcode = item.Itemcode, Sgst = 0, Cgst = 0, Igst = 0, Ipurrate = item.Ipurrate };
+                } catch { }
+                throw new Exception("Error while fetching purchase details with HSN tax by Model No", ex);
+            }
         }
     }
 }

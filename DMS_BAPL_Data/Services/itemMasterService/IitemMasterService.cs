@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -15,6 +15,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         Task UpdateItemAsync(ItemMaster item);
         Task<byte[]> DownloadItemMasterExcel();
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
+        Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo);
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
     }
 }
