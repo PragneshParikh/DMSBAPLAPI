@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -206,6 +207,20 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             {
                 throw new Exception("Error while fetching location names", ex);
             }
+        }
+
+        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode)
+        {
+            var result = await _context.LocationMasters
+                .Where(x => x.Dealercode == dealerCode)
+                .Select(x => new LocationTypewiseNameViewModel
+                {
+                    locname = x.Locname,
+                    locareadidNo = x.Locareaidno
+                })
+                .ToListAsync();
+
+            return result;
         }
 
     }

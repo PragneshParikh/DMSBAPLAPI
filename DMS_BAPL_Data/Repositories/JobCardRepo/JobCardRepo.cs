@@ -19,6 +19,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             _context = context;
         }
 
+        // bind jobtype dropdown
         public async Task<List<JobCardViewModel>> GetJobtype()
         {
             return await _context.JobTypes
@@ -29,6 +30,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 })
                 .ToListAsync();
         }
+
+        // bind service head dropdown based on job type
         public async Task<List<ServiceHeadViewModel>> GetServiceHead(int jobTypeId)
         {
             return await _context.ServiceHeads
@@ -40,6 +43,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }).ToListAsync();
         }
 
+        // bind service type dropdown based on service head
         public async Task<List<ServiceTypeViewModel>> GetServiceType(int serviceHeadId)
         {
             return await _context.ServiceTypes
@@ -51,6 +55,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }).ToListAsync();
         }
 
+        // get service data based on job type
         public async Task<List<ServiceDataViewModel>> GetServiceDataByJobType(string jobTypeName)
         {
             var result = await (from jt in _context.JobTypes
@@ -62,6 +67,22 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                     JobTypeName = jt.JobTypeName,
                                     ServiceHead = sh.ServiceHeadName,
                                     ServiceType = st.ServiceTypeName
+                                }).ToListAsync();
+
+            return result;
+        }
+
+        // get inspected lot chassis based on invoice number
+        public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
+        {
+            var result = await (from h in _context.LotinspectionHeaders
+                                join d in _context.LotinspectionDetails
+                                on h.Id equals d.LotHeaderId
+                                where h.IsLotInspected == true && h.DealerCode == dealerCode
+                                select new LotInspectionChassisVM
+                                {
+                                    InvoiceNo = h.InvoiceNo,
+                                    ChassisNumber = d.ChassisNo
                                 }).ToListAsync();
 
             return result;

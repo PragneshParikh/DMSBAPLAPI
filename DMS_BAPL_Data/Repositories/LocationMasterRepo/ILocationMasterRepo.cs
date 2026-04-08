@@ -15,5 +15,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         Task<bool> AddLocationMaster(LocationMasterViewModel model);
         Task<bool> UpdateLocationMaster(LocationMasterViewModel model);
         Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode);
+
+        Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode);
     }
 }

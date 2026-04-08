@@ -42,5 +42,18 @@ namespace DMS_BAPL_Api.Controllers
             var serviceTypes = await _jobCardRepo.GetServiceType(serviceHeadId);
             return Ok(serviceTypes);
         }
+
+        [HttpGet("GetAllInspectedChassis")]
+        public async Task<IActionResult> GetAllInspectedChassis(string dealerCode)
+        {
+            var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode);
+
+            if (data == null || !data.Any())
+            {
+                return NotFound("No inspected records found.");
+            }
+
+            return Ok(data);
+        }
     }
 }

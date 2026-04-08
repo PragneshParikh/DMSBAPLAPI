@@ -70,5 +70,11 @@ namespace DMS_BAPL_Utils.ViewModels
             public DateTime? UpdatedDate { get; set; }
         }
 
-    
+    public class LocationTypewiseNameViewModel
+    {
+        public string locname { get; set; }
+        public int locareadidNo { get; set; }
+    }
+
+
 }

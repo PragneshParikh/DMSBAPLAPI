@@ -29,4 +29,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public int ServiceTypeId { get; set; }
         public string? ServiceTypeName { get; set; }
     }
+    public class LotInspectionChassisVM
+    {
+        public string InvoiceNo { get; set; }
+        public string ChassisNumber { get; set; }
+    }
 }
