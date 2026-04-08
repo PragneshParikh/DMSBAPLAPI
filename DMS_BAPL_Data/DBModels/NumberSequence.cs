@@ -17,7 +17,7 @@ public partial class NumberSequence
 
     public int Increment { get; set; }
 
-    public string DealerCode { get; set; } = null!;
+    public string? DealerCode { get; set; }
 
     public string Year { get; set; } = null!;
 

@@ -91,7 +91,7 @@ namespace DMS_BAPL_Utils.ViewModels
     }
     public class LotinspectionDetailViewModel
     {
-        public string? ModelName { get; set; }
+        public string? ItemCode { get; set; }
         public int? NoofVehicle { get; set; }
         public string? ChassisNo { get; set; }
         public string? MotorNo { get; set; }

@@ -33,5 +33,20 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string InvoiceNo { get; set; }
         public string ChassisNumber { get; set; }
+        public string BatteryNumber { get; set; }
+        public string ControllerNo  { get; set; }
+        public string ChargerNumber { get; set; }
+        public string BatteryMake { get; set; }
+        public string BatteryCapacity { get; set; }
+        public string BatteryChemestry { get; set; }
+        public string ConverterNo { get; set; }
+        public string MotorNo { get; set; }
+
+
+    }
+    public class JobSourceViewModel
+    {
+        public int JobSourceId { get; set; }
+        public string? JobSourceName { get; set; }
     }
 }

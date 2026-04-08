@@ -15,6 +15,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<ServiceDataViewModel>> GetServiceDataByJobType(string jobTypeName);
         Task<List<ServiceHeadViewModel>> GetServiceHead(int jobTypeId);
         Task<List<ServiceTypeViewModel>> GetServiceType(int serviceHeadId);
+        Task<List<JobSourceViewModel>> GetJobSource();
         Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode);
     }
 }

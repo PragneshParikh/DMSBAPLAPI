@@ -77,15 +77,37 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             var result = await (from h in _context.LotinspectionHeaders
                                 join d in _context.LotinspectionDetails
-                                on h.Id equals d.LotHeaderId
-                                where h.IsLotInspected == true && h.DealerCode == dealerCode
+                                    on h.Id equals d.LotHeaderId
+                                join v in _context.VehicleDispatches
+                                    on d.ChassisNo equals v.ChasisNo
+                                where h.IsLotInspected == true
+                                      && h.DealerCode == dealerCode
                                 select new LotInspectionChassisVM
                                 {
                                     InvoiceNo = h.InvoiceNo,
-                                    ChassisNumber = d.ChassisNo
+                                    ChassisNumber = d.ChassisNo,
+                                    BatteryNumber = v.BatteryNo,
+                                    ChargerNumber = v.ChargerNo,
+                                    ControllerNo = v.ControllerNo,
+                                    BatteryMake = v.BatteryMake,
+                                    BatteryCapacity = v.BatteryCapacity,
+                                    BatteryChemestry = v.BatteryChemistry,
+                                    ConverterNo = v.Converter,
+                                    MotorNo = v.MotorNo
                                 }).ToListAsync();
 
             return result;
+        }
+
+        public async Task<List<JobSourceViewModel>> GetJobSource()
+        {
+            return await _context.JobSources
+                .Select(j => new JobSourceViewModel
+                {
+                    JobSourceId = j.Id,
+                    JobSourceName = j.JobSourceName
+                })
+                .ToListAsync();
         }
 
     }

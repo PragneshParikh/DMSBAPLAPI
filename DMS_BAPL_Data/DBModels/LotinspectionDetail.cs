@@ -9,7 +9,7 @@ public partial class LotinspectionDetail
 
     public int LotHeaderId { get; set; }
 
-    public string? ModelName { get; set; }
+    public string? Itemcode { get; set; }
 
     public int? NoofVehicle { get; set; }
 

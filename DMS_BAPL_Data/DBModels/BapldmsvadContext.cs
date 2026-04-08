@@ -35,6 +35,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
 
+    public virtual DbSet<City> Cities { get; set; }
+
     public virtual DbSet<ColorMaster> ColorMasters { get; set; }
 
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
@@ -50,6 +52,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
+
+    public virtual DbSet<JobSource> JobSources { get; set; }
 
     public virtual DbSet<JobType> JobTypes { get; set; }
 
@@ -96,6 +100,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ServiceHead> ServiceHeads { get; set; }
 
     public virtual DbSet<ServiceType> ServiceTypes { get; set; }
+
+    public virtual DbSet<State> States { get; set; }
 
     public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
 
@@ -252,6 +258,38 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<City>(entity =>
+        {
+            entity.HasKey(e => e.CityId).HasName("PK__cities__031491A8B7001752");
+
+            entity.ToTable("cities");
+
+            entity.Property(e => e.CityId).HasColumnName("city_id");
+            entity.Property(e => e.CityName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("city_name");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.Createddate)
+                .HasColumnType("datetime")
+                .HasColumnName("createddate");
+            entity.Property(e => e.StateId).HasColumnName("state_id");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updatedBy");
+            entity.Property(e => e.Updateddate)
+                .HasColumnType("datetime")
+                .HasColumnName("updateddate");
+
+            entity.HasOne(d => d.State).WithMany(p => p.Cities)
+                .HasForeignKey(d => d.StateId)
+                .HasConstraintName("FK_Cities_States");
         });
 
         modelBuilder.Entity<ColorMaster>(entity =>
@@ -642,6 +680,24 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
         });
 
+        modelBuilder.Entity<JobSource>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("JobSource");
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+            entity.Property(e => e.JobSourceName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<JobType>(entity =>
         {
             entity
@@ -998,6 +1054,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.FirstaidkitQty).HasColumnName("firstaidkitQty");
             entity.Property(e => e.IgnitionKeyset).HasColumnName("ignitionKeyset");
             entity.Property(e => e.InspectionDate).HasColumnName("inspectionDate");
+            entity.Property(e => e.Itemcode)
+                .HasMaxLength(200)
+                .HasColumnName("itemcode");
             entity.Property(e => e.KeyFobSetQty).HasColumnName("keyFobSetQty");
             entity.Property(e => e.LotHeaderId).HasColumnName("lotHeaderId");
             entity.Property(e => e.LotVehicleDamageImage)
@@ -1005,9 +1064,6 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("lotVehicleDamageImage");
             entity.Property(e => e.MirrorsetQty).HasColumnName("mirrorsetQty");
-            entity.Property(e => e.ModelName)
-                .HasMaxLength(200)
-                .HasColumnName("modelName");
             entity.Property(e => e.MotorNo)
                 .HasMaxLength(100)
                 .HasColumnName("motorNo");
@@ -1556,6 +1612,35 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<State>(entity =>
+        {
+            entity.HasKey(e => e.StateId).HasName("PK__states__81A474171B182568");
+
+            entity.ToTable("states");
+
+            entity.HasIndex(e => e.StateName, "UQ__states__8D2CE19A1CF7F0B8").IsUnique();
+
+            entity.Property(e => e.StateId).HasColumnName("state_id");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("createdBy");
+            entity.Property(e => e.Createddate)
+                .HasColumnType("datetime")
+                .HasColumnName("createddate");
+            entity.Property(e => e.StateName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("state_name");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updatedBy");
+            entity.Property(e => e.Updateddate)
+                .HasColumnType("datetime")
+                .HasColumnName("updateddate");
         });
 
         modelBuilder.Entity<TaxCodeMaster>(entity =>

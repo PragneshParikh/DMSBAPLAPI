@@ -55,5 +55,11 @@ namespace DMS_BAPL_Api.Controllers
 
             return Ok(data);
         }
+        [HttpGet("GetJobSource")]
+        public async Task<IActionResult> GetJobSource()
+        {
+            var jobSources = await _jobCardRepo.GetJobSource();
+            return Ok(jobSources);
+        }
     }
 }
