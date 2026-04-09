@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
 using DMS_BAPL_Utils.Helpers;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,14 +25,14 @@ namespace DMS_BAPL_Data.Services.InventoryService
             return await _partInventoryRepo.GetCurrentStockByItem(itemCode);
         }
 
-        async Task IPartInventoryService.UpdateIncoming(string itemCode, int quantity)
+        async Task IPartInventoryService.UpdateIncoming(PartsInventory partsInventory)
         {
-            await _partInventoryRepo.UpdateStock(itemCode, quantity, "P");
+            await _partInventoryRepo.UpdateStock(partsInventory);
         }
 
-        async Task IPartInventoryService.UpdateOutgoing(string itemCode, int quantity)
+        async Task IPartInventoryService.UpdateOutgoing(PartsInventory partsInventory)
         {
-            await _partInventoryRepo.UpdateStock(itemCode, quantity, "S");
+            await _partInventoryRepo.UpdateStock(partsInventory);
         }
 
     }

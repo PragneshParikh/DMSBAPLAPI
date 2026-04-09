@@ -20,7 +20,7 @@ namespace DMS_BAPL_Data.Repositories.MenuMasterRepo
             {
                 return _context.MenuMasters.ToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

@@ -1,11 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DMS_BAPL_Utils.ViewModels;
 
 namespace DMS_BAPL_Data.Repositories.PrefixRepo
 {
@@ -13,6 +8,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
     {
         Task<PagedResponse<NumberSequence>> GetPrefixByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
         Task<IEnumerable<NumberSequence>> GetPrefixByDealerCode(string dealerCode);
-        Task<int> InsertPrefix(NumberSequence numberSequence);
+        Task<int> InsertPrefix(NumberSequenceViewModel numberSequence);
+        Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel);
     }
 }

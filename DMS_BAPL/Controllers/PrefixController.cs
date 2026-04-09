@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -67,11 +68,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("AddPrefixForDealers")]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> InsertPrefix(NumberSequence numberSequence)
+        public async Task<IActionResult> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel)
         {
             try
             {
@@ -80,7 +81,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var prefix = await _prefixService.InsertPrefix(numberSequence);
+                var prefix = await _prefixService.AddPrefixForDealers(numberSequenceViewModel);
 
                 return Ok(prefix);
             }
@@ -90,5 +91,30 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> InsertPrefix(NumberSequenceViewModel numberSequenceViewModel)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var prefix = await _prefixService.InsertPrefix(numberSequenceViewModel);
+
+                return Ok(prefix);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while creating prefix: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

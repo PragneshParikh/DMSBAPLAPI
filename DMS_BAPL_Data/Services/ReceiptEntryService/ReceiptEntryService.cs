@@ -72,7 +72,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
                 return await _receiptEntryRepo.AddReceiptEntryAsync(receiptEntry, userId);
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -121,7 +121,8 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             {
                 return await _receiptEntryRepo.CheckReceiptExist(mobileNo, bookingId);
             }
-            catch {
+            catch
+            {
                 throw;
             }
         }
@@ -169,11 +170,11 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             }
         }
 
-       public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
         {
             try
             {
-                return await _receiptEntryRepo.GetReceiptEntryListAsyncWithSearch(searchTerm,fromDate,toDate);
+                return await _receiptEntryRepo.GetReceiptEntryListAsyncWithSearch(searchTerm, fromDate, toDate);
             }
             catch
             {

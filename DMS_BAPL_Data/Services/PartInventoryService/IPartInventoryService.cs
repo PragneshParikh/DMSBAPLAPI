@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,8 @@ namespace DMS_BAPL_Data.Services.InventoryService
 {
     public interface IPartInventoryService
     {
-        Task UpdateIncoming(string itemCode, int quantity);
-        Task UpdateOutgoing(string itemCode, int quantity);
+        Task UpdateIncoming(PartsInventory partsInventory);
+        Task UpdateOutgoing(PartsInventory partsInventory);
         Task<int> GetCurrentStockByItem(string itemCode);
     }
 }

@@ -60,11 +60,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not found");
 
-                var result = await _invoiceService.UpdateLotInspectionAsync(model, userId);
+                var result = await _invoiceService.UpdateLotInspectionAsync(model, userId, dealerCode);
 
                 return Ok(new
                 {

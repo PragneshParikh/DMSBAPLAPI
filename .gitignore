@@ -17,3 +17,6 @@ Thumbs.db
 # Publish folder
 publish/
 /DMS_BAPL/DMS_BAPL_Api.csproj.user
+/DMS_BAPL/appsettings.Development.json
+/DMS_BAPL/appsettings.json
+/DMS_BAPL/DMS_BAPL_Api.csproj.user

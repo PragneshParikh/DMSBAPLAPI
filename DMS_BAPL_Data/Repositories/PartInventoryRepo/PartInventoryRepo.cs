@@ -26,23 +26,23 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
             return item;
         }
 
-        public async Task UpdateStock(string itemCode, int transQty, string transType)
+        public async Task UpdateStock(PartsInventory partsInventory)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            //using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
                 var lastBatch = await _context.PartsInventories
-                    .Where(x => x.ItemCode == itemCode)
+                    .Where(x => x.ItemCode == partsInventory.ItemCode)
                     .OrderByDescending(x => x.Id)
                     .FirstOrDefaultAsync();
 
-                int openingQty = lastBatch != null ? lastBatch.BatchClosingQty : 0;
+                int openingQty = lastBatch?.BatchClosingQty ?? 0;
 
-                int closingQty = transType switch
+                int closingQty = partsInventory.TransType switch
                 {
-                    "P" => openingQty + transQty,
-                    "S" => openingQty - transQty,
+                    "P" => openingQty + partsInventory.BatchTransQty,
+                    "S" => openingQty - partsInventory.BatchTransQty,
                     _ => throw new Exception("Invalid transaction type")
                 };
 
@@ -51,33 +51,36 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
 
                 var newRecord = new PartsInventory
                 {
-                    ItemCode = itemCode,
+                    TransId = Guid.NewGuid().ToString(),
+                    ItemCode = partsInventory.ItemCode,
+                    VoucherNo = lastBatch?.VoucherNo ?? string.Empty,
+                    TransType = partsInventory.TransType,
                     BatchNo = lastBatch?.BatchNo ?? "",
                     BatchOpeningQty = openingQty,
-                    BatchTransQty = transQty,
+                    BatchTransQty = partsInventory.BatchTransQty,
                     BatchClosingQty = closingQty,
-                    TotalRate = lastBatch?.TotalRate ?? 0,
-                    VoucherNo = lastBatch?.VoucherNo ?? string.Empty,
-                    DealerLocation = lastBatch?.DealerLocation ?? string.Empty,
-                    VendorCode = lastBatch?.VendorCode ?? string.Empty,
-                    TransType = transType,
                     TransDate = DateOnly.FromDateTime(DateTime.Now),
+                    DealerLocation = lastBatch?.DealerLocation ?? string.Empty,
+                    VendorCode = partsInventory.VendorCode ?? string.Empty,
                     FinalStockFlag = "Y",
-                    CreatedBy = lastBatch?.CreatedBy ?? "",
-                    CreatedDate = DateTime.Now
+                    TotalRate = lastBatch?.TotalRate ?? 0,
+                    PurchaseRate = lastBatch?.PurchaseRate ?? 0,
+                    Potype = lastBatch?.Potype ?? "B2C",
+                    PostTransaction = lastBatch?.PostTransaction,
+                    CreatedBy = partsInventory.CreatedBy,
+                    CreatedDate = partsInventory.CreatedDate
                 };
 
                 if (lastBatch != null)
                     lastBatch.FinalStockFlag = "N";
 
                 _context.PartsInventories.Add(newRecord);
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
+                //await _context.SaveChangesAsync();
+                //await transaction.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                //await transaction.RollbackAsync();
                 throw;
             }
         }

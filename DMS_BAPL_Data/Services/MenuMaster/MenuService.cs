@@ -123,7 +123,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

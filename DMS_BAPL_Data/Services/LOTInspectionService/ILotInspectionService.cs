@@ -10,8 +10,7 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
     public interface ILotInspectionService
     {
         Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId);
-
-        Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId);
+        Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId, string dealerCode);
         Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? search);
     }
 }

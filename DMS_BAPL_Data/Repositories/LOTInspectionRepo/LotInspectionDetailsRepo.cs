@@ -55,7 +55,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     detailList.Add(new LotinspectionDetail
                     {
                         LotHeaderId = headerId,
-                        Itemcode = item.ItemCode,
+                        Itemcode = item.ModelName,
                         NoofVehicle = item.NoofVehicle,
                         ChassisNo = item.ChassisNo,
                         MotorNo = item.MotorNo,
@@ -109,6 +109,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     from lotHeader in _context.LotinspectionHeaders
                     join lotDetail in _context.LotinspectionDetails
                         on lotHeader.Id equals lotDetail.LotHeaderId
+                    join itemMaster in _context.ItemMasters
+                        on lotDetail.Itemcode equals itemMaster.Itemcode
                     where lotHeader.InvoiceNo != null &&
                           lotHeader.InvoiceNo.Trim().ToLower() == invoiceNo.Trim().ToLower()
                     select new LotInspectionHeaderDetailsViewModel
@@ -117,23 +119,24 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         invoiceNo = lotHeader.InvoiceNo,
                         invoiceDate = lotHeader.InvoiceDate,
                         lotNo = lotHeader.LotNo,
-                        arrivalDate=lotHeader.ArrivalDate,
-                        arrivalTime=lotHeader.ArrivalTime,
+                        arrivalDate = lotHeader.ArrivalDate,
+                        arrivalTime = lotHeader.ArrivalTime,
                         lrNo = lotHeader.LrNo,
                         lrDate = lotHeader.LrDate,
                         truckNo = lotHeader.TruckNo,
                         transporterName = lotHeader.TransporterName,
                         driverName = lotHeader.DriverName,
                         driverContact = lotHeader.DriverContact,
-                        commonRemarks=lotHeader.CommonRemarks,
-                        vehicleFasteningBracket=lotHeader.VehicleFasteningBracket,
-                        plasticCover=lotHeader.PlasticCover,
-                        nameSupervisor=lotHeader.SupervisorName,
-                        locationName=lotHeader.LocationName,
+                        commonRemarks = lotHeader.CommonRemarks,
+                        vehicleFasteningBracket = lotHeader.VehicleFasteningBracket,
+                        plasticCover = lotHeader.PlasticCover,
+                        nameSupervisor = lotHeader.SupervisorName,
+                        locationName = lotHeader.LocationName,
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,
-                        modelName = lotDetail.Itemcode,
+                        //modelName = lotDetail.ModelName,
+                        modelName = itemMaster.Itemname,
                         noofVehicle = lotDetail.NoofVehicle,
                         chassisNo = lotDetail.ChassisNo,
                         motorNo = lotDetail.MotorNo,
@@ -211,7 +214,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 return lotDetails.Count;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

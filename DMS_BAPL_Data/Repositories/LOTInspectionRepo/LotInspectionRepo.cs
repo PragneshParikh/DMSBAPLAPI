@@ -1,6 +1,9 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.InventoryService;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -17,9 +20,11 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
     public class LotInspectionRepo : ILotInspection
     {
         private readonly BapldmsvadContext _context;
-        public LotInspectionRepo(BapldmsvadContext context)
+        private readonly IPartInventoryService _partInventoryService;
+        public LotInspectionRepo(BapldmsvadContext context, IPartInventoryService partInventoryService)
         {
             _context = context;
+            _partInventoryService = partInventoryService;
         }
         // create insert api for lot inspection header based on invoice no saved
         // in LOTinspectionHeader Table 
@@ -81,7 +86,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 return header.Id;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
@@ -89,10 +94,10 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
         }
 
         //update api
-        public async Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId)
+        public async Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId, string dealerCode)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
-
+            List<PartsInventory> lstIltems = new List<PartsInventory>();
             try
             {
                 // ================= HEADER =================
@@ -137,7 +142,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
 
                 header.UpdatedDate = DateTime.Now;
-                header.IsLotInspected = true;
 
                 await _context.SaveChangesAsync();
 
@@ -191,6 +195,45 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         //    detail.LotVehicleDamageImage = fileName;
                         //}
                     }
+
+                    if (detail?.Itemcode != null)
+                    {
+                        var partNo = lstIltems.FirstOrDefault(x => x.ItemCode == detail.Itemcode);
+
+                        if (partNo != null)
+                        {
+                            partNo.BatchTransQty += 1;
+                        }
+                        else
+                        {
+                            lstIltems.Add(new PartsInventory
+                            {
+                                TransId = Guid.NewGuid().ToString(),
+                                ItemCode = detail.Itemcode,
+                                VoucherNo = null!,
+                                TransType = "P",
+                                BatchNo = "Batch 1",
+                                BatchTransQty = 1,
+                                BatchOpeningQty = 0,
+                                BatchClosingQty = 0,
+                                TransDate = DateOnly.FromDateTime(DateTime.Now.Date),
+                                DealerLocation = header?.LocationName,
+                                VendorCode = dealerCode,
+                                TotalRate = 100.00M,
+                                PurchaseRate = 110.00M,
+                                Potype = "B2C",
+                                PostTransaction = 0,
+                                CreatedBy = userId,
+                                CreatedDate = DateTime.Now
+                            });
+                        }
+                    }
+
+                }
+
+                foreach (var vehicle in lstIltems)
+                {
+                    await _partInventoryService.UpdateIncoming(vehicle);
                 }
 
                 await _context.SaveChangesAsync();
@@ -198,7 +241,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 return true;
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 return false;

@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -57,10 +58,58 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 .Where(x => x.DealerCode == dealerCode)
                 .ToListAsync();
         }
-        public async Task<int> InsertPrefix(NumberSequence numberSequence)
+        public async Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel)
         {
-            await _context.AddAsync(numberSequence);
-            return await _context.SaveChangesAsync();
+            try
+            {
+                var dealers = await _context.DealerMasters
+                    .Select(d => new { d.Id, d.Dealercode })
+                    .ToListAsync();
+
+                var newNumberSequences = new List<NumberSequence>();
+
+                foreach (var dealer in dealers)
+                {
+                    newNumberSequences.Add(new NumberSequence
+                    {
+                        SequenceCode = numberSequenceViewModel.SequenceCode,
+                        SequenceName = numberSequenceViewModel.SequenceName,
+                        Format = numberSequenceViewModel.Format,
+                        DealerCode = dealer.Dealercode,
+                        Year = numberSequenceViewModel.Year,
+                        IsActive = numberSequenceViewModel.IsActive,
+                        CreatedBy = numberSequenceViewModel.CreatedBy,
+                        CreatedDate = numberSequenceViewModel.CreatedDate
+                    });
+                }
+
+                await _context.NumberSequences.AddRangeAsync(newNumberSequences);
+                int rowsInserted = await _context.SaveChangesAsync();
+                return rowsInserted;
+            }
+            catch { throw; }
         }
+        public async Task<int> InsertPrefix(NumberSequenceViewModel numberSequenceViewModel)
+        {
+            try
+            {
+                var newNumberSequences = (new NumberSequence
+                {
+                    SequenceCode = numberSequenceViewModel.SequenceCode,
+                    SequenceName = numberSequenceViewModel.SequenceName,
+                    Format = numberSequenceViewModel.Format,
+                    Year = numberSequenceViewModel.Year,
+                    IsActive = numberSequenceViewModel.IsActive,
+                    CreatedBy = numberSequenceViewModel.CreatedBy,
+                    CreatedDate = numberSequenceViewModel.CreatedDate
+                });
+
+                await _context.NumberSequences.AddAsync(newNumberSequences);
+                int rowsInserted = await _context.SaveChangesAsync();
+                return rowsInserted;
+            }
+            catch { throw; }
+        }
+
     }
 }

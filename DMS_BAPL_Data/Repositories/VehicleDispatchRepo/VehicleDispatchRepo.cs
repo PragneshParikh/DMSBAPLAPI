@@ -52,7 +52,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
 
                 return affectedRows > 0;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -63,7 +63,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             try
             {
                 _context.VehicleDispatches.AddRange(vehicleDispatches);
-                _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception)

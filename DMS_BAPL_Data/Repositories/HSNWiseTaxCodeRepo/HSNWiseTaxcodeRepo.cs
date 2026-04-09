@@ -61,7 +61,7 @@ namespace DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo
                     CreatedDate = DateTime.UtcNow
                 };
 
-                _context.HsnwiseTaxCodes.AddAsync(hsnwiseTaxCode);
+                await _context.HsnwiseTaxCodes.AddAsync(hsnwiseTaxCode);
                 await _context.SaveChangesAsync();
                 return hsnwiseTaxCodeViewModel;
             }

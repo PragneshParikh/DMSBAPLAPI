@@ -45,7 +45,7 @@ namespace DMS_BAPL_Data.Services.EmailService
                 await smtp.SendAsync(email);
                 await smtp.DisconnectAsync(true);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

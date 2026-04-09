@@ -16,15 +16,13 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
         {
             _lotInspection = lotInspection;
         }
-
         public async Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId)
         {
             return await _lotInspection.InsertLotInspectionHeaderAsync(invoiceNo, userId);
         }
-
-        public async Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId)
+        public async Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId, string dealerCode)
         {
-            return await _lotInspection.UpdateLotInspectionAsync(model, userId);
+            return await _lotInspection.UpdateLotInspectionAsync(model, userId, dealerCode);
         }
         public async Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? search)
         {
