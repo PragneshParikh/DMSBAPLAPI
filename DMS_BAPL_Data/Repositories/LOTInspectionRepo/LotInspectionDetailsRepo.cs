@@ -55,7 +55,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     detailList.Add(new LotinspectionDetail
                     {
                         LotHeaderId = headerId,
-                        Itemcode = item.ModelName,
+                        Itemcode = item.ItemCode,
                         NoofVehicle = item.NoofVehicle,
                         ChassisNo = item.ChassisNo,
                         MotorNo = item.MotorNo,
