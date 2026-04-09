@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.InkML;
@@ -43,6 +44,46 @@ namespace DMS_BAPL_Data.Repositories.KitDetailsRepo
                     .ToListAsync();
 
                 return kitDetails;
+            }
+            catch { throw; }
+        }
+        public async Task<PagedResponse<object>> GetKitDetailsByPaged(int pageIndex, int pageSize, int headerId)
+        {
+            try
+            {
+                var query = _context.KitDetails
+                    .Where(x => x.KitHeaderId == headerId)
+                    .AsNoTracking();
+
+                int totalRecords = await query.CountAsync();
+
+                var kitDetails = await query
+                    .Where(x => x.KitHeaderId == headerId)
+                    .Include(x => x.Item)
+                    .Skip(pageIndex * pageSize)
+                    .Take(pageSize)
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.KitHeaderId,
+                        x.ItemId,
+                        x.Quantity,
+                        x.CreatedBy,
+                        x.CreatedDate,
+                        x.UpdatedBy,
+                        x.UpdatedDate,
+
+                        ItemName = x.Item.Itemname,
+                        ItemDescription = x.Item.Itemdesc,
+                    })
+                    .Cast<object>()
+                    .ToListAsync();
+
+                return new PagedResponse<object>
+                {
+                    Data = kitDetails,
+                    TotalRecords = totalRecords
+                };
             }
             catch { throw; }
         }

@@ -1,7 +1,9 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Vml.Office;
+using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +21,7 @@ namespace DMS_BAPL_Data.Services.KitDetailsService
         }
 
         Task<IEnumerable<object>> IKitDetailsService.GetKitDetailsByHeaderId(int headerId) => _kitDetailsRepo.GetKitDetailsByHeaderId(headerId);
+        Task<PagedResponse<object>> IKitDetailsService.GetKitDetailsByPaged(int pageIndex, int pageSize, int headerId) => _kitDetailsRepo.GetKitDetailsByPaged(pageIndex, pageSize, headerId);
         Task<int> IKitDetailsService.InsertKitDetails(List<KitDetailsViewModel> kitDetailsViewModels) => _kitDetailsRepo.InsertKitDetails(kitDetailsViewModels);
         public async Task<bool> UpdateKitDetails(List<KitDetailsViewModel> kitDetailsViewModels)
         {
