@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
+using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
@@ -18,17 +19,20 @@ using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
+using DMS_BAPL_Data.Repositories.PartInventoryRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
+using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
+using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.EmailService;
@@ -36,6 +40,7 @@ using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
+using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.KitDetailsService;
 using DMS_BAPL_Data.Services.KitHeaderService;
@@ -50,6 +55,7 @@ using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Data.Services.ReceiptEntryService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
+using DMS_BAPL_Data.Services.StateService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
@@ -91,6 +97,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IKitDetailsRepo, KitDetailsRepo>();
             services.AddScoped<IPrefixRepo, PrefixRepo>();
             services.AddScoped<IJobCardRepo, JobCardRepo>();
+            services.AddScoped<IPartInventoryRepo, PartInventoryRepo>();
+            services.AddScoped<IStateRepo, StateRepo>();
+            services.AddScoped<ICityRepo, CityRepo>();
 
             #endregion
 
@@ -123,6 +132,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IKitHeaderService, KitHeaderService>();
             services.AddScoped<IKitDetailsService, KitDetailsService>();
             services.AddScoped<IPrefixService, PrefixService>();
+            services.AddScoped<IPartInventoryService, PartInventoryService>();
+            services.AddScoped<IStateService, StateService>();
+            services.AddScoped<ICityService, CityService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
