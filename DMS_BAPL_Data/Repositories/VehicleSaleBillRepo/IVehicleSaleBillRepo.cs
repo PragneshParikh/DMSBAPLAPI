@@ -14,6 +14,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<List<VehicleSaleBillHeader>> GetAllAsync();
         Task UpdateAsync(VehicleSaleBillHeader entity);
         Task DeleteAsync(int id);
+        Task<string?> GetLastSaleBillNo();
+
+        Task<string?> GetDealerLocation(string dealerCode);
+        Task<ItemMaster?> GetItem(string itemCode);
+        Task<decimal?> GetPurchaseRate(string dealerCode, string itemCode);
+        Task<List<(string chassisNo, string itemCode)>> GetChassisByDealer(string dealerCode);
 
     }
 }

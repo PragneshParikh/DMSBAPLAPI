@@ -13,7 +13,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
         Task<string> GenerateNextReceiptNoAsync();
         Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
-        Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
+        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
         Task<List<LedgerMaster>> GetLedgerMasterDetailsByTypeAsync(string ledgerType);
         Task<ReceiptEntry?> UpdateReceiptEntryAsync(int id, ReceiptEntryViewModel receiptEntry, string userId);
         Task<ReceiptEntryEditViewModel?> GetReceiptByIdAsync(int id);

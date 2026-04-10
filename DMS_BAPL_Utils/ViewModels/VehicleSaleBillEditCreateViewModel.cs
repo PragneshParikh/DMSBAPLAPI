@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,19 +15,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CustomerType { get; set; } = null!;
         public string Location { get; set; } = null!;
         public string SaleType { get; set; } = null!;
-        public string CashAccount { get; set; } = null!;
-        public string Financier { get; set; } = null!;
-        public string BillType { get; set; } = null!;
-        public string BillFrom { get; set; } = null!;
-        public string CustomerName { get; set; } = null!;
-        public string BillingName { get; set; } = null!;
-        public string SalesExecutive { get; set; } = null!;
-        public string TempRegNo { get; set; } = null!;
-        public string BookingId { get; set; } = null!;
-        public string PrintType { get; set; } = null!;
-        public string RefName { get; set; } = null!;
-        public string RefAddress { get; set; } = null!;
-        public string RefEmail { get; set; } = null!;
+        public string CashAccount { get; set; } 
+        public string? Financier { get; set; } 
+        public string BillType { get; set; } 
+        public string BillFrom { get; set; } 
+        public string CustomerName { get; set; } 
+        public string BillingName { get; set; }
+        public string SalesExecutive { get; set; } 
+        public int? LedgerId { get; set; }
+        public string TempRegNo { get; set; } 
+        public string BookingId { get; set; } 
+        public string PrintType { get; set; } 
+        public string RefName { get; set; } 
+        
+       public string RefAddress { get; set; } 
+        public string RefEmail { get; set; } 
         public int RefPoint { get; set; }
         public string RefRemarks { get; set; } = null!;
         public decimal TotalAmount { get; set; }
@@ -45,10 +47,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool HasDevice { get; set; }
         public bool HasKit { get; set; }
         public bool IsDelivered { get; set; }
-        public string Segment { get; set; } = null!;
-        public string InstitutionalType { get; set; } = null!;
-        public string SchemeName { get; set; } = null!;
-        public string Narration { get; set; } = null!;
+        public string Segment { get; set; } 
+        public string InstitutionalType { get; set; } 
+        public string SchemeName { get; set; } 
+        public string Narration { get; set; } 
         public decimal FinalAmount { get; set; }
         public bool IsAgainstExchange { get; set; }
 

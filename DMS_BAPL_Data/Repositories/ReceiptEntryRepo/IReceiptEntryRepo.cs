@@ -13,8 +13,9 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
         Task<string?> GetLastReceiptNoAsync();
         Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
-        Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
-        Task<List<LedgerMaster>> GetLedgerMasterDetailsByTypeAsync(string ledgerType);
+        //Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
+        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
+            Task<List<LedgerMaster>> GetLedgerMasterDetailsByTypeAsync(string ledgerType);
        Task<ReceiptEntryEditViewModel?> GetReceiptByIdAsync(int id);
         Task<ReceiptEntry?> UpdateReceiptEntryAsync(int id, ReceiptEntryViewModel receiptEntry, string userId);
         Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId);

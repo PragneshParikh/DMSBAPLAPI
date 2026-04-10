@@ -70,7 +70,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
 
         }
 
-        async Task<LedgerMaster?> ILedgerMasterRepo.GetLedgerById(int id)
+        public async Task<LedgerMaster?> GetLedgerById(int id)
         {
             try
             {

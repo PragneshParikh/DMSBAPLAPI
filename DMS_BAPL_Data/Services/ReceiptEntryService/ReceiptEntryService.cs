@@ -53,7 +53,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
 
         //}
 
-        public async Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
         {
             try
             {

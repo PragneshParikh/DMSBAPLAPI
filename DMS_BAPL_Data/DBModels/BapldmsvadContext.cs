@@ -1285,6 +1285,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DurationType)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.IsB2b).HasColumnName("IsB2B");
             entity.Property(e => e.Odoreading)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("ODOReading");

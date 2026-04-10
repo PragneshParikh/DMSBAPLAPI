@@ -17,6 +17,8 @@ public partial class OemmodelWarranty
 
     public decimal? Duration { get; set; }
 
+    public bool? IsB2b { get; set; }
+
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }

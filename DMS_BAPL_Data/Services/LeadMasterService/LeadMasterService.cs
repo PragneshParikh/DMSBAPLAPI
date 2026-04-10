@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
         private readonly ILeadMasterRepo _leadMasterRepo;
         private readonly ILedgerMasterRepo _ledgerMasterRepo;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public LeadMasterService(ILeadMasterRepo leadMasterRepo,ILedgerMasterRepo ledgerMasterRepo, IHttpContextAccessor httpContextAccessor)
+ public LeadMasterService(ILeadMasterRepo leadMasterRepo, ILedgerMasterRepo ledgerMasterRepo, IHttpContextAccessor httpContextAccessor)
         {
             _leadMasterRepo = leadMasterRepo;
             _ledgerMasterRepo = ledgerMasterRepo;
@@ -57,7 +57,7 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
                     var httpContext = _httpContextAccessor.HttpContext;
                     string userId = GetUserInfoFromToken.GetUserIdFromToken(httpContext);
 
-                   var ledger = await _ledgerMasterRepo.CreateLedgerFromLead(result, userId);
+                    var ledger = await _ledgerMasterRepo.CreateLedgerFromLead(result, userId);
                     ledgerId = ledger.Id;
                     isNew = true;
                 }

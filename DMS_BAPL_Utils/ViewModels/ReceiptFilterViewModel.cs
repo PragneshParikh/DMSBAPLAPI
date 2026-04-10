@@ -16,6 +16,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? BookingId { get; set; }
         public string? Location { get; set; }
         public string? SaleType { get; set; }
+        public string? ItemCode { get; set; }
 
     }
 }

@@ -14,5 +14,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync();
         Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model);
         Task DeleteAsync(int id);
+        Task<string> GenerateNextVehicleSaleNo();
+        Task<VehicleSaleExportViewModel?> GetExportData(int id);
+        Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
+
     }
 }

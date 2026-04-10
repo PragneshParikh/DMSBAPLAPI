@@ -57,6 +57,7 @@ using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.StateService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
+using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using Microsoft.Extensions.DependencyInjection;
@@ -135,6 +136,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPartInventoryService, PartInventoryService>();
             services.AddScoped<IStateService, StateService>();
             services.AddScoped<ICityService, CityService>();
+            services.AddScoped<ICityService, CityService>();
+            services.AddScoped<ITaxServices, TaxServices>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

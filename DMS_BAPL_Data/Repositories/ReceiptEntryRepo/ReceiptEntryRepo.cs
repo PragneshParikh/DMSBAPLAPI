@@ -74,22 +74,112 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
         //    }
         //}
 
-        public async Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
+        //public async Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
+        //{
+        //    try
+        //    {
+        //        var query = _bapldmsvadContext.ReceiptEntries.AsQueryable();
+
+        //        if (filter != null)
+        //        {
+        //            // Date filters
+        //            if (filter.FromDate.HasValue)
+        //                query = query.Where(x => x.ReceiptDate >= filter.FromDate.Value);
+
+        //            if (filter.ToDate.HasValue)
+        //                query = query.Where(x => x.ReceiptDate <= filter.ToDate.Value);
+
+        //            // String filters
+        //            if (!string.IsNullOrWhiteSpace(filter.ReceiptNo))
+        //                query = query.Where(x => x.ReceiptNo.Contains(filter.ReceiptNo));
+
+        //            if (!string.IsNullOrWhiteSpace(filter.PartyName))
+        //                query = query.Where(x => x.PartyName.Contains(filter.PartyName));
+
+        //            if (!string.IsNullOrWhiteSpace(filter.MobileNo))
+        //                query = query.Where(x => x.MobileNo.Contains(filter.MobileNo));
+
+        //            if (!string.IsNullOrWhiteSpace(filter.BookingId))
+        //                query = query.Where(x => x.BookingId.Contains(filter.BookingId));
+
+        //            if (!string.IsNullOrWhiteSpace(filter.Location))
+        //                query = query.Where(x => x.Location.Contains(filter.Location));
+        //            if(!string.IsNullOrWhiteSpace(filter.ItemCode))
+        //                query= query.Where(x=>x.ProductCode.Contains(filter.ItemCode));
+
+        //            // SaleType filter
+        //            if (!string.IsNullOrWhiteSpace(filter.SaleType))
+        //            {
+        //                var saleType = filter.SaleType.Trim().ToLower();
+
+        //                if (saleType == "cash")
+        //                {
+        //                    query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
+        //                }
+        //                else if (saleType == "credit")
+        //                {
+        //                    query = query.Where(x => !string.IsNullOrWhiteSpace(x.Financier));
+        //                }
+        //            }
+        //        }
+
+        //        return await query.OrderByDescending(i => i.CreatedDate).ToListAsync();
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
         {
             try
             {
-                var query = _bapldmsvadContext.ReceiptEntries.AsQueryable();
+                var query =
+                    from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
 
+                    join i in _bapldmsvadContext.ItemMasters
+                        on r.ProductCode equals i.Itemcode into itemGroup
+                    from i in itemGroup.DefaultIfEmpty()
+
+                    select new ReceiptEntryEditViewModel
+                    {
+                        Id = r.Id,
+                        Location = r.Location,
+                        ReceiptNo = r.ReceiptNo,
+                        ReceiptDate = r.ReceiptDate,
+                        SaleType = r.SaleType,
+                        BookingId = r.BookingId,
+                        PartyName = r.PartyName,
+                        MobileNo = r.MobileNo,
+                        Financier = r.Financier,
+
+                        ProductCode = r.ProductCode,
+
+                        // ✅ ADD THIS
+                        ProductName = i.Itemname,
+
+                        SalesExecutive = r.SalesExecutive,
+                        ReceiptType = r.ReceiptType,
+                        RefNo = r.RefNo,
+                        Narration = r.Narration,
+                        TotalAmount = r.TotalAmount,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate
+                    };
+
+                // ✅ APPLY FILTERS
                 if (filter != null)
                 {
-                    // Date filters
                     if (filter.FromDate.HasValue)
                         query = query.Where(x => x.ReceiptDate >= filter.FromDate.Value);
 
                     if (filter.ToDate.HasValue)
                         query = query.Where(x => x.ReceiptDate <= filter.ToDate.Value);
 
-                    // String filters
                     if (!string.IsNullOrWhiteSpace(filter.ReceiptNo))
                         query = query.Where(x => x.ReceiptNo.Contains(filter.ReceiptNo));
 
@@ -105,23 +195,35 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                     if (!string.IsNullOrWhiteSpace(filter.Location))
                         query = query.Where(x => x.Location.Contains(filter.Location));
 
-                    // SaleType filter
+                    if (!string.IsNullOrWhiteSpace(filter.ItemCode))
+                        query = query.Where(x => x.ProductCode.Contains(filter.ItemCode));
+
+                    //// ✅ OPTIONAL: filter by product name also
+                    //if (!string.IsNullOrWhiteSpace(filter.ItemCode))
+                    //{
+                    //    var itemSearch = filter.ItemCode.ToLower();
+
+                    //    query = query.Where(x =>
+                    //        x.ProductName != null &&
+                    //        x.ProductName.ToLower().Contains(itemSearch)
+                    //    );
+                    //}
+
                     if (!string.IsNullOrWhiteSpace(filter.SaleType))
                     {
                         var saleType = filter.SaleType.Trim().ToLower();
 
                         if (saleType == "cash")
-                        {
                             query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
-                        }
+
                         else if (saleType == "credit")
-                        {
                             query = query.Where(x => !string.IsNullOrWhiteSpace(x.Financier));
-                        }
                     }
                 }
 
-                return await query.OrderByDescending(i => i.CreatedDate).ToListAsync();
+                return await query
+                    .OrderByDescending(x => x.CreatedDate)
+                    .ToListAsync();
             }
             catch
             {
@@ -386,6 +488,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 throw;
             }
         }
-
+       
+       
     }
 }
