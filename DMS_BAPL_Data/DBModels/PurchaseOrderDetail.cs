@@ -17,6 +17,8 @@ public partial class PurchaseOrderDetail
 
     public decimal? Rate { get; set; }
 
+    public decimal? Mrp { get; set; }
+
     public decimal? LineAmount { get; set; }
 
     public bool Status { get; set; }

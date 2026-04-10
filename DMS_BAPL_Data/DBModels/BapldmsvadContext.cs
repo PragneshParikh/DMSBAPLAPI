@@ -79,6 +79,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
+    public virtual DbSet<OemmodelWarranty> OemmodelWarranties { get; set; }
+
     public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
 
     public virtual DbSet<PartsInventory> PartsInventories { get; set; }
@@ -1269,6 +1271,35 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<OemmodelWarranty>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC0726AF3F6D");
+
+            entity.ToTable("OEMModelWarranty");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Duration).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DurationType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Odoreading)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("ODOReading");
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.OemmodelWarranties)
+                .HasForeignKey(d => d.OemmodelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OEMModelWarranty_OEMModelMaster");
+        });
+
         modelBuilder.Entity<ParameterMasterTable>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Paramete__3214EC073BC8EE12");
@@ -1419,6 +1450,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FameIIFlag");
+            entity.Property(e => e.LocCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.OrderType)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1457,6 +1491,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.LineAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Mrp)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("MRP");
             entity.Property(e => e.Ponumber)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -1828,10 +1865,22 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07E02F8CDE");
 
+            entity.Property(e => e.Cgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTAmnt");
+            entity.Property(e => e.Cgstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("CGSTPer");
             entity.Property(e => e.ChassisNo).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTAmnt");
+            entity.Property(e => e.Igstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("IGSTPer");
             entity.Property(e => e.InstitutionalType).HasMaxLength(50);
             entity.Property(e => e.InsuranceAmount)
                 .HasDefaultValue(0m)
@@ -1846,6 +1895,12 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SchemeName).HasMaxLength(100);
             entity.Property(e => e.Segment).HasMaxLength(50);
+            entity.Property(e => e.Sgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTAmnt");
+            entity.Property(e => e.Sgstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("SGSTPer");
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
 
             entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
@@ -1872,6 +1927,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.Erpstatus)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("ERPStatus");
             entity.Property(e => e.Financier).HasMaxLength(100);
             entity.Property(e => e.IsD2d).HasColumnName("IsD2D");
             entity.Property(e => e.Location).HasMaxLength(100);

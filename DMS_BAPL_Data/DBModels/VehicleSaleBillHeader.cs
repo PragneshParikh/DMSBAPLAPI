@@ -59,5 +59,9 @@ public partial class VehicleSaleBillHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? Erpstatus { get; set; }
+
+    public int? LedgerId { get; set; }
+
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
 }

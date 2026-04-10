@@ -21,6 +21,12 @@ public partial class PurchaseOrder
 
     public string? CustomerCode { get; set; }
 
+    public string? LocCode { get; set; }
+
+    public string? Remarks { get; set; }
+
+    public bool? IsAgainstKit { get; set; }
+
     public decimal? Amount { get; set; }
 
     public string? FameIiflag { get; set; }

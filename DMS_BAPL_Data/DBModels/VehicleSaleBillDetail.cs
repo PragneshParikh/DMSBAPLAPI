@@ -45,5 +45,17 @@ public partial class VehicleSaleBillDetail
 
     public DateTime? UpdatedDate { get; set; }
 
+    public decimal? Sgstper { get; set; }
+
+    public decimal? Sgstamnt { get; set; }
+
+    public decimal? Cgstper { get; set; }
+
+    public decimal? Cgstamnt { get; set; }
+
+    public decimal? Igstper { get; set; }
+
+    public decimal? Igstamnt { get; set; }
+
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }
