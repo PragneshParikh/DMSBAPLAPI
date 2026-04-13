@@ -53,6 +53,14 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ItemMaster> ItemMasters { get; set; }
 
+    public virtual DbSet<JobCardBatteryDetail> JobCardBatteryDetails { get; set; }
+
+    public virtual DbSet<JobCardComplaint> JobCardComplaints { get; set; }
+
+    public virtual DbSet<JobCardCustomer> JobCardCustomers { get; set; }
+
+    public virtual DbSet<JobCardHeader> JobCardHeaders { get; set; }
+
     public virtual DbSet<JobSource> JobSources { get; set; }
 
     public virtual DbSet<JobType> JobTypes { get; set; }
@@ -70,6 +78,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<LotinspectionDetail> LotinspectionDetails { get; set; }
 
     public virtual DbSet<LotinspectionHeader> LotinspectionHeaders { get; set; }
+
+    public virtual DbSet<MaterialTransfer> MaterialTransfers { get; set; }
 
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
 
@@ -682,17 +692,216 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
         });
 
+        modelBuilder.Entity<JobCardBatteryDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__JobCardB__3214EC07DA8AD946");
+
+            entity.ToTable("JobCardBatteryDetail");
+
+            entity.Property(e => e.BatteryCapacity)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryCapacityAh)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("BatteryCapacityAH");
+            entity.Property(e => e.BatteryCcv)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("BatteryCCV");
+            entity.Property(e => e.BatteryChemical)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryDischarge)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryMake)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryOcv)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("BatteryOCV");
+            entity.Property(e => e.BatterySerialNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryVoltage)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChargerMake)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChargerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ControllerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ConverterNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.MotorDrawing)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardBatteryDetails)
+                .HasForeignKey(d => d.JobCardHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JobCardBatteryDetail_JobCardHeader");
+        });
+
+        modelBuilder.Entity<JobCardComplaint>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__JobCardC__3214EC0738EA4177");
+
+            entity.ToTable("JobCardComplaint");
+
+            entity.Property(e => e.Complaint)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ComplaintCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.CustomerVoice)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardComplaints)
+                .HasForeignKey(d => d.JobCardHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JobCardComplaint_JobCardHeader");
+        });
+
+        modelBuilder.Entity<JobCardCustomer>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__JobCardC__3214EC07618DE00D");
+
+            entity.ToTable("JobCardCustomer");
+
+            entity.Property(e => e.BatteryNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.CustomerAltMobile)
+                .HasMaxLength(70)
+                .IsUnicode(false);
+            entity.Property(e => e.CustomerMobile)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CustomerName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ModelName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.MotorNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.RegisterNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.RsarenewalDate).HasColumnName("RSARenewalDate");
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardCustomers)
+                .HasForeignKey(d => d.JobCardHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JobCardCustomer_JobCardHeader");
+        });
+
+        modelBuilder.Entity<JobCardHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__JobCardH__3214EC078282DA4B");
+
+            entity.ToTable("JobCardHeader");
+
+            entity.Property(e => e.Chassisno).HasMaxLength(100);
+            entity.Property(e => e.Couponno)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.EstdelTime)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.JobinTime)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Jobprefix)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Observation)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Serviceloc)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Supervisor)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.SupervisorComment)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Technician)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobSourceNavigation).WithMany(p => p.JobCardHeaders)
+                .HasForeignKey(d => d.JobSource)
+                .HasConstraintName("FK_JobCardHeader_JobSource");
+
+            entity.HasOne(d => d.JobtypeNavigation).WithMany(p => p.JobCardHeaders)
+                .HasForeignKey(d => d.Jobtype)
+                .HasConstraintName("FK_JobCardHeader_JobType");
+
+            entity.HasOne(d => d.ServiceheadNavigation).WithMany(p => p.JobCardHeaders)
+                .HasForeignKey(d => d.Servicehead)
+                .HasConstraintName("FK_JobCardHeader_ServiceHead");
+
+            entity.HasOne(d => d.ServicetypeNavigation).WithMany(p => p.JobCardHeaders)
+                .HasForeignKey(d => d.Servicetype)
+                .HasConstraintName("FK_JobCardHeader_ServiceType");
+        });
+
         modelBuilder.Entity<JobSource>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("JobSource");
+            entity.ToTable("JobSource");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.JobSourceName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -702,15 +911,11 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<JobType>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("JobType");
+            entity.ToTable("JobType");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.JobTypeName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1171,6 +1376,36 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("vehicleFasteningBracket");
         });
 
+        modelBuilder.Entity<MaterialTransfer>(entity =>
+        {
+            entity.ToTable("MaterialTransfer");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Ffi).HasColumnName("FFI");
+            entity.Property(e => e.IssueType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemReceived)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(5000)
+                .IsUnicode(false);
+            entity.Property(e => e.SerialNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<MenuMaster>(entity =>
         {
             entity.ToTable("MenuMaster");
@@ -1618,15 +1853,11 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<ServiceHead>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("ServiceHead");
+            entity.ToTable("ServiceHead");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.ServiceHeadName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1636,15 +1867,11 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<ServiceType>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("ServiceType");
+            entity.ToTable("ServiceType");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.ServiceTypeName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
