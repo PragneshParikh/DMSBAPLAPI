@@ -29,6 +29,11 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<HsnwiseTaxCode> GetHSNTaxWithFallbackAsync(string hsnCode, string preferredFlag, DateTime poDate);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
+        
+        // Parts PO Methods
+        Task<PartsPurchaseOrderResponseViewModel> GetPartsPOByNumberAsync(string poNumber);
+        Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
+        
         Task<decimal> GetSubsidyValue();
         Task UpdateStatus(string PoNumber);
 

@@ -196,6 +196,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 {
                     LocationNameViewModel locationName = new LocationNameViewModel();
 
+                    locationName.Loccode = item.Loccode;
                     locationName.Locname = item.Locname;
 
                     list.Add(locationName);

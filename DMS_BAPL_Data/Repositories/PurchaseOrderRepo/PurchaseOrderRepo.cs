@@ -99,6 +99,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 existing.PurchaseDate = po.PurchaseDate;
                 existing.OrderType = po.OrderType;
                 existing.TransactionType = po.TransactionType;
+                existing.Remarks = po.Remarks;
+                existing.LocCode = po.LocCode;
                 
                 await _context.SaveChangesAsync();
             }
@@ -278,6 +280,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     TotalAmount = po.Amount,
                     IsSubmitted = po.Status,
                     TransactionType = po.TransactionType,
+                    Remarks = po.Remarks,
+                    LocCode = po.LocCode,
+                    LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
                     Items = details.Select(d => new PurchaseOrderItemViewModel
                     {
@@ -334,6 +339,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         TotalAmount = po.Amount.GetValueOrDefault(),
                         IsSubmitted = po.Status,
                         TransactionType = po.TransactionType,
+                        Remarks = po.Remarks,
+                        LocCode = po.LocCode,
+                        LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
                         Items = details.Select(d => new PurchaseOrderItemViewModel
                         {
@@ -399,6 +407,119 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 .ToListAsync();
             _context.PurchaseOrderDetails.RemoveRange(details);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<PartsPurchaseOrderResponseViewModel> GetPartsPOByNumberAsync(string poNumber)
+        {
+            try
+            {
+                var po = await _context.PurchaseOrders
+                    .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+
+                if (po == null)
+                    return null;
+
+                var details = await _context.PurchaseOrderDetails
+                    .Where(x => x.Ponumber == poNumber)
+                    .ToListAsync();
+
+                var taxes = await _context.TaxDetails
+                    .Where(x => x.Ponumber == poNumber)
+                    .ToListAsync();
+
+                return new PartsPurchaseOrderResponseViewModel
+                {
+                    PONumber = po.Ponumber,
+                    PODate = po.PurchaseDate,
+                    CustomerCode = po.CustomerCode,
+                    TotalAmount = po.Amount,
+                    IsSubmitted = po.Status,
+                    TransactionType = po.TransactionType,
+
+                    Items = details.Select(d => new PartsPurchaseOrderItemViewModel
+                    {
+                        ItemCode = d.ItemCode,
+                        Qty = d.Qty,
+                        Rate = d.Rate,
+                        LineAmount = d.LineAmount,
+                        Subsidy = d.Subsidy,
+
+                        Taxes = taxes
+                            .Where(t => t.ItemCode == d.ItemCode &&
+                                        t.PodetailsLineNumber == d.LineNumber)
+                            .Select(t => new PartsTaxViewModel
+                            {
+                                TaxCode = t.TaxCode,
+                                TaxRate = t.TaxRate,
+                                TaxAmount = t.TaxAmount
+                            }).ToList()
+                    }).ToList()
+                };
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync()
+        {
+            try
+            {
+                // Note: We might want a filter here for Parts POs specifically.
+                // For now, returning all but mapped to Parts ViewModel as requested for separation.
+                var poList = await _context.PurchaseOrders.ToListAsync();
+
+                if (poList == null || !poList.Any())
+                    return new List<PartsPurchaseOrderResponseViewModel>();
+
+                var resultList = new List<PartsPurchaseOrderResponseViewModel>();
+
+                foreach (var po in poList)
+                {
+                    var details = await _context.PurchaseOrderDetails
+                        .Where(x => x.Ponumber == po.Ponumber)
+                        .ToListAsync();
+
+                    var taxes = await _context.TaxDetails
+                        .Where(x => x.Ponumber == po.Ponumber)
+                        .ToListAsync();
+
+                    resultList.Add(new PartsPurchaseOrderResponseViewModel
+                    {
+                        PONumber = po.Ponumber,
+                        PODate = po.PurchaseDate,
+                        CustomerCode = po.CustomerCode,
+                        TotalAmount = po.Amount.GetValueOrDefault(),
+                        IsSubmitted = po.Status,
+                        TransactionType = po.TransactionType,
+
+                        Items = details.Select(d => new PartsPurchaseOrderItemViewModel
+                        {
+                            ItemCode = d.ItemCode,
+                            Qty = d.Qty,
+                            Rate = d.Rate.GetValueOrDefault(),
+                            LineAmount = d.LineAmount.GetValueOrDefault(),
+
+                            Taxes = taxes
+                                .Where(t => t.ItemCode == d.ItemCode &&
+                                            t.PodetailsLineNumber == d.LineNumber)
+                                .Select(t => new PartsTaxViewModel
+                                {
+                                    TaxCode = t.TaxCode,
+                                    TaxRate = t.TaxRate,
+                                    TaxAmount = t.TaxAmount
+                                }).ToList()
+                        }).ToList()
+                    });
+                }
+
+                return resultList;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
        public async Task UpdateStatus(string PoNumber)

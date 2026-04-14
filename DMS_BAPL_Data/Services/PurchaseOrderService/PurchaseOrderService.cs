@@ -65,6 +65,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now,
                     TransactionType = model.TransactionType,
+                    Remarks = model.Remarks,
+                    LocCode = model.LocCode,
                     Status = false
                 };
 
@@ -160,6 +162,144 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             catch (Exception)
             {
                 await _repo.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string userId)
+        {
+            try
+            {
+                // Check if PO already exists
+                var existing = await _repo.GetPOByNumberAsync(model.PONumber);
+                if (existing != null)
+                {
+                    // For now, we return false if exists to prevent accidental overwrite of Vehicle POs
+                    // or we could implement UpdatePartsPOAsync later.
+                    return false; 
+                }
+
+                await _repo.BeginTransactionAsync();
+                int lineNumber = 1;
+                decimal totalAmount = 0;
+
+                // Get Dealer
+                var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
+                if (dealer == null)
+                    throw new Exception(StringConstants.DealerNotFound);
+
+                string dealerState = dealer.State?.Trim().ToLower();
+                string companyState = StringConstants.CompanyLocation;
+                string preferredFlag = dealerState == companyState ? "S" : "O";
+
+                // Create PO Header
+                var po = new DBModels.PurchaseOrder
+                {
+                    Ponumber = model.PONumber,
+                    PurchaseDate = model.PODate,
+                    OrderType = model.POType,
+                    CustomerCode = model.CustomerCode,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now,
+                    TransactionType = model.TransactionType,
+                    Status = false
+                };
+
+                await _repo.AddPOAsync(po);
+
+                foreach (var item in model.Items)
+                {
+                    var itemMaster = await _repo.GetItemAsync(item.ItemCode);
+
+                    if (itemMaster == null)
+                        throw new Exception($"{StringConstants.ItemNotFound} {item.ItemCode}");
+
+                    // Validation for Parts only
+                    if (itemMaster.Itemtype != 1)
+                        throw new Exception($"Item {item.ItemCode} is not a part (ItemType != 1).");
+
+                    decimal rate = itemMaster.Dlrprice;
+                    decimal lineAmount = item.Qty * rate;
+
+                    var detail = new PurchaseOrderDetail
+                    {
+                        Ponumber = model.PONumber,
+                        ItemCode = item.ItemCode,
+                        Qty = (int)item.Qty,
+                        Subsidy = 0, // Subsidy only for Vehicles (itemtype 11)
+                        Rate = rate,
+                        LineAmount = lineAmount,
+                        LineNumber = lineNumber,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        Status = false
+                    };
+
+                    await _repo.AddPODetailAsync(detail);
+
+                    // TAX FLOW
+                    if (itemMaster.Hsncode == null)
+                        throw new Exception($"{StringConstants.HSNCodeMissing} {item.ItemCode}");
+
+                    var hsnTax = await _repo.GetHSNTaxWithFallbackAsync(
+                        itemMaster.Hsncode,
+                        preferredFlag,
+                        model.PODate
+                    );
+
+                    if (hsnTax == null)
+                        throw new Exception($"{StringConstants.NoTaxConfig} {itemMaster.Hsncode}");
+
+                    var aggregateTaxes = await _repo.GetAggregateTaxesAsync(hsnTax.AtaxCode);
+
+                    int taxLine = 1;
+                    decimal totalTax = 0;
+
+                    foreach (var agg in aggregateTaxes)
+                    {
+                        var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode);
+                        if (taxMaster == null) continue;
+
+                        decimal taxAmount = (lineAmount * taxMaster.TaxRate) / 100;
+                        totalTax += taxAmount;
+
+                        await _repo.AddTaxAsync(new TaxDetail
+                        {
+                            Ponumber = model.PONumber,
+                            ItemCode = item.ItemCode,
+                            PodetailsLineNumber = lineNumber,
+                            TaxLineNumber = taxLine++,
+                            TaxCode = taxMaster.TaxCode,
+                            TaxRate = taxMaster.TaxRate,
+                            TaxAmount = taxAmount,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        });
+                    }
+
+                    totalAmount += lineAmount + totalTax;
+                    lineNumber++;
+                }
+
+                await _repo.UpdatePOAmountAsync(model.PONumber, totalAmount);
+                await _repo.CommitTransactionAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await _repo.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync()
+        {
+            try
+            {
+                return await _repo.GetPartsPOListAsync();
+            }
+            catch (Exception)
+            {
                 throw;
             }
         }
@@ -277,7 +417,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     PurchaseDate = model.PODate,
                     OrderType = model.POType,
                     CustomerCode = model.CustomerCode,
-                    TransactionType = model.TransactionType
+                    TransactionType = model.TransactionType,
+                    Remarks = model.Remarks,
+                    LocCode = model.LocCode,
                 };
                 await _repo.UpdatePOHeaderAsync(po);
 

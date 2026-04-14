@@ -265,5 +265,47 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        #region Parts PO Endpoints
+
+        [HttpGet("parts/Polist")]
+        [ProducesResponseType(typeof(IEnumerable<PartsPurchaseOrderResponseViewModel>), StatusCodes.Status200OK)]
+        public async Task<ActionResult> GetPartsPOList()
+        {
+            try
+            {
+                var result = await _purchaseOrderService.GetPartsPOListAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("parts/create")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> CreatePartsPurchaseOrder([FromBody] PartsPurchaseOrderViewModel model)
+        {
+            if (model == null) return BadRequest(StringConstants.BadRequest);
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized(StringConstants.UserUnauthorized);
+
+                var result = await _purchaseOrderService.CreatePartsPOAsync(model, userId);
+                if (result)
+                {
+                    return Ok(new { success = true, message = StringConstants.POCreated, poNumber = model.PONumber });
+                }
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = StringConstants.POCreatedPOCreationailed });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
     }
 }
