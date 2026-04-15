@@ -7,6 +7,8 @@ public partial class JobCardHeader
 {
     public int Id { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public int? Jobtype { get; set; }
 
     public string? Chassisno { get; set; }
@@ -70,6 +72,8 @@ public partial class JobCardHeader
     public virtual JobSource? JobSourceNavigation { get; set; }
 
     public virtual JobType? JobtypeNavigation { get; set; }
+
+    public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 
     public virtual ServiceHead? ServiceheadNavigation { get; set; }
 

@@ -44,10 +44,10 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("Paged")]
-        [ProducesResponseType(typeof(IEnumerable<LedgerMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<LedgerMaster>>> GetLedgerByPagedAsync(
+        public async Task<ActionResult<IEnumerable<object>>> GetLedgerByPagedAsync(
             [FromQuery] string? searchTerm = null,
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)

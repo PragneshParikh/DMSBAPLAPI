@@ -18,4 +18,6 @@ public partial class State
     public DateTime? Updateddate { get; set; }
 
     public virtual ICollection<City> Cities { get; set; } = new List<City>();
+
+    public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
 }

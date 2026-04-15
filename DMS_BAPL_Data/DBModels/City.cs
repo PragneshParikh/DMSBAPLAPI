@@ -19,5 +19,7 @@ public partial class City
 
     public DateTime? Updateddate { get; set; }
 
+    public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
+
     public virtual State State { get; set; } = null!;
 }

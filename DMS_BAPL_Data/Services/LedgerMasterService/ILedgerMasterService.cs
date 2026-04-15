@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
     public interface ILedgerMasterService
     {
         Task<IEnumerable<LedgerMaster>> GetAll();
-        Task<PagedResponse<LedgerMaster>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
         Task<LedgerMaster?> GetLedgerByIdAsync(int id);
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster, string userId);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster, string userId);

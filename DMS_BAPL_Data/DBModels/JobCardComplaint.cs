@@ -7,6 +7,8 @@ public partial class JobCardComplaint
 {
     public int Id { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public int JobCardHeaderId { get; set; }
 
     public string? CustomerVoice { get; set; }

@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -34,7 +35,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
-        async Task<PagedResponse<LedgerMaster>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
+        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
         {
             try
             {
@@ -45,29 +46,58 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                     query = query.Where(c => c.LedgerType.Contains(searchTerms)
                                         || c.LedgerName.Contains(searchTerms)
                                         || c.MobileNumber.Contains(searchTerms)
-                                        || c.EMail.Contains(searchTerms)
-                                        || c.City.Contains(searchTerms)
-                                        || c.State.Contains(searchTerms));
+                                        || c.EMail.Contains(searchTerms));
                 }
 
                 int totalRecords = await query.CountAsync();
 
-                var items = await query
-                    .OrderBy(c => c.LedgerName)
-                    .Skip(pageIndex * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
+                var result = await (
+                    from LM in query
+                    join C in _context.Cities
+                        on LM.City equals C.CityId into cityGroup
+                    from city in cityGroup.DefaultIfEmpty()
 
-                int startSrNo = (pageIndex * pageSize) + 1;
+                    join S in _context.States
+                        on LM.State equals S.StateId into stateGroup
+                    from state in stateGroup.DefaultIfEmpty()
 
-                return new PagedResponse<LedgerMaster>
+                    select new
+                    {
+                        Id = LM.Id,
+                        LedgerCode = LM.LedgerCode,
+                        LedgerName = LM.LedgerName,
+                        LedgerType = LM.LedgerType,
+                        Gstno = LM.Gstno,
+                        Pan = LM.Pan,
+                        AadharNumber = LM.AadharNumber,
+                        MobileNumber = LM.MobileNumber,
+                        Address = LM.Address,
+                        City = LM.City,
+                        State = LM.State,
+                        Pin = LM.Pin,
+                        EMail = LM.EMail,
+                        Gender = LM.Gender,
+                        DateOfBirth = LM.DateOfBirth,
+                        CreatedBy = LM.CreatedBy,
+                        CreatedDate = LM.CreatedDate,
+                        UpdatedBy = LM.UpdatedBy,
+                        UpdatedDate = LM.UpdatedDate,
+
+                        cityName = city.CityName,
+                        stateName = state.StateName
+                    }
+                )
+                .Skip(pageIndex * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+                return new PagedResponse<object>
                 {
-                    Data = items,
+                    Data = result.Cast<object>().ToList(),
                     TotalRecords = totalRecords
                 };
             }
             catch { throw; }
-
         }
 
         public async Task<LedgerMaster?> GetLedgerById(int id)
@@ -156,7 +186,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 LedgerType = "Party",
                 MobileNumber = lead.Mobile,
                 EMail = lead.Email,
-                City = lead.City,
+                //City = lead.City,
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };

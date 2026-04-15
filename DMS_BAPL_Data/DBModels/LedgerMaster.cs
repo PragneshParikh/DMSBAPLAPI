@@ -23,9 +23,9 @@ public partial class LedgerMaster
 
     public string? Address { get; set; }
 
-    public string? City { get; set; }
+    public int? City { get; set; }
 
-    public string? State { get; set; }
+    public int? State { get; set; }
 
     public string? Pin { get; set; }
 
@@ -42,4 +42,8 @@ public partial class LedgerMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual City? CityNavigation { get; set; }
+
+    public virtual State? StateNavigation { get; set; }
 }

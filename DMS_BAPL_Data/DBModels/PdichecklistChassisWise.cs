@@ -9,7 +9,7 @@ public partial class PdichecklistChassisWise
 
     public int PdichecklistMasterId { get; set; }
 
-    public int LotInspectionDetailsId { get; set; }
+    public int? JobCardMasterId { get; set; }
 
     public bool? IsStatus { get; set; }
 
@@ -23,7 +23,7 @@ public partial class PdichecklistChassisWise
 
     public DateTime UpdatedDate { get; set; }
 
-    public virtual LotinspectionDetail LotInspectionDetails { get; set; } = null!;
+    public virtual JobCardHeader? JobCardMaster { get; set; }
 
     public virtual PdichecklistMaster PdichecklistMaster { get; set; } = null!;
 }
