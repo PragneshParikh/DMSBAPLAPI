@@ -74,4 +74,6 @@ public partial class ItemMaster
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
 
     public virtual ICollection<KitDetail> KitDetails { get; set; } = new List<KitDetail>();
+
+    public virtual ICollection<MaterialTransfer> MaterialTransfers { get; set; } = new List<MaterialTransfer>();
 }

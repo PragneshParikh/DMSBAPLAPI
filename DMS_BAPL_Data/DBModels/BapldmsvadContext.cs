@@ -1404,6 +1404,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.Item).WithMany(p => p.MaterialTransfers)
+                .HasForeignKey(d => d.ItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MaterialTransfer_ItemMaster");
         });
 
         modelBuilder.Entity<MenuMaster>(entity =>

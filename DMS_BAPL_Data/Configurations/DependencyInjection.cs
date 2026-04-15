@@ -17,6 +17,7 @@ using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
+using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
@@ -48,6 +49,7 @@ using DMS_BAPL_Data.Services.LeadMasterService;
 using DMS_BAPL_Data.Services.LedgerMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.LOTInspectionService;
+using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.PrefixService;
@@ -101,6 +103,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPartInventoryRepo, PartInventoryRepo>();
             services.AddScoped<IStateRepo, StateRepo>();
             services.AddScoped<ICityRepo, CityRepo>();
+            services.AddScoped<IMaterialTransferRepo, MaterialTransferRepo>();
 
             #endregion
 
@@ -138,6 +141,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICityService, CityService>();
             services.AddScoped<ICityService, CityService>();
             services.AddScoped<ITaxServices, TaxServices>();
+            services.AddScoped<IMaterialTransferService, MaterialTransferService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

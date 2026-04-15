@@ -7,6 +7,8 @@ public partial class MaterialTransfer
 {
     public int Id { get; set; }
 
+    public int ItemId { get; set; }
+
     public int JobId { get; set; }
 
     public int? RackNo { get; set; }
@@ -38,4 +40,6 @@ public partial class MaterialTransfer
     public string? UpdatedBy { get; set; }
 
     public string? UpdatedDate { get; set; }
+
+    public virtual ItemMaster Item { get; set; } = null!;
 }

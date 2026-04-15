@@ -101,6 +101,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 .OrderByDescending(x => x.i.CreatedDate)
                 .Select(x => new ItemMasterViewModel
                 {
+                    Id = x.i.Id,
                     Itemtype = x.i.Itemtype,
                     Itemname = x.i.Itemname,
                     Itemcode = x.i.Itemcode,
@@ -267,7 +268,9 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     Ipurrate = item.Ipurrate,
                     Fame2amount = item.Fame2amount,
                     Grpidno = item.Grpidno,
-                    Sgst = 0, Cgst = 0, Igst = 0 // Start with 0 as per "no static" request
+                    Sgst = 0,
+                    Cgst = 0,
+                    Igst = 0 // Start with 0 as per "no static" request
                 };
 
                 // 2. Determine HSN string
@@ -303,7 +306,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                                 // Priority mapping based on flag
                                 var isLocalEntry = sFlag.StartsWith("L") || sFlag.Contains("LOC");
                                 var isInterEntry = sFlag.StartsWith("I") || sFlag.Contains("INT");
-                                
+
                                 // Local taxes
                                 if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("S") || (x.TaxCode ?? "").ToUpper().Contains("C"))))
                                 {
@@ -312,7 +315,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                                     if (sgst != null) modelItemDetail.Sgst = sgst.Value;
                                     if (cgst != null) modelItemDetail.Cgst = cgst.Value;
                                 }
-                                
+
                                 // Interstate taxes (IGST)
                                 if (isInterEntry || (!isLocalEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("I"))))
                                 {
@@ -328,10 +331,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
             catch (Exception ex)
             {
-                try {
-                   var item = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Itemcode == modelNo);
-                   if (item != null) return new ItemMasterViewModel { Itemcode = item.Itemcode, Sgst = 0, Cgst = 0, Igst = 0, Ipurrate = item.Ipurrate };
-                } catch { }
+                try
+                {
+                    var item = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Itemcode == modelNo);
+                    if (item != null) return new ItemMasterViewModel { Itemcode = item.Itemcode, Sgst = 0, Cgst = 0, Igst = 0, Ipurrate = item.Ipurrate };
+                }
+                catch { }
                 throw new Exception("Error while fetching purchase details with HSN tax by Model No", ex);
             }
         }
