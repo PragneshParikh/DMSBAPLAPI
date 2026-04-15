@@ -76,6 +76,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
                 var existing = await _repo.GetByIdAsync(id);
                 if (existing == null)
                     throw new Exception("Record not found");
@@ -97,6 +98,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 existing.CustomerName = model.CustomerName;
                 existing.TotalAmount = model.TotalAmount;
                 existing.UpdatedDate = DateTime.Now;
+                existing.UpdatedBy=userId;
 
                 // Remove old details
                 existing.VehicleSaleBillDetails.Clear();
@@ -121,7 +123,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         FinalAmount = d.FinalAmount,
                         IsAgainstExchange = d.IsAgainstExchange,
                         CreatedDate = existing.CreatedDate,
-                        CreatedBy = existing.CreatedBy
+                        CreatedBy = userId,  
                     });
                 }
 

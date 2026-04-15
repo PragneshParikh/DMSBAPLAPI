@@ -94,6 +94,8 @@ namespace DMS_BAPL_Utils.Constants
         public const string SubsidyParameterNotFound="Subsidy parameter not found";
         public const string SubsidyParam = "Subsidy";
 
+        //OEMModel Warranty
+        public const string OEMModelWarranty = "OEMMOdelWarranty List";
 
 
     }
