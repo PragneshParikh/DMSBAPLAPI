@@ -231,4 +231,34 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime CreatedDate { get; set; }
 
     }
+
+    public class JobCardListViewModel
+    {
+        public int? JobNo { get; set; }
+        public DateOnly? JobInDate { get; set; }
+        public DateOnly? JobStatus { get; set; }
+        public string InvoiceNo { get; set; }
+        public int? ManualJobNo { get; set; }
+        public string Joblocation { get; set; }
+        public string Jobtype { get; set; }
+        public string Jobsource { get; set; }
+
+        public string Complaint { get; set; }
+
+        public string Supervisor { get; set; }
+
+        public string RegisterNo { get; set; }
+        public string ChassisNo { get; set; }
+
+        public string ModelName { get; set; }
+        public string ModelType { get; set; }
+
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+
+        public string CustomerName { get; set; }
+        public string MobileNo { get; set; }
+
+    }
+
 }

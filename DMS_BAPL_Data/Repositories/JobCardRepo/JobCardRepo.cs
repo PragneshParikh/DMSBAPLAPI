@@ -85,7 +85,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 join c in _context.DealerMasters
                                     on h.DealerCode equals c.Dealercode
                                 join i in _context.ItemMasters
-                                    on v.ItemCode equals i.Itemcode 
+                                    on v.ItemCode equals i.Itemcode
                                 select new LotInspectionChassisVM
                                 {
                                     InvoiceNo = h.InvoiceNo,
@@ -124,8 +124,75 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await _context.PdichecklistMasters.ToListAsync();
         }
 
-        
+        public async Task<List<JobCardListViewModel>> GetJobCardListViewAsync(string dealerCode)
+        {
+            var jobCardsResult = await (
+                from jh in _context.JobCardHeaders
 
+                join inv in _context.LotinspectionHeaders
+                    on jh.InvoiceNo equals inv.InvoiceNo into invJoin
+                from inv in invJoin.DefaultIfEmpty()
+
+                join c in _context.JobCardCustomers
+                    on jh.Id equals c.JobCardHeaderId into custJoin
+                from c in custJoin.DefaultIfEmpty()
+
+                join job in _context.JobTypes
+                    on jh.Jobtype equals job.Id into jobJoin
+                from job in jobJoin.DefaultIfEmpty()
+
+                join sh in _context.ServiceHeads
+                    on jh.Servicehead equals sh.Id into shJoin
+                from sh in shJoin.DefaultIfEmpty()
+
+                join st in _context.ServiceTypes
+                    on jh.Servicetype equals st.Id into stJoin
+                from st in stJoin.DefaultIfEmpty()
+
+                join js in _context.JobSources
+                    on jh.JobSource equals js.Id into jsJoin
+                from js in jsJoin.DefaultIfEmpty()
+
+                where jh.DealerCode == dealerCode
+
+                select new JobCardListViewModel
+                {
+                    JobNo = jh.JobNo,
+                    JobInDate = jh.JobinDate,
+                    InvoiceNo = jh.InvoiceNo,
+
+                    JobStatus = c.SaleDate,
+
+                    ManualJobNo = jh.ManualjobNo,
+                    Joblocation = jh.Serviceloc,
+
+                    Jobtype = job != null ? job.JobTypeName : null,
+                    Jobsource = js != null ? js.JobSourceName : null,
+
+                    Supervisor = jh.Supervisor,
+
+                    RegisterNo = c != null ? c.RegisterNo : null,
+                    ChassisNo = c != null ? c.ChassisNo : null,
+                    ModelName = c != null ? c.ModelName : null,
+                    ModelType = "External",
+
+                    serviceHead = sh != null ? sh.ServiceHeadName : null,
+                    serviceType = st != null ? st.ServiceTypeName : null,
+
+                    CustomerName = c != null ? c.CustomerName : null,
+                    MobileNo = c != null ? c.CustomerMobile : null,
+
+                    //  Avoid duplicate rows (IMPORTANT)
+                    Complaint = _context.JobCardComplaints
+                                .Where(x => x.JobCardHeaderId == jh.Id)
+                                .Select(x => x.Complaint)
+                                .FirstOrDefault()
+                }
+            ).ToListAsync();
+
+            return jobCardsResult;
+
+        }
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -134,7 +201,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             {
 
                 // Insert Header
-                
+
                 var header = new JobCardHeader
                 {
                     Jobtype = jobCardDetails.JobCardHeader.Jobtype,
@@ -152,7 +219,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
                     EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
                     EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
-                    JobSource = jobCardDetails.JobCardHeader.JobSource?? 1,
+                    JobSource = jobCardDetails.JobCardHeader.JobSource ?? 1,
                     Supervisor = jobCardDetails.JobCardHeader.Supervisor,
                     Technician = jobCardDetails.JobCardHeader.Technician,
                     Jobestmate = jobCardDetails.JobCardHeader.Jobestmate,
@@ -229,6 +296,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 {
                     var complaints = jobCardDetails.JobCardComplaint.Select(c => new JobCardComplaint
                     {
+                        DealerCode = jobCardDetails.JobCardHeader.DealerCode,
                         JobCardHeaderId = headerId,
                         CustomerVoice = c.CustomerVoice,
                         ComplaintCode = c.ComplaintCode,

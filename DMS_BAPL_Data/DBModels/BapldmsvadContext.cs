@@ -864,6 +864,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.EstdelTime)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.InvoiceNo).HasMaxLength(100);
             entity.Property(e => e.JobinTime)
                 .HasMaxLength(20)
                 .IsUnicode(false);

@@ -63,6 +63,8 @@ public partial class JobCardHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? InvoiceNo { get; set; }
+
     public virtual ICollection<JobCardBatteryDetail> JobCardBatteryDetails { get; set; } = new List<JobCardBatteryDetail>();
 
     public virtual ICollection<JobCardComplaint> JobCardComplaints { get; set; } = new List<JobCardComplaint>();

@@ -98,6 +98,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string OEMModelWarranty = "OEMMOdelWarranty List";
         // Jobcard related
         public const string JobCardDetailsSaved = "Job card details saved successfully.";
+        public const string JobCardNotFound = "No Data Available";
 
 
         //City Master

@@ -17,6 +17,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<JobSourceViewModel>> GetJobSource();
         Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode);
         Task<List<PdichecklistMaster>> GetPdichecklist();
+
+        Task<List<JobCardListViewModel>> GetJobCardListViewAsync(string dealerCode);
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
     }
 }

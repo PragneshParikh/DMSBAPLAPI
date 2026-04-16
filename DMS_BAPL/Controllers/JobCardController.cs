@@ -72,6 +72,16 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(checklist);
         }
 
+        [HttpGet("GetJobCardList")]
+        public async Task<IActionResult> GetJobCardList(string dealerCode)
+        {
+            var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(dealerCode);
+            if (jobCardList == null || !jobCardList.Any())
+            {
+                return NotFound(StringConstants.JobCardNotFound);
+            }
+            return Ok(jobCardList);
+        }
 
         [HttpPost("SaveJobCardDetails")]
         public async Task<IActionResult> SaveJobCardDetails(JobCardDetailsViewModel jobCardDetailsView)
