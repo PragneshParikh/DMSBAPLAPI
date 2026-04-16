@@ -78,6 +78,14 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
         public async Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId)
         {
+            var state = await _context.States
+    .FirstOrDefaultAsync(s => s.StateName.ToLower() == dealer.State.ToLower());
+
+          
+            var city = await _context.Cities
+                .FirstOrDefaultAsync(c => c.CityName.ToLower() == dealer.City.ToLower()
+                                      && c.StateId == state.StateId);
+
             var ledger = new LedgerMaster
             {
                 LedgerCode = dealer.Dealercode,
@@ -88,8 +96,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 MobileNumber = dealer.Mobile,
                 Address = string.Join(" ", new[] { dealer.Adress1, dealer.Adress2 }
                                 .Where(x => !string.IsNullOrEmpty(x))),
-                //City = dealer.City,
-               // State = dealer.State,
+                City = city.CityId,
+                State = state.StateId,
                 Pin = dealer.Pin,
                 EMail = dealer.Email,
                 CreatedBy = userId,

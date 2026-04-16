@@ -29,7 +29,5 @@ public partial class City
 
     public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
 
-    public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
-
     public virtual State State { get; set; } = null!;
 }

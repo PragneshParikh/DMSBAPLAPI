@@ -39,20 +39,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             return $"RCPT{number.ToString("D3")}";
         }
 
-        //public async Task<List<ReceiptEntry>> GetReceiptEntryListAsync()
-        //{
-        //    try
-        //    {
-        //        return await _receiptEntryRepo.GetReceiptEntryListAsync();
-        //    }
-
-        //    catch (Exception ex)
-        //    {
-        //        throw;
-        //    }
-
-        //}
-
+        
         public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
         {
             try

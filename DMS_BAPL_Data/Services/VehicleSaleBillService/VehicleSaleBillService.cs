@@ -1,5 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
+using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Utils.Helpers;
@@ -18,14 +20,18 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly IVehicleSaleBillRepo _repo;
         private readonly ILedgerMasterRepo _ledgerRepo;
         private readonly ITaxServices _taxService;
+        private readonly IStateRepo _stateRepo;
+        private readonly ICityRepo _cityRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
-            IHttpContextAccessor contextAccessor, ITaxServices taxServices)
+            IHttpContextAccessor contextAccessor, ITaxServices taxServices,ICityRepo cityRepo,IStateRepo stateRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
             _taxService = taxServices;
             _contextAccessor = contextAccessor;
+            _stateRepo = stateRepo;
+            _cityRepo = cityRepo;
         }
 
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
@@ -135,7 +141,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
-        // ✅ DELETE
+        // DELETE
         public async Task DeleteAsync(int id)
         {
             try
@@ -148,7 +154,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
-        // 🔁 Mapping Methods
+        // Mapping Methods
 
         private VehicleSaleBillHeader MapToEntity(VehicleSaleBillEditCreateViewModel model)
         {
@@ -290,6 +296,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
+                
 
                 var header = await _repo.GetByIdAsync(id);
                 if (header == null) return null;
@@ -297,9 +304,20 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 var ledger = header.LedgerId.HasValue
                     ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
                     : null;
+                var states = await _stateRepo.GetStatesAsync();
+
+                var stateName = states
+                    .Where(s => s.StateId == ledger.State)
+                    .Select(s => s.StateName)
+                    .FirstOrDefault();
+                var cities = await _cityRepo.GetCitiesAsync();
+                var cityName = cities.Where(c=>c.CityId == ledger.City)
+                    .Select(c => c.CityName)
+                    .FirstOrDefault();
 
                 var result = new VehicleSaleExportViewModel
                 {
+                    
                     User = new UserViewModel
                     {
                         Mobile = ledger?.MobileNumber ?? "",
@@ -318,8 +336,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                         Address1 = ledger?.Address ?? "",
                         Address2 = "",
-                        //State = ledger?.State?.ToUpper() ?? "",
-                       // City = ledger?.City ?? ""
+                        State = stateName.ToUpper() ?? "",
+                        City = cityName.ToUpper() ?? ""
                     },
 
                     Vehicle = header.VehicleSaleBillDetails.Select(detail => new VehicleViewModel
@@ -377,6 +395,12 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                 // 2. Ledger
                 var ledger = await _ledgerRepo.GetLedgerById(request.LedgerId);
+                var states = await _stateRepo.GetStatesAsync();
+
+                var stateName = states
+                    .Where(s => s.StateId == ledger.State)
+                    .Select(s => s.StateName)
+                    .FirstOrDefault();
                 if (ledger == null)
                     throw new Exception("Ledger not found");
 
@@ -398,29 +422,29 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     // Choose base for tax 
                     decimal taxableAmount = customerRate - preGstDis;
 
-                    //var taxDetails = await _taxService.GetTaxDetailsAsync(ch.itemCode, ledger.State);
+                    var taxDetails = await _taxService.GetTaxDetailsAsync(ch.itemCode, stateName);
 
                     decimal cgstPer = 0, sgstPer = 0, igstPer = 0;
                     decimal cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
 
-                    //foreach (var tax in taxDetails)
-                    //{
-                    //    if (tax.TaxCode.ToUpper().Contains("CGST"))
-                    //    {
-                    //        cgstPer = tax.TaxRate;
-                    //        cgstAmt = taxableAmount * cgstPer / 100;
-                    //    }
-                    //    if (tax.TaxCode.ToUpper().Contains("SGST"))
-                    //    {
-                    //        sgstPer = tax.TaxRate;
-                    //        sgstAmt = taxableAmount * sgstPer / 100;
-                    //    }
-                    //    if (tax.TaxCode.ToUpper().Contains("IGST"))
-                    //    {
-                    //        igstPer = tax.TaxRate;
-                    //        igstAmt = taxableAmount * igstPer / 100;
-                    //    }
-                    //}
+                    foreach (var tax in taxDetails)
+                    {
+                        if (tax.TaxCode.ToUpper().Contains("CGST"))
+                        {
+                            cgstPer = tax.TaxRate;
+                            cgstAmt = taxableAmount * cgstPer / 100;
+                        }
+                        if (tax.TaxCode.ToUpper().Contains("SGST"))
+                        {
+                            sgstPer = tax.TaxRate;
+                            sgstAmt = taxableAmount * sgstPer / 100;
+                        }
+                        if (tax.TaxCode.ToUpper().Contains("IGST"))
+                        {
+                            igstPer = tax.TaxRate;
+                            igstAmt = taxableAmount * igstPer / 100;
+                        }
+                    }
 
                     result.Add(new VehicleSaleChasisResponse
                     {

@@ -100,6 +100,9 @@ namespace DMS_BAPL_Utils.Constants
         public const string JobCardDetailsSaved = "Job card details saved successfully.";
 
 
+        //City Master
+        public const string CityMaster = "City Master";
+
 
     }
 }
