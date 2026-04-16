@@ -11,11 +11,12 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
     public interface IJobCardRepo
     {
         Task<List<JobCardViewModel>> GetJobtype();
-
         Task<List<ServiceDataViewModel>> GetServiceDataByJobType(string jobTypeName);
         Task<List<ServiceHeadViewModel>> GetServiceHead(int jobTypeId);
         Task<List<ServiceTypeViewModel>> GetServiceType(int serviceHeadId);
         Task<List<JobSourceViewModel>> GetJobSource();
         Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode);
+        Task<List<PdichecklistMaster>> GetPdichecklist();
+        Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
     }
 }

@@ -1,6 +1,9 @@
 ﻿using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MimeKit;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -61,5 +64,31 @@ namespace DMS_BAPL_Api.Controllers
             var jobSources = await _jobCardRepo.GetJobSource();
             return Ok(jobSources);
         }
+
+        [HttpGet("GetPdiChecklist")]
+        public async Task<IActionResult> GetPdiChecklist()
+        {
+            var checklist = await _jobCardRepo.GetPdichecklist();
+            return Ok(checklist);
+        }
+
+
+        [HttpPost("SaveJobCardDetails")]
+        public async Task<IActionResult> SaveJobCardDetails(JobCardDetailsViewModel jobCardDetailsView)
+        {
+            var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView);
+            if (result > 0)
+            {
+                return Ok(new
+                {
+                    message = StringConstants.JobCardDetailsSaved
+                });
+            }
+            else
+            {
+                return StatusCode(500, "An error occurred while saving job card details.");
+            }
+        }
+
     }
 }

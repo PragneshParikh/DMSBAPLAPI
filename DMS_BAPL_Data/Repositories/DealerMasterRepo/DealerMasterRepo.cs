@@ -88,8 +88,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 MobileNumber = dealer.Mobile,
                 Address = string.Join(" ", new[] { dealer.Adress1, dealer.Adress2 }
                                 .Where(x => !string.IsNullOrEmpty(x))),
-                City = dealer.City,
-                State = dealer.State,
+                //City = dealer.City,
+               // State = dealer.State,
                 Pin = dealer.Pin,
                 EMail = dealer.Email,
                 CreatedBy = userId,

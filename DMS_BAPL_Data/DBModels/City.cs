@@ -19,6 +19,16 @@ public partial class City
 
     public DateTime? Updateddate { get; set; }
 
+    public bool? IsMetro { get; set; }
+
+    public int? TierLevel { get; set; }
+
+    public string? Abbreviation { get; set; }
+
+    public bool? IsActive { get; set; }
+
+    public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
+
     public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
 
     public virtual State State { get; set; } = null!;

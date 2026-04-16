@@ -19,9 +19,9 @@ public partial class PdichecklistChassisWise
 
     public DateTime CreatedDate { get; set; }
 
-    public string UpdateBy { get; set; } = null!;
+    public string? UpdateBy { get; set; }
 
-    public DateTime UpdatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual JobCardHeader? JobCardMaster { get; set; }
 

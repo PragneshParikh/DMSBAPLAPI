@@ -96,6 +96,9 @@ namespace DMS_BAPL_Utils.Constants
 
         //OEMModel Warranty
         public const string OEMModelWarranty = "OEMMOdelWarranty List";
+        // Jobcard related
+        public const string JobCardDetailsSaved = "Job card details saved successfully.";
+
 
 
     }

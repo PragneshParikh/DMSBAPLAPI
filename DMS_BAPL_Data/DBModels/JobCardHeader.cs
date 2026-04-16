@@ -59,9 +59,9 @@ public partial class JobCardHeader
 
     public DateTime CreatedDate { get; set; }
 
-    public string UpdateBy { get; set; } = null!;
+    public string? UpdateBy { get; set; }
 
-    public DateTime UpdatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual ICollection<JobCardBatteryDetail> JobCardBatteryDetails { get; set; } = new List<JobCardBatteryDetail>();
 

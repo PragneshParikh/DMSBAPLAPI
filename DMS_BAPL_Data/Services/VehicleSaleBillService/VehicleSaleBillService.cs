@@ -318,8 +318,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                         Address1 = ledger?.Address ?? "",
                         Address2 = "",
-                        State = ledger?.State?.ToUpper() ?? "",
-                        City = ledger?.City ?? ""
+                        //State = ledger?.State?.ToUpper() ?? "",
+                       // City = ledger?.City ?? ""
                     },
 
                     Vehicle = header.VehicleSaleBillDetails.Select(detail => new VehicleViewModel
@@ -398,29 +398,29 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     // Choose base for tax 
                     decimal taxableAmount = customerRate - preGstDis;
 
-                    var taxDetails = await _taxService.GetTaxDetailsAsync(ch.itemCode, ledger.State);
+                    //var taxDetails = await _taxService.GetTaxDetailsAsync(ch.itemCode, ledger.State);
 
                     decimal cgstPer = 0, sgstPer = 0, igstPer = 0;
                     decimal cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
 
-                    foreach (var tax in taxDetails)
-                    {
-                        if (tax.TaxCode.ToUpper().Contains("CGST"))
-                        {
-                            cgstPer = tax.TaxRate;
-                            cgstAmt = taxableAmount * cgstPer / 100;
-                        }
-                        if (tax.TaxCode.ToUpper().Contains("SGST"))
-                        {
-                            sgstPer = tax.TaxRate;
-                            sgstAmt = taxableAmount * sgstPer / 100;
-                        }
-                        if (tax.TaxCode.ToUpper().Contains("IGST"))
-                        {
-                            igstPer = tax.TaxRate;
-                            igstAmt = taxableAmount * igstPer / 100;
-                        }
-                    }
+                    //foreach (var tax in taxDetails)
+                    //{
+                    //    if (tax.TaxCode.ToUpper().Contains("CGST"))
+                    //    {
+                    //        cgstPer = tax.TaxRate;
+                    //        cgstAmt = taxableAmount * cgstPer / 100;
+                    //    }
+                    //    if (tax.TaxCode.ToUpper().Contains("SGST"))
+                    //    {
+                    //        sgstPer = tax.TaxRate;
+                    //        sgstAmt = taxableAmount * sgstPer / 100;
+                    //    }
+                    //    if (tax.TaxCode.ToUpper().Contains("IGST"))
+                    //    {
+                    //        igstPer = tax.TaxRate;
+                    //        igstAmt = taxableAmount * igstPer / 100;
+                    //    }
+                    //}
 
                     result.Add(new VehicleSaleChasisResponse
                     {

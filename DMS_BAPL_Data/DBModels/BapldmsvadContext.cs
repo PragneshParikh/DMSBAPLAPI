@@ -279,6 +279,9 @@ public partial class BapldmsvadContext : DbContext
             entity.ToTable("cities");
 
             entity.Property(e => e.CityId).HasColumnName("city_id");
+            entity.Property(e => e.Abbreviation)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.CityName)
                 .HasMaxLength(100)
                 .IsUnicode(false)
