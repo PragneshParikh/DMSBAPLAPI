@@ -72,6 +72,7 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(checklist);
         }
 
+        
         [HttpGet("GetJobCardList")]
         public async Task<IActionResult> GetJobCardList(string dealerCode)
         {

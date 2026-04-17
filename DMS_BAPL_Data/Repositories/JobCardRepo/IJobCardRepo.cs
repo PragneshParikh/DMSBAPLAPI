@@ -20,5 +20,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
         Task<List<JobCardListViewModel>> GetJobCardListViewAsync(string dealerCode);
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
+
     }
 }

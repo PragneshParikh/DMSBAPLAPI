@@ -50,7 +50,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public string BatteryChemestry { get; set; }
         public string ConverterNo { get; set; }
         public string MotorNo { get; set; }
+        public decimal? OdoReading { get; set; }
 
+        public decimal? Duration { get; set; }
+
+        public string DurationType { get; set; }
+        public DateOnly? EffectiveDate { get; set; }
+        public DateOnly? ExpireWarrentyDate { get; set; }
 
     }
     public class JobSourceViewModel
@@ -261,4 +267,16 @@ namespace DMS_BAPL_Utils.ViewModels
 
     }
 
+    public class JobCardWarrentydetailsVM
+    {
+
+        public decimal? OdoReading { get; set; }
+
+        public decimal? Duration { get; set; }
+
+        public string DurationType { get; set; }
+        public DateOnly? EffectiveDate { get; set; }
+        public DateOnly? ExpireWarrentyDate { get; set; }
+
+    }
 }

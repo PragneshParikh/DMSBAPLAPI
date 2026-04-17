@@ -73,41 +73,121 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         }
 
         // get inspected lot chassis based on invoice number
+        //public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
+        //{
+        //    var result = await (from h in _context.LotinspectionHeaders
+        //                        join d in _context.LotinspectionDetails
+        //                            on h.Id equals d.LotHeaderId
+        //                        join v in _context.VehicleDispatches
+        //                            on d.ChassisNo equals v.ChasisNo
+        //                        where h.IsLotInspected == true
+        //                              && h.DealerCode == dealerCode
+        //                        join c in _context.DealerMasters
+        //                            on h.DealerCode equals c.Dealercode
+        //                            join i in _context.ItemMasters
+        //                                on v.ItemCode equals i.Itemcode
+        //                        select new LotInspectionChassisVM
+        //                        {
+        //                            InvoiceNo = h.InvoiceNo,
+        //                            ChassisNumber = d.ChassisNo,
+        //                            CustomerName = c.Compname,
+        //                            CustomerMobile = c.Mobile,
+        //                            CustomerAltMobile = c.PhoneOff,
+        //                            ModelName = i.Itemname,
+        //                            RegisterNo = v.Regnumber,
+        //                            BatteryNumber = v.BatteryNo,
+        //                            ChargerNumber = v.ChargerNo,
+        //                            ControllerNo = v.ControllerNo,
+        //                            BatteryMake = v.BatteryMake,
+        //                            BatteryCapacity = v.BatteryCapacity,
+        //                            BatteryChemestry = v.BatteryChemistry,
+        //                            ConverterNo = v.Converter,
+        //                            MotorNo = v.MotorNo
+        //                        }).ToListAsync();
+
+        //    return result;
+        //}
+
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
         {
-            var result = await (from h in _context.LotinspectionHeaders
-                                join d in _context.LotinspectionDetails
-                                    on h.Id equals d.LotHeaderId
-                                join v in _context.VehicleDispatches
-                                    on d.ChassisNo equals v.ChasisNo
-                                where h.IsLotInspected == true
-                                      && h.DealerCode == dealerCode
-                                join c in _context.DealerMasters
-                                    on h.DealerCode equals c.Dealercode
-                                join i in _context.ItemMasters
-                                    on v.ItemCode equals i.Itemcode
-                                select new LotInspectionChassisVM
-                                {
-                                    InvoiceNo = h.InvoiceNo,
-                                    ChassisNumber = d.ChassisNo,
-                                    CustomerName = c.Compname,
-                                    CustomerMobile = c.Mobile,
-                                    CustomerAltMobile = c.PhoneOff,
-                                    ModelName = i.Itemname,
-                                    RegisterNo = v.Regnumber,
-                                    BatteryNumber = v.BatteryNo,
-                                    ChargerNumber = v.ChargerNo,
-                                    ControllerNo = v.ControllerNo,
-                                    BatteryMake = v.BatteryMake,
-                                    BatteryCapacity = v.BatteryCapacity,
-                                    BatteryChemestry = v.BatteryChemistry,
-                                    ConverterNo = v.Converter,
-                                    MotorNo = v.MotorNo
-                                }).ToListAsync();
+            try
+            {
+                var data = await (from h in _context.LotinspectionHeaders
+                                  join d in _context.LotinspectionDetails
+                                      on h.Id equals d.LotHeaderId
+                                  join v in _context.VehicleDispatches
+                                      on d.ChassisNo equals v.ChasisNo
+                                  join i in _context.ItemMasters
+                                      on v.ItemCode equals i.Itemcode
+                                  join dm in _context.DealerMasters
+                                      on h.DealerCode equals dm.Dealercode
 
-            return result;
+                                  // OEM Model (LEFT JOIN)
+                                  join o in _context.OemmodelMasters
+                                      on i.Oemmodelname.Trim().ToLower()
+                                      equals o.ModelName.Trim().ToLower()
+                                      into oGroup
+                                  from o in oGroup.DefaultIfEmpty()
+
+                                  where h.IsLotInspected == true
+                                        && h.DealerCode == dealerCode
+
+                                  select new { h, d, v, i, dm, o })
+                                  .ToListAsync();
+
+                // ✅ Latest Warranty List
+                var warranties = await _context.OemmodelWarranties
+                    .GroupBy(x => x.OemmodelId)
+                    .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
+                    .ToListAsync();
+
+                var result = (from x in data
+                                  // ✅ LEFT JOIN WARRANTY
+                              join ow in warranties
+                                  on x.o != null ? x.o.Id : 0 equals ow.OemmodelId
+                                  into wGroup
+                              from ow in wGroup.DefaultIfEmpty()
+
+                              select new LotInspectionChassisVM
+                              {
+                                  InvoiceNo = x.h.InvoiceNo,
+                                  ChassisNumber = x.d.ChassisNo,
+                                  CustomerName = x.dm.Compname,
+                                  CustomerMobile = x.dm.Mobile,
+                                  CustomerAltMobile = x.dm.PhoneOff,
+                                  ModelName = x.i.Itemname,
+                                  RegisterNo = x.v.Regnumber,
+                                  BatteryNumber = x.v.BatteryNo,
+                                  ChargerNumber = x.v.ChargerNo,
+                                  ControllerNo = x.v.ControllerNo,
+                                  BatteryMake = x.v.BatteryMake,
+                                  BatteryCapacity = x.v.BatteryCapacity,
+                                  BatteryChemestry = x.v.BatteryChemistry,
+                                  ConverterNo = x.v.Converter,
+                                  MotorNo = x.v.MotorNo,
+
+                                  // ✅ Warranty (optional)
+                                  OdoReading = ow?.Odoreading,
+                                  Duration = ow?.Duration,
+                                  DurationType = ow?.DurationType,
+                                  EffectiveDate = ow?.EffectiveDate,
+
+                                  ExpireWarrentyDate = ow?.EffectiveDate == null ? null :
+                                      ow.DurationType == "MONTH"
+                                          ? ow.EffectiveDate.Value.AddMonths((int)(ow.Duration ?? 0))
+                                          : ow.DurationType == "YEAR"
+                                              ? ow.EffectiveDate.Value.AddYears((int)(ow.Duration ?? 0))
+                                              : ow.EffectiveDate
+                              }).ToList();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<LotInspectionChassisVM>();
+            }
         }
-
         public async Task<List<JobSourceViewModel>> GetJobSource()
         {
             return await _context.JobSources
@@ -123,6 +203,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
+
 
         public async Task<List<JobCardListViewModel>> GetJobCardListViewAsync(string dealerCode)
         {
