@@ -215,8 +215,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         throw new Exception($"{StringConstants.ItemNotFound} {item.ItemCode}");
 
                     // Validation for Parts only
-                    if (itemMaster.Itemtype != 1)
-                        throw new Exception($"Item {item.ItemCode} is not a part (ItemType != 1).");
+                    if (itemMaster.Itemtype != 2)
+                        throw new Exception($"Item {item.ItemCode} is not a part (ItemType != 2).");
 
                     decimal rate = itemMaster.Dlrprice;
                     decimal lineAmount = item.Qty * rate;
