@@ -72,42 +72,86 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return result;
         }
 
-        // get inspected lot chassis based on invoice number
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
         {
-            var result = await (from h in _context.LotinspectionHeaders
-                                join d in _context.LotinspectionDetails
-                                    on h.Id equals d.LotHeaderId
-                                join v in _context.VehicleDispatches
-                                    on d.ChassisNo equals v.ChasisNo
-                                where h.IsLotInspected == true
-                                      && h.DealerCode == dealerCode
-                                join c in _context.DealerMasters
-                                    on h.DealerCode equals c.Dealercode
-                                join i in _context.ItemMasters
-                                    on v.ItemCode equals i.Itemcode
-                                select new LotInspectionChassisVM
-                                {
-                                    InvoiceNo = h.InvoiceNo,
-                                    ChassisNumber = d.ChassisNo,
-                                    CustomerName = c.Compname,
-                                    CustomerMobile = c.Mobile,
-                                    CustomerAltMobile = c.PhoneOff,
-                                    ModelName = i.Itemname,
-                                    RegisterNo = v.Regnumber,
-                                    BatteryNumber = v.BatteryNo,
-                                    ChargerNumber = v.ChargerNo,
-                                    ControllerNo = v.ControllerNo,
-                                    BatteryMake = v.BatteryMake,
-                                    BatteryCapacity = v.BatteryCapacity,
-                                    BatteryChemestry = v.BatteryChemistry,
-                                    ConverterNo = v.Converter,
-                                    MotorNo = v.MotorNo
-                                }).ToListAsync();
+            try
+            {
+                var data = await (from h in _context.LotinspectionHeaders
+                                  join d in _context.LotinspectionDetails
+                                      on h.Id equals d.LotHeaderId
+                                  join v in _context.VehicleDispatches
+                                      on d.ChassisNo equals v.ChasisNo
+                                  join i in _context.ItemMasters
+                                      on v.ItemCode equals i.Itemcode
+                                  join dm in _context.DealerMasters
+                                      on h.DealerCode equals dm.Dealercode
 
-            return result;
+                                  // OEM Model (LEFT JOIN)
+                                  join o in _context.OemmodelMasters
+                                      on i.Oemmodelname.Trim().ToLower()
+                                      equals o.ModelName.Trim().ToLower()
+                                      into oGroup
+                                  from o in oGroup.DefaultIfEmpty()
+
+                                  where h.IsLotInspected == true
+                                        && h.DealerCode == dealerCode
+
+                                  select new { h, d, v, i, dm, o })
+                                  .ToListAsync();
+
+                // Latest Warranty List
+                var warranties = await _context.OemmodelWarranties
+                    .GroupBy(x => x.OemmodelId)
+                    .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
+                    .ToListAsync();
+
+                var result = (from x in data
+                                  // LEFT JOIN WARRANTY
+                              join ow in warranties
+                                  on x.o != null ? x.o.Id : 0 equals ow.OemmodelId
+                                  into wGroup
+                              from ow in wGroup.DefaultIfEmpty()
+
+                              select new LotInspectionChassisVM
+                              {
+                                  InvoiceNo = x.h.InvoiceNo,
+                                  ChassisNumber = x.d.ChassisNo,
+                                  CustomerName = x.dm.Compname,
+                                  CustomerMobile = x.dm.Mobile,
+                                  CustomerAltMobile = x.dm.PhoneOff,
+                                  ModelName = x.i.Itemname,
+                                  RegisterNo = x.v.Regnumber,
+                                  BatteryNumber = x.v.BatteryNo,
+                                  ChargerNumber = x.v.ChargerNo,
+                                  ControllerNo = x.v.ControllerNo,
+                                  BatteryMake = x.v.BatteryMake,
+                                  BatteryCapacity = x.v.BatteryCapacity,
+                                  BatteryChemestry = x.v.BatteryChemistry,
+                                  ConverterNo = x.v.Converter,
+                                  MotorNo = x.v.MotorNo,
+
+                                  //  Warranty (optional)
+                                  OdoReading = ow?.Odoreading,
+                                  Duration = ow?.Duration,
+                                  DurationType = ow?.DurationType,
+                                  EffectiveDate = ow?.EffectiveDate,
+
+                                  ExpireWarrentyDate = ow?.EffectiveDate == null ? null :
+                                      ow.DurationType == "MONTH"
+                                          ? ow.EffectiveDate.Value.AddMonths((int)(ow.Duration ?? 0))
+                                          : ow.DurationType == "YEAR"
+                                              ? ow.EffectiveDate.Value.AddYears((int)(ow.Duration ?? 0))
+                                              : ow.EffectiveDate
+                              }).ToList();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<LotInspectionChassisVM>();
+            }
         }
-
         public async Task<List<JobSourceViewModel>> GetJobSource()
         {
             return await _context.JobSources
@@ -124,7 +168,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await _context.PdichecklistMasters.ToListAsync();
         }
 
-        public async Task<List<JobCardListViewModel>> GetJobCardListViewAsync(string dealerCode)
+
+        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string dealerCode)
         {
             var jobCardsResult = await (
                 from jh in _context.JobCardHeaders
@@ -155,43 +200,156 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                 where jh.DealerCode == dealerCode
 
-                select new JobCardListViewModel
+                select new JobCardDetailsViewModel
                 {
-                    JobNo = jh.JobNo,
-                    JobInDate = jh.JobinDate,
-                    InvoiceNo = jh.InvoiceNo,
-
-                    JobStatus = c.SaleDate,
-
-                    ManualJobNo = jh.ManualjobNo,
-                    Joblocation = jh.Serviceloc,
-
+                    //  Display purpose (Grid)
                     Jobtype = job != null ? job.JobTypeName : null,
                     Jobsource = js != null ? js.JobSourceName : null,
-
-                    Supervisor = jh.Supervisor,
-
-                    RegisterNo = c != null ? c.RegisterNo : null,
-                    ChassisNo = c != null ? c.ChassisNo : null,
-                    ModelName = c != null ? c.ModelName : null,
-                    ModelType = "External",
-
                     serviceHead = sh != null ? sh.ServiceHeadName : null,
                     serviceType = st != null ? st.ServiceTypeName : null,
 
-                    CustomerName = c != null ? c.CustomerName : null,
-                    MobileNo = c != null ? c.CustomerMobile : null,
+                    //  Header FULL DATA (Edit ke liye)
+                    JobCardHeader = new JobCardHeaderVM
+                    {
+                        Id = jh.Id,
+                        Jobtype = jh.Jobtype,
+                        Servicehead = jh.Servicehead,
+                        Servicetype = jh.Servicetype,
+                        JobSource = jh.JobSource,
+                        Couponno = jh.Couponno,
+                        Jobprefix = jh.Jobprefix,
+                        JobNo = jh.JobNo,
+                        Vehiclekms = jh.Vehiclekms,
+                        JobinDate = jh.JobinDate,
+                        JobinTime = jh.JobinTime,
+                        EstdelDate = jh.EstdelDate,
+                        EstdelTime = jh.EstdelTime,
+                        InvoiceNo = jh.InvoiceNo,
+                        ManualjobNo = jh.ManualjobNo,
+                        Serviceloc = jh.Serviceloc,
+                        Supervisor = jh.Supervisor,
+                        Technician = jh.Technician,
+                        Jobestmate = jh.Jobestmate,
+                        AirpressureRearTyre = jh.AirpressureRearTyre,
+                        AirpressurefrontTyre = jh.AirpressurefrontTyre,
+                        IsPdiSuccess = jh.IsPdiSuccess,
+                        Observation = jh.Observation,
+                        SupervisorComment = jh.SupervisorComment
+                    },
 
-                    //  Avoid duplicate rows (IMPORTANT)
+                    JobCardBattery = new JobCardBatteryVM
+                    {
+                        BatteryMake = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryMake)
+                            .FirstOrDefault(),
+                        BatterySerialNo = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatterySerialNo)
+                            .FirstOrDefault(),
+                        BatteryOcv = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryOcv)
+                            .FirstOrDefault(),
+                        BatteryCcv = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryCcv)
+                            .FirstOrDefault(),
+                        BatteryDischarge = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryDischarge)
+                            .FirstOrDefault(),
+                        BatteryCapacityAh = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryCapacityAh)
+                            .FirstOrDefault(),
+                        BatteryVoltage = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryVoltage)
+                            .FirstOrDefault(),
+                        MotorDrawing = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.MotorDrawing)
+                            .FirstOrDefault(),
+                        ChargerMake = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.ChargerMake)
+                            .FirstOrDefault(),
+                        ChargerNo = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.ChargerNo)
+                            .FirstOrDefault(),
+                        ConverterNo = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.ConverterNo)
+                            .FirstOrDefault(),
+                        ControllerNo = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.ControllerNo)
+                            .FirstOrDefault(),
+                        BatteryChemical = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryChemical)
+                            .FirstOrDefault(),
+                        BatteryCapacity = _context.JobCardBatteryDetails
+                            .Where(x => x.JobCardHeaderId == jh.Id)
+                            .Select(x => x.BatteryCapacity)
+                            .FirstOrDefault()
+                    },
+
+                    // Customer
+                    JobCardCustomer = new JobCardCustomerVM
+                    {
+                        SaleDate = c.SaleDate,
+                        RegisterNo = c != null ? c.RegisterNo : null,
+                        ChassisNo = c != null ? c.ChassisNo : null,
+                        ModelName = c != null ? c.ModelName : null,
+                        CustomerName = c != null ? c.CustomerName : null,
+                        CustomerMobile = c != null ? c.CustomerMobile : null,
+                        CustomerAltMobile = c != null ? c.CustomerAltMobile : null,
+                        MotorNo = c != null ? c.MotorNo : null,
+                        BatteryNo = c != null ? c.BatteryNo : null,
+                        InsuranceExpDate = c.InsuranceExpDate,
+                        NextserviceDueDate = c.NextserviceDueDate,
+                        RsarenewalDate = c.RsarenewalDate,
+                        Remarks = c.Remarks
+                    },
+
+                    //  Complaint LIST (IMPORTANT FIX)
+                    JobCardComplaint = _context.JobCardComplaints
+                        .Where(x => x.JobCardHeaderId == jh.Id)
+                        .Select(x => new JobCardComplaintVM
+                        {
+                            Id = x.Id,
+                            JobCardHeaderId = x.JobCardHeaderId,
+                            Complaint = x.Complaint,
+                            ComplaintCode = x.ComplaintCode,
+                            CustomerVoice = x.CustomerVoice
+                        }).ToList(),
+
+                    //  PDI LIST (VERY IMPORTANT for edit)
+                    PdiChecklistChassiWise = _context.PdichecklistChassisWises
+                          .Where(x => x.JobCardMasterId == jh.Id)
+                          .Select(x => new PdiChecklistChassiWiseVM
+                          {
+                              Id = x.Id,
+                              PdichecklistMasterId = x.PdichecklistMasterId,
+                              JobCardMasterId = jh.Id,
+                              IsStatus = x.IsStatus,
+                              Remarks = x.Remarks,
+                              CreatedBy = x.CreatedBy,
+                              CreatedDate = x.CreatedDate
+                          }).ToList(),
+
+                    //  Old field (keep as it is — tumne bola remove mat karo)
                     Complaint = _context.JobCardComplaints
-                                .Where(x => x.JobCardHeaderId == jh.Id)
-                                .Select(x => x.Complaint)
-                                .FirstOrDefault()
+                        .Where(x => x.JobCardHeaderId == jh.Id)
+                        .Select(x => x.Complaint)
+                        .FirstOrDefault()
                 }
             ).ToListAsync();
 
             return jobCardsResult;
-
         }
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
         {
@@ -329,6 +487,183 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 await transaction.CommitAsync();
 
                 return headerId;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<int> UpdateJobCardinfoDetails(JobCardDetailsViewModel updateJobCardDetails)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // HEADER UPDATE
+                var header = await _context.JobCardHeaders
+                    .FirstOrDefaultAsync(x => x.Id == updateJobCardDetails.JobCardHeader.Id);
+
+                if (header == null)
+                    return 0;
+
+                header.Jobtype = updateJobCardDetails.JobCardHeader.Jobtype;
+                header.Chassisno = updateJobCardDetails.JobCardHeader.Chassisno;
+                header.Vehiclekms = updateJobCardDetails.JobCardHeader.Vehiclekms;
+                header.Servicehead = updateJobCardDetails.JobCardHeader.Servicehead;
+                header.Servicetype = updateJobCardDetails.JobCardHeader.Servicetype;
+                header.Serviceloc = updateJobCardDetails.JobCardHeader.Serviceloc;
+                header.Couponno = updateJobCardDetails.JobCardHeader.Couponno;
+                header.Jobprefix = updateJobCardDetails.JobCardHeader.Jobprefix;
+                header.JobinDate = updateJobCardDetails.JobCardHeader.JobinDate;
+                header.JobinTime = updateJobCardDetails.JobCardHeader.JobinTime;
+                header.JobNo = updateJobCardDetails.JobCardHeader.JobNo;
+                header.ManualjobNo = updateJobCardDetails.JobCardHeader.ManualjobNo;
+                header.EstdelDate = updateJobCardDetails.JobCardHeader.EstdelDate;
+                header.EstdelTime = updateJobCardDetails.JobCardHeader.EstdelTime;
+                header.JobSource = updateJobCardDetails.JobCardHeader.JobSource;
+                header.Supervisor = updateJobCardDetails.JobCardHeader.Supervisor;
+                header.Technician = updateJobCardDetails.JobCardHeader.Technician;
+                header.Jobestmate = updateJobCardDetails.JobCardHeader.Jobestmate;
+                header.AirpressureRearTyre = updateJobCardDetails.JobCardHeader.AirpressureRearTyre;
+                header.AirpressurefrontTyre = updateJobCardDetails.JobCardHeader.AirpressurefrontTyre;
+                header.Observation = updateJobCardDetails.JobCardHeader.Observation;
+                header.SupervisorComment = updateJobCardDetails.JobCardHeader.SupervisorComment;
+                header.IsPdiSuccess = updateJobCardDetails.JobCardHeader.IsPdiSuccess;
+                header.UpdateBy = updateJobCardDetails.JobCardHeader.CreatedBy;
+                header.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                int headerId = header.Id;
+
+                //  BATTERY UPDATE
+                var battery = await _context.JobCardBatteryDetails
+                    .FirstOrDefaultAsync(x => x.JobCardHeaderId == headerId);
+
+                if (battery != null)
+                {
+                    battery.BatteryMake = updateJobCardDetails.JobCardBattery.BatteryMake;
+                    battery.BatterySerialNo = updateJobCardDetails.JobCardBattery.BatterySerialNo;
+                    battery.BatteryOcv = updateJobCardDetails.JobCardBattery.BatteryOcv;
+                    battery.BatteryCcv = updateJobCardDetails.JobCardBattery.BatteryCcv;
+                    battery.BatteryDischarge = updateJobCardDetails.JobCardBattery.BatteryDischarge;
+                    battery.BatteryCapacityAh = updateJobCardDetails.JobCardBattery.BatteryCapacityAh;
+                    battery.BatteryVoltage = updateJobCardDetails.JobCardBattery.BatteryVoltage;
+                    battery.MotorDrawing = updateJobCardDetails.JobCardBattery.MotorDrawing;
+                    battery.ChargerMake = updateJobCardDetails.JobCardBattery.ChargerMake;
+                    battery.ChargerNo = updateJobCardDetails.JobCardBattery.ChargerNo;
+                    battery.ConverterNo = updateJobCardDetails.JobCardBattery.ConverterNo;
+                    battery.ControllerNo = updateJobCardDetails.JobCardBattery.ControllerNo;
+                    battery.BatteryChemical = updateJobCardDetails.JobCardBattery.BatteryChemical;
+                    battery.BatteryCapacity = updateJobCardDetails.JobCardBattery.BatteryCapacity;
+                    battery.UpdateBy = updateJobCardDetails.JobCardBattery.CreatedBy;
+                    battery.UpdatedDate = DateTime.Now;
+                }
+
+                //  CUSTOMER UPDATE
+                var customer = await _context.JobCardCustomers
+                    .FirstOrDefaultAsync(x => x.JobCardHeaderId == headerId);
+
+                if (customer != null)
+                {
+                    customer.CustomerName = updateJobCardDetails.JobCardCustomer.CustomerName;
+                    customer.CustomerMobile = updateJobCardDetails.JobCardCustomer.CustomerMobile;
+                    customer.CustomerAltMobile = updateJobCardDetails.JobCardCustomer.CustomerAltMobile;
+                    customer.ModelName = updateJobCardDetails.JobCardCustomer.ModelName;
+                    customer.ChassisNo = updateJobCardDetails.JobCardCustomer.ChassisNo;
+                    customer.RegisterNo = updateJobCardDetails.JobCardCustomer.RegisterNo;
+                    customer.MotorNo = updateJobCardDetails.JobCardCustomer.MotorNo;
+                    customer.BatteryNo = updateJobCardDetails.JobCardCustomer.BatteryNo;
+                    customer.SaleDate = updateJobCardDetails.JobCardCustomer.SaleDate;
+                    customer.InsuranceExpDate = updateJobCardDetails.JobCardCustomer.InsuranceExpDate;
+                    // customer.NextserviceDueDate = updateJobCardDetails.JobCardCustomer.NextServiceDueDate;
+                    // customer.RsarenewalDate = updateJobCardDetails.JobCardCustomer.RsaRenewalDate;
+                    customer.Remarks = updateJobCardDetails.JobCardCustomer.Remarks;
+                    customer.UpdateBy = updateJobCardDetails.JobCardCustomer.CreatedBy;
+                    customer.UpdatedDate = DateTime.Now;
+                }
+
+                //  COMPLAINT (DELETE + INSERT)
+                // Existing DB data
+                var existingComplaints = await _context.JobCardComplaints
+                    .Where(x => x.JobCardHeaderId == headerId)
+                    .ToListAsync();
+
+                // 🔹 UPDATE + INSERT
+                foreach (var item in updateJobCardDetails.JobCardComplaint)
+                {
+                    if (item.Id > 0)
+                    {
+                        // UPDATE
+                        var dbItem = existingComplaints.FirstOrDefault(x => x.Id == item.Id);
+
+                        if (dbItem != null)
+                        {
+                            dbItem.CustomerVoice = item.CustomerVoice;
+                            dbItem.ComplaintCode = item.ComplaintCode;
+                            dbItem.Complaint = item.Complaint;
+                            dbItem.UpdateBy = item.CreatedBy;
+                            dbItem.UpdatedDate = DateTime.Now;
+                        }
+                    }
+                    else
+                    {
+                        // INSERT
+                        var newItem = new JobCardComplaint
+                        {
+                            JobCardHeaderId = headerId,
+                            CustomerVoice = item.CustomerVoice,
+                            ComplaintCode = item.ComplaintCode,
+                            Complaint = item.Complaint,
+                            CreatedBy = item.CreatedBy,
+                            CreatedDate = DateTime.Now
+                        };
+
+                        await _context.JobCardComplaints.AddAsync(newItem);
+                    }
+                }
+
+                // PDI (DELETE + INSERT)
+                var existingPdi = await _context.PdichecklistChassisWises
+                                .Where(x => x.JobCardMasterId == headerId)
+                                .ToListAsync();
+
+                foreach (var item in updateJobCardDetails.PdiChecklistChassiWise)
+                {
+                    var dbItem = existingPdi.FirstOrDefault(x =>
+                        x.PdichecklistMasterId == item.PdichecklistMasterId
+                    );
+
+                    if (dbItem != null)
+                    {
+                        // UPDATE
+                        dbItem.IsStatus = item.IsStatus;
+                        dbItem.Remarks = item.Remarks;
+                    }
+                    else
+                    {
+                        // INSERT (rare case)
+                        var newPdi = new PdichecklistChassisWise
+                        {
+                            JobCardMasterId = headerId,
+                            PdichecklistMasterId = item.PdichecklistMasterId,
+                            IsStatus = item.IsStatus,
+                            Remarks = item.Remarks,
+                            CreatedBy = item.CreatedBy,
+                            CreatedDate = DateTime.Now
+                        };
+
+                        await _context.PdichecklistChassisWises.AddAsync(newPdi);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return 1;
             }
             catch (Exception ex)
             {

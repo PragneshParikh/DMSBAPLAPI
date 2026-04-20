@@ -72,6 +72,7 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(checklist);
         }
 
+        
         [HttpGet("GetJobCardList")]
         public async Task<IActionResult> GetJobCardList(string dealerCode)
         {
@@ -98,6 +99,20 @@ namespace DMS_BAPL_Api.Controllers
             {
                 return StatusCode(500, "An error occurred while saving job card details.");
             }
+        }
+
+        [HttpPut("UpdateJobCardDetails")]
+        public async Task<IActionResult> UpdateJobCardDetails([FromBody] JobCardDetailsViewModel updateJobCardDetails)
+        {
+            if (updateJobCardDetails == null)
+                return BadRequest("Invalid data");
+
+            var result = await _jobCardRepo.UpdateJobCardinfoDetails(updateJobCardDetails);
+
+            if (result <= 0)
+                return NotFound("Job Card not found");
+
+            return Ok(new { message = "Job card updated successfully" });
         }
 
     }

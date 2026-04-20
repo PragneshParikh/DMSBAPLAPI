@@ -99,6 +99,7 @@ namespace DMS_BAPL_Utils.Constants
         // Jobcard related
         public const string JobCardDetailsSaved = "Job card details saved successfully.";
         public const string JobCardNotFound = "No Data Available";
+        public const string WarrantyDetailsNotFound = "Warranty details not found for the specified model name.";
 
 
         //City Master

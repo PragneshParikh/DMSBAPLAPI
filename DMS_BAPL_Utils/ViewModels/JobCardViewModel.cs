@@ -50,7 +50,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public string BatteryChemestry { get; set; }
         public string ConverterNo { get; set; }
         public string MotorNo { get; set; }
+        public decimal? OdoReading { get; set; }
 
+        public decimal? Duration { get; set; }
+
+        public string DurationType { get; set; }
+        public DateOnly? EffectiveDate { get; set; }
+        public DateOnly? ExpireWarrentyDate { get; set; }
 
     }
     public class JobSourceViewModel
@@ -62,6 +68,13 @@ namespace DMS_BAPL_Utils.ViewModels
     public class JobCardDetailsViewModel
     {
         // Define properties for job card details here
+
+        public string Jobtype { get; set; }
+        public string Jobsource { get; set; }
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+        public string Complaint { get; set; }
+
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
         public JobCardCustomerVM JobCardCustomer { get; set; }
@@ -74,6 +87,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
 
         public int? Jobtype { get; set; }
+
+        public string? InvoiceNo { get; set; }
 
         public string DealerCode { get; set; }
 
@@ -124,6 +139,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedDate { get; set; }
+
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedDate { get; set; }
     }
 
     public class JobCardBatteryVM
@@ -164,6 +182,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedDate { get; set; }
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedDate { get; set; }
     }
 
     public class JobCardCustomerVM
@@ -201,6 +221,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedDate { get; set; }
+
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedDate { get; set; }
     }
 
     public class JobCardComplaintVM
@@ -212,6 +235,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Complaint { get; set; }
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedDate { get; set; }
     }
 
     public class PdiChecklistChassiWiseVM
@@ -229,6 +254,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedDate { get; set; }
+
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedDate { get; set; }
 
     }
 
@@ -261,4 +289,16 @@ namespace DMS_BAPL_Utils.ViewModels
 
     }
 
+    public class JobCardWarrentydetailsVM
+    {
+
+        public decimal? OdoReading { get; set; }
+
+        public decimal? Duration { get; set; }
+
+        public string DurationType { get; set; }
+        public DateOnly? EffectiveDate { get; set; }
+        public DateOnly? ExpireWarrentyDate { get; set; }
+
+    }
 }
