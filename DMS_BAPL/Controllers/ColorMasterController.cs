@@ -1,0 +1,185 @@
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.ColorMasterService;
+using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DMS_BAPL_Api.Controllers
+{
+    [Route("api/color")]
+    [ApiController]
+    public class ColorMasterController : ControllerBase
+    {
+        private readonly IColorMasterService _colorMasterService;
+        private readonly ILogger<ColorMasterController> _logger;
+
+        public ColorMasterController(IColorMasterService colorMasterService, ILogger<ColorMasterController> logger)
+        {
+            _colorMasterService = colorMasterService;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Retrieves the full list of colors.
+        /// </summary>
+        /// <remarks>
+        /// This endpoint returns all colors available in the system for the authenticated user.
+        /// If no colors are found, it returns a 204 No Content response.
+        /// </remarks>
+        /// <returns>
+        /// Returns an <see cref="IEnumerable{ColorMaster}"/> containing the list of colors.
+        /// </returns>
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<ColorMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ColorMaster>>> GetColorsAsync()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var colors = await _colorMasterService.GetColorsAsync();
+
+                return Ok(colors);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to retrieve colors");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of colors along with the total count.
+        /// </summary>
+        /// <param name="searchTerm">Optional search string to filter colors by name.</param>
+        /// <param name="pageIndex">Page number (starting from 1).</param>
+        /// <param name="pageSize">Number of items per page.</param>
+        /// <returns>A <see cref="PagedResponse{ColorMaster}"/> containing the list of colors and total count.</returns>
+        [HttpGet("paged")]
+        [ProducesResponseType(typeof(PagedResponse<ColorMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<PagedResponse<ColorMaster>>> GetColorByPagedAsync(
+            [FromQuery] string? searchTerm,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var colors = await _colorMasterService.getColorsByPagedAsync(searchTerm, pageIndex, pageSize);
+
+                return Ok(colors);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Internal server error: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Add new color into the table
+        /// This prevent from adding duplicate color and the field name is "colorname"
+        /// </summary>
+        /// <param name="colorMasterViewModel"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [ProducesResponseType(typeof(ColorMaster), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> InsertColorAsync(ColorMasterViewModel colorMasterViewModel)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var color = await _colorMasterService.CreateColorAsync(colorMasterViewModel);
+
+                if (color == null)
+                {
+                    // Duplicate case
+                    var response = new ApiResponse
+                    {
+                        Valid = false,
+                        Description = "Color already exists.",
+                        Value = new List<ResponseValue>
+                        {
+                            new ResponseValue
+                            {
+                                Msg = "Color already exists.",
+                                StatusCode = "409",
+                                ResponseStatus = "false"
+                            }
+                        }
+                    };
+                    return Conflict(response);
+                }
+
+                var successResponse = new ApiResponse
+                {
+                    Valid = true,
+                    Description = "Color Saved Successfully.",
+                    Value = new List<ResponseValue>
+                    {
+                        new ResponseValue
+                        {
+                            Msg = $"Color Saved Successfully. ID: {color.rrgcoloridno}",
+                            StatusCode = "200",
+                            ResponseStatus = "true"
+                        }
+                    }
+                };
+
+                return Ok(successResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Internal server error: {ex.Message}");
+                throw;
+            }
+        }
+
+        [HttpGet("downloadColorExcel")]
+        [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DownloadOEMModelExcelAsync()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var fileBytes = await _colorMasterService.downloadColorExcelAsync();
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "ColorMasterExcel.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error while downloading color excel");
+                throw;
+            }
+        }
+    }
+}
