@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<ItemMaster?> GetItem(string itemCode);
         Task<decimal?> GetPurchaseRate(string dealerCode, string itemCode);
         Task<List<(string chassisNo, string itemCode)>> GetChassisByDealer(string dealerCode);
+        Task<List<PdiOkVehicleChassisViewModel>> GetPdiRawDataAsync(string dealerCode);
 
     }
 }

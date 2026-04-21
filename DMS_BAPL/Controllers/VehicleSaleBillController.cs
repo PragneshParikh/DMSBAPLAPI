@@ -184,5 +184,25 @@ namespace DMS_BAPL_Api.Controllers
             var result = await _vehicleSaleBillService.GetChasisList(request);
             return Ok(result);
         }
+
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpGet("ChassisListPDIOK")]
+        public async Task<IActionResult> GetAllChassisListWithPDIOK(string dealerCode)
+        {
+            try
+            {
+                return Ok(await _vehicleSaleBillService.GetPdiVehiclesAsync(dealerCode));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

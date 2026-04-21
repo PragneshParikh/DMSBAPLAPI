@@ -2112,15 +2112,25 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07E02F8CDE");
 
+            entity.Property(e => e.Battery).HasMaxLength(50);
+            entity.Property(e => e.BatteryCapacity).HasMaxLength(50);
+            entity.Property(e => e.BatteryChemical).HasMaxLength(50);
+            entity.Property(e => e.BatteryMake).HasMaxLength(50);
+            entity.Property(e => e.BookNo).HasMaxLength(50);
             entity.Property(e => e.Cgstamnt)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("CGSTAmnt");
             entity.Property(e => e.Cgstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("CGSTPer");
+            entity.Property(e => e.ChargerNo).HasMaxLength(50);
             entity.Property(e => e.ChassisNo).HasMaxLength(50);
+            entity.Property(e => e.Colour).HasMaxLength(50);
+            entity.Property(e => e.ControllerNo).HasMaxLength(50);
+            entity.Property(e => e.ConvertorNo).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.ExtWarranty).HasMaxLength(50);
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Igstamnt)
                 .HasColumnType("decimal(18, 2)")
@@ -2128,11 +2138,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Igstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("IGSTPer");
+            entity.Property(e => e.InsNo).HasMaxLength(50);
             entity.Property(e => e.InstitutionalType).HasMaxLength(50);
             entity.Property(e => e.InsuranceAmount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Key).HasMaxLength(50);
+            entity.Property(e => e.ModelName).HasMaxLength(100);
             entity.Property(e => e.Narration).HasMaxLength(255);
             entity.Property(e => e.PreGstDiscount)
                 .HasDefaultValue(0m)
@@ -2140,6 +2153,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.RegAmount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.RegNo).HasMaxLength(50);
             entity.Property(e => e.SchemeName).HasMaxLength(100);
             entity.Property(e => e.Segment).HasMaxLength(50);
             entity.Property(e => e.Sgstamnt)
@@ -2148,7 +2162,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Sgstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("SGSTPer");
+            entity.Property(e => e.StockDetailsNo).HasMaxLength(50);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.Vcu)
+                .HasMaxLength(50)
+                .HasColumnName("VCU");
 
             entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
                 .HasForeignKey(d => d.VehicleSaleBillId)

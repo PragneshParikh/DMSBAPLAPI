@@ -50,9 +50,52 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Segment { get; set; } 
         public string InstitutionalType { get; set; } 
         public string SchemeName { get; set; } 
-        public string Narration { get; set; } 
+        public string Narration { get; set; }
+        public decimal? Sgstper { get; set; }
+        public decimal? Sgstamnt { get; set; }
+        public decimal? Cgstper { get; set; }
+        public decimal? Cgstamnt { get; set; }
+        public decimal? Igstper { get; set; }
+        public decimal? Igstamnt { get; set; }
+        public int? MfgYear { get; set; }
+
+        public string? InsNo { get; set; }
+
+        public DateOnly? InsStartDate { get; set; }
+
+
+        public string? RegNo { get; set; }
+
+        public DateOnly? InsExpDate { get; set; }
         public decimal FinalAmount { get; set; }
         public bool IsAgainstExchange { get; set; }
+        public string? ModelName { get; set; }
+
+        public string? Colour { get; set; }
+
+        public string? Battery { get; set; }
+
+        public string? ConvertorNo { get; set; }
+
+        public string? ChargerNo { get; set; }
+
+        public string? ControllerNo { get; set; }
+
+        public string? Key { get; set; }
+
+        public string? BookNo { get; set; }
+
+        public string? ExtWarranty { get; set; }
+
+        public string? BatteryChemical { get; set; }
+
+        public string? BatteryCapacity { get; set; }
+
+        public string? BatteryMake { get; set; }
+
+        public string? StockDetailsNo { get; set; }
+
+        public string? Vcu { get; set; }
 
     }
 }

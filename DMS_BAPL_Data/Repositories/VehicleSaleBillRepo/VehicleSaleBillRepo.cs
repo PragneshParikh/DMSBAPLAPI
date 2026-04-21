@@ -1,5 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Cms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -171,6 +173,65 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .Where(d => headers.Contains(d.LotHeaderId))
                     .Select(d => new ValueTuple<string, string>(d.ChassisNo, d.Itemcode))
                     .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiRawDataAsync(string dealerCode)
+        {
+            try
+            {
+                var data = await (
+             from jc in _context.JobCardHeaders
+             join vd in _context.VehicleDispatches
+                 on jc.Chassisno equals vd.ChasisNo
+             join bd in _context.JobCardBatteryDetails
+                 on jc.Id equals bd.JobCardHeaderId into batteryGroup
+             from bd in batteryGroup.DefaultIfEmpty()
+             join im in _context.ItemMasters
+                on vd.ItemCode equals im.Itemcode into itemGroups
+                from im in itemGroups.DefaultIfEmpty()
+                join cm in _context.ColorMasters
+                on vd.ColrCode equals cm.Colorcode into itemColors
+                from cm in itemColors.DefaultIfEmpty()
+
+             where jc.DealerCode == dealerCode
+                   && jc.IsPdiSuccess == true
+
+             select new PdiOkVehicleChassisViewModel
+             {
+                 ChassisNo = jc.Chassisno,
+                 ItemCode = vd.ItemCode,
+                 ItemColor = cm.Colorname,
+                 MfgYear = vd.MfgYear,
+                 ItemName = im.Itemname,              
+                 
+                 KeyNo = vd.KeyNo,
+                 BookNo = vd.ServBkno,
+
+                 BatteryNo = vd.BatteryNo,
+                 BatteryChemical = vd.BatteryChemistry,
+                 BatteryCapacity = vd.BatteryCapacity,
+                 BatteryMake = vd.BatteryMake,
+
+                 ChargerNo = bd.ChargerNo ?? vd.ChargerNo,
+                 ControllerNo = bd.ControllerNo ?? vd.ControllerNo,
+                 ConverterNo = bd.ConverterNo ?? vd.Converter,
+                 DealerPrice =im.Dlrprice,
+                 CustomerPrice = im.Custprice,
+                 PreGstDisc =im.Fame2amount,
+
+                 DealerCode = jc.DealerCode
+             }
+         ).ToListAsync();
+
+                return data;
+
+
+
             }
             catch
             {

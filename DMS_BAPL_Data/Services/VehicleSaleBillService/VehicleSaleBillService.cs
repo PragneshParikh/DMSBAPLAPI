@@ -24,7 +24,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly ICityRepo _cityRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
-            IHttpContextAccessor contextAccessor, ITaxServices taxServices,ICityRepo cityRepo,IStateRepo stateRepo)
+            IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo, IStateRepo stateRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -104,7 +104,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 existing.CustomerName = model.CustomerName;
                 existing.TotalAmount = model.TotalAmount;
                 existing.UpdatedDate = DateTime.Now;
-                existing.UpdatedBy=userId;
+                existing.UpdatedBy = userId;
 
                 // Remove old details
                 existing.VehicleSaleBillDetails.Clear();
@@ -129,7 +129,33 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         FinalAmount = d.FinalAmount,
                         IsAgainstExchange = d.IsAgainstExchange,
                         CreatedDate = existing.CreatedDate,
-                        CreatedBy = userId,  
+                        CreatedBy = userId,
+                        Igstper = d.Igstper,
+                        Igstamnt = d.Igstamnt,
+                        Sgstper = d.Sgstper,
+                        Sgstamnt = d.Sgstamnt,
+                        Cgstamnt = d.Cgstamnt,
+                        Cgstper = d.Cgstper,
+                        InsNo = d.InsNo,
+                        InsExpDate = d.InsExpDate,
+                        InsStartDate = d.InsStartDate,
+                        MfgYear = d.MfgYear,
+                        RegNo = d.RegNo,
+                        ModelName = d.ModelName ?? "",
+                        Colour = d.Colour ?? "",
+                        Battery = d.Battery ?? "",
+                        ConvertorNo = d.ConvertorNo ?? "",
+                        ChargerNo = d.ChargerNo ?? "",
+                        ControllerNo = d.ControllerNo ?? "",
+                        Key = d.Key ?? "",
+                        BookNo = d.BookNo ?? "",
+                        ExtWarranty = d.ExtWarranty ?? "",
+                        BatteryChemical = d.BatteryChemical ?? "",
+                        BatteryCapacity = d.BatteryCapacity ?? "",
+                        BatteryMake = d.BatteryMake ?? "",
+                        StockDetailsNo = d.StockDetailsNo ?? "",
+                        Vcu = d.Vcu ?? ""
+
                     });
                 }
 
@@ -204,6 +230,33 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         Narration = d.Narration,
                         FinalAmount = d.FinalAmount,
                         IsAgainstExchange = d.IsAgainstExchange,
+                        Sgstper = d.Sgstper,
+                        Sgstamnt = d.Sgstamnt,
+                        Cgstamnt = d.Cgstamnt,
+                        Cgstper = d.Cgstper,
+                        Igstper = d.Igstper,
+                        Igstamnt = d.Igstamnt,
+                        InsNo = d.InsNo,
+                        InsExpDate = d.InsExpDate,
+                        InsStartDate = d.InsStartDate,
+                        RegNo = d.RegNo,
+                        MfgYear = d.MfgYear,
+                        ModelName = d.ModelName ?? "",
+                        Colour = d.Colour ?? "",
+                        Battery = d.Battery ?? "",
+                        ConvertorNo = d.ConvertorNo ?? "",
+                        ChargerNo = d.ChargerNo ?? "",
+                        ControllerNo = d.ControllerNo ?? "",
+                        Key = d.Key ?? "",
+                        BookNo = d.BookNo ?? "",
+                        ExtWarranty = d.ExtWarranty ?? "",
+                        BatteryChemical = d.BatteryChemical ?? "",
+                        BatteryCapacity = d.BatteryCapacity ?? "",
+                        BatteryMake = d.BatteryMake ?? "",
+                        StockDetailsNo = d.StockDetailsNo ?? "",
+                        Vcu = d.Vcu ?? "",
+
+
                         CreatedDate = DateTime.Now,
                         CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext)
                     }).ToList()
@@ -241,6 +294,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
 
+
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
                         ChassisNo = d.ChassisNo,
@@ -256,8 +310,34 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SchemeName = d.SchemeName ?? "",
                         Narration = d.Narration ?? "",
                         FinalAmount = d.FinalAmount,
-                        IsAgainstExchange = d.IsAgainstExchange
-                    }).ToList()
+                        IsAgainstExchange = d.IsAgainstExchange,
+                        InsStartDate = d.InsStartDate,
+                        InsExpDate = d.InsExpDate,
+                        InsNo = d.InsNo,
+                        Igstamnt = d.Igstamnt ?? 0,
+                        Igstper = d.Igstper ?? 0,
+                        Cgstper = d.Cgstper ?? 0,
+                        Cgstamnt = d.Cgstamnt ?? 0,
+                        Sgstamnt = d.Sgstamnt ?? 0,
+                        Sgstper = d.Sgstper ?? 0,
+                        MfgYear = d.MfgYear ?? 0,
+                        RegNo = d.RegNo,
+                        ModelName =d.ModelName ??"",
+                        Colour = d.Colour ??"",
+                        Battery =d.Battery ?? "",
+                        ConvertorNo=d.ConvertorNo??"",
+                        ChargerNo=d.ChargerNo??"",
+                        ControllerNo =d.ControllerNo??"",
+                        Key =d.Key ??"",
+                        BookNo=d.BookNo??"",
+                        ExtWarranty =d.ExtWarranty ??"",
+                        BatteryChemical =d.BatteryChemical ??"",
+                        BatteryCapacity=d.BatteryCapacity ??"",
+                        BatteryMake = d.BatteryMake ??"",
+                        StockDetailsNo=d.StockDetailsNo??"",
+                        Vcu=d.Vcu??""
+
+    }).ToList()
                 };
             }
             catch
@@ -296,7 +376,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
-                
+
 
                 var header = await _repo.GetByIdAsync(id);
                 if (header == null) return null;
@@ -311,13 +391,13 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     .Select(s => s.StateName)
                     .FirstOrDefault();
                 var cities = await _cityRepo.GetCitiesAsync();
-                var cityName = cities.Where(c=>c.CityId == ledger.City)
+                var cityName = cities.Where(c => c.CityId == ledger.City)
                     .Select(c => c.CityName)
                     .FirstOrDefault();
 
                 var result = new VehicleSaleExportViewModel
                 {
-                    
+
                     User = new UserViewModel
                     {
                         Mobile = ledger?.MobileNumber ?? "",
@@ -472,6 +552,79 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 throw;
             }
+        }
+
+        public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode)
+        {
+            var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
+
+            var result = new List<PdiOkVehicleChassisViewModel>();
+
+            // 🚀 Optimization: group by ItemCode
+            var itemGroups = rawData.GroupBy(x => x.ItemCode);
+
+            var taxCache = new Dictionary<string, List<TaxDetailViewModel>>();
+
+            foreach (var group in itemGroups)
+            {
+                var itemCode = group.Key;
+
+                var tax = await _taxService.GetTaxDetailsAsync(itemCode, dealerCode);
+                taxCache[itemCode] = tax;
+            }
+
+            foreach (var item in rawData)
+            {
+                var taxes = taxCache[item.ItemCode];
+
+                var vm = new PdiOkVehicleChassisViewModel
+                {
+                    ChassisNo = item.ChassisNo,
+                    ItemCode = item.ItemCode,
+                    ItemColor = item.ItemColor,
+                    ItemName=item.ItemName,
+                    MfgYear = item.MfgYear,
+
+                    KeyNo = item.KeyNo,
+                    BookNo = item.BookNo,
+
+                    BatteryNo = item.BatteryNo,
+                    BatteryChemical = item.BatteryChemical,
+                    BatteryCapacity = item.BatteryCapacity,
+                    BatteryMake = item.BatteryMake,
+
+                    ChargerNo = item.ChargerNo,
+                    ControllerNo = item.ControllerNo,
+                    ConverterNo = item.ConverterNo,
+                    CustomerPrice = item.CustomerPrice,
+                    DealerPrice = item.DealerPrice,
+                    PreGstDisc = item.PreGstDisc,
+                };
+
+                // Tax Mapping
+                foreach (var tax in taxes)
+                {
+                    if (tax.TaxCode.ToUpper().Contains("SGST"))
+                    {
+                        vm.SGSTPer = tax.TaxRate;
+                        vm.SGST = tax.TaxRate;
+                    }
+                    if (tax.TaxCode.ToUpper().Contains("CGST"))
+                    {
+                        vm.CGSTPer = tax.TaxRate;
+                        vm.CGST = tax.TaxRate;
+                    }
+                    if (tax.TaxCode.ToUpper().Contains("IGST"))
+                    {
+                        vm.IGSTPer = tax.TaxRate;
+                        vm.IGST = tax.TaxRate;
+                    }
+                }
+
+                result.Add(vm);
+            }
+
+            return result;
         }
     }
 }
