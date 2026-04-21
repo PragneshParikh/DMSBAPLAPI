@@ -18,24 +18,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             _context = context;
         }
 
-        public async Task<int> CreateAsync(VehicleSaleBillHeader entity)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+        //public async Task<int> CreateAsync(VehicleSaleBillHeader entity)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
 
-            try
-            {
-                _context.VehicleSaleBillHeaders.Add(entity);
-                await _context.SaveChangesAsync();
+        //    try
+        //    {
+        //        _context.VehicleSaleBillHeaders.Add(entity);
+        //        await _context.SaveChangesAsync();
 
-                await transaction.CommitAsync();
-                return entity.Id;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+        //        await transaction.CommitAsync();
+        //        return entity.Id;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
 
         public async Task<VehicleSaleBillHeader?> GetByIdAsync(int id)
         {
@@ -235,6 +235,43 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
             catch
             {
+                throw;
+            }
+        }
+
+        public async Task<int> CreateWithJobUpdateAsync( VehicleSaleBillHeader header,List<UpdateSaleDetailsVM> jobUpdates)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Save Sale Bill
+                _context.VehicleSaleBillHeaders.Add(header);
+                await _context.SaveChangesAsync();
+
+                // 2. Update JobCards (NO separate SaveChanges in repo)
+                foreach (var item in jobUpdates)
+                {
+                    var job = await _context.JobCardCustomers
+                        .FirstOrDefaultAsync(x => x.ChassisNo == item.ChassisNo);
+
+                    if (job == null) continue;
+
+                    job.SaleDate = item.SaleDate;
+                    job.InsuranceExpDate = item.InsuranceExpDate;
+                    job.RegisterNo = item.RegisterNo;
+                }
+
+                // 3. Single commit
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return header.Id;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
                 throw;
             }
         }

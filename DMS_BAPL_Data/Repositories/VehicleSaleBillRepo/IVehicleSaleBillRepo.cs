@@ -10,7 +10,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 {
     public interface IVehicleSaleBillRepo
     {
-        Task<int> CreateAsync(VehicleSaleBillHeader entity);
+        Task<int> CreateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates);
+       // Task<int> CreateAsync(VehicleSaleBillHeader entity);
         Task<VehicleSaleBillHeader?> GetByIdAsync(int id);
         Task<List<VehicleSaleBillHeader>> GetAllAsync();
         Task UpdateAsync(VehicleSaleBillHeader entity);

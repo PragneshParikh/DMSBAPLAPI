@@ -311,4 +311,13 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
     }
+
+    public class UpdateSaleDetailsVM
+    {
+        public string ChassisNo { get; set; }
+        public string? RegisterNo { get; set; }
+        public DateOnly? SaleDate { get; set; }
+
+        public DateOnly? InsuranceExpDate { get; set; }
+    }
 }

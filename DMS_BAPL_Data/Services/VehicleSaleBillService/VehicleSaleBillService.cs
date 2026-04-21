@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.CityRepo;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
@@ -12,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 {
@@ -22,9 +24,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly ITaxServices _taxService;
         private readonly IStateRepo _stateRepo;
         private readonly ICityRepo _cityRepo;
+        private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
-            IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo, IStateRepo stateRepo)
+            IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo, 
+            IStateRepo stateRepo,IJobCardRepo  jobCardRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -32,7 +36,66 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _contextAccessor = contextAccessor;
             _stateRepo = stateRepo;
             _cityRepo = cityRepo;
+            _jobCardRepo = jobCardRepo;
         }
+
+        //public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
+        //{
+        //    try
+        //    {
+        //        var header = MapToEntity(model);
+        //        header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+        //        var result= await _repo.CreateAsync(header);
+        //        foreach (var item in model.Details) {
+        //            var updateSaleJobCard = new UpdateSaleDetailsVM
+        //            {
+        //                ChassisNo = item.ChassisNo,
+        //                SaleDate = DateOnly.FromDateTime(model.SaleDate),
+        //                InsuranceExpDate =item.InsExpDate,
+        //                RegisterNo = item.RegNo
+        //            };
+        //            await _jobCardRepo.UpdateSaleDetails(updateVM);
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        //public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
+        //{
+        //    using var transaction = await _.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        var header = MapToEntity(model);
+        //        header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+
+        //        var result = await _repo.CreateAsync(header);
+
+        //        foreach (var item in model.Details)
+        //        {
+        //            var updateSaleJobCard = new UpdateSaleDetailsVM
+        //            {
+        //                ChassisNo = item.ChassisNo,
+        //                SaleDate = DateOnly.FromDateTime(model.SaleDate),
+        //                InsuranceExpDate = item.InsExpDate,
+        //                RegisterNo = item.RegNo
+        //            };
+
+        //            await _jobCardRepo.UpdateSaleDetails(updateSaleJobCard);
+        //        }
+
+        //        await transaction.CommitAsync();
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
 
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
         {
@@ -40,13 +103,23 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 var header = MapToEntity(model);
                 header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-                return await _repo.CreateAsync(header);
+
+                var jobUpdates = model.Details.Select(item => new UpdateSaleDetailsVM
+                {
+                    ChassisNo = item.ChassisNo,
+                    SaleDate = DateOnly.FromDateTime(model.SaleDate),
+                    InsuranceExpDate = item.InsExpDate,
+                    RegisterNo = item.RegNo
+                }).ToList();
+
+                return await _repo.CreateWithJobUpdateAsync(header, jobUpdates);
             }
             catch
             {
                 throw;
             }
         }
+
 
         // ✅ GET BY ID
         public async Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id)
@@ -556,7 +629,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
         public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode)
         {
-            var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
+                var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
 
             var result = new List<PdiOkVehicleChassisViewModel>();
 

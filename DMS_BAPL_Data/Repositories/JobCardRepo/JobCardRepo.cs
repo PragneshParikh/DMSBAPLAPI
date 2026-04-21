@@ -746,6 +746,24 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             catch { throw; }
         }
 
+        public async Task<int> UpdateSaleDetails(UpdateSaleDetailsVM updateSale)
+        {
+            try
+            {
+                var job = await _context.JobCardCustomers.Where(i=>i.ChassisNo== updateSale.ChassisNo).FirstOrDefaultAsync();
+                job.SaleDate= updateSale.SaleDate;
+                job.InsuranceExpDate= updateSale.InsuranceExpDate;
+                job.RegisterNo= updateSale.RegisterNo;
+                await _context.SaveChangesAsync();
+                return 1;
+
+            }
+            catch
+            {
+                throw;
+
+            }
+        }
         public async Task<int> DeleteJobCard(int jobId)
         {
             var jobCard = await _context.JobCardHeaders.FindAsync(jobId);
