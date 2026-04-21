@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
