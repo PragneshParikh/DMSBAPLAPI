@@ -144,5 +144,19 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+        [HttpDelete("DeleteJobCard/{id}/{role}")]
+        public async Task<IActionResult> DeleteJobCard(int jobId, string role)
+        {
+            if (role != "SuperAdmin")
+                return Unauthorized("Only Super Admin can delete");
+
+            var result = await _jobCardRepo.DeleteJobCard(jobId);
+
+            if (result > 0)
+                return Ok(new { message = "Deleted Successfully" });
+
+            return NotFound("Job Card not found");
+        }
+
     }
 }

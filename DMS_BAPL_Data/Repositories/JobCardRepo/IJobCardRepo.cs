@@ -22,5 +22,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
         Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails);
         Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize);
+        Task<int> DeleteJobCard(int jobId);
+
     }
 }

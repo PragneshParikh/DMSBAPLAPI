@@ -746,5 +746,31 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             catch { throw; }
         }
 
+        public async Task<int> DeleteJobCard(int jobId)
+        {
+            var jobCard = await _context.JobCardHeaders.FindAsync(jobId);
+
+            if (jobCard == null)
+                return 0;
+
+            //  IMPORTANT: Delete related data first 
+
+            var complaints = _context.JobCardComplaints.Where(x => x.JobCardHeaderId == jobId);
+            _context.JobCardComplaints.RemoveRange(complaints);
+
+            var pdi = _context.PdichecklistChassisWises.Where(x => x.JobCardMasterId == jobId);
+            _context.PdichecklistChassisWises.RemoveRange(pdi);
+
+            var battery = _context.JobCardBatteryDetails.Where(x => x.JobCardHeaderId == jobId);
+            _context.JobCardBatteryDetails.RemoveRange(battery);
+
+            var customer = _context.JobCardCustomers.Where(x => x.JobCardHeaderId == jobId);
+            _context.JobCardCustomers.RemoveRange(customer);
+
+            // MAIN DELETE
+            _context.JobCardHeaders.Remove(jobCard);
+
+            return await _context.SaveChangesAsync();
+        }
     }
 }
