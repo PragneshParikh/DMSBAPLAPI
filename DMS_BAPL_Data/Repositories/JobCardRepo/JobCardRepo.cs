@@ -216,6 +216,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         Servicehead = jh.Servicehead,
                         Servicetype = jh.Servicetype,
                         JobSource = jh.JobSource,
+                        Chassisno = jh.Chassisno,
                         Couponno = jh.Couponno,
                         Jobprefix = jh.Jobprefix,
                         JobNo = jh.JobNo,
@@ -239,6 +240,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                     JobCardBattery = new JobCardBatteryVM
                     {
+                        JobCardHeaderId = jh.Id,
                         BatteryMake = _context.JobCardBatteryDetails
                             .Where(x => x.JobCardHeaderId == jh.Id)
                             .Select(x => x.BatteryMake)
@@ -300,6 +302,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     // Customer
                     JobCardCustomer = new JobCardCustomerVM
                     {
+                        JobCardHeaderId = jh.Id,
                         SaleDate = c.SaleDate,
                         RegisterNo = c != null ? c.RegisterNo : null,
                         ChassisNo = c != null ? c.ChassisNo : null,
@@ -495,7 +498,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             }
         }
 
-        public async Task<int> UpdateJobCardinfoDetails(JobCardDetailsViewModel updateJobCardDetails)
+        public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 

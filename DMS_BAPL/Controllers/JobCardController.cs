@@ -102,17 +102,17 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPut("UpdateJobCardDetails")]
-        public async Task<IActionResult> UpdateJobCardDetails([FromBody] JobCardDetailsViewModel updateJobCardDetails)
+        public async Task<IActionResult> UpdateJobCardDetails([FromBody] UpdateJobCardVM updateJobCardDetails)
         {
             if (updateJobCardDetails == null)
                 return BadRequest("Invalid data");
 
             var result = await _jobCardRepo.UpdateJobCardinfoDetails(updateJobCardDetails);
 
-            if (result <= 0)
-                return NotFound("Job Card not found");
+            if (result > 0)
+                return Ok(new { message = "Job card updated successfully" });
 
-            return Ok(new { message = "Job card updated successfully" });
+            return NotFound(new { message = "Job card not found" });
         }
 
     }

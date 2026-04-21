@@ -301,4 +301,14 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateOnly? ExpireWarrentyDate { get; set; }
 
     }
+
+    public class UpdateJobCardVM
+    {
+        public JobCardHeaderVM JobCardHeader { get; set; }
+        public JobCardBatteryVM JobCardBattery { get; set; }
+        public JobCardCustomerVM JobCardCustomer { get; set; }
+        public List<JobCardComplaintVM> JobCardComplaint { get; set; }
+
+        public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
+    }
 }
