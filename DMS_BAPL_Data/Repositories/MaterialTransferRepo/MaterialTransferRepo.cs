@@ -1,5 +1,7 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -149,6 +151,72 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             }
             catch { throw; }
         }
+
+        async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(string dealerCode, int pageIndex, int pageSize)
+        {
+            try
+            {
+                var query = from JH in _context.JobCardHeaders
+                            join JC in _context.JobCardCustomers
+                                on JH.Id equals JC.JobCardHeaderId
+
+                            join U in _context.AspNetUsers
+                                on JH.CreatedBy equals U.Id into userGroup
+                            from U in userGroup.DefaultIfEmpty()
+
+                            join UM in _context.AspNetUsers
+                                on JH.UpdateBy equals UM.Id into userModGroup
+                            from UM in userModGroup.DefaultIfEmpty()
+
+                            orderby JH.Id
+                            select new
+                            {
+                                JH.Id,
+                                JH.InvoiceNo,
+                                JH.Chassisno,
+                                JH.JobinDate,
+                                JH.JobNo,
+                                JH.Serviceloc,
+
+                                PreparedBy = U != null ? U.UserName : null,
+                                ModifiedBy = UM != null ? UM.UserName : null,
+
+                                JC.CustomerName,
+                                JC.RegisterNo,
+                            };
+
+                int totalRecords = await query.CountAsync();
+
+                var result = query
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .AsEnumerable()
+                    .Select((x, index) => new
+                    {
+                        SrNo = (pageIndex - 1) * pageSize + index + 1,
+                        x.Id,
+                        x.InvoiceNo,
+                        x.Chassisno,
+                        x.JobinDate,
+                        x.JobNo,
+                        x.Serviceloc,
+                        x.PreparedBy,
+                        x.ModifiedBy,
+                        x.CustomerName,
+                        x.RegisterNo
+                    })
+                    .ToList();
+
+                return new PagedResponse<object>
+                {
+                    Data = result.Cast<object>().ToList(),
+                    TotalRecords = totalRecords
+                };
+
+            }
+            catch { throw; }
+        }
+
 
     }
 }

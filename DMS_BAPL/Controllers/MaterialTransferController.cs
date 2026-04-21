@@ -1,10 +1,13 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using Org.BouncyCastle.Asn1.X509.Qualified;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -68,6 +71,34 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        [HttpGet("GetByDealerPaged")]
+        [ProducesResponseType(typeof(PagedResponse<Object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<PagedResponse<object>>> GetMaterialTransferDetailByDealer(
+            [FromQuery] string dealerCode,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var materials = await _materialTransferService.GetMaterialTransferDetailsByDealer(dealerCode, pageIndex, pageSize);
+
+                return Ok(materials);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in feathing material details by dealer : {ex.Message}");
+                throw;
+            }
+        }
+
 
         [HttpPost]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]

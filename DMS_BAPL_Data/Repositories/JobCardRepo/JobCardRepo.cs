@@ -152,6 +152,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 return new List<LotInspectionChassisVM>();
             }
         }
+
         public async Task<List<JobSourceViewModel>> GetJobSource()
         {
             return await _context.JobSources
@@ -167,7 +168,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-
 
         public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string dealerCode)
         {
@@ -354,6 +354,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return jobCardsResult;
         }
+
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -674,5 +675,75 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw;
             }
         }
+
+        public async Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize)
+        {
+            try
+            {
+                var query = from jh in _context.JobCardHeaders
+                            join st in _context.ServiceTypes
+                                on jh.Servicetype equals st.Id
+                            join jt in _context.JobTypes
+                                on jh.Jobtype equals jt.Id
+                            join sh in _context.ServiceHeads
+                                on jh.Servicehead equals sh.Id
+                            join lotDetail in _context.LotinspectionDetails
+                                on jh.Chassisno equals lotDetail.ChassisNo
+                            join item in _context.ItemMasters
+                                on lotDetail.Itemcode equals item.Itemcode
+
+                            join jc in _context.JobCardCustomers
+                                on jh.Id equals jc.JobCardHeaderId into customerGroup
+
+                            from jc in customerGroup.DefaultIfEmpty()
+
+                            select new
+                            {
+                                Id = jh.Id,
+                                DealerCode = jh.DealerCode,
+                                JobType = sh.ServiceHeadName,
+                                ChasisNo = jh.Chassisno,
+                                ServiceLoc = jh.Serviceloc,
+                                JobDate = jh.JobinDate,
+                                JobNo = jh.JobNo,
+                                ManualJobNo = jh.ManualjobNo,
+                                CreatedDate = jh.CreatedDate,
+                                ServiceType = st.ServiceTypeName,
+                                CustomerName = jc.CustomerName,
+                                RegistorNo = jc.RegisterNo,
+                                ModelName = item.Itemdesc
+                            };
+
+                if (fromDate.HasValue)
+                    query = query.Where(x => x.CreatedDate.Date >= fromDate.Value.Date);
+
+                if (toDate.HasValue)
+                    query = query.Where(x => x.CreatedDate.Date <= toDate.Value.Date);
+
+                if (jobNo.HasValue && jobNo > 0)
+                    query = query.Where(x => x.JobNo == jobNo.Value);
+
+                if (manualJobNo.HasValue && manualJobNo > 0)
+                    query = query.Where(x => x.ManualJobNo == manualJobNo.Value);
+
+                var totalRecords = await query.CountAsync();
+
+                var data = await query
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .Cast<object>()
+                    .ToListAsync();
+
+                return new PagedResponse<object>
+                {
+                    Data = data,
+                    TotalRecords = totalRecords,
+                };
+
+            }
+            catch { throw; }
+        }
+
     }
 }

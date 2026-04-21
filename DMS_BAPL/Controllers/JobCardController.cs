@@ -1,5 +1,7 @@
-﻿using DMS_BAPL_Data.Repositories.JobCardRepo;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -72,7 +74,6 @@ namespace DMS_BAPL_Api.Controllers
             return Ok(checklist);
         }
 
-        
         [HttpGet("GetJobCardList")]
         public async Task<IActionResult> GetJobCardList(string dealerCode)
         {
@@ -115,5 +116,33 @@ namespace DMS_BAPL_Api.Controllers
             return NotFound(new { message = "Job card not found" });
         }
 
+        [HttpGet("GetFilteredJobCard")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<PagedResponse<object>>> GetFilterJobCardDetails(
+            [FromQuery] int pageSize,
+            [FromQuery] int pageIndex,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int? jobNo,
+            [FromQuery] int? manualJobNo)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobCards = await _jobCardRepo.GetFilterdJobCardDetails(fromDate, toDate, jobNo, manualJobNo, pageIndex, pageSize);
+
+                return Ok(jobCards);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }
