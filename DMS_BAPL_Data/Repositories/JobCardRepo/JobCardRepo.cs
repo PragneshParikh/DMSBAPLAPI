@@ -790,5 +790,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return await _context.SaveChangesAsync();
         }
+        //public async Task<JobCardViewModel> GetJobCardById(int id)
+        //{
+        //    try
+        //    {
+        //        var result = "";
+        //    }
+        //    catch { throw; }
+        //}
     }
 }

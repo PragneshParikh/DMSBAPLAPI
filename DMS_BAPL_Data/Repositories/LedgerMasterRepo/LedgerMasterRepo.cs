@@ -47,8 +47,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                                         || c.LedgerName.Contains(searchTerms)
                                         || c.MobileNumber.Contains(searchTerms)
                                         || c.EMail.Contains(searchTerms));
-                                        //|| c.City.Contains(searchTerms)
-                                        //|| c.State.Contains(searchTerms));
+                    //|| c.City.Contains(searchTerms)
+                    //|| c.State.Contains(searchTerms));
                 }
 
                 int totalRecords = await query.CountAsync();
@@ -188,7 +188,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 LedgerType = "Party",
                 MobileNumber = lead.Mobile,
                 EMail = lead.Email,
-               // City = lead.City,
+                // City = lead.City,
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };

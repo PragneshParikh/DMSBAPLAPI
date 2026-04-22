@@ -260,6 +260,29 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        //[HttpGet("{Id}")]
+        //[ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> GetJobCardDetailsById(int Id)
+        //{
+        //    try
+        //    {
+        //        string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+        //        if (string.IsNullOrEmpty(userId))
+        //            return Unauthorized("User not authorized");
+
+        //        var jobCard = _jobCardRepo.GetJobCardById(Id);
+
+        //        return Ok(jobCard);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw;
+        //    }
+        //}
+
         [HttpGet("GetFilteredJobCard")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
