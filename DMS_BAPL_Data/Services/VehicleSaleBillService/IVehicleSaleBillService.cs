@@ -11,7 +11,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
     {
         Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model);
         Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id);
-        Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync();
+        //Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync();
+        Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null,string? erpStatus =null);
         Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model);
         Task DeleteAsync(int id);
         Task<string> GenerateNextVehicleSaleNo();

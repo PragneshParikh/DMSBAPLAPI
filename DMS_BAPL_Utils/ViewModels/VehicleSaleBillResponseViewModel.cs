@@ -25,6 +25,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? TempRegNo { get; set; }
         public bool? isD2d { get; set; }
         public string? CustomerType { get; set; }
+        public string? erpStatus { get; set; }
 
 
 

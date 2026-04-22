@@ -27,8 +27,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
-            IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo, 
-            IStateRepo stateRepo,IJobCardRepo  jobCardRepo)
+            IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
+            IStateRepo stateRepo, IJobCardRepo jobCardRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -137,11 +137,55 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         }
 
         // ✅ GET ALL
-        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync()
+        //public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync()
+        //{
+        //    try
+        //    {
+        //        var list = await _repo.GetAllAsync();
+        //        return list.Select(MapToResponse).ToList();
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? search = null,DateTime? dateFrom = null,DateTime? dateTo = null,string? erpStatus =null)
         {
             try
             {
                 var list = await _repo.GetAllAsync();
+                
+
+                // Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    search = search.ToLower();
+
+                    list = list.Where(x =>
+                        (x.SaleBillNo != null && x.SaleBillNo.ToLower().Contains(search)) ||
+                        (x.CustomerName != null && x.CustomerName.ToLower().Contains(search)) ||
+                        (x.BillingName != null && x.BillingName.ToLower().Contains(search)) ||
+                        (x.Location != null && x.Location.ToLower().Contains(search))||
+                        (x.BillType !=null && x.BillType.ToLower().Contains(search))
+                    ).ToList();
+                }
+
+                // Apply date range filter
+                if (dateFrom.HasValue)
+                {
+                    list = list.Where(x => x.SaleDate.Date >= dateFrom.Value.Date).ToList();
+                }
+
+                if (dateTo.HasValue)
+                {
+                    list = list.Where(x => x.SaleDate.Date <= dateTo.Value.Date).ToList();
+                }
+                if(!string.IsNullOrWhiteSpace(erpStatus))
+                {
+                    list =list.Where(x=>x.Erpstatus.ToLower() == erpStatus.ToLower()).ToList();
+                }
+
                 return list.Select(MapToResponse).ToList();
             }
             catch
@@ -286,6 +330,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     TotalAmount = model.TotalAmount,
                     LedgerId = model.LedgerId,
                     CreatedDate = DateTime.Now,
+                    CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
+                    Erpstatus ="pending",
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
                     {
@@ -364,6 +410,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     isD2d = data.IsD2d,
                     CustomerType = data.CustomerType,
                     LedgerId = data.LedgerId,
+                    erpStatus=data.Erpstatus,
 
 
 
@@ -395,22 +442,22 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         Sgstper = d.Sgstper ?? 0,
                         MfgYear = d.MfgYear ?? 0,
                         RegNo = d.RegNo,
-                        ModelName =d.ModelName ??"",
-                        Colour = d.Colour ??"",
-                        Battery =d.Battery ?? "",
-                        ConvertorNo=d.ConvertorNo??"",
-                        ChargerNo=d.ChargerNo??"",
-                        ControllerNo =d.ControllerNo??"",
-                        Key =d.Key ??"",
-                        BookNo=d.BookNo??"",
-                        ExtWarranty =d.ExtWarranty ??"",
-                        BatteryChemical =d.BatteryChemical ??"",
-                        BatteryCapacity=d.BatteryCapacity ??"",
-                        BatteryMake = d.BatteryMake ??"",
-                        StockDetailsNo=d.StockDetailsNo??"",
-                        Vcu=d.Vcu??""
+                        ModelName = d.ModelName ?? "",
+                        Colour = d.Colour ?? "",
+                        Battery = d.Battery ?? "",
+                        ConvertorNo = d.ConvertorNo ?? "",
+                        ChargerNo = d.ChargerNo ?? "",
+                        ControllerNo = d.ControllerNo ?? "",
+                        Key = d.Key ?? "",
+                        BookNo = d.BookNo ?? "",
+                        ExtWarranty = d.ExtWarranty ?? "",
+                        BatteryChemical = d.BatteryChemical ?? "",
+                        BatteryCapacity = d.BatteryCapacity ?? "",
+                        BatteryMake = d.BatteryMake ?? "",
+                        StockDetailsNo = d.StockDetailsNo ?? "",
+                        Vcu = d.Vcu ?? ""
 
-    }).ToList()
+                    }).ToList()
                 };
             }
             catch
@@ -526,7 +573,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SaleType = header.SaleType ?? ""
                     }).ToList()
                 };
-                header.Erpstatus = "SubmittedToERP";
+                await _repo.UpdateERPStatus(id);
+
                 return result;
             }
             catch
@@ -629,7 +677,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
         public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode)
         {
-                var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
+            var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
 
             var result = new List<PdiOkVehicleChassisViewModel>();
 
@@ -655,7 +703,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     ChassisNo = item.ChassisNo,
                     ItemCode = item.ItemCode,
                     ItemColor = item.ItemColor,
-                    ItemName=item.ItemName,
+                    ItemName = item.ItemName,
                     MfgYear = item.MfgYear,
 
                     KeyNo = item.KeyNo,

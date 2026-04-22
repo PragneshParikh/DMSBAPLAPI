@@ -197,9 +197,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 join cm in _context.ColorMasters
                 on vd.ColrCode equals cm.Colorcode into itemColors
                 from cm in itemColors.DefaultIfEmpty()
+                join jcu in _context.JobCardCustomers
+                on jc.Chassisno equals jcu.ChassisNo into jobCardGroup
+                from jcu in jobCardGroup.DefaultIfEmpty()
+
 
              where jc.DealerCode == dealerCode
-                   && jc.IsPdiSuccess == true
+                   && jc.IsPdiSuccess == true && jcu.SaleDate == null
 
              select new PdiOkVehicleChassisViewModel
              {
@@ -272,6 +276,20 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             catch
             {
                 await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<int> UpdateERPStatus(int id)
+        {
+            try
+            {
+                var saleBill = await _context.VehicleSaleBillHeaders.Where(i=>i.Id == id).FirstOrDefaultAsync();
+                saleBill.Erpstatus = "PushedToERP";
+               return await _context.SaveChangesAsync();  
+            }
+            catch
+            {
                 throw;
             }
         }

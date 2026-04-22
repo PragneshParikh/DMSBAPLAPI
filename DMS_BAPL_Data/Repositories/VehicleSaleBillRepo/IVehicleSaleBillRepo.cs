@@ -23,6 +23,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<decimal?> GetPurchaseRate(string dealerCode, string itemCode);
         Task<List<(string chassisNo, string itemCode)>> GetChassisByDealer(string dealerCode);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiRawDataAsync(string dealerCode);
+        Task<int> UpdateERPStatus(int id);
 
     }
 }
