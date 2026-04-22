@@ -132,10 +132,8 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 var file = await _form22Service.DownloadForm22MasterExcel();
-                if (file == null)
-                {
-                    return NotFound("The requested file could not be found.");
-                }
+                return File(file,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Form22MasterList.xlsx");
+
             }
             catch (Exception ex)
             {
