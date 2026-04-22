@@ -1,4 +1,5 @@
 using DMS_BAPL_Data;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Constants;
@@ -22,6 +23,9 @@ namespace DMS_BAPL_Api.Controllers
 
         // POST api/itemMaster
         [HttpPost]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> InsertItem([FromBody] insertItemMasterViewModel items)
         {
             try
@@ -47,34 +51,61 @@ namespace DMS_BAPL_Api.Controllers
         }
         // GET api/itemMaster
         [HttpGet]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllItems([FromQuery] int? grpidno, string? search)
         {
-            var items = await _itemMasterService.GetAllItemMastersAsync(grpidno, search);
-            return Ok(items);
-
-
+            try
+            {
+                var items = await _itemMasterService.GetAllItemMastersAsync(grpidno, search);
+                return Ok(items);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
         }
 
         // PUT api/itemMaster/{id}
         //[HttpPut("{id}")]
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateItem(int id, [FromBody] ItemMaster item)
         {
-            item.Id = id;
-            await _itemMasterService.UpdateItemAsync(item);
-            return Ok("Item updated successfully");
+            try
+            {
+                item.Id = id;
+                await _itemMasterService.UpdateItemAsync(item);
+                return Ok("Item updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
         }
-
         [HttpGet("download")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Download()
         {
-            var file = await _itemMasterService.DownloadItemMasterExcel();
+            try
+            {
+                var file = await _itemMasterService.DownloadItemMasterExcel();
 
-            return File(
-                file,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "ItemMasterList.xlsx"
-            );
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "ItemMasterList.xlsx"
+                    );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
         }
         [HttpGet("GetPurchaseDetailsByModelNo/{modelNo}")]
         [ProducesResponseType(typeof(ItemMasterViewModel), StatusCodes.Status200OK)]

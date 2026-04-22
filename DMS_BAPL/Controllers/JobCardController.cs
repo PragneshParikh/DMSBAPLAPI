@@ -14,6 +14,7 @@ namespace DMS_BAPL_Api.Controllers
     public class JobCardController : ControllerBase
     {
         private readonly IJobCardRepo _jobCardRepo;
+        private readonly ILogger<LOTInspectionController> _logger;
 
         public JobCardController(IJobCardRepo jobCardRepo)
         {
@@ -21,99 +22,242 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("GetJobType")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobType()
         {
-            var jobTypes = await _jobCardRepo.GetJobtype();
-            return Ok(jobTypes);
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var jobTypes = await _jobCardRepo.GetJobtype();
+                return Ok(jobTypes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetJobType");
+                return StatusCode(500, "An error occurred while fetching job types.");
+            }
+
         }
 
         [HttpGet("GetServiceDataByJobType")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetServiceDataByJobType(string jobTypeName)
         {
-            var serviceData = await _jobCardRepo.GetServiceDataByJobType(jobTypeName);
-            return Ok(serviceData);
-        }
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
+                var serviceData = await _jobCardRepo.GetServiceDataByJobType(jobTypeName);
+                return Ok(serviceData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetServiceDataByJobType");
+                return StatusCode(500, "An error occurred while fetching service data.");
+            }
+        }
         [HttpGet("GetServiceHead")]
         public async Task<IActionResult> GetServiceHead(int jobTypeId)
         {
-            var serviceHeads = await _jobCardRepo.GetServiceHead(jobTypeId);
-            return Ok(serviceHeads);
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var serviceHeads = await _jobCardRepo.GetServiceHead(jobTypeId);
+                return Ok(serviceHeads);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetServiceHead");
+                return StatusCode(500, "An error occurred while fetching service heads.");
+            }
         }
 
         [HttpGet("GetServiceType")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetServiceType(int serviceHeadId)
         {
-            var serviceTypes = await _jobCardRepo.GetServiceType(serviceHeadId);
-            return Ok(serviceTypes);
-        }
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
+                var serviceTypes = await _jobCardRepo.GetServiceType(serviceHeadId);
+                return Ok(serviceTypes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetServiceType");
+                return StatusCode(500, "An error occurred while fetching service types.");
+            }
+        }
         [HttpGet("GetAllInspectedChassis")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllInspectedChassis(string dealerCode)
         {
-            var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode);
-
-            if (data == null || !data.Any())
+            try
             {
-                return NotFound("No inspected records found.");
-            }
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
-            return Ok(data);
+                var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode);
+
+                if (data == null || !data.Any())
+                {
+                    return NotFound("No inspected records found.");
+                }
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetAllInspectedChassis");
+                return StatusCode(500, "An error occurred while fetching inspected chassis.");
+            }
         }
         [HttpGet("GetJobSource")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobSource()
         {
-            var jobSources = await _jobCardRepo.GetJobSource();
-            return Ok(jobSources);
-        }
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
+                var jobSources = await _jobCardRepo.GetJobSource();
+                return Ok(jobSources);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetJobSource");
+                return StatusCode(500, "An error occurred while fetching job sources.");
+            }
+        }
         [HttpGet("GetPdiChecklist")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPdiChecklist()
         {
-            var checklist = await _jobCardRepo.GetPdichecklist();
-            return Ok(checklist);
-        }
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
+                var checklist = await _jobCardRepo.GetPdichecklist();
+                return Ok(checklist);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetPdiChecklist");
+                return StatusCode(500, "An error occurred while fetching PDI checklist.");
+            }
+        }
         [HttpGet("GetJobCardList")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardList(string dealerCode)
         {
-            var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(dealerCode);
-            if (jobCardList == null || !jobCardList.Any())
+            try
             {
-                return NotFound(StringConstants.JobCardNotFound);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(dealerCode);
+                if (jobCardList == null || !jobCardList.Any())
+                {
+                    return NotFound(StringConstants.JobCardNotFound);
+                }
+                return Ok(jobCardList);
             }
-            return Ok(jobCardList);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetJobCardList");
+                return StatusCode(500, "An error occurred while fetching job card list.");
+            }
         }
 
         [HttpPost("SaveJobCardDetails")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SaveJobCardDetails(JobCardDetailsViewModel jobCardDetailsView)
         {
-            var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView);
-            if (result > 0)
+            try
             {
-                return Ok(new
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView);
+                if (result > 0)
                 {
-                    message = StringConstants.JobCardDetailsSaved
-                });
+                    return Ok(new
+                    {
+                        message = StringConstants.JobCardDetailsSaved
+                    });
+                }
+                else
+                {
+                    return StatusCode(500, "An error occurred while saving job card details.");
+                }
             }
-            else
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in SaveJobCardDetails");
                 return StatusCode(500, "An error occurred while saving job card details.");
             }
         }
 
         [HttpPut("UpdateJobCardDetails")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateJobCardDetails([FromBody] UpdateJobCardVM updateJobCardDetails)
         {
-            if (updateJobCardDetails == null)
-                return BadRequest("Invalid data");
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
-            var result = await _jobCardRepo.UpdateJobCardinfoDetails(updateJobCardDetails);
+                if (updateJobCardDetails == null)
+                    return BadRequest("Invalid data");
 
-            if (result > 0)
-                return Ok(new { message = "Job card updated successfully" });
+                var result = await _jobCardRepo.UpdateJobCardinfoDetails(updateJobCardDetails);
 
-            return NotFound(new { message = "Job card not found" });
+                if (result > 0)
+                    return Ok(new { message = "Job card updated successfully" });
+
+                return NotFound(new { message = "Job card not found" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UpdateJobCardDetails");
+                return StatusCode(500, "An error occurred while updating job card details.");
+            }
         }
 
         [HttpGet("GetFilteredJobCard")]
@@ -145,17 +289,28 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
         [HttpDelete("DeleteJobCard/{id}/{role}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteJobCard(int jobId, string role)
         {
-            if (role != "SuperAdmin")
-                return Unauthorized("Only Super Admin can delete");
+            try
+            {
+                if (role != "SuperAdmin")
+                    return Unauthorized("Only Super Admin can delete");
 
-            var result = await _jobCardRepo.DeleteJobCard(jobId);
+                var result = await _jobCardRepo.DeleteJobCard(jobId);
 
-            if (result > 0)
-                return Ok(new { message = "Deleted Successfully" });
+                if (result > 0)
+                    return Ok(new { message = "Deleted Successfully" });
 
-            return NotFound("Job Card not found");
+                return NotFound("Job Card not found");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DeleteJobCard");
+                return StatusCode(500, "An error occurred while deleting the job card.");
+            }
         }
 
     }

@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LeadMasterService;
@@ -21,29 +22,53 @@ namespace DMS_BAPL_Api.Controllers
 
         // POST api/itemMaster
         [HttpPost]
-        public async Task<IActionResult> InsertLMSLead([FromBody] List<LeadViewModel> leadViewModels)
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> InsertLMSLead([FromBody] LeadViewModel leadViewModel)
         {
-            foreach (var lmsLeadData in leadViewModels)
+            if (leadViewModel == null)
             {
-                await _leadMasterService.InsertLmsleadMasterAsync(lmsLeadData);
+                return BadRequest("Lead data is required.");
             }
 
-            return Ok("LMS Customer  details inserted Successfully !");
+            try
+            {
+                // Better: send whole list to service (bulk insert)
+                await _leadMasterService.InsertLmsleadMasterAsync(leadViewModel);
+
+                return Ok(new { message = "LMS Customer details inserted successfully!" });
+            }
+            catch (Exception ex)
+            {
+                // Log error here (important)
+                return StatusCode(500, "Something went wrong while inserting data.");
+            }
         }
 
         // GET api/itemMaster
 
         [HttpGet]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllLMSLead()
         {
-            var items = await _leadMasterService.GetAlllmsleadMasters();
-            return Ok(items);
-
-
-
+            try
+            {
+                var items = await _leadMasterService.GetAlllmsleadMasters();
+                return Ok(items);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("lmsLeadbyMob")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo,int? bookingId)
         {
             try
