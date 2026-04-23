@@ -67,6 +67,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
+                    LedgerCode = model.LedgerCode,
                     Status = false
                 };
 
@@ -420,6 +421,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
+                    LedgerCode = model.LedgerCode,
                 };
                 await _repo.UpdatePOHeaderAsync(po);
 

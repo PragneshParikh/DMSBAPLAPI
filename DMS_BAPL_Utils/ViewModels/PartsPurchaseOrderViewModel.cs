@@ -10,6 +10,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string POType { get; set; }
         public string CustomerCode { get; set; }
         public string? TransactionType { get; set; }
+        public string? LocCode { get; set; }
         public List<PartsPurchaseOrderDetailsViewModel> Items { get; set; }
     }
 

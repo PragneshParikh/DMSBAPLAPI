@@ -23,6 +23,8 @@ public partial class PurchaseOrder
 
     public string? LocCode { get; set; }
 
+    public string? LedgerCode { get; set; }
+
     public string? Remarks { get; set; }
 
     public bool? IsAgainstKit { get; set; }

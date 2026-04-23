@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using System;
 using System.Collections.Generic;
@@ -18,6 +18,6 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<bool> CheckLedgerExist(string? email, string? mobile);
         Task<LedgerMaster> CreateLedgerFromLead(LmsleadMaster lead, string userId);
         Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile);
-
+        Task<IEnumerable<LedgerMaster>> GetCompanyLedgers();
     }
 }

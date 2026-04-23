@@ -1705,6 +1705,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FameIIFlag");
+            entity.Property(e => e.LedgerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.LocCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1882,6 +1885,10 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(50);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobType).WithMany(p => p.ServiceHeads)
+                .HasForeignKey(d => d.JobTypeId)
+                .HasConstraintName("FK_ServiceHead_JobType");
         });
 
         modelBuilder.Entity<ServiceType>(entity =>
@@ -1896,6 +1903,10 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.ServiceHead).WithMany(p => p.ServiceTypes)
+                .HasForeignKey(d => d.ServiceHeadId)
+                .HasConstraintName("FK_ServiceType_ServiceHead");
         });
 
         modelBuilder.Entity<State>(entity =>

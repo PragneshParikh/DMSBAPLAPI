@@ -20,4 +20,8 @@ public partial class ServiceHead
     public DateTime? UpdatedDate { get; set; }
 
     public virtual ICollection<JobCardHeader> JobCardHeaders { get; set; } = new List<JobCardHeader>();
+
+    public virtual JobType? JobType { get; set; }
+
+    public virtual ICollection<ServiceType> ServiceTypes { get; set; } = new List<ServiceType>();
 }

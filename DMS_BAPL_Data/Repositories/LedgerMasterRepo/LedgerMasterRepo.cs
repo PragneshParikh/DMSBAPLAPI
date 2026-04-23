@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Mvc;
@@ -224,6 +224,18 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             {
                 throw;
             }
+        }
+        public async Task<IEnumerable<LedgerMaster>> GetCompanyLedgers()
+        {
+            try
+            {
+                return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
+                    .OrderBy(c => c.LedgerName)
+                    .ToListAsync();
+            }
+            catch { throw; }
         }
     }
 }
