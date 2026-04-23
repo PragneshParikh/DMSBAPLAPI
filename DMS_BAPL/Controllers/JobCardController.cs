@@ -334,6 +334,26 @@ namespace DMS_BAPL_Api.Controllers
                 _logger.LogError(ex, "Error in DeleteJobCard");
                 return StatusCode(500, "An error occurred while deleting the job card.");
             }
+            
+        }
+
+        [HttpPost("SearchJobCard")]
+        public async Task<IActionResult> SearchJobCard([FromBody] JobCardSearchModel model)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _jobCardRepo.SearchJobCards(model);
+                return Ok(result);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchJobCard");
+                return StatusCode(500, "An error occurred while searching job cards.");
+            }
         }
 
     }

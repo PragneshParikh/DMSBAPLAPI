@@ -790,6 +790,94 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return await _context.SaveChangesAsync();
         }
+
+        public async Task<List<JobCardDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
+        {
+            var query = from jc in _context.JobCardHeaders
+                        join cust in _context.JobCardCustomers
+                        on jc.Id equals cust.JobCardHeaderId
+                        select new { jc, cust };
+
+            // Dealer
+            if (!string.IsNullOrWhiteSpace(model.DealerCode))
+                query = query.Where(x => x.jc.DealerCode == model.DealerCode);
+
+            // Date From
+            if (model.FromDate.HasValue)
+                query = query.Where(x => x.jc.JobinDate >= model.FromDate.Value);
+
+            // Date To (FULL DAY FIX)
+            if (model.ToDate.HasValue)
+                query = query.Where(x => x.jc.JobinDate < model.ToDate.Value.AddDays(1));
+
+            // Location
+            if (!string.IsNullOrWhiteSpace(model.ServiceLocation))
+                query = query.Where(x => x.jc.Serviceloc == model.ServiceLocation);
+
+            // Job No (IMPORTANT FIX)
+            if (model.JobNo.HasValue && model.JobNo > 0)
+                query = query.Where(x => x.jc.JobNo == model.JobNo.Value);
+
+            // Customer Name
+            if (!string.IsNullOrWhiteSpace(model.CustomerName))
+                query = query.Where(x => x.cust.CustomerName.Contains(model.CustomerName));
+
+            // Chassis (FIX: use jc not cust if needed)
+            if (!string.IsNullOrWhiteSpace(model.ChassisNo))
+                query = query.Where(x => x.jc.Chassisno.Contains(model.ChassisNo));
+
+            // FINAL SELECT
+            var result = await query.Select(x => new JobCardDetailsViewModel
+            {
+                JobCardHeader = new JobCardHeaderVM
+                {
+                    Id = x.jc.Id, // IMPORTANT (for edit/delete)
+                    JobNo = x.jc.JobNo,
+                    JobinDate = x.jc.JobinDate,
+                    InvoiceNo = x.jc.InvoiceNo,
+                    ManualjobNo = x.jc.ManualjobNo,
+                    Serviceloc = x.jc.Serviceloc,
+                },
+
+                JobCardCustomer = new JobCardCustomerVM
+                {
+                    CustomerName = x.cust.CustomerName,
+                    ChassisNo = x.cust.ChassisNo,
+                    ModelName = x.cust.ModelName,
+                    RegisterNo = x.cust.RegisterNo,
+                    CustomerMobile = x.cust.CustomerMobile
+                },
+
+                // JOIN OPTIMIZED (no subquery performance issue)
+                Jobtype = _context.JobTypes
+                            .Where(j => j.Id == x.jc.Jobtype)
+                            .Select(j => j.JobTypeName)
+                            .FirstOrDefault(),
+
+                Jobsource = _context.JobSources
+                            .Where(js => js.Id == x.jc.JobSource)
+                            .Select(js => js.JobSourceName)
+                            .FirstOrDefault(),
+
+                serviceHead = _context.ServiceHeads
+                            .Where(s => s.Id == x.jc.Servicehead)
+                            .Select(s => s.ServiceHeadName)
+                            .FirstOrDefault(),
+
+                serviceType = _context.ServiceTypes
+                            .Where(s => s.Id == x.jc.Servicetype)
+                            .Select(s => s.ServiceTypeName)
+                            .FirstOrDefault(),
+
+                Complaint = _context.JobCardComplaints
+                            .Where(c => c.JobCardHeaderId == x.jc.Id)
+                            .Select(c => c.Complaint)
+                            .FirstOrDefault(),
+
+            }).ToListAsync();
+
+            return result;
+        }
         //public async Task<JobCardViewModel> GetJobCardById(int id)
         //{
         //    try

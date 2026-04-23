@@ -320,4 +320,15 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateOnly? InsuranceExpDate { get; set; }
     }
+
+    public class JobCardSearchModel
+    {
+        public string? DealerCode { get; set; }
+        public DateOnly? FromDate { get; set; }
+        public DateOnly? ToDate { get; set; }
+        public string? ServiceLocation { get; set; }
+        public int? JobNo { get; set; }
+        public string? CustomerName { get; set; }
+        public string? ChassisNo { get; set; }
+    }
 }
