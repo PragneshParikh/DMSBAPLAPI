@@ -33,12 +33,15 @@ namespace DMS_BAPL_Utils.ViewModels
         public int RefPoint { get; set; }
         public string RefRemarks { get; set; } = null!;
         public decimal TotalAmount { get; set; }
+        public string? ErpStatus { get; set; }
+
         public List<VehicleSaleBillDetailVM> Details { get; set; } = new();
 
     }
 
     public class VehicleSaleBillDetailVM
     {
+        public int Id { get; set; }
         public string ChassisNo { get; set; } = null!;
         public decimal ItemRate { get; set; }
         public decimal PreGstDiscount { get; set; }

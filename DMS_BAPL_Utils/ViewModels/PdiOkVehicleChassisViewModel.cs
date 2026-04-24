@@ -24,7 +24,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public decimal? DealerPrice { get; set; }
         public decimal? CustomerPrice { get; set; }
-        public string DealerCode { get; set; }  
+        public string DealerCode { get; set; }
 
         public string BatteryChemical { get; set; }
         public string BatteryCapacity { get; set; }
@@ -32,7 +32,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string StockNo { get; set; }
 
-       
+
         public decimal PreGstDisc { get; set; }
         public decimal TaxableAmount { get; set; }
         public decimal SGSTPer { get; set; }
@@ -41,5 +41,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal CGST { get; set; }
         public decimal IGSTPer { get; set; }
         public decimal IGST { get; set; }
+        public DateOnly? CustomerSaleDate { get; set; }
     }
 }

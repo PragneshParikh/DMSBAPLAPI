@@ -58,6 +58,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 return await _context.VehicleSaleBillHeaders
                     .Include(x => x.VehicleSaleBillDetails)
+                    .OrderByDescending(x=>x.CreatedDate)
                     .ToListAsync();
             }
             catch
@@ -193,17 +194,18 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
              from bd in batteryGroup.DefaultIfEmpty()
              join im in _context.ItemMasters
                 on vd.ItemCode equals im.Itemcode into itemGroups
-                from im in itemGroups.DefaultIfEmpty()
-                join cm in _context.ColorMasters
-                on vd.ColrCode equals cm.Colorcode into itemColors
-                from cm in itemColors.DefaultIfEmpty()
-                join jcu in _context.JobCardCustomers
-                on jc.Chassisno equals jcu.ChassisNo into jobCardGroup
-                from jcu in jobCardGroup.DefaultIfEmpty()
+             from im in itemGroups.DefaultIfEmpty()
+             join cm in _context.ColorMasters
+             on vd.ColrCode equals cm.Colorcode into itemColors
+             from cm in itemColors.DefaultIfEmpty()
+             join jcu in _context.JobCardCustomers
+             on jc.Chassisno equals jcu.ChassisNo into jobCardGroup
+             from jcu in jobCardGroup.DefaultIfEmpty()
 
 
              where jc.DealerCode == dealerCode
-                   && jc.IsPdiSuccess == true && jcu.SaleDate == null
+                   && jc.IsPdiSuccess == true
+             && jcu.SaleDate == null
 
              select new PdiOkVehicleChassisViewModel
              {
@@ -211,8 +213,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ItemCode = vd.ItemCode,
                  ItemColor = cm.Colorname,
                  MfgYear = vd.MfgYear,
-                 ItemName = im.Itemname,              
-                 
+                 ItemName = im.Itemname,
+
                  KeyNo = vd.KeyNo,
                  BookNo = vd.ServBkno,
 
@@ -224,11 +226,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ChargerNo = bd.ChargerNo ?? vd.ChargerNo,
                  ControllerNo = bd.ControllerNo ?? vd.ControllerNo,
                  ConverterNo = bd.ConverterNo ?? vd.Converter,
-                 DealerPrice =im.Dlrprice,
+                 DealerPrice = im.Dlrprice,
                  CustomerPrice = im.Custprice,
-                 PreGstDisc =im.Fame2amount,
+                 PreGstDisc = im.Fame2amount,
 
-                 DealerCode = jc.DealerCode
+                 DealerCode = jc.DealerCode,
+                 CustomerSaleDate = jcu.SaleDate
              }
          ).ToListAsync();
 
@@ -243,7 +246,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        public async Task<int> CreateWithJobUpdateAsync( VehicleSaleBillHeader header,List<UpdateSaleDetailsVM> jobUpdates)
+        public async Task<int> CreateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -253,7 +256,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Add(header);
                 await _context.SaveChangesAsync();
 
-                // 2. Update JobCards (NO separate SaveChanges in repo)
+                // 2. Update JobCards 
                 foreach (var item in jobUpdates)
                 {
                     var job = await _context.JobCardCustomers
@@ -284,9 +287,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         {
             try
             {
-                var saleBill = await _context.VehicleSaleBillHeaders.Where(i=>i.Id == id).FirstOrDefaultAsync();
+                var saleBill = await _context.VehicleSaleBillHeaders.Where(i => i.Id == id).FirstOrDefaultAsync();
                 saleBill.Erpstatus = "PushedToERP";
-               return await _context.SaveChangesAsync();  
+                return await _context.SaveChangesAsync();
             }
             catch
             {
@@ -294,5 +297,58 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        public async Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates, List<string> deletedChassisList)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Update Header
+                _context.VehicleSaleBillHeaders.Update(header);
+
+                // 2. Update JobCards 
+
+                var allChassis = jobUpdates.Select(x => x.ChassisNo).Concat(deletedChassisList).Distinct().ToList();
+
+                var jobs = await _context.JobCardCustomers
+                    .Where(x => allChassis.Contains(x.ChassisNo))
+                    .ToListAsync();
+
+                foreach (var item in jobUpdates)
+                {
+                    var job = jobs.Where(c=>c.ChassisNo == item.ChassisNo).FirstOrDefault();
+
+                    if (job == null) continue;
+
+                    job.SaleDate = item.SaleDate;
+                    job.InsuranceExpDate = item.InsuranceExpDate;
+                    job.RegisterNo = item.RegisterNo;
+                }
+
+                //pdating JobCardCustomer if any of the Chassis no was deleted
+                foreach(var item in deletedChassisList)
+                {
+                    var deletedJC = jobs.Where(c=>c.ChassisNo == item).FirstOrDefault();   
+                    
+                   if(deletedJC == null) continue;
+                    deletedJC.InsuranceExpDate = null;
+                    deletedJC.RegisterNo = null;
+                    deletedJC.SaleDate = null;
+                }
+
+                // 3. Save
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
     }
+
+
 }
