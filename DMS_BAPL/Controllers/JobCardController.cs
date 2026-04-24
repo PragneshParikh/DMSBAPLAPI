@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
@@ -260,28 +261,29 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        //[HttpGet("{Id}")]
-        //[ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //public async Task<IActionResult> GetJobCardDetailsById(int Id)
-        //{
-        //    try
-        //    {
-        //        string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+        [HttpGet("{Id}")]
+        [ProducesResponseType(typeof(JobCardHeader), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<JobCardHeader>> GetJobCardDetailsById(int Id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-        //        if (string.IsNullOrEmpty(userId))
-        //            return Unauthorized("User not authorized");
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
-        //        var jobCard = _jobCardRepo.GetJobCardById(Id);
+                var jobCard = await _jobCardRepo.GetJobCardById(Id);
 
-        //        return Ok(jobCard);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw;
-        //    }
-        //}
+                return Ok(jobCard);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while getting job card by Id : ${ex.Message}");
+                throw;
+            }
+        }
 
         [HttpGet("GetFilteredJobCard")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]

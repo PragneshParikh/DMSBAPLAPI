@@ -19,7 +19,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             _context = context;
         }
-
         // bind jobtype dropdown
         public async Task<List<JobCardViewModel>> GetJobtype()
         {
@@ -31,7 +30,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 })
                 .ToListAsync();
         }
-
         // bind service head dropdown based on job type
         public async Task<List<ServiceHeadViewModel>> GetServiceHead(int jobTypeId)
         {
@@ -43,7 +41,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     ServiceHeadName = x.ServiceHeadName
                 }).ToListAsync();
         }
-
         // bind service type dropdown based on service head
         public async Task<List<ServiceTypeViewModel>> GetServiceType(int serviceHeadId)
         {
@@ -55,7 +52,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     ServiceTypeName = x.ServiceTypeName
                 }).ToListAsync();
         }
-
         // get service data based on job type
         public async Task<List<ServiceDataViewModel>> GetServiceDataByJobType(string jobTypeName)
         {
@@ -72,7 +68,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return result;
         }
-
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
         {
             try
@@ -153,7 +148,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 return new List<LotInspectionChassisVM>();
             }
         }
-
         public async Task<List<JobSourceViewModel>> GetJobSource()
         {
             return await _context.JobSources
@@ -164,12 +158,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 })
                 .ToListAsync();
         }
-
         public async Task<List<PdichecklistMaster>> GetPdichecklist()
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-
         public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string dealerCode)
         {
             var jobCardsResult = await (
@@ -355,7 +347,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return jobCardsResult;
         }
-
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -499,7 +490,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw;
             }
         }
-
         public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -676,7 +666,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw;
             }
         }
-
         public async Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize)
         {
             try
@@ -745,15 +734,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             }
             catch { throw; }
         }
-
         public async Task<int> UpdateSaleDetails(UpdateSaleDetailsVM updateSale)
         {
             try
             {
-                var job = await _context.JobCardCustomers.Where(i=>i.ChassisNo== updateSale.ChassisNo).FirstOrDefaultAsync();
-                job.SaleDate= updateSale.SaleDate;
-                job.InsuranceExpDate= updateSale.InsuranceExpDate;
-                job.RegisterNo= updateSale.RegisterNo;
+                var job = await _context.JobCardCustomers.Where(i => i.ChassisNo == updateSale.ChassisNo).FirstOrDefaultAsync();
+                job.SaleDate = updateSale.SaleDate;
+                job.InsuranceExpDate = updateSale.InsuranceExpDate;
+                job.RegisterNo = updateSale.RegisterNo;
                 await _context.SaveChangesAsync();
                 return 1;
 
@@ -886,5 +874,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         //    }
         //    catch { throw; }
         //}
+        public async Task<JobCardHeader?> GetJobCardById(int id)
+        {
+            return await _context.JobCardHeaders
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
     }
 }

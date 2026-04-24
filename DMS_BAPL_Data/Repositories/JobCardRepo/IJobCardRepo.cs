@@ -26,5 +26,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<int> DeleteJobCard(int jobId);
         Task<List<JobCardDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
 
+        Task<JobCardHeader> GetJobCardById(int Id);
     }
 }
