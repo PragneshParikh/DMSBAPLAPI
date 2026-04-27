@@ -37,14 +37,6 @@ public partial class VehicleSaleBillDetail
 
     public bool IsAgainstExchange { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
-
-    public DateTime CreatedDate { get; set; }
-
-    public string? UpdatedBy { get; set; }
-
-    public DateTime? UpdatedDate { get; set; }
-
     public decimal? Sgstper { get; set; }
 
     public decimal? Sgstamnt { get; set; }
@@ -94,6 +86,14 @@ public partial class VehicleSaleBillDetail
     public string? StockDetailsNo { get; set; }
 
     public string? Vcu { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public DateTime CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }

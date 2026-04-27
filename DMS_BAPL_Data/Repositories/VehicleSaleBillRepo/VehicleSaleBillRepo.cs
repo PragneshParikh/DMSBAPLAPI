@@ -187,7 +187,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 var data = await (
              from jc in _context.JobCardHeaders
-             join vd in _context.VehicleDispatches
+             join vd in _context.VehicleInwards
                  on jc.Chassisno equals vd.ChasisNo
              join bd in _context.JobCardBatteryDetails
                  on jc.Id equals bd.JobCardHeaderId into batteryGroup

@@ -42,7 +42,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     return 0;
 
                 // Get invoice data from DB table
-                var invoiceData = await _context.VehicleDispatches
+                var invoiceData = await _context.VehicleInwards
                     .FirstOrDefaultAsync(x => x.InvoiceNo == invoiceNo);
 
                 if (invoiceData == null)
