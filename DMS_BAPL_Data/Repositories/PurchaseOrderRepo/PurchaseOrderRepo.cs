@@ -101,6 +101,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 existing.TransactionType = po.TransactionType;
                 existing.Remarks = po.Remarks;
                 existing.LocCode = po.LocCode;
+                existing.LedgerCode = po.LedgerCode;
+                existing.UpdatedBy = po.UpdatedBy;
+                existing.UpdatedDate = po.UpdatedDate;
                 
                 await _context.SaveChangesAsync();
             }
