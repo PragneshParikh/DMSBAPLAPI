@@ -19,6 +19,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<VehicleSaleExportViewModel?> GetExportData(int id);
         Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode);
+        Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
 
     }
 }

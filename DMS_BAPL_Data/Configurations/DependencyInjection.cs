@@ -20,9 +20,11 @@ using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
+using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
+using DMS_BAPL_Data.Repositories.PerformaInvoiceRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
@@ -56,6 +58,7 @@ using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.OEMModelWarrantyService;
+using DMS_BAPL_Data.Services.PerformaInvoiceService;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Data.Services.ReceiptEntryService;
@@ -111,6 +114,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelWarrantyRepo, OEMModelWarrantyRepo>();
             services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
 
+            services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
+            services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
             #endregion
 
             #region Services Registration
@@ -149,6 +154,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOEMModelWarrantyService, OEMModelWarrantyService>();
             services.AddScoped<IMaterialTransferService, MaterialTransferService>();
             services.AddScoped<IExtendedBatteryWarrantyService, ExtendedBatteryWarrantyService>();
+            services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
