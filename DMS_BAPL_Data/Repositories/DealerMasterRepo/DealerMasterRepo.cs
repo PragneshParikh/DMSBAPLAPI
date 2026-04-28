@@ -45,7 +45,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     Mobile = dealer.Mobile,
                     Email = dealer.Email,
                     Contactperson = dealer.Contactperson,
-                    RegDate = ParseRegDate(dealer.RegDate),
+                    RegDate = dealer.RegDate,
                     TradCert = dealer.TradCert ?? "",
                     CompgstinNo = dealer.CompgstinNo ?? "",
                     BrandName = dealer.BrandName,
@@ -65,7 +65,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 };
 
                 await _context.DealerMasters.AddAsync(newDealer);
-               // await _context.SaveChangesAsync();
+                // await _context.SaveChangesAsync();
 
                 return newDealer;
             }
@@ -79,12 +79,10 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         public async Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId)
         {
             var state = await _context.States
-    .FirstOrDefaultAsync(s => s.StateName.ToLower() == dealer.State.ToLower());
+                .FirstOrDefaultAsync(s => s.StateName.ToLower() == dealer.State.ToLower());
 
-          
             var city = await _context.Cities
-                .FirstOrDefaultAsync(c => c.CityName.ToLower() == dealer.City.ToLower()
-                                      && c.StateId == state.StateId);
+                .FirstOrDefaultAsync(c => c.CityName.ToLower() == dealer.City.ToLower() && c.StateId == state.StateId);
 
             var ledger = new LedgerMaster
             {
@@ -105,10 +103,10 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             };
 
             await _context.LedgerMasters.AddAsync(ledger);
-          //  await _context.SaveChangesAsync();
+            //  await _context.SaveChangesAsync();
 
         }
-        
+
         // Get all dealers with optional search
         public async Task<List<DealerMaster>> GetAllDealersAsync(string? search)
         {
@@ -144,7 +142,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     );
                 }
 
-                return await query.OrderByDescending(i=>i.CreatedDate).ToListAsync();
+                return await query.OrderByDescending(i => i.CreatedDate).ToListAsync();
             }
             catch
             {
@@ -204,7 +202,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 existingDealer.Mobile = dealerDto.Mobile;
                 existingDealer.Email = dealerDto.Email;
                 existingDealer.Contactperson = dealerDto.Contactperson;
-                existingDealer.RegDate = ParseRegDate(dealerDto.RegDate);
+                existingDealer.RegDate = dealerDto.RegDate;
                 existingDealer.TradCert = dealerDto.TradCert ?? "";
                 existingDealer.CompgstinNo = dealerDto.CompgstinNo ?? "";
                 existingDealer.BrandName = dealerDto.BrandName;
