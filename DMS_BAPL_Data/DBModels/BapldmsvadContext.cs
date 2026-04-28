@@ -501,7 +501,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.FromDate).HasColumnType("datetime");
-            entity.Property(e => e.Gstpercentage).HasColumnName("GSTPercentage");
+            entity.Property(e => e.Gst).HasColumnName("GST");
             entity.Property(e => e.Kms)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("KMS");

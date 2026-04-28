@@ -25,7 +25,7 @@ public partial class ExtendedBatteryWarranty
 
     public decimal DiscountAmount { get; set; }
 
-    public int Gstpercentage { get; set; }
+    public int Gst { get; set; }
 
     public int PurchaseValidity { get; set; }
 

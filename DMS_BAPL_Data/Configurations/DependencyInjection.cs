@@ -19,6 +19,7 @@ using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
+using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
@@ -107,6 +108,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICityRepo, CityRepo>();
             services.AddScoped<IMaterialTransferRepo, MaterialTransferRepo>();
             services.AddScoped<IOEMModelWarrantyRepo, OEMModelWarrantyRepo>();
+            services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
 
             #endregion
 
