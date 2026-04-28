@@ -17,12 +17,12 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
         {
             _vehicleDispatchRepo = vehicleDispatchRepo;
         }
-        Task<IEnumerable<VehicleDispatch>> IVehicleDispatchService.Get()
+        Task<IEnumerable<VehicleInward>> IVehicleDispatchService.Get()
         {
             return _vehicleDispatchRepo.Get();
         }
 
-        Task<IEnumerable<VehicleDispatch>> IVehicleDispatchService.GetVehicleByStatus(string dealerCode, bool status)
+        Task<IEnumerable<VehicleInward>> IVehicleDispatchService.GetVehicleByStatus(string dealerCode, bool status)
         {
             return _vehicleDispatchRepo.GetVehicleByStatus(dealerCode, status);
         }
@@ -32,7 +32,7 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             return _vehicleDispatchRepo.UpdateInvoiceStatus(invoiceNo, userId);
         }
 
-        Task<bool> IVehicleDispatchService.InsertVehicleDispatchDetail(List<VehicleDispatch> vehicleDispatches) => _vehicleDispatchRepo.InsertVehicleDispatchDetail(vehicleDispatches);
+        Task<bool> IVehicleDispatchService.InsertVehicleDispatchDetail(List<VehicleInward> vehicleDispatches) => _vehicleDispatchRepo.InsertVehicleDispatchDetail(vehicleDispatches);
 
     }
 }

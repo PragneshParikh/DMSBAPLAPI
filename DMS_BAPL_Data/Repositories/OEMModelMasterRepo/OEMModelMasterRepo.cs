@@ -131,5 +131,15 @@ namespace DMS_BAPL_Data.Repositories.OEMModelMasterRepo
             return true;
         }
 
+        public async Task<IEnumerable<OemmodelMaster>> GetOEMModelByStatus(bool isActive)
+        {
+            try
+            {
+                return await _context.OemmodelMasters
+                    .Where(x => x.IsActive == isActive)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
     }
 }

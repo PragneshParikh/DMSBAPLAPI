@@ -186,20 +186,20 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 var data = await (
              from jc in _context.JobCardHeaders
-             join vd in _context.VehicleDispatches
+             join vd in _context.VehicleInwards
                  on jc.Chassisno equals vd.ChasisNo
              join bd in _context.JobCardBatteryDetails
                  on jc.Id equals bd.JobCardHeaderId into batteryGroup
              from bd in batteryGroup.DefaultIfEmpty()
              join im in _context.ItemMasters
                 on vd.ItemCode equals im.Itemcode into itemGroups
-                from im in itemGroups.DefaultIfEmpty()
-                join cm in _context.ColorMasters
-                on vd.ColrCode equals cm.Colorcode into itemColors
-                from cm in itemColors.DefaultIfEmpty()
-                join jcu in _context.JobCardCustomers
-                on jc.Chassisno equals jcu.ChassisNo into jobCardGroup
-                from jcu in jobCardGroup.DefaultIfEmpty()
+             from im in itemGroups.DefaultIfEmpty()
+             join cm in _context.ColorMasters
+             on vd.ColrCode equals cm.Colorcode into itemColors
+             from cm in itemColors.DefaultIfEmpty()
+             join jcu in _context.JobCardCustomers
+             on jc.Chassisno equals jcu.ChassisNo into jobCardGroup
+             from jcu in jobCardGroup.DefaultIfEmpty()
 
 
              where jc.DealerCode == dealerCode
@@ -211,8 +211,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ItemCode = vd.ItemCode,
                  ItemColor = cm.Colorname,
                  MfgYear = vd.MfgYear,
-                 ItemName = im.Itemname,              
-                 
+                 ItemName = im.Itemname,
+
                  KeyNo = vd.KeyNo,
                  BookNo = vd.ServBkno,
 
@@ -224,9 +224,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ChargerNo = bd.ChargerNo ?? vd.ChargerNo,
                  ControllerNo = bd.ControllerNo ?? vd.ControllerNo,
                  ConverterNo = bd.ConverterNo ?? vd.Converter,
-                 DealerPrice =im.Dlrprice,
+                 DealerPrice = im.Dlrprice,
                  CustomerPrice = im.Custprice,
-                 PreGstDisc =im.Fame2amount,
+                 PreGstDisc = im.Fame2amount,
 
                  DealerCode = jc.DealerCode
              }
@@ -243,7 +243,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        public async Task<int> CreateWithJobUpdateAsync( VehicleSaleBillHeader header,List<UpdateSaleDetailsVM> jobUpdates)
+        public async Task<int> CreateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -284,9 +284,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         {
             try
             {
-                var saleBill = await _context.VehicleSaleBillHeaders.Where(i=>i.Id == id).FirstOrDefaultAsync();
+                var saleBill = await _context.VehicleSaleBillHeaders.Where(i => i.Id == id).FirstOrDefaultAsync();
                 saleBill.Erpstatus = "PushedToERP";
-               return await _context.SaveChangesAsync();  
+                return await _context.SaveChangesAsync();
             }
             catch
             {

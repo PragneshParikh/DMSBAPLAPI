@@ -15,11 +15,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         {
             _context = context;
         }
-        async Task<IEnumerable<VehicleDispatch>> IVehicleDispatchRepo.Get()
+        async Task<IEnumerable<VehicleInward>> IVehicleDispatchRepo.Get()
         {
             try
             {
-                return _context.VehicleDispatches.ToList();
+                return _context.VehicleInwards.ToList();
             }
             catch (Exception)
             {
@@ -27,11 +27,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
-        async Task<IEnumerable<VehicleDispatch>> IVehicleDispatchRepo.GetVehicleByStatus(string dealerCode, bool status)
+        async Task<IEnumerable<VehicleInward>> IVehicleDispatchRepo.GetVehicleByStatus(string dealerCode, bool status)
         {
             try
             {
-                return await _context.VehicleDispatches
+                return await _context.VehicleInwards
                     .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
                     .ToListAsync();
             }
@@ -44,7 +44,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         {
             try
             {
-                var affectedRows = await _context.VehicleDispatches
+                var affectedRows = await _context.VehicleInwards
                         .Where(x => x.InvoiceNo == invoiceNo)
                         .ExecuteUpdateAsync(setters => setters
                             .SetProperty(x => x.IsAccepted, true)
@@ -58,11 +58,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
-        async Task<bool> IVehicleDispatchRepo.InsertVehicleDispatchDetail(List<VehicleDispatch> vehicleDispatches)
+        async Task<bool> IVehicleDispatchRepo.InsertVehicleDispatchDetail(List<VehicleInward> vehicleDispatches)
         {
             try
             {
-                _context.VehicleDispatches.AddRange(vehicleDispatches);
+                _context.VehicleInwards.AddRange(vehicleDispatches);
                 await _context.SaveChangesAsync();
                 return true;
             }

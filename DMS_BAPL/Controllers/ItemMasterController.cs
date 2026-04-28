@@ -171,5 +171,28 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch { throw; }
         }
+
+        [HttpGet("GetItemsByOEMModel/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<ItemMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ItemMaster>>> GetItemsByOEMModel(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemsByOEMModel(id);
+
+                return Ok(items);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

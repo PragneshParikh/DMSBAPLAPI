@@ -105,6 +105,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         }
 
         public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);
+        public Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id) => _itemMasterRepo.GetItemsByOEMModel(id);
 
     }
 }

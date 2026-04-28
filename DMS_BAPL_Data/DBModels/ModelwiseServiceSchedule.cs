@@ -9,6 +9,10 @@ public partial class ModelwiseServiceSchedule
 
     public int OemmodelId { get; set; }
 
+    public int? Noofservice { get; set; }
+
+    public int? Seqno { get; set; }
+
     public string? SrNo { get; set; }
 
     public int DaysFrom { get; set; }
@@ -19,11 +23,11 @@ public partial class ModelwiseServiceSchedule
 
     public int JourneyTo { get; set; }
 
-    public string? ServiceFrom { get; set; }
+    public int? ServiceFrom { get; set; }
 
-    public string? ServiceHead { get; set; }
+    public int ServiceHead { get; set; }
 
-    public string? ServiceType { get; set; }
+    public int ServiceType { get; set; }
 
     public DateTime? EffectiveDate { get; set; }
 
@@ -34,4 +38,10 @@ public partial class ModelwiseServiceSchedule
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual OemmodelMaster Oemmodel { get; set; } = null!;
+
+    public virtual ServiceHead ServiceHeadNavigation { get; set; } = null!;
+
+    public virtual ServiceType ServiceTypeNavigation { get; set; } = null!;
 }

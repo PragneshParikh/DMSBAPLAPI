@@ -51,6 +51,10 @@ public partial class VehicleSaleBillHeader
 
     public decimal? TotalAmount { get; set; }
 
+    public string? Erpstatus { get; set; }
+
+    public int? LedgerId { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -58,10 +62,6 @@ public partial class VehicleSaleBillHeader
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? Erpstatus { get; set; }
-
-    public int? LedgerId { get; set; }
 
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
 }
