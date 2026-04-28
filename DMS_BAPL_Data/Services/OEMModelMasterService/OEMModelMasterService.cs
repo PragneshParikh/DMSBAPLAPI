@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.Repositories.LocationMasterRepo;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.ViewModels;
@@ -84,6 +85,11 @@ namespace DMS_BAPL_Data.Services.OEMModelMasterService
                 Console.WriteLine(ex.ToString());
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<OemmodelMaster>> GetOEMModelByStatus(bool isActive)
+        {
+            return await _oemmasterrepo.GetOEMModelByStatus(isActive);
         }
     }
 }

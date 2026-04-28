@@ -19,5 +19,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
         Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo);
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
+        Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
     }
 }

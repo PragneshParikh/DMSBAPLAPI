@@ -48,7 +48,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public int Noofbatteries { get; set; }
 
-        public string Colorcode { get; set; } = null!;
+        public string? Colorcode { get; set; } = null!;
 
         public string? ColorName { get; set; } = null!;
 
@@ -107,7 +107,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public int Noofbatteries { get; set; }
 
-        public string Colorcode { get; set; } = null!;
+        public string? Colorcode { get; set; } = null!;
 
         public int Rrgitemidno { get; set; }
 

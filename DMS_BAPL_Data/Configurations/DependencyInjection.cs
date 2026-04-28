@@ -5,6 +5,7 @@ using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
@@ -41,6 +42,7 @@ using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.ExcelServices;
+using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
@@ -110,6 +112,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICityRepo, CityRepo>();
             services.AddScoped<IMaterialTransferRepo, MaterialTransferRepo>();
             services.AddScoped<IOEMModelWarrantyRepo, OEMModelWarrantyRepo>();
+            services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
+
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
             services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
             #endregion
@@ -149,6 +153,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxServices, TaxServices>();
             services.AddScoped<IOEMModelWarrantyService, OEMModelWarrantyService>();
             services.AddScoped<IMaterialTransferService, MaterialTransferService>();
+            services.AddScoped<IExtendedBatteryWarrantyService, ExtendedBatteryWarrantyService>();
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
 
             // Email SErvice
