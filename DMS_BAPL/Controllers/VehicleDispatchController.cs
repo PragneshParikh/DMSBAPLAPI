@@ -94,7 +94,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> InsertVehicleDispatchDetails([FromBody] List<VehicleDispatch> vehicleDispatch)
+        public async Task<IActionResult> InsertVehicleDispatchDetails([FromBody] List<VehicleInward> vehicleDispatch)
         {
             try
             {

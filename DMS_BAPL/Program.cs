@@ -17,9 +17,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngularApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200", "https://bapldmssite-emfwfqb7dqe8hwa9.centralindia-01.azurewebsites.net")
-                   .AllowAnyHeader()
-                   .AllowAnyMethod();
+            //policy.WithOrigins("http://localhost:4200", "https://bapldmssite-emfwfqb7dqe8hwa9.centralindia-01.azurewebsites.net")
+            //       .AllowAnyHeader()
+            //       .AllowAnyMethod();
+            policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+
         });
 });
 

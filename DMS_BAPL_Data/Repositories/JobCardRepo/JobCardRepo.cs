@@ -79,7 +79,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 var data = await (from h in _context.LotinspectionHeaders
                                   join d in _context.LotinspectionDetails
                                       on h.Id equals d.LotHeaderId
-                                  join v in _context.VehicleDispatches
+                                  join v in _context.VehicleInwards
                                       on d.ChassisNo equals v.ChasisNo
                                   join i in _context.ItemMasters
                                       on v.ItemCode equals i.Itemcode

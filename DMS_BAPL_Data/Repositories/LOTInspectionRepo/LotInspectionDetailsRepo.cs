@@ -176,7 +176,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
         {
             try
             {
-                var invoiceLot = await _context.VehicleDispatches.Where(x => x.InvoiceNo == invoiceNo).ToListAsync();
+                var invoiceLot = await _context.VehicleInwards.Where(x => x.InvoiceNo == invoiceNo).ToListAsync();
 
                 if (invoiceLot == null || !invoiceLot.Any())
                     return 0;

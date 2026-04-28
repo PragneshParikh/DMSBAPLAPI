@@ -12,7 +12,6 @@ namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin, Dealer")]
     public class DealerMasterController : ControllerBase
     {
         private readonly IDealerMasterService _dealerMasterService;

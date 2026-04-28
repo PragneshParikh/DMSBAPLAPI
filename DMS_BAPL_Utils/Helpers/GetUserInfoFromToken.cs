@@ -14,7 +14,15 @@ namespace DMS_BAPL_Utils.Helpers
         {
             try
             {
-                return context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                //return context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    return userId;
+                }
+
+                return "CUS0345A";
 
             }
             catch (Exception ex)
@@ -27,7 +35,11 @@ namespace DMS_BAPL_Utils.Helpers
         public static string GetDealerCode(HttpContext context)
         {
             var username = context.User?.FindFirstValue(ClaimTypes.Name);
-            return username;
+            //return username;
+            if (!string.IsNullOrEmpty(username))
+                return username;
+
+            return "CUS0345U";
         }
     }
 }
