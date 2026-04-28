@@ -104,15 +104,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 var header = MapToEntity(model);
                 header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
 
-                var jobUpdates = model.Details.Select(item => new UpdateSaleDetailsVM
-                {
-                    ChassisNo = item.ChassisNo,
-                    SaleDate = DateOnly.FromDateTime(model.SaleDate),
-                    InsuranceExpDate = item.InsExpDate,
-                    RegisterNo = item.RegNo
-                }).ToList();
+               
 
-                return await _repo.CreateWithJobUpdateAsync(header, jobUpdates);
+                return await _repo.CreateWithJobUpdateAsync(header);
             }
             catch
             {
@@ -950,5 +944,19 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
             return result;
         }
+            
+        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        {
+            try
+            {
+                return await _repo.ConfirmInvoiceAndReserveChassis(saleBillNo);
+
+
+            }
+            catch { 
+            return false;}
+        }
+
+
     }
 }

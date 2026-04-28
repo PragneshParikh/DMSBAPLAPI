@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
@@ -12,9 +13,11 @@ namespace DMS_BAPL_Api.Controllers
     public class VehicleSaleBillController : ControllerBase
     {
         private readonly IVehicleSaleBillService _vehicleSaleBillService;
-        public VehicleSaleBillController(IVehicleSaleBillService vehicleSaleBill)
+        private readonly IPartInventoryService _partInventoryService;
+        public VehicleSaleBillController(IVehicleSaleBillService vehicleSaleBill,IPartInventoryService partInventoryService)
         {
-           _vehicleSaleBillService = vehicleSaleBill; 
+            _vehicleSaleBillService = vehicleSaleBill;
+            _partInventoryService = partInventoryService;
         }
 
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
@@ -28,7 +31,7 @@ namespace DMS_BAPL_Api.Controllers
                 var id = await _vehicleSaleBillService.CreateAsync(model);
                 return Ok(id);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
@@ -64,11 +67,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet]
-        public async Task<IActionResult> GetAll(string? search,DateTime? fromDate, DateTime? toDate,string? erpStatus)
+        public async Task<IActionResult> GetAll(string? search, DateTime? fromDate, DateTime? toDate, string? erpStatus)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetAllAsync(search,fromDate,toDate,erpStatus));
+                return Ok(await _vehicleSaleBillService.GetAllAsync(search, fromDate, toDate, erpStatus));
             }
             catch (Exception ex)
             {
@@ -88,8 +91,8 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-             await _vehicleSaleBillService.UpdateAsync(id, model);
-            return Ok();
+                await _vehicleSaleBillService.UpdateAsync(id, model);
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -109,8 +112,8 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-            await _vehicleSaleBillService.DeleteAsync(id);
-            return Ok("Deleted Successfully");
+                await _vehicleSaleBillService.DeleteAsync(id);
+                return Ok("Deleted Successfully");
             }
             catch (Exception ex)
             {
@@ -202,6 +205,25 @@ namespace DMS_BAPL_Api.Controllers
                     success = false,
                     message = ex.Message
                 });
+            }
+        }
+
+
+        [HttpPut("ConfirmInvoice")]
+        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        {
+            try
+            {
+                return await _vehicleSaleBillService.ConfirmInvoiceAndReserveChassis(saleBillNo);
+
+                //if(true)
+                //{
+                //    _partInventoryService.UpdateOutgoing
+                //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
     }

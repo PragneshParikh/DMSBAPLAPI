@@ -58,7 +58,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 return await _context.VehicleSaleBillHeaders
                     .Include(x => x.VehicleSaleBillDetails)
-                    .OrderByDescending(x=>x.CreatedDate)
+                    .OrderByDescending(x => x.CreatedDate)
                     .ToListAsync();
             }
             catch
@@ -84,7 +84,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
-
         public async Task DeleteAsync(int id)
         {
             try
@@ -101,7 +100,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
-
         public async Task<string?> GetLastSaleBillNo()
         {
             try
@@ -114,9 +112,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
-
-
-
         public async Task<string?> GetDealerLocation(string dealerCode)
         {
             try
@@ -131,7 +126,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
-
         public async Task<ItemMaster?> GetItem(string itemCode)
         {
             try
@@ -246,7 +240,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        public async Task<int> CreateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates)
+        public async Task<int> CreateWithJobUpdateAsync(VehicleSaleBillHeader header)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -256,20 +250,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Add(header);
                 await _context.SaveChangesAsync();
 
-                // 2. Update JobCards 
-                foreach (var item in jobUpdates)
-                {
-                    var job = await _context.JobCardCustomers
-                        .FirstOrDefaultAsync(x => x.ChassisNo == item.ChassisNo);
 
-                    if (job == null) continue;
-
-                    job.SaleDate = item.SaleDate;
-                    job.InsuranceExpDate = item.InsuranceExpDate;
-                    job.RegisterNo = item.RegisterNo;
-                }
-
-                // 3. Single commit
+                //  Single commit
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -314,23 +296,23 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .Where(x => allChassis.Contains(x.ChassisNo))
                     .ToListAsync();
 
-                foreach (var item in jobUpdates)
-                {
-                    var job = jobs.Where(c=>c.ChassisNo == item.ChassisNo).FirstOrDefault();
+                //foreach (var item in jobUpdates)
+                //{
+                //    var job = jobs.Where(c=>c.ChassisNo == item.ChassisNo).FirstOrDefault();
 
-                    if (job == null) continue;
+                //    if (job == null) continue;
 
-                    job.SaleDate = item.SaleDate;
-                    job.InsuranceExpDate = item.InsuranceExpDate;
-                    job.RegisterNo = item.RegisterNo;
-                }
+                //    job.SaleDate = item.SaleDate;
+                //    job.InsuranceExpDate = item.InsuranceExpDate;
+                //    job.RegisterNo = item.RegisterNo;
+                //}
 
                 //pdating JobCardCustomer if any of the Chassis no was deleted
-                foreach(var item in deletedChassisList)
+                foreach (var item in deletedChassisList)
                 {
-                    var deletedJC = jobs.Where(c=>c.ChassisNo == item).FirstOrDefault();   
-                    
-                   if(deletedJC == null) continue;
+                    var deletedJC = jobs.Where(c => c.ChassisNo == item).FirstOrDefault();
+
+                    if (deletedJC == null) continue;
                     deletedJC.InsuranceExpDate = null;
                     deletedJC.RegisterNo = null;
                     deletedJC.SaleDate = null;
@@ -348,7 +330,60 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        {
+            try
+            {
+                var saleBill = await _context.VehicleSaleBillHeaders.Include(i => i.VehicleSaleBillDetails).Where
+                    (i => i.SaleBillNo == saleBillNo).FirstOrDefaultAsync();
+                saleBill.SaleDate = DateTime.Now;
+
+
+                var chassisNos = saleBill.VehicleSaleBillDetails
+                      .Select(d => d.ChassisNo)
+                      .ToList();
+
+                var vehicleItemCodes = await _context.VehicleInwards.Where(p => chassisNos.Contains(p.ChasisNo)).
+                    Select(i => i.ItemCode).ToListAsync();
+
+                // Fetch matching job cards
+                var jobCardList = await _context.JobCardCustomers
+                    .Where(x => chassisNos.Contains(x.ChassisNo))
+                    .ToListAsync();
+
+                foreach (var item in jobCardList)
+                {
+                    item.SaleDate = item.SaleDate;
+                    item.InsuranceExpDate = item.InsuranceExpDate;
+                    item.RegisterNo = item.RegisterNo;
+
+                }
+
+                var invaldSalesBill = await _context.VehicleSaleBillHeaders.Include(x => x.VehicleSaleBillDetails).
+                    Where(x => x.SaleBillNo != saleBillNo && x.VehicleSaleBillDetails.
+                    Any(c => chassisNos.Contains(c.ChassisNo))).ToListAsync();
+
+                foreach (var item in invaldSalesBill)
+                {
+
+                    item.Erpstatus = "Invalid";
+                }
+
+                saleBill.Erpstatus = "Invoiced";
+                saleBill.SaleDate = DateTime.Now;
+                await _context.SaveChangesAsync();
+                return true;
+
+            }
+            catch
+            {
+                throw;
+
+            }
+        }
+
     }
+
 
 
 }
