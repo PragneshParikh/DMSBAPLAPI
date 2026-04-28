@@ -9,6 +9,8 @@ public partial class JobCardHeader
 
     public string? DealerCode { get; set; }
 
+    public string? InvoiceNo { get; set; }
+
     public int? Jobtype { get; set; }
 
     public string? Chassisno { get; set; }
@@ -62,8 +64,6 @@ public partial class JobCardHeader
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? InvoiceNo { get; set; }
 
     public virtual ICollection<JobCardBatteryDetail> JobCardBatteryDetails { get; set; } = new List<JobCardBatteryDetail>();
 

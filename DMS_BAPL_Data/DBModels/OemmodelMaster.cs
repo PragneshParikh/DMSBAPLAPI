@@ -21,7 +21,11 @@ public partial class OemmodelMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public virtual ICollection<ExtendedBatteryWarranty> ExtendedBatteryWarranties { get; set; } = new List<ExtendedBatteryWarranty>();
+
     public virtual ICollection<Form22Master> Form22Masters { get; set; } = new List<Form22Master>();
+
+    public virtual ICollection<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; } = new List<ModelwiseServiceSchedule>();
 
     public virtual ICollection<OemmodelWarranty> OemmodelWarranties { get; set; } = new List<OemmodelWarranty>();
 }

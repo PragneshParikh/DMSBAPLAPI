@@ -37,14 +37,6 @@ public partial class VehicleSaleBillDetail
 
     public bool IsAgainstExchange { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
-
-    public DateTime CreatedDate { get; set; }
-
-    public string? UpdatedBy { get; set; }
-
-    public DateTime? UpdatedDate { get; set; }
-
     public decimal? Sgstper { get; set; }
 
     public decimal? Sgstamnt { get; set; }
@@ -56,6 +48,52 @@ public partial class VehicleSaleBillDetail
     public decimal? Igstper { get; set; }
 
     public decimal? Igstamnt { get; set; }
+
+    public int? MfgYear { get; set; }
+
+    public string? InsNo { get; set; }
+
+    public DateOnly? InsStartDate { get; set; }
+
+    public string? RegNo { get; set; }
+
+    public DateOnly? InsExpDate { get; set; }
+
+    public string? ModelName { get; set; }
+
+    public string? Colour { get; set; }
+
+    public string? Battery { get; set; }
+
+    public string? ConvertorNo { get; set; }
+
+    public string? ChargerNo { get; set; }
+
+    public string? ControllerNo { get; set; }
+
+    public string? Key { get; set; }
+
+    public string? BookNo { get; set; }
+
+    public string? ExtWarranty { get; set; }
+
+    public string? BatteryChemical { get; set; }
+
+    public string? BatteryCapacity { get; set; }
+
+    public string? BatteryMake { get; set; }
+
+    public string? StockDetailsNo { get; set; }
+
+    public string? Vcu { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public DateTime CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }

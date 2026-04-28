@@ -35,6 +35,8 @@ public partial class ReceiptEntry
 
     public decimal? TotalAmount { get; set; }
 
+    public string? BusinessType { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -42,6 +44,4 @@ public partial class ReceiptEntry
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? BusinessType { get; set; }
 }

@@ -45,7 +45,7 @@ public partial class ItemMaster
 
     public int Noofbatteries { get; set; }
 
-    public string Colorcode { get; set; } = null!;
+    public string? Colorcode { get; set; }
 
     public int Rrgitemidno { get; set; }
 

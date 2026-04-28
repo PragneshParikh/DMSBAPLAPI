@@ -43,6 +43,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ExceptionLog> ExceptionLogs { get; set; }
 
+    public virtual DbSet<ExtendedBatteryWarranty> ExtendedBatteryWarranties { get; set; }
+
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
     public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
@@ -119,7 +121,7 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<TaxDetail> TaxDetails { get; set; }
 
-    public virtual DbSet<VehicleDispatch> VehicleDispatches { get; set; }
+    public virtual DbSet<VehicleInward> VehicleInwards { get; set; }
 
     public virtual DbSet<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; }
 
@@ -311,6 +313,8 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.ToTable("ColorMaster");
 
+            entity.HasIndex(e => e.Colorcode, "UQ_ColorMaster_colorcode").IsUnique();
+
             entity.HasIndex(e => e.Colorname, "UQ_ColorMaster_colorname").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
@@ -338,6 +342,8 @@ public partial class BapldmsvadContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__DealerMa__3213E83FE6BF4BFD");
 
             entity.ToTable("DealerMaster");
+
+            entity.HasIndex(e => e.Dealercode, "UQ_DealerMaster_dealercode").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Adress1)
@@ -485,6 +491,38 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<ExtendedBatteryWarranty>(entity =>
+        {
+            entity.ToTable("ExtendedBatteryWarranty");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.CustomerPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DealerPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.FromDate).HasColumnType("datetime");
+            entity.Property(e => e.Gstpercentage).HasColumnName("GSTPercentage");
+            entity.Property(e => e.Kms)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("KMS");
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+            entity.Property(e => e.SchemeName)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.ToDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.ExtendedBatteryWarranties)
+                .HasForeignKey(d => d.OemmodelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ExtendedBatteryWarranty_OEMModelMaster");
+        });
+
         modelBuilder.Entity<Form22Master>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Form22Ma__3214EC07F814C78A");
@@ -606,6 +644,8 @@ public partial class BapldmsvadContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__ItemMast__3213E83FA7C38EFE");
 
             entity.ToTable("ItemMaster");
+
+            entity.HasIndex(e => e.Itemcode, "UQ_ItemMaster_itemcode").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Batterytypeidno).HasColumnName("batterytypeidno");
@@ -1457,31 +1497,34 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<ModelwiseServiceSchedule>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("ModelwiseServiceSchedule");
+            entity.ToTable("ModelwiseServiceSchedule");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
-            entity.Property(e => e.ServiceFrom)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.ServiceHead)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.ServiceType)
-                .HasMaxLength(50)
-                .IsUnicode(false);
+            entity.Property(e => e.Seqno).HasColumnName("seqno");
             entity.Property(e => e.SrNo)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.ModelwiseServiceSchedules)
+                .HasForeignKey(d => d.OemmodelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ModelwiseServiceSchedule_OemModel");
+
+            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.ModelwiseServiceSchedules)
+                .HasForeignKey(d => d.ServiceHead)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceHead");
+
+            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.ModelwiseServiceSchedules)
+                .HasForeignKey(d => d.ServiceType)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceType");
         });
 
         modelBuilder.Entity<NumberSequence>(entity =>
@@ -1705,6 +1748,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FameIIFlag");
+            entity.Property(e => e.LedgerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.LocCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1882,6 +1928,10 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(50);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobType).WithMany(p => p.ServiceHeads)
+                .HasForeignKey(d => d.JobTypeId)
+                .HasConstraintName("FK_ServiceHead_JobType");
         });
 
         modelBuilder.Entity<ServiceType>(entity =>
@@ -1896,6 +1946,10 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.ServiceHead).WithMany(p => p.ServiceTypes)
+                .HasForeignKey(d => d.ServiceHeadId)
+                .HasConstraintName("FK_ServiceType_ServiceHead");
         });
 
         modelBuilder.Entity<State>(entity =>
@@ -1971,11 +2025,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
-        modelBuilder.Entity<VehicleDispatch>(entity =>
+        modelBuilder.Entity<VehicleInward>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__VehicleD__3214EC0732A91997");
 
-            entity.ToTable("VehicleDispatch");
+            entity.ToTable("VehicleInward");
 
             entity.Property(e => e.BatteryCapacity)
                 .HasMaxLength(20)
@@ -2112,15 +2166,25 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07E02F8CDE");
 
+            entity.Property(e => e.Battery).HasMaxLength(50);
+            entity.Property(e => e.BatteryCapacity).HasMaxLength(50);
+            entity.Property(e => e.BatteryChemical).HasMaxLength(50);
+            entity.Property(e => e.BatteryMake).HasMaxLength(50);
+            entity.Property(e => e.BookNo).HasMaxLength(50);
             entity.Property(e => e.Cgstamnt)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("CGSTAmnt");
             entity.Property(e => e.Cgstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("CGSTPer");
+            entity.Property(e => e.ChargerNo).HasMaxLength(50);
             entity.Property(e => e.ChassisNo).HasMaxLength(50);
+            entity.Property(e => e.Colour).HasMaxLength(50);
+            entity.Property(e => e.ControllerNo).HasMaxLength(50);
+            entity.Property(e => e.ConvertorNo).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.ExtWarranty).HasMaxLength(50);
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Igstamnt)
                 .HasColumnType("decimal(18, 2)")
@@ -2128,11 +2192,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Igstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("IGSTPer");
+            entity.Property(e => e.InsNo).HasMaxLength(50);
             entity.Property(e => e.InstitutionalType).HasMaxLength(50);
             entity.Property(e => e.InsuranceAmount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Key).HasMaxLength(50);
+            entity.Property(e => e.ModelName).HasMaxLength(100);
             entity.Property(e => e.Narration).HasMaxLength(255);
             entity.Property(e => e.PreGstDiscount)
                 .HasDefaultValue(0m)
@@ -2140,6 +2207,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.RegAmount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.RegNo).HasMaxLength(50);
             entity.Property(e => e.SchemeName).HasMaxLength(100);
             entity.Property(e => e.Segment).HasMaxLength(50);
             entity.Property(e => e.Sgstamnt)
@@ -2148,7 +2216,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Sgstper)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("SGSTPer");
+            entity.Property(e => e.StockDetailsNo).HasMaxLength(50);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.Vcu)
+                .HasMaxLength(50)
+                .HasColumnName("VCU");
 
             entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
                 .HasForeignKey(d => d.VehicleSaleBillId)
@@ -2174,6 +2246,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.DealerCode).HasMaxLength(50);
             entity.Property(e => e.Erpstatus)
                 .HasMaxLength(20)
                 .IsUnicode(false)

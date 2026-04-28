@@ -11,14 +11,6 @@ public partial class City
 
     public int StateId { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
-
-    public DateTime Createddate { get; set; }
-
-    public string? UpdatedBy { get; set; }
-
-    public DateTime? Updateddate { get; set; }
-
     public bool? IsMetro { get; set; }
 
     public int? TierLevel { get; set; }
@@ -26,6 +18,14 @@ public partial class City
     public string? Abbreviation { get; set; }
 
     public bool? IsActive { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public DateTime Createddate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? Updateddate { get; set; }
 
     public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
 

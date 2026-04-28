@@ -30,6 +30,12 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
             await _dealerMasterRepo.BeginTransactionAsync();
             try
             {
+                var existingDealer = await GetDealerByCode(dealer.Dealercode);
+
+                if (existingDealer != null)
+                {
+                    throw new Exception($"Dealer code '{dealer.Dealercode}' already exists.");
+                }
 
                 var result = await _dealerMasterRepo.AddDealerAsync(dealer, userId);
 
