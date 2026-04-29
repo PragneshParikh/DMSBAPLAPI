@@ -14,7 +14,7 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IVehicleSaleBillService _vehicleSaleBillService;
         private readonly IPartInventoryService _partInventoryService;
-        public VehicleSaleBillController(IVehicleSaleBillService vehicleSaleBill,IPartInventoryService partInventoryService)
+        public VehicleSaleBillController(IVehicleSaleBillService vehicleSaleBill, IPartInventoryService partInventoryService)
         {
             _vehicleSaleBillService = vehicleSaleBill;
             _partInventoryService = partInventoryService;
@@ -163,7 +163,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == null)
                     return NotFound(StringConstants.PONotFound);
 
-                return Ok(result); // returns JSON
+                return Ok(result); 
             }
             catch (Exception ex)
             {
@@ -216,10 +216,19 @@ namespace DMS_BAPL_Api.Controllers
             {
                 return await _vehicleSaleBillService.ConfirmInvoiceAndReserveChassis(saleBillNo);
 
-                //if(true)
-                //{
-                //    _partInventoryService.UpdateOutgoing
-                //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        [HttpPut("updateRegistration")]
+        public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
+        {
+            try
+            {
+                return await _vehicleSaleBillService.UpdateRegistrationAndReserveChassis(saleBillNo, updateSaleDetails);
             }
             catch (Exception ex)
             {

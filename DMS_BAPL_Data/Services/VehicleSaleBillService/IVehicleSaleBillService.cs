@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Utils.ViewModels;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode);
         Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
+        Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
 
     }
 }

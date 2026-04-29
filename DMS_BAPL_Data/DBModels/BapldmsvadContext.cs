@@ -2242,6 +2242,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.DealerCode).HasMaxLength(50);
             entity.Property(e => e.Erpstatus)
                 .HasMaxLength(20)
                 .IsUnicode(false)

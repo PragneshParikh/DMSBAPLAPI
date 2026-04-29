@@ -104,7 +104,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 var header = MapToEntity(model);
                 header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
 
-               
+
 
                 return await _repo.CreateWithJobUpdateAsync(header);
             }
@@ -295,12 +295,12 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
 
-                var existing = await _repo.GetByIdAsync(id); 
+                var existing = await _repo.GetByIdAsync(id);
                 if (existing == null)
                     throw new Exception("Record not found");
 
                 // UPDATE HEADER
-                
+
                 existing.BillFrom = model.BillFrom;
                 existing.BillingName = model.BillingName;
                 existing.Financier = model.Financier;
@@ -319,12 +319,12 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 existing.UpdatedBy = userId;
 
                 // DETAIL UPDATE 
-            
+
 
                 var existingDetails = existing.VehicleSaleBillDetails.ToList();
-                var existingChassisList =existing.VehicleSaleBillDetails.Select(c=>c.ChassisNo).ToList();
-                var newChassisList =model.Details.Select(c=>c.ChassisNo).ToList();
-               var deletedChassisList = existingChassisList.Except(newChassisList).ToList();
+                var existingChassisList = existing.VehicleSaleBillDetails.Select(c => c.ChassisNo).ToList();
+                var newChassisList = model.Details.Select(c => c.ChassisNo).ToList();
+                var deletedChassisList = existingChassisList.Except(newChassisList).ToList();
                 // DELETE removed rows
                 foreach (var old in existingDetails)
                 {
@@ -342,9 +342,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                     if (detail != null)
                     {
-                        
+
                         // UPDATE EXISTING
-                        
+
                         detail.ChassisNo = d.ChassisNo;
                         detail.ItemRate = d.ItemRate;
                         detail.PreGstDiscount = d.PreGstDiscount;
@@ -400,8 +400,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     }
                     else
                     {
-                        
-                        
+
+
                         //New entries
                         existing.VehicleSaleBillDetails.Add(new VehicleSaleBillDetail
                         {
@@ -460,18 +460,26 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         });
                     }
                 }
-              
-                // JOB UPDATE
-                
-                var jobUpdates = model.Details.Select(d => new UpdateSaleDetailsVM
-                {
-                    ChassisNo = d.ChassisNo,
-                    SaleDate = DateOnly.FromDateTime(model.SaleDate),
-                    InsuranceExpDate = d.InsExpDate,
-                    RegisterNo = d.RegNo
-                }).ToList();
 
-                await _repo.UpdateWithJobUpdateAsync(existing, jobUpdates,deletedChassisList);
+                // JOB UPDATE
+
+                var jobUpdates = model.Details
+                    .Where(d => d.InsExpDate != null && !string.IsNullOrWhiteSpace(d.RegNo))
+                    .Select(d => new UpdateSaleDetailsVM
+                    {
+                        ChassisNo = d.ChassisNo,
+                        SaleDate = DateOnly.FromDateTime(model.SaleDate),
+                        InsuranceExpDate = d.InsExpDate,
+                        RegisterNo = d.RegNo
+                    })
+                    .ToList();
+
+                if (!jobUpdates.Any())
+                {
+                    jobUpdates = null;
+                }
+
+                await _repo.UpdateWithJobUpdateAsync(existing, jobUpdates, deletedChassisList);
             }
             catch
             {
@@ -525,7 +533,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     LedgerId = model.LedgerId,
                     CreatedDate = DateTime.Now,
                     CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
-                   Erpstatus =model.ErpStatus,
+                    Erpstatus = model.ErpStatus,
+                    DealerCode = model.DealerCode,
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
                     {
@@ -568,7 +577,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         BatteryMake = d.BatteryMake ?? "",
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
-                        
+
 
                         CreatedDate = DateTime.Now,
                         CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext)
@@ -605,13 +614,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     CustomerType = data.CustomerType,
                     LedgerId = data.LedgerId,
                     erpStatus = data.Erpstatus,
-
-
-
+                    dealerCode = data.DealerCode,
 
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
-                        Id=d.Id,
+                        Id = d.Id,
                         ChassisNo = d.ChassisNo,
                         ItemRate = d.ItemRate,
                         PreGstDiscount = d.PreGstDiscount ?? 0,
@@ -944,7 +951,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
             return result;
         }
-            
+
         public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
@@ -953,8 +960,22 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
             }
-            catch { 
-            return false;}
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
+        {
+            try
+            {
+                return await _repo.UpdateRegistrationAndReserveChassis(saleBillNo, updateSaleDetails);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
 
