@@ -25,13 +25,15 @@ public partial class ExtendedBatteryWarranty
 
     public decimal DiscountAmount { get; set; }
 
-    public int Gst { get; set; }
+    public int Gstpercentage { get; set; }
 
     public int PurchaseValidity { get; set; }
 
     public DateTime FromDate { get; set; }
 
     public DateTime? ToDate { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 

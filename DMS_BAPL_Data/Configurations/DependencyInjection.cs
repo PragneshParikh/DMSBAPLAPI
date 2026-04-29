@@ -23,6 +23,7 @@ using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
+using DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
@@ -109,6 +110,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IMaterialTransferRepo, MaterialTransferRepo>();
             services.AddScoped<IOEMModelWarrantyRepo, OEMModelWarrantyRepo>();
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
+            services.AddScoped<IPdiCheckListMaster, PdiChecklistMasterRepo>();
 
             #endregion
 

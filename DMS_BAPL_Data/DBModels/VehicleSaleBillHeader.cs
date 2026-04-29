@@ -63,5 +63,7 @@ public partial class VehicleSaleBillHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
 }

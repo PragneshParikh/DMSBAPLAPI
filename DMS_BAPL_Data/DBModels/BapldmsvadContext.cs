@@ -343,6 +343,8 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("DealerMaster");
 
+            entity.HasIndex(e => e.Dealercode, "UQ_DealerMaster_dealercode").IsUnique();
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Adress1)
                 .HasMaxLength(200)
@@ -501,7 +503,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.FromDate).HasColumnType("datetime");
-            entity.Property(e => e.Gst).HasColumnName("GST");
+            entity.Property(e => e.Gstpercentage).HasColumnName("GSTPercentage");
             entity.Property(e => e.Kms)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("KMS");
@@ -642,6 +644,8 @@ public partial class BapldmsvadContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__ItemMast__3213E83FA7C38EFE");
 
             entity.ToTable("ItemMaster");
+
+            entity.HasIndex(e => e.Itemcode, "UQ_ItemMaster_itemcode").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Batterytypeidno).HasColumnName("batterytypeidno");
@@ -1719,6 +1723,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("PDIHeadName");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDated).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<PurchaseOrder>(entity =>
@@ -2242,6 +2250,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.DealerCode).HasMaxLength(50);
             entity.Property(e => e.Erpstatus)
                 .HasMaxLength(20)
                 .IsUnicode(false)
