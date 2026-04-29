@@ -1,5 +1,11 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.InventoryService;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Cms;
 using System;
@@ -13,9 +19,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
     public class VehicleSaleBillRepo : IVehicleSaleBillRepo
     {
         private readonly BapldmsvadContext _context;
-        public VehicleSaleBillRepo(BapldmsvadContext context)
+        private readonly IPartInventoryService _partInventoryService;
+        private readonly IHttpContextAccessor _contextAccessor;
+
+        public VehicleSaleBillRepo(BapldmsvadContext context, IPartInventoryService partInventoryService,
+            IHttpContextAccessor contextAccessor)
         {
             _context = context;
+            _partInventoryService = partInventoryService;
+            _contextAccessor = contextAccessor;
         }
 
         //public async Task<int> CreateAsync(VehicleSaleBillHeader entity)
@@ -279,7 +291,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        public async Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates, List<string> deletedChassisList)
+        public async Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM>? jobUpdates, List<string> deletedChassisList)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -289,34 +301,77 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Update(header);
 
                 // 2. Update JobCards 
+                if(jobUpdates == null && header.Erpstatus.ToLower() =="invalid")
+                {
+                    header.Erpstatus = "Pending";
+                }
 
-                var allChassis = jobUpdates.Select(x => x.ChassisNo).Concat(deletedChassisList).Distinct().ToList();
+                if (jobUpdates != null)
+                {
 
-                var jobs = await _context.JobCardCustomers
-                    .Where(x => allChassis.Contains(x.ChassisNo))
+                    var allchassis = jobUpdates.Select(x => x.ChassisNo).Concat(deletedChassisList).Distinct().ToList();
+                    var jobs = await _context.JobCardCustomers
+                        .Where(x => allchassis.Contains(x.ChassisNo))
+                        .ToListAsync();
+
+
+
+
+                    foreach (var item in jobUpdates)
+                    {
+                        var job = jobs.Where(c => c.ChassisNo == item.ChassisNo).FirstOrDefault();
+
+                        if (job == null) continue;
+
+                        job.SaleDate = item.SaleDate;
+                        job.InsuranceExpDate = item.InsuranceExpDate;
+                        job.RegisterNo = item.RegisterNo;
+                    }
+                    header.Erpstatus = "Reserved";
+
+                    // Mark other sale bills with same chassis as Invalid
+                    var invalidSalesBills = await _context.VehicleSaleBillHeaders
+                    .Include(x => x.VehicleSaleBillDetails)
+                    .Where(x => x.SaleBillNo != header.SaleBillNo &&
+                                x.VehicleSaleBillDetails.Any(c => allchassis.Contains(c.ChassisNo)))
                     .ToListAsync();
 
-                //foreach (var item in jobUpdates)
-                //{
-                //    var job = jobs.Where(c=>c.ChassisNo == item.ChassisNo).FirstOrDefault();
+                    foreach (var bill in invalidSalesBills)
+                    {
+                        bill.Erpstatus = "Invalid";
 
-                //    if (job == null) continue;
+                        var detailsToRemove = await _context.VehicleSaleBillDetails
+                             .Where(d => d.VehicleSaleBillId == bill.Id)
+                                .ToListAsync();
 
-                //    job.SaleDate = item.SaleDate;
-                //    job.InsuranceExpDate = item.InsuranceExpDate;
-                //    job.RegisterNo = item.RegisterNo;
-                //}
+                        _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
 
-                //pdating JobCardCustomer if any of the Chassis no was deleted
-                foreach (var item in deletedChassisList)
-                {
-                    var deletedJC = jobs.Where(c => c.ChassisNo == item).FirstOrDefault();
-
-                    if (deletedJC == null) continue;
-                    deletedJC.InsuranceExpDate = null;
-                    deletedJC.RegisterNo = null;
-                    deletedJC.SaleDate = null;
+                    }
                 }
+                // 3. Remove from VehicleDetails
+                if (deletedChassisList != null && deletedChassisList.Any())
+                {
+                    var vehiclesToDelete = await _context.VehicleSaleBillDetails
+                        .Where(v => deletedChassisList.Contains(v.ChassisNo) && v.VehicleSaleBillId == header.Id)
+                        .ToListAsync();
+
+                    if (vehiclesToDelete.Any())
+                    {
+                        _context.VehicleSaleBillDetails.RemoveRange(vehiclesToDelete);
+                    }
+                }
+
+
+                //updating JobCardCustomer if any of the Chassis no was deleted
+                //foreach (var item in deletedChassisList)
+                //{
+                //    var deletedJC = jobs.Where(c => c.ChassisNo == item).FirstOrDefault();
+
+                //    if (deletedJC == null) continue;
+                //    deletedJC.InsuranceExpDate = null;
+                //    deletedJC.RegisterNo = null;
+                //    deletedJC.SaleDate = null;
+                //}
 
                 // 3. Save
                 await _context.SaveChangesAsync();
@@ -334,54 +389,142 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         {
             try
             {
-                var saleBill = await _context.VehicleSaleBillHeaders.Include(i => i.VehicleSaleBillDetails).Where
-                    (i => i.SaleBillNo == saleBillNo).FirstOrDefaultAsync();
+                // 🔹 Get Sale Bill with details
+                var saleBill = await _context.VehicleSaleBillHeaders
+                    .Include(i => i.VehicleSaleBillDetails)
+                    .FirstOrDefaultAsync(i => i.SaleBillNo == saleBillNo);
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+                if (saleBill == null)
+                    return false;
+
                 saleBill.SaleDate = DateTime.Now;
 
-
+                // Get all chassis numbers
                 var chassisNos = saleBill.VehicleSaleBillDetails
-                      .Select(d => d.ChassisNo)
-                      .ToList();
+                    .Select(d => d.ChassisNo)
+                    .ToList();
 
-                var vehicleItemCodes = await _context.VehicleInwards.Where(p => chassisNos.Contains(p.ChasisNo)).
-                    Select(i => i.ItemCode).ToListAsync();
+                // Get ItemCodes from VehicleInward using chassis
+                var vehicleItemCodes = await _context.VehicleInwards
+                    .Where(v => v.ChasisNo != null && chassisNos.Contains(v.ChasisNo))
+                    .Select(v => v.ItemCode)
+                    .ToListAsync();
+                var groupedItems = vehicleItemCodes
+                    .GroupBy(x => x)
+                    .Select(g => new
+                    {
+                        ItemCode = g.Key,
+                        Qty = g.Count()
+                    }).ToList();
+                //  REDUCE STOCK
+                foreach (var item in groupedItems)
+                {
+                    var stockTransaction = new PartsInventory
+                    {
+                        TransId = Guid.NewGuid().ToString(),
+                        ItemCode = item.ItemCode,
+                        VoucherNo = null!,
+                        TransType = "S",
+                        BatchNo = "Batch 1",
+                        BatchTransQty = item.Qty,
+                        BatchOpeningQty = 0,
+                        BatchClosingQty = 0,
+                        TransDate = DateOnly.FromDateTime(DateTime.Now),
+                        DealerLocation = saleBill?.Location,
+                        VendorCode = saleBill.DealerCode,
+                        TotalRate = 100.00M,
+                        PurchaseRate = 110.00M,
+                        Potype = saleBill?.CustomerType,
+                        PostTransaction = 0,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now
+                    };
 
-                // Fetch matching job cards
+                    await _partInventoryService.UpdateOutgoing(stockTransaction);
+                }
+
+
+
                 var jobCardList = await _context.JobCardCustomers
                     .Where(x => chassisNos.Contains(x.ChassisNo))
                     .ToListAsync();
 
+
                 foreach (var item in jobCardList)
                 {
-                    item.SaleDate = item.SaleDate;
-                    item.InsuranceExpDate = item.InsuranceExpDate;
-                    item.RegisterNo = item.RegisterNo;
+                    var job = jobCardList.Where(c => c.ChassisNo == item.ChassisNo).FirstOrDefault();
 
+                    if (job == null) continue;
+
+                    job.SaleDate = item.SaleDate;
+                    job.InsuranceExpDate = item.InsuranceExpDate;
+                    job.RegisterNo = item.RegisterNo;
                 }
 
-                var invaldSalesBill = await _context.VehicleSaleBillHeaders.Include(x => x.VehicleSaleBillDetails).
-                    Where(x => x.SaleBillNo != saleBillNo && x.VehicleSaleBillDetails.
-                    Any(c => chassisNos.Contains(c.ChassisNo))).ToListAsync();
+                // Mark other sale bills with same chassis as Invalid
+                var invalidSalesBills = await _context.VehicleSaleBillHeaders
+                .Include(x => x.VehicleSaleBillDetails)
+                .Where(x => x.SaleBillNo != saleBillNo &&
+                            x.VehicleSaleBillDetails.Any(c => chassisNos.Contains(c.ChassisNo)))
+                .ToListAsync();
 
-                foreach (var item in invaldSalesBill)
+                foreach (var bill in invalidSalesBills)
                 {
+                    bill.Erpstatus = "Invalid";
 
-                    item.Erpstatus = "Invalid";
+                    var detailsToRemove = await _context.VehicleSaleBillDetails
+                         .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
+                            .ToListAsync();
+
+                    _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
+
                 }
 
+                //Mark current bill as Invoiced
                 saleBill.Erpstatus = "Invoiced";
-                saleBill.SaleDate = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return true;
 
+
+                await _context.SaveChangesAsync();
+
+                return true;
             }
             catch
             {
                 throw;
-
             }
         }
 
+        public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
+        {
+            try
+            {
+
+                var saleBill = await _context.VehicleSaleBillHeaders
+                    .Include(i => i.VehicleSaleBillDetails)
+                    .Where(i => i.SaleBillNo == saleBillNo).FirstOrDefaultAsync();
+
+                var allocatedChassis = updateSaleDetails.Select(i => i.ChassisNo).ToList();
+
+                var jobCardsToUpdate = await _context.JobCardCustomers
+                    .Where(x => allocatedChassis.Contains(x.ChassisNo)).ToListAsync();
+                foreach (var item in updateSaleDetails)
+                {
+                    var job = jobCardsToUpdate.Where(c => c.ChassisNo == item.ChassisNo).FirstOrDefault();
+
+                    if (job == null) continue;
+
+                    job.SaleDate = item.SaleDate;
+                    job.InsuranceExpDate = item.InsuranceExpDate;
+                    job.RegisterNo = item.RegisterNo;
+                }
+                await _context.SaveChangesAsync();
+                return saleBill;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 
 

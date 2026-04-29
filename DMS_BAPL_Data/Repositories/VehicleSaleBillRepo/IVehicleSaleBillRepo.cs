@@ -24,7 +24,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<List<(string chassisNo, string itemCode)>> GetChassisByDealer(string dealerCode);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiRawDataAsync(string dealerCode);
         Task<int> UpdateERPStatus(int id);
-        Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM> jobUpdates,List<string> deletedChassisList);
+        Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM>? jobUpdates,List<string> deletedChassisList);
         Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
+        Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
     }
 }
