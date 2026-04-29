@@ -19,10 +19,12 @@ namespace DMS_BAPL_Data.Services.PrefixService
             _prefixRepo = prefixRep;
         }
 
+        Task<IEnumerable<NumberSequence>> IPrefixService.Get() => _prefixRepo.Get();
         Task<PagedResponse<NumberSequence>> IPrefixService.GetPrefixByPagedAsync(string? searchTerms, int pageIndex, int pageSize) => _prefixRepo.GetPrefixByPagedAsync(searchTerms, pageIndex, pageSize);
         Task<IEnumerable<NumberSequence>> IPrefixService.GetPrefixByDealerCode(String dealerCode) => _prefixRepo.GetPrefixByDealerCode(dealerCode);
+        Task<NumberSequence> IPrefixService.GetPrefixByDealerCodeModuleName(string dealerCode, string moduleName) => _prefixRepo.GetPrefixByDealerCodeModuleName(dealerCode, moduleName);
         Task<int> IPrefixService.InsertPrefix(NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.InsertPrefix(numberSequenceViewModel);
         Task<int> IPrefixService.AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.AddPrefixForDealers(numberSequenceViewModel);
-
+        Task<int> IPrefixService.UpdateNextNumberByDealerByModule(string dealerCode, string moduleName) => _prefixRepo.UpdateNextNumberByDealerByModule(dealerCode, moduleName);
     }
 }

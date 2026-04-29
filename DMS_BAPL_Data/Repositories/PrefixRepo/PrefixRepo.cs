@@ -19,6 +19,16 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
             _context = context;
         }
 
+        async Task<IEnumerable<NumberSequence>> IPrefixRepo.Get()
+        {
+            try
+            {
+                return await _context.NumberSequences
+                                    .AsNoTracking()
+                                    .ToListAsync();
+            }
+            catch { throw; }
+        }
         public async Task<PagedResponse<NumberSequence>> GetPrefixByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
         {
             try
@@ -58,6 +68,13 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 .Where(x => x.DealerCode == dealerCode)
                 .ToListAsync();
         }
+        public async Task<NumberSequence?> GetPrefixByDealerCodeModuleName(string dealerCode, string moduleName)
+        {
+            return await _context.NumberSequences
+                .AsNoTracking()
+                .Where(x => x.DealerCode == dealerCode && x.SequenceName == moduleName)
+                .FirstOrDefaultAsync();
+        }
         public async Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel)
         {
             try
@@ -72,9 +89,11 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 {
                     newNumberSequences.Add(new NumberSequence
                     {
-                        SequenceCode = numberSequenceViewModel.SequenceCode,
+                        SequenceCode = numberSequenceViewModel.SequenceCode.Replace("DealerCode", dealer.Dealercode.Length >= 3 ? dealer.Dealercode[^3..] : dealer.Dealercode),
                         SequenceName = numberSequenceViewModel.SequenceName,
                         Format = numberSequenceViewModel.Format,
+                        NextNo = numberSequenceViewModel.NextNo,
+                        Increment = numberSequenceViewModel.Increment,
                         DealerCode = dealer.Dealercode,
                         Year = numberSequenceViewModel.Year,
                         IsActive = numberSequenceViewModel.IsActive,
@@ -110,6 +129,21 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
             }
             catch { throw; }
         }
+        public async Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName)
+        {
+            var existing = await _context.NumberSequences
+                .FirstOrDefaultAsync(x => x.DealerCode == dealerCode && x.SequenceName == moduleName);
 
+            if (existing == null)
+            {
+                return 0;
+            }
+
+            existing.NextNo++;
+
+            await _context.SaveChangesAsync();
+
+            return existing.Id;
+        }
     }
 }
