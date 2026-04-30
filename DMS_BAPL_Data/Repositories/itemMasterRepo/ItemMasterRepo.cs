@@ -25,40 +25,79 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         {
             try
             {
-                var itemMasterEntity = new ItemMaster
+                var existingItem = await _context.ItemMasters
+                    .FirstOrDefaultAsync(x => x.Itemcode == item.Itemcode);
+
+                if (existingItem != null)
                 {
-                    Id = 0,
-                    Itemtype = item.Itemtype,
-                    Itemname = item.Itemname,
-                    Itemcode = item.Itemcode,
-                    Itemdesc = item.Itemdesc,
-                    Status = item.Status,
-                    Hsncode = item.Hsncode,
-                    Dlrprice = item.Dlrprice,
-                    Custprice = item.Custprice,
-                    Moq = item.Moq,
-                    Boq = item.Boq,
-                    Sgst = item.Sgst,
-                    Cgst = item.Cgst,
-                    Igst = item.Igst,
-                    Ugst = item.Ugst,
-                    Grpidno = item.Grpidno,
-                    Ipurrate = item.Ipurrate,
-                    Iselectric = item.Iselectric,
-                    Vehtype = item.Vehtype,
-                    Noofbatteries = item.Noofbatteries,
-                    Colorcode = item.Colorcode,
-                    Rrgitemidno = item.Rrgitemidno,
-                    Itemcc = item.Itemcc,
-                    Batterytypeidno = item.Batterytypeidno,
-                    Fame2amount = item.Fame2amount,
-                    Compcode = item.Compcode,
-                    Displayname = item.Displayname,
-                    Oemmodelname = item.Oemmodelname,
-                    CreatedBy = userId,
-                    CreatedDate = DateTime.UtcNow
-                };
-                _context.ItemMasters.Add(itemMasterEntity);
+                    existingItem.Itemtype = item.Itemtype;
+                    existingItem.Itemname = item.Itemname;
+                    existingItem.Itemdesc = item.Itemdesc;
+                    existingItem.Status = item.Status;
+                    existingItem.Hsncode = item.Hsncode;
+                    existingItem.Dlrprice = item.Dlrprice;
+                    existingItem.Custprice = item.Custprice;
+                    existingItem.Moq = item.Moq;
+                    existingItem.Boq = item.Boq;
+                    existingItem.Sgst = item.Sgst;
+                    existingItem.Cgst = item.Cgst;
+                    existingItem.Igst = item.Igst;
+                    existingItem.Ugst = item.Ugst;
+                    existingItem.Grpidno = item.Grpidno;
+                    existingItem.Ipurrate = item.Ipurrate;
+                    existingItem.Iselectric = item.Iselectric;
+                    existingItem.Vehtype = item.Vehtype;
+                    existingItem.Noofbatteries = item.Noofbatteries;
+                    existingItem.Colorcode = item.Colorcode;
+                    existingItem.Rrgitemidno = item.Rrgitemidno;
+                    existingItem.Itemcc = item.Itemcc;
+                    existingItem.Batterytypeidno = item.Batterytypeidno;
+                    existingItem.Fame2amount = item.Fame2amount;
+                    existingItem.Compcode = item.Compcode;
+                    existingItem.Displayname = item.Displayname;
+                    existingItem.Oemmodelname = item.Oemmodelname;
+
+                    existingItem.UpdatedBy = userId;
+                    existingItem.UpdatedDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    var itemMasterEntity = new ItemMaster
+                    {
+                        Itemtype = item.Itemtype,
+                        Itemname = item.Itemname,
+                        Itemcode = item.Itemcode,
+                        Itemdesc = item.Itemdesc,
+                        Status = item.Status,
+                        Hsncode = item.Hsncode,
+                        Dlrprice = item.Dlrprice,
+                        Custprice = item.Custprice,
+                        Moq = item.Moq,
+                        Boq = item.Boq,
+                        Sgst = item.Sgst,
+                        Cgst = item.Cgst,
+                        Igst = item.Igst,
+                        Ugst = item.Ugst,
+                        Grpidno = item.Grpidno,
+                        Ipurrate = item.Ipurrate,
+                        Iselectric = item.Iselectric,
+                        Vehtype = item.Vehtype,
+                        Noofbatteries = item.Noofbatteries,
+                        Colorcode = item.Colorcode,
+                        Rrgitemidno = item.Rrgitemidno,
+                        Itemcc = item.Itemcc,
+                        Batterytypeidno = item.Batterytypeidno,
+                        Fame2amount = item.Fame2amount,
+                        Compcode = item.Compcode,
+                        Displayname = item.Displayname,
+                        Oemmodelname = item.Oemmodelname,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    _context.ItemMasters.Add(itemMasterEntity);
+                }
+
                 await _context.SaveChangesAsync();
                 return item;
             }
@@ -154,7 +193,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         //update data particular on Item ID
         public async Task UpdateItemAsync(ItemMaster item)
         {
-            var existingItem = await _context.ItemMasters.FindAsync(item.Id);
+            var existingItem = await _context.ItemMasters.FindAsync(item.Itemcode);
 
             if (existingItem != null)
             {
@@ -339,6 +378,48 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 catch { }
                 throw new Exception("Error while fetching purchase details with HSN tax by Model No", ex);
             }
+        }
+
+        public async Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel)
+        {
+            var existingItem = await _context.ItemMasters
+                    .FirstOrDefaultAsync(x => x.Itemcode == insertItemMasterViewModel.Itemcode);
+
+            if (existingItem != null)
+            {
+                existingItem.Itemtype = insertItemMasterViewModel.Itemtype;
+                existingItem.Itemname = insertItemMasterViewModel.Itemname;
+                existingItem.Itemdesc = insertItemMasterViewModel.Itemdesc;
+                existingItem.Status = insertItemMasterViewModel.Status;
+                existingItem.Hsncode = insertItemMasterViewModel.Hsncode;
+                existingItem.Dlrprice = insertItemMasterViewModel.Dlrprice;
+                existingItem.Custprice = insertItemMasterViewModel.Custprice;
+                existingItem.Moq = insertItemMasterViewModel.Moq;
+                existingItem.Boq = insertItemMasterViewModel.Boq;
+                existingItem.Sgst = insertItemMasterViewModel.Sgst;
+                existingItem.Cgst = insertItemMasterViewModel.Cgst;
+                existingItem.Igst = insertItemMasterViewModel.Igst;
+                existingItem.Ugst = insertItemMasterViewModel.Ugst;
+                existingItem.Grpidno = insertItemMasterViewModel.Grpidno;
+                existingItem.Ipurrate = insertItemMasterViewModel.Ipurrate;
+                existingItem.Iselectric = insertItemMasterViewModel.Iselectric;
+                existingItem.Vehtype = insertItemMasterViewModel.Vehtype;
+                existingItem.Noofbatteries = insertItemMasterViewModel.Noofbatteries;
+                existingItem.Colorcode = insertItemMasterViewModel.Colorcode;
+                existingItem.Rrgitemidno = insertItemMasterViewModel.Rrgitemidno;
+                existingItem.Itemcc = insertItemMasterViewModel.Itemcc;
+                existingItem.Batterytypeidno = insertItemMasterViewModel.Batterytypeidno;
+                existingItem.Fame2amount = insertItemMasterViewModel.Fame2amount;
+                existingItem.Compcode = insertItemMasterViewModel.Compcode;
+                existingItem.Displayname = insertItemMasterViewModel.Displayname;
+                existingItem.Oemmodelname = insertItemMasterViewModel.Oemmodelname;
+
+                existingItem.UpdatedBy = userId;
+                existingItem.UpdatedDate = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return existingItem;
         }
         public async Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id)
         {

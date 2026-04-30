@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Math;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
         //Task<DealerMaster?> UpdateDealerAsync(int id, DealerMaster dealer);
-        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto,string userId);
+        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto, string userId);
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId);
@@ -23,7 +24,6 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task RollbackTransactionAsync();
         Task SaveAsync();
         Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
-
-
+        Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel);
     }
 }

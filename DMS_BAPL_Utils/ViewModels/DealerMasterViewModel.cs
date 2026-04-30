@@ -23,7 +23,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Pin { get; set; } = null!;
 
-        public string Pan { get; set; } = null!;
+        public string? Pan { get; set; } = null!;
 
         public string? PhoneOff { get; set; } = null!;
 
@@ -34,7 +34,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Contactperson { get; set; } = null!;
 
         [JsonPropertyName("reg_date")]
-        public string RegDate { get; set; } = null!;
+        public string RegDate { get; set; }
 
         public string? TradCert { get; set; } = null!;
 
@@ -64,7 +64,10 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public bool B2b { get; set; }
 
-       
+        public string CreatedBy { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public string? UpdatedBy { get; set; }
+        public DateTime? UpdatedDate { get; set; }
 
     }
 }

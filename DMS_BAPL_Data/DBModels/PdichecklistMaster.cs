@@ -13,9 +13,15 @@ public partial class PdichecklistMaster
 
     public string? Pdidescription { get; set; }
 
+    public bool? Isactive { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDated { get; set; }
 
     public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 }
