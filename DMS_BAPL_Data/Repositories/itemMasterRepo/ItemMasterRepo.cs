@@ -421,5 +421,23 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             await _context.SaveChangesAsync();
             return existingItem;
         }
+        public async Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id)
+        {
+            try
+            {
+                var result = await (
+                    from IM in _context.ItemMasters
+                    join MM in _context.OemmodelMasters
+                        on IM.Oemmodelname equals MM.ModelName
+                    where MM.Id == id
+                    select IM
+                    )
+                    .ToListAsync();
+
+                return result;
+            }
+            catch { throw; }
+        }
+
     }
 }

@@ -16,6 +16,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? TransactionType { get; set; }
         public string? Remarks { get; set; }
         public string? LocCode { get; set; }
+        public string? LedgerCode { get; set; }
         public bool? IsAgainstKit { get; set; }
         public List<PurchaseOrderDetailsViewModel> Items { get; set; }
     }

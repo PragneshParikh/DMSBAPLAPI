@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Mvc;
@@ -47,8 +47,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                                         || c.LedgerName.Contains(searchTerms)
                                         || c.MobileNumber.Contains(searchTerms)
                                         || c.EMail.Contains(searchTerms));
-                                        //|| c.City.Contains(searchTerms)
-                                        //|| c.State.Contains(searchTerms));
+                    //|| c.City.Contains(searchTerms)
+                    //|| c.State.Contains(searchTerms));
                 }
 
                 int totalRecords = await query.CountAsync();
@@ -188,7 +188,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 LedgerType = "Party",
                 MobileNumber = lead.Mobile,
                 EMail = lead.Email,
-               // City = lead.City,
+                // City = lead.City,
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
@@ -224,6 +224,18 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             {
                 throw;
             }
+        }
+        public async Task<IEnumerable<LedgerMaster>> GetCompanyLedgers()
+        {
+            try
+            {
+                return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
+                    .OrderBy(c => c.LedgerName)
+                    .ToListAsync();
+            }
+            catch { throw; }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using Org.BouncyCastle.Bcpg;
@@ -33,5 +33,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             ledgerMaster.UpdatedDate = DateTime.Now;
             return _ledgerMasterRepo.UpdateLedgerDetail(ledgerMaster);
         }
+        Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetCompanyLedgersAsync() => _ledgerMasterRepo.GetCompanyLedgers();
     }
 }

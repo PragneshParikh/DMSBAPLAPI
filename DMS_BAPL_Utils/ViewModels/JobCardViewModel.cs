@@ -301,4 +301,34 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateOnly? ExpireWarrentyDate { get; set; }
 
     }
+
+    public class UpdateJobCardVM
+    {
+        public JobCardHeaderVM JobCardHeader { get; set; }
+        public JobCardBatteryVM JobCardBattery { get; set; }
+        public JobCardCustomerVM JobCardCustomer { get; set; }
+        public List<JobCardComplaintVM> JobCardComplaint { get; set; }
+
+        public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
+    }
+
+    public class UpdateSaleDetailsVM
+    {
+        public string ChassisNo { get; set; }
+        public string? RegisterNo { get; set; }
+        public DateOnly? SaleDate { get; set; }
+
+        public DateOnly? InsuranceExpDate { get; set; }
+    }
+
+    public class JobCardSearchModel
+    {
+        public string? DealerCode { get; set; }
+        public DateOnly? FromDate { get; set; }
+        public DateOnly? ToDate { get; set; }
+        public string? ServiceLocation { get; set; }
+        public int? JobNo { get; set; }
+        public string? CustomerName { get; set; }
+        public string? ChassisNo { get; set; }
+    }
 }

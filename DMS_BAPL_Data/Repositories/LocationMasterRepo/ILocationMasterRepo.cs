@@ -1,4 +1,4 @@
-﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -17,5 +17,6 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode);
         Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode);
         Task<Object> UpdateByLocationCode(string locCode, string userId, LocationMasterViewModel locationMasterViewModel);
+        Task<LocationMaster?> GetLocationByCode(string loccode);
     }
 }

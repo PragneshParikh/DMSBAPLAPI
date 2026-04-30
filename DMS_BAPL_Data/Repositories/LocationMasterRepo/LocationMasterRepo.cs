@@ -265,5 +265,10 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             return _existingLocation;
         }
 
+        public async Task<LocationMaster?> GetLocationByCode(string loccode)
+        {
+            return await _context.LocationMasters
+                .FirstOrDefaultAsync(x => x.Loccode == loccode);
+        }
     }
 }

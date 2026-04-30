@@ -67,6 +67,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
+                    LedgerCode = model.LedgerCode,
                     Status = false
                 };
 
@@ -420,6 +421,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
+                    LedgerCode = model.LedgerCode,
+                    UpdatedBy = userId,
+                    UpdatedDate = DateTime.Now
                 };
                 await _repo.UpdatePOHeaderAsync(po);
 
@@ -459,6 +463,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         LineNumber = lineNumber,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
+                        UpdatedBy = userId,
+                        UpdatedDate = DateTime.Now,
                         Status = false
                     };
                     await _repo.AddPODetailAsync(detail);
@@ -497,7 +503,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             TaxRate = taxMaster.TaxRate,
                             TaxAmount = taxAmount,
                             CreatedBy = userId,
-                            CreatedDate = DateTime.Now
+                            CreatedDate = DateTime.Now,
+                            UpdatedBy = userId,
+                            UpdatedDate = DateTime.Now
                         });
                     }
 

@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.Services.LOTInspectionService;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +24,9 @@ namespace DMS_BAPL_Api.Controllers
         //Summary: Insert invoice details in LOT inspection header table based on invoice no
         [HttpPost]
         [Route("AcceptInvoices")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AcceptInvoices([FromBody] string invoiceNo)
         {
             try
@@ -55,6 +59,9 @@ namespace DMS_BAPL_Api.Controllers
         //Summary: Update invoice details in LOT inspection header table based on invoice no
         [HttpPut]
         [Route("UpdateLotInspectedDetails")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateLotInspectedDetails(LotInspectionViewModel model)
         {
             try
@@ -82,6 +89,9 @@ namespace DMS_BAPL_Api.Controllers
         //Summary: Get list of all accepted invoice
         [HttpGet]
         [Route("GetAllAcceptedInvoiceList")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllAcceptedInvoiceList(string? search)
         {
             try
