@@ -193,9 +193,6 @@ namespace DMS_BAPL_Api.Controllers
                     message = "Item updated sucessfully.",
                     data = item
                 });
-                var items = await _itemMasterService.GetItemsByOEMModel(id);
-
-                return Ok(items);
             }
             catch (Exception)
             {
