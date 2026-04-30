@@ -45,7 +45,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     Mobile = dealer.Mobile,
                     Email = dealer.Email,
                     Contactperson = dealer.Contactperson,
-                    RegDate = dealer.RegDate,
+                    RegDate = Convert.ToDateTime(dealer.RegDate),
                     TradCert = dealer.TradCert ?? "",
                     CompgstinNo = dealer.CompgstinNo ?? "",
                     BrandName = dealer.BrandName,
@@ -202,7 +202,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 existingDealer.Mobile = dealerDto.Mobile;
                 existingDealer.Email = dealerDto.Email;
                 existingDealer.Contactperson = dealerDto.Contactperson;
-                existingDealer.RegDate = dealerDto.RegDate;
+                existingDealer.RegDate = Convert.ToDateTime(dealerDto.RegDate);
                 existingDealer.TradCert = dealerDto.TradCert ?? "";
                 existingDealer.CompgstinNo = dealerDto.CompgstinNo ?? "";
                 existingDealer.BrandName = dealerDto.BrandName;
@@ -323,6 +323,48 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             {
                 throw;
             }
+        }
+
+        public async Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel)
+        {
+            var existingDealer = await _context.DealerMasters
+                .FirstOrDefaultAsync(x => x.Dealercode == dealerCode);
+
+            if (existingDealer == null)
+                return false;
+
+            existingDealer.Compname = dealerMasterViewModel.Compname;
+            existingDealer.Compcode = dealerMasterViewModel.Compcode;
+            existingDealer.Adress1 = dealerMasterViewModel.Adress1;
+            existingDealer.Adress2 = dealerMasterViewModel.Adress2;
+            existingDealer.City = dealerMasterViewModel.City;
+            existingDealer.State = dealerMasterViewModel.State;
+            existingDealer.Pin = dealerMasterViewModel.Pin;
+            existingDealer.Pan = dealerMasterViewModel.Pan;
+            existingDealer.PhoneOff = dealerMasterViewModel.PhoneOff ?? string.Empty;
+            existingDealer.Mobile = dealerMasterViewModel.Mobile;
+            existingDealer.Email = dealerMasterViewModel.Email;
+            existingDealer.Contactperson = dealerMasterViewModel.Contactperson;
+            existingDealer.RegDate = Convert.ToDateTime(dealerMasterViewModel.RegDate);
+            existingDealer.TradCert = dealerMasterViewModel.TradCert ?? string.Empty;
+            existingDealer.CompgstinNo = dealerMasterViewModel.CompgstinNo ?? string.Empty;
+            existingDealer.BrandName = dealerMasterViewModel.BrandName;
+            existingDealer.CompImage = dealerMasterViewModel.CompImage;
+            existingDealer.Areaofficeid = dealerMasterViewModel.Areaofficeid;
+            existingDealer.CinNo = dealerMasterViewModel.CinNo;
+            existingDealer.VatNo = dealerMasterViewModel.VatNo;
+            existingDealer.IsTcs = dealerMasterViewModel.IsTcs;
+            existingDealer.TcsPercent = dealerMasterViewModel.TcsPercent;
+            existingDealer.FameiiCode = dealerMasterViewModel.FameiiCode;
+            existingDealer.CeditLimit = dealerMasterViewModel.CeditLimit;
+            existingDealer.RegAddress = dealerMasterViewModel.RegAddress;
+            existingDealer.B2b = dealerMasterViewModel.B2b;
+            existingDealer.UpdatedBy = userId;
+            existingDealer.UpdatedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return existingDealer;
         }
     }
 }

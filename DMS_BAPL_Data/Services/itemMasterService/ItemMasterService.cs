@@ -106,5 +106,6 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);
 
+        public Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(itemCode, userId, insertItemMasterViewModel);
     }
 }

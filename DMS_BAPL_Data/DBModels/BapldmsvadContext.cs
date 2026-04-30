@@ -1723,6 +1723,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("PDIHeadName");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDated).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<PurchaseOrder>(entity =>

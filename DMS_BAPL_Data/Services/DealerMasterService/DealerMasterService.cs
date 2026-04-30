@@ -247,5 +247,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
 
         }
+
+        public Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel) => _dealerMasterRepo.UpdateByDealerCode(dealerCode, userId, dealerMasterViewModel);
     }
 }

@@ -279,7 +279,6 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
         public async Task<IActionResult> UpdateTradeCertificate(int dealerId, [FromBody] string tradeCertificate)
         {
             try
@@ -295,6 +294,37 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     message = StringConstants.TradeCertificateUpdated,
                     data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPut("{dealerCode}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<object>> UpdateByDealerCode(string dealerCode, [FromBody] DealerMasterViewModel dealerMaster)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var dealer = await _dealerMasterService.UpdateByDealerCode(dealerCode, userId, dealerMaster);
+
+                return Ok(new
+                {
+                    message = StringConstants.DealerUpdated,
+                    data = dealer
                 });
             }
             catch (Exception ex)

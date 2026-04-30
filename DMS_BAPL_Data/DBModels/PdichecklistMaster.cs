@@ -19,5 +19,9 @@ public partial class PdichecklistMaster
 
     public DateTime CreatedDate { get; set; }
 
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDated { get; set; }
+
     public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 }

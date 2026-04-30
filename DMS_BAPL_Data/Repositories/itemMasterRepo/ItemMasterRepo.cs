@@ -379,5 +379,47 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 throw new Exception("Error while fetching purchase details with HSN tax by Model No", ex);
             }
         }
+
+        public async Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel)
+        {
+            var existingItem = await _context.ItemMasters
+                    .FirstOrDefaultAsync(x => x.Itemcode == insertItemMasterViewModel.Itemcode);
+
+            if (existingItem != null)
+            {
+                existingItem.Itemtype = insertItemMasterViewModel.Itemtype;
+                existingItem.Itemname = insertItemMasterViewModel.Itemname;
+                existingItem.Itemdesc = insertItemMasterViewModel.Itemdesc;
+                existingItem.Status = insertItemMasterViewModel.Status;
+                existingItem.Hsncode = insertItemMasterViewModel.Hsncode;
+                existingItem.Dlrprice = insertItemMasterViewModel.Dlrprice;
+                existingItem.Custprice = insertItemMasterViewModel.Custprice;
+                existingItem.Moq = insertItemMasterViewModel.Moq;
+                existingItem.Boq = insertItemMasterViewModel.Boq;
+                existingItem.Sgst = insertItemMasterViewModel.Sgst;
+                existingItem.Cgst = insertItemMasterViewModel.Cgst;
+                existingItem.Igst = insertItemMasterViewModel.Igst;
+                existingItem.Ugst = insertItemMasterViewModel.Ugst;
+                existingItem.Grpidno = insertItemMasterViewModel.Grpidno;
+                existingItem.Ipurrate = insertItemMasterViewModel.Ipurrate;
+                existingItem.Iselectric = insertItemMasterViewModel.Iselectric;
+                existingItem.Vehtype = insertItemMasterViewModel.Vehtype;
+                existingItem.Noofbatteries = insertItemMasterViewModel.Noofbatteries;
+                existingItem.Colorcode = insertItemMasterViewModel.Colorcode;
+                existingItem.Rrgitemidno = insertItemMasterViewModel.Rrgitemidno;
+                existingItem.Itemcc = insertItemMasterViewModel.Itemcc;
+                existingItem.Batterytypeidno = insertItemMasterViewModel.Batterytypeidno;
+                existingItem.Fame2amount = insertItemMasterViewModel.Fame2amount;
+                existingItem.Compcode = insertItemMasterViewModel.Compcode;
+                existingItem.Displayname = insertItemMasterViewModel.Displayname;
+                existingItem.Oemmodelname = insertItemMasterViewModel.Oemmodelname;
+
+                existingItem.UpdatedBy = userId;
+                existingItem.UpdatedDate = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return existingItem;
+        }
     }
 }
