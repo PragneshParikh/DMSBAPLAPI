@@ -245,7 +245,10 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
-
+        /// <summary>
+        /// Get Subsidy Value
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("subsidy")]
         [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -267,7 +270,10 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         #region Parts PO Endpoints
-
+        /// <summary>
+        /// Get Parts PO List Async
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("parts/Polist")]
         [ProducesResponseType(typeof(IEnumerable<PartsPurchaseOrderResponseViewModel>), StatusCodes.Status200OK)]
         public async Task<ActionResult> GetPartsPOList()
@@ -282,6 +288,11 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
             }
         }
+        /// <summary>
+        /// Create Parts Purchase Order
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
 
         [HttpPost("parts/create")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -307,5 +318,28 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         #endregion
+        /// <summary>
+        /// Download Vehicle Purchase Order Excel
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        [HttpGet("DownloadPurchaseOrderExcel")]
+        public async Task<IActionResult> DownloadPurchaseOrderExcel([FromQuery] PurchaseOrderSearchViewModel filter)
+        {
+            try
+            {
+                var fileBytes = await _purchaseOrderService.DownloadPurchaseOrderExcel(filter);
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "VehiclePurchaseOrders.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
     }
 }
