@@ -181,7 +181,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
 
             return true;
         }
-        
+
         public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
         {
             try
@@ -222,6 +222,47 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 .ToListAsync();
 
             return result;
+        }
+
+        public async Task<object> UpdateByLocationCode(string locCode, string userId, LocationMasterViewModel locationMasterViewModel)
+        {
+            var _existingLocation = await _context.LocationMasters
+                .FirstOrDefaultAsync(x => x.Loccode == locCode);
+
+            if (_existingLocation == null)
+                return null;
+
+            _existingLocation.Action = locationMasterViewModel.Action;
+            _existingLocation.Loccode = locationMasterViewModel.Loccode;
+            _existingLocation.Locname = locationMasterViewModel.Locname;
+            _existingLocation.Locareaidno = locationMasterViewModel.Locareaidno;
+            _existingLocation.Add1 = locationMasterViewModel.Add1;
+            _existingLocation.Add2 = locationMasterViewModel.Add2;
+            _existingLocation.State = locationMasterViewModel.State;
+            _existingLocation.City = locationMasterViewModel.City;
+            _existingLocation.Pincode = locationMasterViewModel.Pincode;
+            _existingLocation.Gstinno = locationMasterViewModel.Gstinno;
+            _existingLocation.Email = locationMasterViewModel.Email;
+            _existingLocation.Mobileno = locationMasterViewModel.Mobileno;
+            _existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
+            _existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
+            _existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
+            _existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
+            _existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
+            _existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
+            _existingLocation.Compid = locationMasterViewModel.Compid;
+            _existingLocation.Acntidno = locationMasterViewModel.Acntidno;
+            _existingLocation.Formtype = locationMasterViewModel.Formtype;
+            _existingLocation.Dealercode = locationMasterViewModel.Dealercode;
+            _existingLocation.Lineno = locationMasterViewModel.Lineno;
+            _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
+            _existingLocation.Active = locationMasterViewModel.Active;
+            _existingLocation.UpdateBy = userId;
+            _existingLocation.UpdatedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return _existingLocation;
         }
 
         public async Task<LocationMaster?> GetLocationByCode(string loccode)

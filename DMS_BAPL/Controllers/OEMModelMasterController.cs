@@ -1,8 +1,10 @@
-﻿using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.ViewModels;
+using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +25,29 @@ namespace DMS_BAPL_Api.Controllers
         {
             var data = await _oemmasterservice.GetAllOEMModels();
             return Ok(data);
+        }
+
+        [HttpGet("GetOEMModelByStatus/{isActive}")]
+        [ProducesResponseType(typeof(IEnumerable<OemmodelMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<OemmodelMaster>>> GetOEMModelByStatus(Boolean isActive)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var oemModels = await _oemmasterservice.GetOEMModelByStatus(isActive);
+
+                return Ok(oemModels);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         [HttpGet("GetOEMModelById/{id}")]
@@ -65,6 +90,6 @@ namespace DMS_BAPL_Api.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "OEMModelMaster.xlsx"
             );
-        }  
+        }
     }
 }

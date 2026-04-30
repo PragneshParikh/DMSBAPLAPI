@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.ViewModels;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,6 @@ namespace DMS_BAPL_Data.Services.OEMModelMasterService
         Task<bool> DeleteOEMModel(int id);
         Task<bool> UpdateOEMModel(OEMModelMasterViewModel oemViewModel);
         Task<byte[]> DownloadOEMModelExcel();
+        Task<IEnumerable<OemmodelMaster>> GetOEMModelByStatus(bool isActive);
     }
 }

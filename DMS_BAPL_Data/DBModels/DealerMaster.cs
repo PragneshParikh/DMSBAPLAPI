@@ -21,7 +21,7 @@ public partial class DealerMaster
 
     public string Pin { get; set; } = null!;
 
-    public string Pan { get; set; } = null!;
+    public string? Pan { get; set; }
 
     public string PhoneOff { get; set; } = null!;
 

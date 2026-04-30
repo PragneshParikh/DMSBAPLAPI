@@ -5,6 +5,7 @@ using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Drawing.Command;
 using Microsoft.AspNetCore.Mvc;
 
@@ -170,6 +171,57 @@ namespace DMS_BAPL_Api.Controllers
 
             }
             catch { throw; }
+        }
+
+        [HttpPut("UpdateByItemCode/{itemCode}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Object>> UpdateByItemCode(string itemCode, [FromBody] insertItemMasterViewModel insertItemMasterViewModel)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var item = await _itemMasterService.UpdateByItemCode(itemCode, userId, insertItemMasterViewModel);
+
+                return Ok(new
+                {
+                    message = "Item updated sucessfully.",
+                    data = item
+                });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+        [HttpGet("GetItemsByOEMModel/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<ItemMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ItemMaster>>> GetItemsByOEMModel(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemsByOEMModel(id);
+
+                return Ok(items);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

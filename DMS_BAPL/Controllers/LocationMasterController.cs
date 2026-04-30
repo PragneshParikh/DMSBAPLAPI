@@ -4,6 +4,7 @@ using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -64,7 +65,7 @@ namespace DMS_BAPL_Api.Controllers
         [HttpGet("GetAllShowroomLocationsofCurrentDelaer")]
         public async Task<IActionResult> GetAllShowroomlocation(string dealerCode)
         {
-            var result =  await _locationMasterService.GetLocationByDealerCode(dealerCode);
+            var result = await _locationMasterService.GetLocationByDealerCode(dealerCode);
             return Ok(result);
 
         }
@@ -101,5 +102,29 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPut("UpdateByLocationCode/{locCode}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<object>> UpdateByLocationCode(string locCode, LocationMasterViewModel locationMasterViewModel)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var location = await _locationMasterService.UpdateByLocationCode(locCode, userId, locationMasterViewModel);
+
+                return Ok(location);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
     }
 }

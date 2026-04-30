@@ -13,10 +13,11 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer, string userId);
         Task<List<DealerMaster>> GetAllDealersAsync(string? search);
         Task<DealerMaster> GetDealerById(int id);
-        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer,string userId);
+        Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealer, string userId);
         Task<byte[]> DownloadDealerExcel();
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
+        Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel);
     }
 }
