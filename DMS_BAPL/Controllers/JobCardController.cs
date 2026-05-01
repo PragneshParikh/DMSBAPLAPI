@@ -336,10 +336,13 @@ namespace DMS_BAPL_Api.Controllers
                 _logger.LogError(ex, "Error in DeleteJobCard");
                 return StatusCode(500, "An error occurred while deleting the job card.");
             }
-            
+
         }
 
         [HttpPost("SearchJobCard")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SearchJobCard([FromBody] JobCardSearchModel model)
         {
             try
@@ -357,6 +360,26 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while searching job cards.");
             }
         }
+        [HttpGet("GetServiceHistory/{chassisNo}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetServiceHistory(string chassisNo)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _jobCardRepo.GetServiceHistoryViewModellist(chassisNo);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetServiceHistory");
+                return StatusCode(500, "An error occurred while fetching service history.");
+            }
 
+        }
     }
 }

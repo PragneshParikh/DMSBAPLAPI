@@ -41,6 +41,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal CGST { get; set; }
         public decimal IGSTPer { get; set; }
         public decimal IGST { get; set; }
-        public DateOnly? CustomerSaleDate { get; set; }
+        public DateTime? CustomerSaleDate { get; set; }
     }
 }

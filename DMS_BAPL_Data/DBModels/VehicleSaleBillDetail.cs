@@ -57,7 +57,7 @@ public partial class VehicleSaleBillDetail
 
     public string? RegNo { get; set; }
 
-    public DateOnly? InsExpDate { get; set; }
+    public DateTime? InsExpDate { get; set; }
 
     public string? ModelName { get; set; }
 
@@ -84,6 +84,8 @@ public partial class VehicleSaleBillDetail
     public string? BatteryMake { get; set; }
 
     public string? StockDetailsNo { get; set; }
+
+    public string? ItemCode { get; set; }
 
     public string? Vcu { get; set; }
 

@@ -12,9 +12,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public int rrgcoloridno { get; set; }
         public string? colorname { get; set; } = null!;
         public string? colorcode { get; set; } = null!;
-        public int createdby { get; set; }
+        public string? createdby { get; set; }
         public DateTime createddatetime { get; set; }
-        public int? updatedby { get; set; }
+        public string? updatedby { get; set; }
         public DateTime? updateddatetime { get; set; }
     }
 }

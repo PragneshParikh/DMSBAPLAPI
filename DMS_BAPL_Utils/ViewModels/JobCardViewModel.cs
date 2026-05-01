@@ -208,13 +208,13 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? BatteryNo { get; set; }
 
-        public DateOnly? SaleDate { get; set; }
+        public DateTime? SaleDate { get; set; }
 
-        public DateOnly? InsuranceExpDate { get; set; }
+        public DateTime? InsuranceExpDate { get; set; }
 
-        public DateOnly? NextserviceDueDate { get; set; }
+        public DateTime? NextserviceDueDate { get; set; }
 
-        public DateOnly? RsarenewalDate { get; set; }
+        public DateTime? RsarenewalDate { get; set; }
 
         public string? Remarks { get; set; }
 
@@ -316,9 +316,9 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string ChassisNo { get; set; }
         public string? RegisterNo { get; set; }
-        public DateOnly? SaleDate { get; set; }
+        public DateTime? SaleDate { get; set; }
 
-        public DateOnly? InsuranceExpDate { get; set; }
+        public DateTime? InsuranceExpDate { get; set; }
     }
 
     public class JobCardSearchModel
@@ -331,4 +331,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerName { get; set; }
         public string? ChassisNo { get; set; }
     }
+
+    public class ServiceHistoryViewModel
+    {
+        public int srno { get; set; }
+        public int? serviceseq { get; set; }
+        public string? serviceHead { get; set; }
+
+        public string? serviceType { get; set; }
+        public string? ChassisNo { get; set; }
+        public string? DealerName { get; set; }
+
+        public DateTime? DueDate { get; set; }
+        public DateTime? GraceDate { get; set; }
+        public DateTime? ClaimDate { get; set; }
+        public string? ServiceStatus { get; set; }
+    }
+
 }

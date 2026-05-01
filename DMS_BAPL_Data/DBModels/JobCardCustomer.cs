@@ -25,13 +25,13 @@ public partial class JobCardCustomer
 
     public string? BatteryNo { get; set; }
 
-    public DateOnly? SaleDate { get; set; }
+    public DateTime? SaleDate { get; set; }
 
-    public DateOnly? InsuranceExpDate { get; set; }
+    public DateTime? InsuranceExpDate { get; set; }
 
-    public DateOnly? NextserviceDueDate { get; set; }
+    public DateTime? NextserviceDueDate { get; set; }
 
-    public DateOnly? RsarenewalDate { get; set; }
+    public DateTime? RsarenewalDate { get; set; }
 
     public string? Remarks { get; set; }
 

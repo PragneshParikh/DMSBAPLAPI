@@ -81,7 +81,7 @@ namespace DMS_BAPL_Data.Repositories.CityRepo
                 Abbreviation = model.Abbreviation,
                 IsActive = model.IsActive,
                 CreatedBy = userId,
-                Createddate = DateTime.UtcNow
+                CreatedDate = DateTime.UtcNow
             };
 
             _context.Cities.Add(city);
@@ -101,7 +101,7 @@ namespace DMS_BAPL_Data.Repositories.CityRepo
             city.Abbreviation = model.Abbreviation;
             city.IsActive = model.IsActive;
             city.UpdatedBy = userId;
-            city.Updateddate = DateTime.UtcNow;
+            city.UpdatedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             return true;

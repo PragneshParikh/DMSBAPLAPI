@@ -468,7 +468,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     .Select(d => new UpdateSaleDetailsVM
                     {
                         ChassisNo = d.ChassisNo,
-                        SaleDate = DateOnly.FromDateTime(model.SaleDate),
+                        SaleDate = model.SaleDate,
                         InsuranceExpDate = d.InsExpDate,
                         RegisterNo = d.RegNo
                     })

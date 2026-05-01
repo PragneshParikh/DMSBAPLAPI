@@ -1,0 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace DMS_BAPL_Data.DBModels;
+
+public partial class InvoiceItem
+{
+    public int Id { get; set; }
+
+    public int InvoiceId { get; set; }
+
+    public int? ItemId { get; set; }
+
+    public string? Description { get; set; }
+
+    public decimal? Quantity { get; set; }
+
+    public decimal? Rate { get; set; }
+
+    public decimal? TaxPercent { get; set; }
+
+    public decimal? Amount { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public virtual InvoiceHeader Invoice { get; set; } = null!;
+}
