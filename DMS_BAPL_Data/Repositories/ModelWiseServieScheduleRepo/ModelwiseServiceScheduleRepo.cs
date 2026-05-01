@@ -126,7 +126,8 @@ namespace DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo
                 query = query.Where(x => x.EffectiveDate.Value.Date == effectiveDate.Value.Date);
             }
 
-            return await query.ToListAsync();
+            return await query.OrderByDescending(x => x.EffectiveDate)
+                .ToListAsync();
         }
 
         //GET BY MODEL (FOR EDIT)

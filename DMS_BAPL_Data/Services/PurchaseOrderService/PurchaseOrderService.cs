@@ -8,7 +8,9 @@ using DMS_BAPL_Utils.ViewModels;
 using Org.BouncyCastle.Asn1.Crmf;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using DMS_BAPL_Data.Services.ExcelServices;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
@@ -18,13 +20,15 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         private readonly IDealerMasterRepo _dealerRepo;
         private readonly IColorMasterRepo _colorRepo;
         private readonly IitemMasterRepo _itemRepo;
+        private readonly IExcelService _excelService;
 
-        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo, IitemMasterRepo itemMaster, IColorMasterRepo colorMasterRepo)
+        public PurchaseOrderService(IPurchaseOrderRepo repo, IDealerMasterRepo dealerMasterRepo, IitemMasterRepo itemMaster, IColorMasterRepo colorMasterRepo, IExcelService excelService)
         {
             _repo = repo;
             _dealerRepo = dealerMasterRepo;
             _colorRepo = colorMasterRepo;
             _itemRepo = itemMaster;
+            _excelService = excelService;
         }
 
         /// <summary>
@@ -545,6 +549,82 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         public async Task<decimal> GetSubsidyValueAsync()
         {
             return await _repo.GetSubsidyValue();
+        }
+
+        public async Task<byte[]> DownloadPurchaseOrderExcel(PurchaseOrderSearchViewModel filter)
+        {
+            try
+            {
+                var data = await GetPOListAsync();
+
+                // Apply Filters
+                if (!string.IsNullOrEmpty(filter.PurchaseNo))
+                {
+                    data = data.Where(x => x.PONumber != null && x.PONumber.Contains(filter.PurchaseNo, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                if (filter.DateFrom.HasValue)
+                {
+                    data = data.Where(x => x.PODate >= filter.DateFrom.Value).ToList();
+                }
+
+                if (filter.DateTo.HasValue)
+                {
+                    data = data.Where(x => x.PODate <= filter.DateTo.Value.AddDays(1).AddTicks(-1)).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(filter.TransactionType))
+                {
+                    data = data.Where(x => x.TransactionType == filter.TransactionType).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(filter.IsSubmitted))
+                {
+                    bool isSub = filter.IsSubmitted == "Submited To Erp";
+                    data = data.Where(x => x.IsSubmitted == isSub).ToList();
+                }
+
+                var columns = new List<string>
+                {
+                    "Purchase No",
+                    "Date",
+                    "Trans Type",
+                    "Party Name",
+                    "Location",
+                    "Order Amount",
+                    "IsSubmittedToErp"
+                };
+
+                var rows = data.Select(po =>
+                {
+                    var dict = new Dictionary<string, object>();
+
+                    dict["Purchase No"] = po.PONumber;
+                    dict["Date"] = po.PODate?.ToString("dd-MM-yyyy") ?? "";
+                    dict["Trans Type"] = po.TransactionType;
+                    dict["Party Name"] = "BGAUSS AUTO PRIVATE LIMITED"; // Matching UI hardcoding
+                    dict["Location"] = po.LocationName ?? po.LocCode ?? "";
+                    dict["Order Amount"] = po.TotalAmount?.ToString("N2") ?? "0.00";
+                    dict["IsSubmittedToErp"] = (po.IsSubmitted == true) ? "Yes" : "No";
+
+                    return dict;
+
+                }).ToList();
+
+                var excelModel = new ExcelExportViewModel
+                {
+                    SheetName = "PurchaseOrders",
+                    Columns = columns,
+                    Rows = rows
+                };
+
+                return await _excelService.GenerateExcel(excelModel);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                throw;
+            }
         }
     }
 }

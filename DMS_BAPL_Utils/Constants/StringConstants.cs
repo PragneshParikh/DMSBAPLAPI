@@ -105,6 +105,9 @@ namespace DMS_BAPL_Utils.Constants
         //City Master
         public const string CityMaster = "City Master";
 
+        //PDI Checklist Master
+        public const string DeletePdiChecklist = "This checklist is already used. So marked as inactive.";
+
 
     }
 }
