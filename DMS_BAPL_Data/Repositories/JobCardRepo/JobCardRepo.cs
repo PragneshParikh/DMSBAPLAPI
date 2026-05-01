@@ -917,7 +917,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         DealerName = x.j.CustomerName,
                         DueDate = dueDate,
                         GraceDate = graceDate,
-                        ServiceStatus = "Not Available",
+                        ServiceStatus = "Pending",
                         ClaimDate = DateTime.Now
                     };
                 }).ToList();
