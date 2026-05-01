@@ -15,21 +15,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CustomerType { get; set; } = null!;
         public string Location { get; set; } = null!;
         public string SaleType { get; set; } = null!;
-        public string CashAccount { get; set; } 
-        public string? Financier { get; set; } 
-        public string BillType { get; set; } 
-        public string BillFrom { get; set; } 
-        public string CustomerName { get; set; } 
+        public string CashAccount { get; set; }
+        public string? Financier { get; set; }
+        public string BillType { get; set; }
+        public string BillFrom { get; set; }
+        public string CustomerName { get; set; }
         public string BillingName { get; set; }
-        public string SalesExecutive { get; set; } 
+        public string SalesExecutive { get; set; }
         public int? LedgerId { get; set; }
-        public string TempRegNo { get; set; } 
-        public string BookingId { get; set; } 
-        public string PrintType { get; set; } 
-        public string RefName { get; set; } 
-        
-       public string RefAddress { get; set; } 
-        public string RefEmail { get; set; } 
+        public string TempRegNo { get; set; }
+        public string BookingId { get; set; }
+        public string PrintType { get; set; }
+        public string RefName { get; set; }
+
+        public string RefAddress { get; set; }
+        public string RefEmail { get; set; }
         public int RefPoint { get; set; }
         public string RefRemarks { get; set; } = null!;
         public decimal TotalAmount { get; set; }
@@ -51,9 +51,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool HasDevice { get; set; }
         public bool HasKit { get; set; }
         public bool IsDelivered { get; set; }
-        public string Segment { get; set; } 
-        public string InstitutionalType { get; set; } 
-        public string SchemeName { get; set; } 
+        public string Segment { get; set; }
+        public string InstitutionalType { get; set; }
+        public string SchemeName { get; set; }
         public string Narration { get; set; }
         public decimal? Sgstper { get; set; }
         public decimal? Sgstamnt { get; set; }
