@@ -11,11 +11,11 @@ public partial class State
 
     public string CreatedBy { get; set; } = null!;
 
-    public DateTime Createddate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }
 
-    public DateTime? Updateddate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
 
     public virtual ICollection<City> Cities { get; set; } = new List<City>();
 

@@ -81,6 +81,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                       on v.ItemCode equals i.Itemcode
                                   join dm in _context.DealerMasters
                                       on h.DealerCode equals dm.Dealercode
+                                  join jc in _context.JobCardCustomers
+                                  on d.ChassisNo equals jc.ChassisNo
 
                                   // OEM Model (LEFT JOIN)
                                   join o in _context.OemmodelMasters
@@ -89,8 +91,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                       into oGroup
                                   from o in oGroup.DefaultIfEmpty()
 
-                                  where h.IsLotInspected == true
+                                  where h.IsLotInspected == true 
                                         && h.DealerCode == dealerCode
+                                          && (jc == null || jc.SaleDate != null)
 
                                   select new { h, d, v, i, dm, o })
                                   .ToListAsync();
@@ -878,6 +881,52 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.JobCardHeaders
                 .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo)
+        {
+            try
+            {
+                var rawData = await (from o in _context.OemmodelMasters
+                                     join i in _context.ItemMasters on o.ModelName equals i.Oemmodelname
+                                     join m in _context.ModelwiseServiceSchedules on o.Id equals m.OemmodelId
+                                     join j in _context.JobCardCustomers on i.Itemname equals j.ModelName
+                                     join sh in _context.ServiceHeads on m.ServiceHead equals sh.Id
+                                     join st in _context.ServiceTypes on m.ServiceType equals st.Id
+                                     where j.ChassisNo == chassisNo && m.EffectiveDate == _context.ModelwiseServiceSchedules
+                                     .Where(x => x.OemmodelId == o.Id).Max(x => x.EffectiveDate)
+                                     orderby m.Seqno
+                                     select new { m, j, sh, st }).ToListAsync();
+                // Memory filter (DateOnly issue fix) 
+
+                // Final mapping
+                var finalResult = rawData.Select(x =>
+                {
+                    DateTime? dueDate = null; DateTime? graceDate = null;
+                    if (x.j.SaleDate.HasValue)
+                    {
+                        dueDate = x.j.SaleDate.Value.AddDays(x.m.DaysTo);
+                        graceDate = dueDate.Value.AddDays(15);
+                    }
+                    return new ServiceHistoryViewModel
+                    {
+                        srno = x.m.Id,
+                        serviceseq = x.m.Seqno,
+                        serviceHead = x.sh.ServiceHeadName,
+                        serviceType = x.st.ServiceTypeName,
+                        DealerName = x.j.CustomerName,
+                        DueDate = dueDate,
+                        GraceDate = graceDate,
+                        ServiceStatus = "Pending",
+                        ClaimDate = DateTime.Now
+                    };
+                }).ToList();
+                return finalResult;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error while fetching service history", ex);
+            }
         }
     }
 }

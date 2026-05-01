@@ -49,7 +49,7 @@ public partial class LotinspectionHeader
 
     public DateTime CreatedDate { get; set; }
 
-    public string? UpdateBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
 
