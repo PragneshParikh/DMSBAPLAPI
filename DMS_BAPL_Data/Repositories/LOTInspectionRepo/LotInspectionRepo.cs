@@ -133,7 +133,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.LocationName = model.lotInspectedHeaderDetails.locationName;
 
-                header.UpdateBy = userId;
+                header.UpdatedBy = userId;
                 //                if (!(string.IsNullOrEmpty(model.lotInspectedHeaderDetails.updatedDate) &&
                 //!DateTime.            TryParse(model.lotInspectedHeaderDetails.updatedDate, out var parsedUpdateDate)))
                 //                {
@@ -177,7 +177,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         detail.VehicleStatus = item.vehicleStatus;
                         detail.DamageDetails = item.damageDetails;
                         detail.ChassisWiseRemarks = item.chassisWiseRemarks;
-                        detail.UpdateBy = userId;
+                        detail.UpdatedBy = userId;
                         detail.UpdatedDate = DateTime.Now;
 
                         //// lotVehicleDamageImage FILE

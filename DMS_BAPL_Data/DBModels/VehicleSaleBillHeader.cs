@@ -7,6 +7,8 @@ public partial class VehicleSaleBillHeader
 {
     public int Id { get; set; }
 
+    public int? LedgerId { get; set; }
+
     public DateTime SaleDate { get; set; }
 
     public string SaleBillNo { get; set; } = null!;
@@ -53,7 +55,7 @@ public partial class VehicleSaleBillHeader
 
     public string? Erpstatus { get; set; }
 
-    public int? LedgerId { get; set; }
+    public string? DealerCode { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 
@@ -62,8 +64,6 @@ public partial class VehicleSaleBillHeader
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? DealerCode { get; set; }
 
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
 }

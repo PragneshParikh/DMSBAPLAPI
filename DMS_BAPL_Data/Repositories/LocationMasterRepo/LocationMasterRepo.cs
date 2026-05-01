@@ -55,7 +55,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 locationMasterViewModel.Active = item.Active;
                 locationMasterViewModel.CreatedBy = item.CreatedBy;
                 locationMasterViewModel.CreatedDate = item.CreatedDate;
-                locationMasterViewModel.UpdateBy = item.UpdateBy;
+                locationMasterViewModel.UpdateBy = item.UpdatedBy;
                 locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
                 list.Add(locationMasterViewModel);
@@ -100,7 +100,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMasterViewModel.Active = item.Active;
             locationMasterViewModel.CreatedBy = item.CreatedBy;
             locationMasterViewModel.CreatedDate = item.CreatedDate;
-            locationMasterViewModel.UpdateBy = item.UpdateBy;
+            locationMasterViewModel.UpdateBy = item.UpdatedBy;
             locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
             return locationMasterViewModel;
@@ -174,7 +174,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             location.Lineno = model.Lineno;
             location.Rrglocationidno = model.Rrglocationidno;
             location.Active = model.Active;
-            location.UpdateBy = model.UpdateBy;
+            location.UpdatedBy = model.UpdateBy;
             location.UpdatedDate = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -257,7 +257,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             _existingLocation.Lineno = locationMasterViewModel.Lineno;
             _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
             _existingLocation.Active = locationMasterViewModel.Active;
-            _existingLocation.UpdateBy = userId;
+            _existingLocation.UpdatedBy = userId;
             _existingLocation.UpdatedDate = DateTime.Now;
 
             await _context.SaveChangesAsync();

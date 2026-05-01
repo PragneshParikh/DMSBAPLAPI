@@ -58,7 +58,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                 entity.Pdidescription = pdiChecklistMaster.ChecklistName;
                 entity.Isactive = pdiChecklistMaster.IsActive;
                 entity.UpdatedBy = "Admin";
-                entity.UpdatedDated = DateTime.Now;
+                entity.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
@@ -89,7 +89,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                     //  Relation exists → DO NOT DELETE
                     entity.Isactive = false;
                     entity.UpdatedBy = "Admin"; // Or set to current user
-                    entity.UpdatedDated = DateTime.Now;
+                    entity.UpdatedDate = DateTime.Now;
 
                     await _context.SaveChangesAsync();
                     return (false, StringConstants.DeletePdiChecklist);

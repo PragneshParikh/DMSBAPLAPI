@@ -13,11 +13,11 @@ public partial class ColorMaster
 
     public string Colorcode { get; set; } = null!;
 
-    public int CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
 
-    public int? UpdatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
 
