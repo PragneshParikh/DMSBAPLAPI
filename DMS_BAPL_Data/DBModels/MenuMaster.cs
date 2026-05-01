@@ -17,11 +17,11 @@ public partial class MenuMaster
 
     public string? ModuleName { get; set; }
 
-    public int CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
 
-    public int? UpdatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
 
