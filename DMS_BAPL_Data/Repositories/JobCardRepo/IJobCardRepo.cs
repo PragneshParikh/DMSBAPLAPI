@@ -27,5 +27,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<JobCardDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
 
         Task<JobCardHeader> GetJobCardById(int Id);
+
+        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo);   
     }
 }
