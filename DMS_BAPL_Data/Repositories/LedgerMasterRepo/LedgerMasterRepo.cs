@@ -1,6 +1,10 @@
 using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
+using MailKit.Search;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -102,14 +106,56 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
-        public async Task<LedgerMaster?> GetLedgerById(int id)
+        public async Task<LedgerDetailViewModel?> GetLedgerById(int id)
         {
-            try
-            {
-                return await _context.LedgerMasters
-                               .FirstOrDefaultAsync(x => x.Id == id);
-            }
-            catch { throw; }
+                 //return await _context.LedgerMasters.Include(i => i.State)
+                //.FirstOrDefaultAsync(x => x.Id == id);
+                try
+                {
+                    var query = _context.LedgerMasters.AsNoTracking();
+
+                    var result = await (
+                        from LM in query
+                        join C in _context.Cities
+                            on LM.City equals C.CityId into cityGroup
+                        from city in cityGroup.DefaultIfEmpty()
+
+                        join S in _context.States
+                            on LM.State equals S.StateId into stateGroup
+                        from state in stateGroup.DefaultIfEmpty()
+
+                        where LM.Id ==id
+                        select new LedgerDetailViewModel
+                        {
+                            Id = LM.Id,
+                            LedgerCode = LM.LedgerCode,
+                            LedgerName = LM.LedgerName,
+                            LedgerType = LM.LedgerType,
+                            Gstno = LM.Gstno,
+                            Pan = LM.Pan,
+                            AadharNumber = LM.AadharNumber,
+                            MobileNumber = LM.MobileNumber,
+                            Address = LM.Address,
+                            City = LM.City,
+                            State = LM.State,
+                            Pin = LM.Pin,
+                            EMail = LM.EMail,
+                            Gender = LM.Gender,
+                            DateOfBirth = LM.DateOfBirth,
+                            CreatedBy = LM.CreatedBy,
+                            CreatedDate = LM.CreatedDate,
+                            UpdatedBy = LM.UpdatedBy,
+                            UpdatedDate = LM.UpdatedDate,
+
+                            cityName = city.CityName,
+                            stateName = state.StateName
+                        }
+                    ).FirstOrDefaultAsync();
+
+                return result;
+                }
+                catch { throw; }
+            
         }
 
         async Task<int> ILedgerMasterRepo.InsertLedgerDetail(LedgerMaster ledgerMaster)

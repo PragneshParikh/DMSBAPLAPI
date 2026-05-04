@@ -175,28 +175,28 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("GetChasisPricing")]
-        public async Task<IActionResult> GetChasisPricing(string dealerCode, int ledgerId)
-        {
-            var request = new VehicleSaleChasisRequest
-            {
-                DealerCode = dealerCode,
-                LedgerId = ledgerId
-            };
+        //[HttpGet("GetChasisPricing")]
+        //public async Task<IActionResult> GetChasisPricing(string dealerCode, int ledgerId)
+        //{
+        //    var request = new VehicleSaleChasisRequest
+        //    {
+        //        DealerCode = dealerCode,
+        //        LedgerId = ledgerId
+        //    };
 
-            var result = await _vehicleSaleBillService.GetChasisList(request);
-            return Ok(result);
-        }
+        //    var result = await _vehicleSaleBillService.GetChasisList(request);
+        //    return Ok(result);
+        //}
 
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("ChassisListPDIOK")]
-        public async Task<IActionResult> GetAllChassisListWithPDIOK(string dealerCode)
+        public async Task<IActionResult> GetAllChassisListWithPDIOK(string dealerCode,int ledgerId)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetPdiVehiclesAsync(dealerCode));
+                return Ok(await _vehicleSaleBillService.GetPdiVehiclesAsync(dealerCode,ledgerId));
             }
             catch (Exception ex)
             {
