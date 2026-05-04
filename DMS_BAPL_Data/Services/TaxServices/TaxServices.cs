@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Services.TaxServices
           _context = context;  
         }
 
-        public async Task<List<TaxDetailViewModel>> GetTaxDetailsAsync(string itemCode, string userLocation)
+        public async Task<List<TaxDetailViewModel>> GetTaxDetailsAsync(string itemCode, string dealerLocation,string customerLocation)
         {
             try{
 
@@ -43,7 +43,7 @@ namespace DMS_BAPL_Data.Services.TaxServices
 
 
 
-            string stateFlag = userLocation == companyLocation ? "S" : "O";
+           string stateFlag = dealerLocation.ToLower() == customerLocation.ToLower() ? "S" : "O";
 
 
 

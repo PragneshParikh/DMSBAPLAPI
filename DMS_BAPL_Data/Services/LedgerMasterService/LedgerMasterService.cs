@@ -1,6 +1,7 @@
 using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
+using DMS_BAPL_Utils.ViewModels;
 using Org.BouncyCastle.Bcpg;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
 
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetAll() => _ledgerMasterRepo.GetAll();
         Task<PagedResponse<object>> ILedgerMasterService.GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize) => _ledgerMasterRepo.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize);
-        Task<LedgerMaster?> ILedgerMasterService.GetLedgerByIdAsync(int id) => _ledgerMasterRepo.GetLedgerById(id);
+        Task<LedgerDetailViewModel?> ILedgerMasterService.GetLedgerByIdAsync(int id) => _ledgerMasterRepo.GetLedgerById(id);
         Task<int> ILedgerMasterService.InsertLedgerDetail(LedgerMaster ledgerMaster, string userId)
         {
             ledgerMaster.CreatedBy = userId;

@@ -9,6 +9,6 @@ namespace DMS_BAPL_Data.Services.TaxServices
 {
     public interface ITaxServices
     {
-        Task<List<TaxDetailViewModel>> GetTaxDetailsAsync(string itemCode, string userLocation);
+        Task<List<TaxDetailViewModel>> GetTaxDetailsAsync(string itemCode, string dealerLocation,string customerLocation );
     }
 }

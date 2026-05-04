@@ -15,7 +15,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CustomerType { get; set; } = null!;
         public string Location { get; set; } = null!;
         public string SaleType { get; set; } = null!;
-        public string CashAccount { get; set; }
+        public string? CashAccount { get; set; }
         public string? Financier { get; set; }
         public string BillType { get; set; }
         public string BillFrom { get; set; }
@@ -23,7 +23,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string BillingName { get; set; }
         public string SalesExecutive { get; set; }
         public int? LedgerId { get; set; }
-        public string TempRegNo { get; set; }
+        public string? TempRegNo { get; set; }
         public string BookingId { get; set; }
         public string PrintType { get; set; }
         public string RefName { get; set; }
@@ -45,9 +45,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
         public string ChassisNo { get; set; } = null!;
         public decimal ItemRate { get; set; }
-        public decimal PreGstDiscount { get; set; }
-        public decimal RegAmount { get; set; }
-        public decimal InsuranceAmount { get; set; }
+        public string? ItemCode { get; set; }
+        public decimal? PreGstDiscount { get; set; }
+        public decimal? RegAmount { get; set; }
+        public decimal? InsuranceAmount { get; set; }
         public bool HasDevice { get; set; }
         public bool HasKit { get; set; }
         public bool IsDelivered { get; set; }
@@ -100,6 +101,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? StockDetailsNo { get; set; }
 
         public string? Vcu { get; set; }
+        public string? HsnCode { get; set; }
+        public string? MotorNo { get; set; }
 
     }
 }

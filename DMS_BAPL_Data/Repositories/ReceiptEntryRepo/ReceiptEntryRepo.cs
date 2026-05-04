@@ -154,6 +154,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         PartyName = r.PartyName,
                         MobileNo = r.MobileNo,
                         Financier = r.Financier,
+                        BusinessType=r.BusinessType,
 
                         ProductCode = r.ProductCode,
 
@@ -335,7 +336,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 existingReceipt.BusinessType = receiptEntry.BusinessType;
 
                 // Optional: update date if needed
-                existingReceipt.ReceiptDate = DateOnly.FromDateTime(DateTime.Now);
+                existingReceipt.ReceiptDate = receiptEntry.BillDate;
 
                 // Audit
                 existingReceipt.UpdatedBy = userId;

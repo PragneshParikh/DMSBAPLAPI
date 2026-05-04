@@ -1499,6 +1499,9 @@ public partial class BapldmsvadContext : DbContext
             entity.ToTable("MenuMaster");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.MenuName)
                 .HasMaxLength(500)
@@ -1514,6 +1517,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("pathName");
             entity.Property(e => e.SerialNo).HasColumnName("serialNo");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
