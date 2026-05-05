@@ -139,7 +139,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 return 0;
             }
 
-            existing.NextNo++;
+            existing.NextNo += existing.Increment;
 
             await _context.SaveChangesAsync();
 

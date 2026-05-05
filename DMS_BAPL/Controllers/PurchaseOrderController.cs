@@ -1,8 +1,10 @@
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using MailKit.Net.Imap;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +15,11 @@ namespace DMS_BAPL_Api.Controllers
     public class PurchaseOrderController : ControllerBase
     {
         private readonly IPurchaseOrderService _purchaseOrderService;
-        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService)
+        private readonly IPrefixService _prefixService;
+        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService, IPrefixService prefixService)
         {
             _purchaseOrderService = purchaseOrderService;
+            _prefixService = prefixService;
         }
 
         /// <summary>
@@ -31,17 +35,18 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var result = await _purchaseOrderService.GetPOByNumberAsync(code);
-                return Ok(result);
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
+                if (string.IsNullOrEmpty(dealerCode))
+                    return Unauthorized("User not authorized");
+
+                var result = await _purchaseOrderService.GetPOByNumberAsync(code);
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -57,18 +62,18 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var result = await _purchaseOrderService.GetPOListAsync();
-                return Ok(result);
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
+                if (string.IsNullOrEmpty(dealerCode))
+                    return Unauthorized("User not authorized");
+
+                var result = await _purchaseOrderService.GetPOListAsync();
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-
+                throw;
             }
         }
 
@@ -88,16 +93,16 @@ namespace DMS_BAPL_Api.Controllers
 
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
-                if (string.IsNullOrEmpty(userId))
-
+                if (string.IsNullOrEmpty(dealerCode))
                     return Unauthorized(StringConstants.UserUnauthorized);
 
-                var result = await _purchaseOrderService.CreatePOAsync(model, userId);
+                var result = await _purchaseOrderService.CreatePOAsync(model, dealerCode);
 
                 if (result)
                 {
+                    await _prefixService.UpdateNextNumberByDealerByModule(model.CustomerCode, "purchase_order");
                     return Ok(new
                     {
                         success = true,
@@ -114,11 +119,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -135,6 +136,11 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 if (string.IsNullOrEmpty(poNumber))
                     return BadRequest(StringConstants.PORequired);
 
@@ -147,11 +153,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -171,11 +173,12 @@ namespace DMS_BAPL_Api.Controllers
 
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-                if (string.IsNullOrEmpty(userId))
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
+
+                if (string.IsNullOrEmpty(dealerCode))
                     return Unauthorized(StringConstants.UserUnauthorized);
 
-                var result = await _purchaseOrderService.UpdatePOAsync(model, userId);
+                var result = await _purchaseOrderService.UpdatePOAsync(model, dealerCode);
 
                 if (result)
                 {
@@ -195,11 +198,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -219,6 +218,11 @@ namespace DMS_BAPL_Api.Controllers
 
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 var result = await _purchaseOrderService.DeletePOItemsAsync(poNumber);
 
                 if (result)
@@ -238,11 +242,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
         /// <summary>
@@ -256,16 +256,17 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 var result = await _purchaseOrderService.GetSubsidyValueAsync();
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -301,10 +302,12 @@ namespace DMS_BAPL_Api.Controllers
             if (model == null) return BadRequest(StringConstants.BadRequest);
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-                if (string.IsNullOrEmpty(userId)) return Unauthorized(StringConstants.UserUnauthorized);
+                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
-                var result = await _purchaseOrderService.CreatePartsPOAsync(model, userId);
+                if (string.IsNullOrEmpty(dealerCode))
+                    return Unauthorized(StringConstants.UserUnauthorized);
+
+                var result = await _purchaseOrderService.CreatePartsPOAsync(model, dealerCode);
                 if (result)
                 {
                     return Ok(new { success = true, message = StringConstants.POCreated, poNumber = model.PONumber });
