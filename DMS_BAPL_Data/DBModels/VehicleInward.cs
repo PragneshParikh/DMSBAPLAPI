@@ -98,4 +98,10 @@ public partial class VehicleInward
     public int? MfgMonth { get; set; }
 
     public bool? IsAccepted { get; set; }
+
+    public decimal? Dlrprice { get; set; }
+
+    public decimal? Custprice { get; set; }
+
+    public string? PoType { get; set; }
 }
