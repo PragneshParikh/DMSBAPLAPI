@@ -22,7 +22,7 @@ namespace DMS_BAPL_Data.Repositories.InvoiceRepo
             try
             {
                 return await _context.InvoiceHeaders
-                     .Include(i => i.InvoiceItems)
+                     .Include(i => i.InvoiceDetails)
                      .ToListAsync();
             }
             catch (Exception ex)
@@ -36,7 +36,7 @@ namespace DMS_BAPL_Data.Repositories.InvoiceRepo
             try
             {
                 return await _context.InvoiceHeaders
-                    .Include(i => i.InvoiceItems)
+                    .Include(i => i.InvoiceDetails)
                     .Where(i => i.Id == Id)
                     .FirstOrDefaultAsync(); 
             }

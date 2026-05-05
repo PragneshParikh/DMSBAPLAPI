@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public partial class InvoiceItem
+public partial class InvoiceDetail
 {
     public int Id { get; set; }
 

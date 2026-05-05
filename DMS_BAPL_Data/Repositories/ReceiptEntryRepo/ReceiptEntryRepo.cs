@@ -320,7 +320,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 if (existingReceipt == null)
                     return null;
 
-                // 🔥 Update fields
+                //   Update fields
                 existingReceipt.Location = receiptEntry.Location;
                 existingReceipt.SaleType = receiptEntry.SaleType;
                 existingReceipt.BookingId = receiptEntry.BookingId;

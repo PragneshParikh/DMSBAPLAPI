@@ -22,6 +22,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode,int ledgerId);
         Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
         Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
-
+        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
     }
 }
