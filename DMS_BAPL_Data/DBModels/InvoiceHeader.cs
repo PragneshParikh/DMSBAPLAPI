@@ -37,5 +37,5 @@ public partial class InvoiceHeader
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
+    public virtual ICollection<InvoiceDetail> InvoiceDetails { get; set; } = new List<InvoiceDetail>();
 }

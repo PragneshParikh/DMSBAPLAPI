@@ -53,7 +53,7 @@ public partial class VehicleSaleBillDetail
 
     public string? InsNo { get; set; }
 
-    public DateOnly? InsStartDate { get; set; }
+    public DateTime? InsStartDate { get; set; }
 
     public string? RegNo { get; set; }
 
