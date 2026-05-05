@@ -126,6 +126,6 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         {
             return await _repo.GetLocationNameTypewiseListAsync(dealerCode);
         }
-        public Task<object> UpdateByLocationCode(string locCode, string userId, LocationMasterViewModel locationMasterViewModel) => _repo.UpdateByLocationCode(locCode, userId, locationMasterViewModel);
+        public Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel) => _repo.UpdateByLocationCode(userId, locationMasterViewModel);
     }
 }

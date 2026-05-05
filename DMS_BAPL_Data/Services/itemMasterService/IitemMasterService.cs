@@ -12,12 +12,12 @@ namespace DMS_BAPL_Data.Services.itemMasterService
     {
         Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId);
         Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search);
-        Task UpdateItemAsync(ItemMaster item);
+        Task<ItemMaster> UpdateItemAsync(ItemMaster item);
         Task<byte[]> DownloadItemMasterExcel();
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
         Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo);
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
-        Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel);
+        Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel);
         Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
     }
 }

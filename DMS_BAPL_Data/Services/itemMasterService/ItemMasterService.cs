@@ -38,9 +38,9 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         // update itemservice to the database
 
-        public async Task UpdateItemAsync(ItemMaster item)
+        public async Task<ItemMaster> UpdateItemAsync(ItemMaster item)
         {
-            await _itemMasterRepo.UpdateItemAsync(item);
+            return await _itemMasterRepo.UpdateItemAsync(item);
         }
 
         public async Task<byte[]> DownloadItemMasterExcel()
@@ -107,6 +107,6 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);
         public Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id) => _itemMasterRepo.GetItemsByOEMModel(id);
 
-        public Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(itemCode, userId, insertItemMasterViewModel);
+        public Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(userId, insertItemMasterViewModel);
     }
 }

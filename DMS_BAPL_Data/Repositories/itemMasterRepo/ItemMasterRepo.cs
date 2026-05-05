@@ -191,9 +191,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
         //update data particular on Item ID
-        public async Task UpdateItemAsync(ItemMaster item)
+        public async Task<ItemMaster> UpdateItemAsync(ItemMaster item)
         {
-            var existingItem = await _context.ItemMasters.FindAsync(item.Itemcode);
+            var existingItem = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Itemcode == item.Itemcode);
+
+            if (existingItem == null)
+                return null;
 
             if (existingItem != null)
             {
@@ -232,6 +235,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                 await _context.SaveChangesAsync();
             }
+
+            return existingItem;
         }
         //Get purchase details by model no
         public async Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo)
@@ -380,10 +385,13 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
 
-        public async Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel)
+        public async Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel)
         {
             var existingItem = await _context.ItemMasters
                     .FirstOrDefaultAsync(x => x.Itemcode == insertItemMasterViewModel.Itemcode);
+
+            if (existingItem == null)
+                return null;
 
             if (existingItem != null)
             {
