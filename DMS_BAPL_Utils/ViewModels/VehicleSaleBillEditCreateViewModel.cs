@@ -70,7 +70,6 @@ namespace DMS_BAPL_Utils.ViewModels
 
 
         public string? RegNo { get; set; }
-
         public DateTime? InsExpDate { get; set; }
         public decimal FinalAmount { get; set; }
         public bool IsAgainstExchange { get; set; }
