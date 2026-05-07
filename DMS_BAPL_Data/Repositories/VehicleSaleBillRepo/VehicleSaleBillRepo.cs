@@ -344,8 +344,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ChargerNo = bd.ChargerNo ?? vd.ChargerNo,
                  ControllerNo = bd.ControllerNo ?? vd.ControllerNo,
                  ConverterNo = bd.ConverterNo ?? vd.Converter,
-                 DealerPrice = im.Dlrprice,
-                 CustomerPrice = im.Custprice,
+                 DealerPrice = vd.Dlrprice,
+                 CustomerPrice = vd.Custprice,
                  PreGstDisc = im.Fame2amount,
 
                  DealerCode = jc.DealerCode,

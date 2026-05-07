@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
     public interface IReceiptEntryRepo
     {
         Task<string?> GetLastReceiptNoAsync();
-        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
+        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId, string dealercode);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
         //Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
         Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
