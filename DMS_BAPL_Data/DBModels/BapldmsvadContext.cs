@@ -105,6 +105,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<PartsInventory> PartsInventories { get; set; }
 
+    public virtual DbSet<PartsInward> PartsInwards { get; set; }
+
     public virtual DbSet<PdichecklistChassisWise> PdichecklistChassisWises { get; set; }
 
     public virtual DbSet<PdichecklistMaster> PdichecklistMasters { get; set; }
@@ -1778,6 +1780,63 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.VoucherNo)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<PartsInward>(entity =>
+        {
+            entity.ToTable("PartsInward");
+
+            entity.Property(e => e.Cgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("cgst");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("dealer_code");
+            entity.Property(e => e.DiscountType)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("discount_type");
+            entity.Property(e => e.Igst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("igst");
+            entity.Property(e => e.InvoiceDate)
+                .HasColumnType("datetime")
+                .HasColumnName("invoice_date");
+            entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("invoice_no");
+            entity.Property(e => e.IsAccepted).HasColumnName("isAccepted");
+            entity.Property(e => e.ItemDisc)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("item_disc");
+            entity.Property(e => e.ItemHsncode)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("item_hsncode");
+            entity.Property(e => e.ItemIdno).HasColumnName("item_idno");
+            entity.Property(e => e.ItemMrp)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("item_mrp");
+            entity.Property(e => e.ItemQty).HasColumnName("item_qty");
+            entity.Property(e => e.ItemRate)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("item_rate");
+            entity.Property(e => e.LocCode)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("loc_code");
+            entity.Property(e => e.PartNo)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("part_no");
+            entity.Property(e => e.Sgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("sgst");
+            entity.Property(e => e.Ugst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("ugst");
         });
 
         modelBuilder.Entity<PdichecklistChassisWise>(entity =>
