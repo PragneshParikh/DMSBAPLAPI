@@ -97,11 +97,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string dealer = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))
                     return BadRequest(StringConstants.UserUnauthorized);
 
-                var result = await _receiptEntryService.AddReceiptEntryAsync(receiptEntry, userId);
+                var result = await _receiptEntryService.AddReceiptEntryAsync(receiptEntry,userId,dealer);
                 return Ok(result);
 
             }
