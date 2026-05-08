@@ -173,11 +173,11 @@ namespace DMS_BAPL_Api.Controllers
             catch { throw; }
         }
 
-        [HttpPut("UpdateByItemCode/{itemCode}")]
+        [HttpPut("UpdateByItemCode")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Object>> UpdateByItemCode(string itemCode, [FromBody] insertItemMasterViewModel insertItemMasterViewModel)
+        public async Task<ActionResult<Object>> UpdateByItemCode([FromBody] insertItemMasterViewModel insertItemMasterViewModel)
         {
             try
             {
@@ -186,7 +186,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var item = await _itemMasterService.UpdateByItemCode(itemCode, userId, insertItemMasterViewModel);
+                var item = await _itemMasterService.UpdateByItemCode(userId, insertItemMasterViewModel);
+
+                if (item == null)
+                    return NotFound("Item not found with the provided item code.");
 
                 return Ok(new
                 {

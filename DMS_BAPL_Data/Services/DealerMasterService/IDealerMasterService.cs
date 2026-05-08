@@ -18,6 +18,6 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<List<DealerDropdownViewModel>> GetDealerDropdown();
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
-        Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel);
+        Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
     }
 }

@@ -325,13 +325,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             }
         }
 
-        public async Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel)
+        public async Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel)
         {
             var existingDealer = await _context.DealerMasters
-                .FirstOrDefaultAsync(x => x.Dealercode == dealerCode);
+                .FirstOrDefaultAsync(x => x.Dealercode == dealerMasterViewModel.Dealercode);
 
             if (existingDealer == null)
-                return false;
+                return null;
 
             existingDealer.Compname = dealerMasterViewModel.Compname;
             existingDealer.Compcode = dealerMasterViewModel.Compcode;

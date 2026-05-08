@@ -2,6 +2,8 @@ using DMS_BAPL_Api;
 using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Middleware;
+using DMS_BAPL_Data.Repositories.StockReportRepo;
+using DMS_BAPL_Data.Services.StockReportService;
 using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -26,7 +28,9 @@ builder.Services.AddCors(options =>
 
         });
 });
-
+// Add these if missing
+builder.Services.AddScoped<IStockReportRepo, StockReportRepo>();
+builder.Services.AddScoped<IStockReportService, StockReportService>();
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
