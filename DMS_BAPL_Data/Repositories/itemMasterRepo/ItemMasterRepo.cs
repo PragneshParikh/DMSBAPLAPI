@@ -447,5 +447,19 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             catch { throw; }
         }
 
+        public async Task<List<ItemMaster>> GetByItemCodesAsync(List<string> itemCodes)
+        {
+            try
+            {
+                 return await _context.ItemMasters
+                .Where(x => x.Itemcode != null && itemCodes.Contains(x.Itemcode))
+                .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

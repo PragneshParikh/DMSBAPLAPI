@@ -1,8 +1,12 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.CityRepo;
+using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
+using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Utils.Helpers;
@@ -20,15 +24,18 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
     public class VehicleSaleBillService : IVehicleSaleBillService
     {
         private readonly IVehicleSaleBillRepo _repo;
+        private readonly IDealerMasterRepo _dealerRepo;
         private readonly ILedgerMasterRepo _ledgerRepo;
         private readonly ITaxServices _taxService;
         private readonly IStateRepo _stateRepo;
         private readonly ICityRepo _cityRepo;
         private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IitemMasterRepo _itemRepo;
+        private readonly IVehicleDispatchRepo _vehicleInwardRepo;
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
-            IStateRepo stateRepo, IJobCardRepo jobCardRepo)
+            IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -37,65 +44,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _stateRepo = stateRepo;
             _cityRepo = cityRepo;
             _jobCardRepo = jobCardRepo;
+            _dealerRepo = dealerMaster;
         }
 
-        //public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
-        //{
-        //    try
-        //    {
-        //        var header = MapToEntity(model);
-        //        header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-        //        var result= await _repo.CreateAsync(header);
-        //        foreach (var item in model.Details) {
-        //            var updateSaleJobCard = new UpdateSaleDetailsVM
-        //            {
-        //                ChassisNo = item.ChassisNo,
-        //                SaleDate = DateOnly.FromDateTime(model.SaleDate),
-        //                InsuranceExpDate =item.InsExpDate,
-        //                RegisterNo = item.RegNo
-        //            };
-        //            await _jobCardRepo.UpdateSaleDetails(updateVM);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        throw;
-        //    }
-        //}
 
-        //public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
-        //{
-        //    using var transaction = await _.Database.BeginTransactionAsync();
-
-        //    try
-        //    {
-        //        var header = MapToEntity(model);
-        //        header.CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-
-        //        var result = await _repo.CreateAsync(header);
-
-        //        foreach (var item in model.Details)
-        //        {
-        //            var updateSaleJobCard = new UpdateSaleDetailsVM
-        //            {
-        //                ChassisNo = item.ChassisNo,
-        //                SaleDate = DateOnly.FromDateTime(model.SaleDate),
-        //                InsuranceExpDate = item.InsExpDate,
-        //                RegisterNo = item.RegNo
-        //            };
-
-        //            await _jobCardRepo.UpdateSaleDetails(updateSaleJobCard);
-        //        }
-
-        //        await transaction.CommitAsync();
-        //        return result;
-        //    }
-        //    catch
-        //    {
-        //        await transaction.RollbackAsync();
-        //        throw;
-        //    }
-        //}
 
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
         {
@@ -120,9 +72,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
-                var data = await _repo.GetByIdAsync(id);
-                if (data == null) return null;
-                return MapToResponse(data);
+                var data = await _repo.GetVehicleWithMotorDetailsByIdAsync(id);
+                //if (data == null) return null;
+                //return MapToResponse(data);
+                return data;
             }
             catch
             {
@@ -130,19 +83,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
-        // ✅ GET ALL
-        //public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync()
-        //{
-        //    try
-        //    {
-        //        var list = await _repo.GetAllAsync();
-        //        return list.Select(MapToResponse).ToList();
-        //    }
-        //    catch
-        //    {
-        //        throw;
-        //    }
-        //}
 
         public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
         {
@@ -180,114 +120,15 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     list = list.Where(x => x.Erpstatus.ToLower() == erpStatus.ToLower()).ToList();
                 }
 
-                return list.Select(MapToResponse).ToList();
+                var result = list.Select(x => MapToResponse(x)).ToList();
+
+                return result;
             }
             catch
             {
                 throw;
             }
         }
-
-        //  UPDATE
-        //public async Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model)
-        //{
-        //    try
-        //    {
-        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-        //        var existing = await _repo.GetByIdAsync(id);
-        //        if (existing == null)
-        //            throw new Exception("Record not found");
-
-        //        // Update Header
-        //        existing.BillFrom = model.BillFrom;
-        //        existing.BillingName = model.BillingName;
-        //        existing.Financier = model.Financier;
-        //        existing.CustomerType = model.CustomerType;
-        //        existing.IsD2d = model.IsD2d;
-        //        existing.CashAccount = model.CashAccount;
-        //        existing.BillType = model.BillType;
-        //        existing.Location = model.Location;
-        //        existing.SalesExecutive = model.SalesExecutive;
-        //        existing.TempRegNo = model.TempRegNo;
-        //        existing.SaleType = model.SaleType;
-        //        existing.LedgerId = model.LedgerId;
-
-        //        existing.CustomerName = model.CustomerName;
-        //        existing.TotalAmount = model.TotalAmount;
-        //        existing.UpdatedDate = DateTime.Now;
-        //        existing.UpdatedBy = userId;
-
-        //        // Remove old details
-        //        existing.VehicleSaleBillDetails.Clear();
-
-        //        // Add new details
-        //        foreach (var d in model.Details)
-        //        {
-        //                existing.VehicleSaleBillDetails.Add(new VehicleSaleBillDetail
-        //            {
-        //                ChassisNo = d.ChassisNo,
-        //                ItemRate = d.ItemRate,
-        //                PreGstDiscount = d.PreGstDiscount,
-        //                RegAmount = d.RegAmount,
-        //                InsuranceAmount = d.InsuranceAmount,
-        //                HasDevice = d.HasDevice,
-        //                HasKit = d.HasKit,
-        //                IsDelivered = d.IsDelivered,
-        //                Segment = d.Segment,
-        //                InstitutionalType = d.InstitutionalType,
-        //                SchemeName = d.SchemeName,
-        //                Narration = d.Narration,
-        //                FinalAmount = d.FinalAmount,
-        //                IsAgainstExchange = d.IsAgainstExchange,
-        //                CreatedDate = existing.CreatedDate,
-        //                CreatedBy = userId,
-        //                Igstper = d.Igstper,
-        //                Igstamnt = d.Igstamnt,
-        //                Sgstper = d.Sgstper,
-        //                Sgstamnt = d.Sgstamnt,
-        //                Cgstamnt = d.Cgstamnt,
-        //                Cgstper = d.Cgstper,
-        //                InsNo = d.InsNo,
-        //                InsExpDate = d.InsExpDate,
-        //                InsStartDate = d.InsStartDate,
-        //                MfgYear = d.MfgYear,
-        //                RegNo = d.RegNo,
-        //                ModelName = d.ModelName ?? "",
-        //                Colour = d.Colour ?? "",
-        //                Battery = d.Battery ?? "",
-        //                ConvertorNo = d.ConvertorNo ?? "",
-        //                ChargerNo = d.ChargerNo ?? "",
-        //                ControllerNo = d.ControllerNo ?? "",
-        //                Key = d.Key ?? "",
-        //                BookNo = d.BookNo ?? "",
-        //                ExtWarranty = d.ExtWarranty ?? "",
-        //                BatteryChemical = d.BatteryChemical ?? "",
-        //                BatteryCapacity = d.BatteryCapacity ?? "",
-        //                BatteryMake = d.BatteryMake ?? "",
-        //                StockDetailsNo = d.StockDetailsNo ?? "",
-        //                Vcu = d.Vcu ?? ""
-
-        //            });
-        //        }
-
-        //        var jobUpdates = model.Details.Select(d => new UpdateSaleDetailsVM
-        //        {
-        //            ChassisNo = d.ChassisNo,
-        //            SaleDate = DateOnly.FromDateTime(model.SaleDate),
-        //            InsuranceExpDate = d.InsExpDate,
-        //            RegisterNo = d.RegNo
-        //        }).ToList();
-
-
-        //        await _repo.UpdateWithJobUpdateAsync(existing, jobUpdates);
-        //    }
-        //    catch
-        //    {
-        //        throw;
-        //    }
-        //}
-
-        // DELETE
 
         public async Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model)
         {
@@ -354,6 +195,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         detail.HasDevice = d.HasDevice;
                         detail.HasKit = d.HasKit;
                         detail.IsDelivered = d.IsDelivered;
+                        detail.ItemCode = d.ItemCode;
 
                         detail.Segment = d.Segment;
                         detail.InstitutionalType = d.InstitutionalType;
@@ -410,6 +252,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             PreGstDiscount = d.PreGstDiscount,
                             RegAmount = d.RegAmount,
                             InsuranceAmount = d.InsuranceAmount,
+                            ItemCode = d.ItemCode,
 
                             HasDevice = d.HasDevice,
                             HasKit = d.HasKit,
@@ -552,6 +395,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         Narration = d.Narration,
                         FinalAmount = d.FinalAmount,
                         IsAgainstExchange = d.IsAgainstExchange,
+                        ItemCode = d.ItemCode,
                         Sgstper = d.Sgstper,
                         Sgstamnt = d.Sgstamnt,
                         Cgstamnt = d.Cgstamnt,
@@ -577,8 +421,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         BatteryMake = d.BatteryMake ?? "",
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
-
-
                         CreatedDate = DateTime.Now,
                         CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext)
                     }).ToList()
@@ -607,14 +449,14 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     BillType = data.BillType,
                     BillingName = data.BillingName,
                     Financier = data.Financier,
-                    CashAc = data.CashAccount,
+                    CashAccount = data.CashAccount,
                     SalesExecutive = data.SalesExecutive,
                     isTempRegNo = data.TempRegNo,
                     isD2d = data.IsD2d,
                     CustomerType = data.CustomerType,
                     LedgerId = data.LedgerId,
-                    erpStatus = data.Erpstatus,
-                    dealerCode = data.DealerCode,
+                    ErpStatus = data.Erpstatus,
+                    DealerCode = data.DealerCode,
 
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
@@ -657,7 +499,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         BatteryCapacity = d.BatteryCapacity ?? "",
                         BatteryMake = d.BatteryMake ?? "",
                         StockDetailsNo = d.StockDetailsNo ?? "",
-                        Vcu = d.Vcu ?? ""
+                        Vcu = d.Vcu ?? "",
+                        ItemCode = d.ItemCode ?? ""
 
                     }).ToList()
                 };
@@ -667,6 +510,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
+
+
+
 
         public async Task<string> GenerateNextVehicleSaleNo()
         {
@@ -698,24 +544,16 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
+                LedgerDetailViewModel? ledger = null;
 
 
                 var header = await _repo.GetByIdAsync(id);
                 if (header == null) return null;
 
-                var ledger = header.LedgerId.HasValue
-                    ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
-                    : null;
+                ledger = header.LedgerId.HasValue
+                   ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
+                   : null;
                 var states = await _stateRepo.GetStatesAsync();
-
-                var stateName = states
-                    .Where(s => s.StateId == ledger.State)
-                    .Select(s => s.StateName)
-                    .FirstOrDefault();
-                var cities = await _cityRepo.GetCitiesAsync();
-                var cityName = cities.Where(c => c.CityId == ledger.City)
-                    .Select(c => c.CityName)
-                    .FirstOrDefault();
 
                 var result = new VehicleSaleExportViewModel
                 {
@@ -727,8 +565,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         EmailId = ledger?.EMail ?? "",
 
                         DateOfBirth = ledger?.DateOfBirth.HasValue == true
-                            ? ledger.DateOfBirth.Value.ToString("dd-MM-yyyy")
-                            : "",
+                ? ledger.DateOfBirth.Value.ToString("dd-MM-yyyy")
+                : "",
 
                         DateOfAnniversary = "",
                         Id = "",
@@ -738,8 +576,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                         Address1 = ledger?.Address ?? "",
                         Address2 = "",
-                        State = stateName.ToUpper() ?? "",
-                        City = cityName.ToUpper() ?? ""
+                        State = ledger?.stateName ?? "",
+                        City = ledger?.cityName ?? ""
                     },
 
                     Vehicle = header.VehicleSaleBillDetails.Select(detail => new VehicleViewModel
@@ -786,104 +624,19 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
         }
 
-        public async Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request)
+
+
+        public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId)
         {
-            try
-            {
-
-                var result = new List<VehicleSaleChasisResponse>();
-
-                // 1. Get Chassis + ItemCodes
-                var chassisList = await _repo.GetChassisByDealer(request.DealerCode);
-
-                // 2. Ledger
-                var ledger = await _ledgerRepo.GetLedgerById(request.LedgerId);
-                var states = await _stateRepo.GetStatesAsync();
-
-                var stateName = states
-                    .Where(s => s.StateId == ledger.State)
-                    .Select(s => s.StateName)
-                    .FirstOrDefault();
-                if (ledger == null)
-                    throw new Exception("Ledger not found");
-
-                // 3. Dealer Location
-                var dealerLocation = await _repo.GetDealerLocation(request.DealerCode);
-
-
-                foreach (var ch in chassisList)
-                {
-                    var item = await _repo.GetItem(ch.itemCode);
-                    if (item == null) continue;
-
-                    // BOTH RATES
-                    decimal dealerRate = await _repo.GetPurchaseRate(request.DealerCode, ch.itemCode) ?? 0m;
-                    decimal customerRate = item.Custprice;
-
-                    decimal preGstDis = item.Fame2amount;
-
-                    // Choose base for tax 
-                    decimal taxableAmount = customerRate - preGstDis;
-
-                    var taxDetails = await _taxService.GetTaxDetailsAsync(ch.itemCode, stateName);
-
-                    decimal cgstPer = 0, sgstPer = 0, igstPer = 0;
-                    decimal cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
-
-                    foreach (var tax in taxDetails)
-                    {
-                        if (tax.TaxCode.ToUpper().Contains("CGST"))
-                        {
-                            cgstPer = tax.TaxRate;
-                            cgstAmt = taxableAmount * cgstPer / 100;
-                        }
-                        if (tax.TaxCode.ToUpper().Contains("SGST"))
-                        {
-                            sgstPer = tax.TaxRate;
-                            sgstAmt = taxableAmount * sgstPer / 100;
-                        }
-                        if (tax.TaxCode.ToUpper().Contains("IGST"))
-                        {
-                            igstPer = tax.TaxRate;
-                            igstAmt = taxableAmount * igstPer / 100;
-                        }
-                    }
-
-                    result.Add(new VehicleSaleChasisResponse
-                    {
-                        ChassisNo = ch.chassisNo,
-                        ItemCode = ch.itemCode,
-
-                        DealerRate = dealerRate,
-                        CustomerRate = customerRate,
-                        PreGstDis = preGstDis,
-
-                        CGSTPer = cgstPer,
-                        CGSTAmt = cgstAmt,
-                        SGSTPer = sgstPer,
-                        SGSTAmt = sgstAmt,
-                        IGSTPer = igstPer,
-                        IGSTAmt = igstAmt,
-
-                        MfgYear = null
-                    });
-                }
-
-                return result;
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-        public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode)
-        {
+            dynamic customer;
             var rawData = await _repo.GetPdiRawDataAsync(dealerCode);
+            customer = await _ledgerRepo.GetLedgerById(ledgerId);
+
+            var dealerLocation = await _dealerRepo.GetDealerByCode(dealerCode);
 
             var result = new List<PdiOkVehicleChassisViewModel>();
 
-            // 🚀 Optimization: group by ItemCode
+            //  group by ItemCode
             var itemGroups = rawData.GroupBy(x => x.ItemCode);
 
             var taxCache = new Dictionary<string, List<TaxDetailViewModel>>();
@@ -892,7 +645,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 var itemCode = group.Key;
 
-                var tax = await _taxService.GetTaxDetailsAsync(itemCode, dealerCode);
+                var tax = await _taxService.GetTaxDetailsAsync(itemCode, dealerLocation.State, customer.stateName);
                 taxCache[itemCode] = tax;
             }
 
@@ -978,6 +731,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                return await _repo.GenerateForm22Report(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
     }
 }

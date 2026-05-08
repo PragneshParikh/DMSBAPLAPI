@@ -52,11 +52,11 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             }
         }
 
-        public async Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId)
+        public async Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId, string dealerCode)
         {
             try
             {
-                return await _receiptEntryRepo.AddReceiptEntryAsync(receiptEntry, userId);
+                return await _receiptEntryRepo.AddReceiptEntryAsync(receiptEntry, userId,dealerCode);
 
             }
             catch (Exception)

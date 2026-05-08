@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
     public interface IReceiptEntryService
     {
         Task<string> GenerateNextReceiptNoAsync();
-        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
+        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId,string dealerCode);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
         Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
         Task<List<LedgerMaster>> GetLedgerMasterDetailsByTypeAsync(string ledgerType);
