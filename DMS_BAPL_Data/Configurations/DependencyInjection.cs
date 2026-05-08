@@ -25,6 +25,7 @@ using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
+using DMS_BAPL_Data.Repositories.PartInwardRepo;
 using DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo;
 using DMS_BAPL_Data.Repositories.PerformaInvoiceRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
@@ -61,6 +62,7 @@ using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.OEMModelWarrantyService;
+using DMS_BAPL_Data.Services.PartsInwardService;
 using DMS_BAPL_Data.Services.PerformaInvoiceService;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
@@ -120,6 +122,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
             services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
+            services.AddScoped<IPartInwardRepo, PartInwardRepo>();
             services.AddScoped<IChassisRepo, ChassisRepo>();
             #endregion
 
@@ -160,6 +163,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IMaterialTransferService, MaterialTransferService>();
             services.AddScoped<IExtendedBatteryWarrantyService, ExtendedBatteryWarrantyService>();
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
+            services.AddScoped<IPartInwardService, PartInwardService>();
             services.AddScoped<IChassisService, ChassisService>();
 
             // Email SErvice
