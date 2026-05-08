@@ -306,11 +306,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPut("{dealerCode}")]
+        [HttpPut("UpdateByDealerCode")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<object>> UpdateByDealerCode(string dealerCode, [FromBody] DealerMasterViewModel dealerMaster)
+        public async Task<ActionResult<object>> UpdateByDealerCode([FromBody] DealerMasterViewModel dealerMaster)
         {
             try
             {
@@ -319,7 +319,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var dealer = await _dealerMasterService.UpdateByDealerCode(dealerCode, userId, dealerMaster);
+                var dealer = await _dealerMasterService.UpdateByDealerCode(userId, dealerMaster);
+
+                if (dealer == null)
+                    return NotFound(StringConstants.DealerNotFound);
 
                 return Ok(new
                 {

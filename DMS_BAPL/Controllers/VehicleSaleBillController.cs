@@ -235,5 +235,19 @@ namespace DMS_BAPL_Api.Controllers
                 throw ex;
             }
         }
+
+        [HttpGet("Form22")]
+
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                return await _vehicleSaleBillService.GenerateForm22Report(chassisNo);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

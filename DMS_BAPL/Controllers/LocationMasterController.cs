@@ -103,11 +103,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPut("UpdateByLocationCode/{locCode}")]
+        [HttpPut("UpdateByLocationCode")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<object>> UpdateByLocationCode(string locCode, LocationMasterViewModel locationMasterViewModel)
+        public async Task<ActionResult<object>> UpdateByLocationCode([FromBody] LocationMasterViewModel locationMasterViewModel)
         {
             try
             {
@@ -116,7 +116,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var location = await _locationMasterService.UpdateByLocationCode(locCode, userId, locationMasterViewModel);
+                var location = await _locationMasterService.UpdateByLocationCode(userId, locationMasterViewModel);
+
+                if (location == null)
+                    return NotFound("Location not found");
 
                 return Ok(location);
             }

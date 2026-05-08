@@ -731,6 +731,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                return await _repo.GenerateForm22Report(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
     }
 }

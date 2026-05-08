@@ -701,6 +701,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode).HasMaxLength(20);
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DocumentNo)
                 .HasMaxLength(50)
@@ -1998,6 +1999,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.Financier)
                 .HasMaxLength(150)
                 .IsUnicode(false);

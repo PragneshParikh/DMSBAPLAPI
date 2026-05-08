@@ -50,5 +50,43 @@ namespace DMS_BAPL_Data.Repositories.PerformaInvoiceRepo
                 throw;
             }
         }
+
+        public async Task<List<InvoiceHeader>> GetAllAsync()
+        {
+            return await _context.InvoiceHeaders
+                .Include(x => x.InvoiceDetails)
+                .ToListAsync();
+        }
+
+        public async Task<InvoiceHeader?> GetByIdAsync(int id)
+        {
+            return await _context.InvoiceHeaders
+                .Include(x => x.InvoiceDetails)
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<int> AddAsync(InvoiceHeader invoice)
+        {
+            _context.InvoiceHeaders.Add(invoice);
+            await _context.SaveChangesAsync();
+            return invoice.Id;
+        }
+
+        public async Task UpdateAsync(InvoiceHeader invoice)
+        {
+            _context.InvoiceHeaders.Update(invoice);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var invoice = await _context.InvoiceHeaders.FindAsync(id);
+            if (invoice != null)
+            {
+                _context.InvoiceHeaders.Remove(invoice);
+                await _context.SaveChangesAsync();
+            }
+        }
+
     }
 }
