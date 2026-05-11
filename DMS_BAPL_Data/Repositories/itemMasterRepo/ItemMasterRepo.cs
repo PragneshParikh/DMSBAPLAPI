@@ -347,7 +347,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                                 var isInterEntry = sFlag.StartsWith("I") || sFlag.Contains("INT");
 
                                 // Local taxes
-                                if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("S") || (x.TaxCode ?? "").ToUpper().Contains("C"))))
+                                if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().StartsWith("S") || (x.TaxCode ?? "").ToUpper().StartsWith("C"))))
                                 {
                                     var sgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("S"))?.TaxRate;
                                     var cgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("C"))?.TaxRate;

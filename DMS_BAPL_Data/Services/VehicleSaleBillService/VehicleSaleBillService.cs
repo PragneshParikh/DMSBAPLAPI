@@ -8,21 +8,18 @@ using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
+using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.TaxServices;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 {
     public class VehicleSaleBillService : IVehicleSaleBillService
     {
+        #region declarations
         private readonly IVehicleSaleBillRepo _repo;
         private readonly IDealerMasterRepo _dealerRepo;
         private readonly ILedgerMasterRepo _ledgerRepo;
@@ -33,9 +30,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IitemMasterRepo _itemRepo;
         private readonly IVehicleDispatchRepo _vehicleInwardRepo;
+        private readonly IExcelService _excelService;
+        #endregion
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
-            IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster)
+            IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster, IExcelService excelService)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -45,6 +44,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _cityRepo = cityRepo;
             _jobCardRepo = jobCardRepo;
             _dealerRepo = dealerMaster;
+            _excelService = excelService;
         }
 
 
@@ -98,6 +98,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                     list = list.Where(x =>
                         (x.SaleBillNo != null && x.SaleBillNo.ToLower().Contains(search)) ||
+                        (x.SaleType != null && x.SaleType.ToLower().Contains(search)) ||
+                        (x.Erpstatus != null && x.Erpstatus.ToLower().Contains(search)) ||
                         (x.CustomerName != null && x.CustomerName.ToLower().Contains(search)) ||
                         (x.BillingName != null && x.BillingName.ToLower().Contains(search)) ||
                         (x.Location != null && x.Location.ToLower().Contains(search)) ||
@@ -739,6 +741,98 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
             catch
             {
+                throw;
+            }
+        }
+
+        public async Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null)
+        {
+            try
+            {
+
+                var headerData = await _repo.GetAllAsync();
+
+                if (dateFrom.HasValue)
+                {
+                    headerData = headerData.Where(x => x.SaleDate.Date >= dateFrom.Value.Date).ToList();
+                }
+
+                if (dateTo.HasValue)
+                {
+                    headerData = headerData.Where(x => x.SaleDate.Date <= dateTo.Value.Date).ToList();
+                }
+
+                var data = headerData.SelectMany(h => h.VehicleSaleBillDetails
+                .Select(d =>
+
+                        new VehicleSaleBillExcelViewModel
+                        {
+                            // Header Fields
+                            SaleBillNo = h.SaleBillNo,
+                            SaleDate = h.SaleDate,
+                            CustomerName = h.CustomerName,
+                            BillingName = h.BillingName,
+                            CustomerType = h.CustomerType,
+                            Location = h.Location,
+                            SaleType = h.SaleType,
+                            Financier = h.Financier,
+                            SalesExecutive = h.SalesExecutive,
+                            //TotalAmount = h.TotalAmount,
+
+                            // Detail Fields
+                            ChassisNo = d.ChassisNo,
+                            ModelName = d.ModelName,
+                            Colour = d.Colour,
+                            ItemCode = d.ItemCode,
+                            ItemRate = d.ItemRate,
+                            FinalAmount = d.FinalAmount,
+                            InsuranceAmount = d.InsuranceAmount,
+                            RegAmount = d.RegAmount,
+                            Battery = d.Battery,
+                            ChargerNo = d.ChargerNo,
+                            ControllerNo = d.ControllerNo,
+                            ConvertorNo = d.ConvertorNo,
+                            RegNo = d.RegNo
+                        }))
+                    .ToList();
+
+                // DTO Properties
+                var properties = typeof(VehicleSaleBillExcelViewModel)
+                    .GetProperties()
+                    .ToList();
+
+                // Excel Columns
+                var columns = properties
+                    .Select(p => p.Name)
+                    .ToList();
+
+                // Excel Rows
+                var rows = data.Select(d =>
+                {
+                    var dict = new Dictionary<string, object>();
+
+                    foreach (var prop in properties)
+                    {
+                        dict[prop.Name] = prop.GetValue(d) ?? "";
+                    }
+
+                    return dict;
+                }).ToList();
+
+                // Excel Model
+                var model = new ExcelExportViewModel
+                {
+                    SheetName = StringConstants.VehicleSaleBillExcel,
+                    Columns = columns,
+                    Rows = rows
+                };
+
+                // Generate Excel
+                return await _excelService.GenerateExcel(model);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
                 throw;
             }
         }
