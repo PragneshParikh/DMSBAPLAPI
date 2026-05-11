@@ -5,8 +5,9 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DMS_BAPL_Data.Repositories.JobReportRepo;
 
-namespace DMS_BAPL_Data.Services.JobCardService
+namespace DMS_BAPL_Data.Services.JobReportService
 {
     public class JobReportService : IJobReportService
     {

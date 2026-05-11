@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace DMS_BAPL_Data.Services.JobCardService
+namespace DMS_BAPL_Data.Services.JobReportService
 {
     public interface IJobReportService
     {

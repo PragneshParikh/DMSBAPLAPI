@@ -1,5 +1,5 @@
-﻿using DMS_BAPL_Data.Services.JobCardService;
-using DMS_BAPL_Data.Services.StockReportService;
+﻿using DMS_BAPL_Data.Services.JobReportService;
+using DMS_BAPL_Data.Services.StockServices;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -54,29 +54,45 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         [HttpPost("job-card")]
         [ProducesResponseType(typeof(JobReportPagedResponse<JobReportViewModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardReport([FromBody] JobReportFilterModel filter)
         {
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authorized");
+                if (filter == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Filter model is null"
+                    });
+                }
 
-                if (filter.PageIndex < 1) filter.PageIndex = 1;
-                if (filter.PageSize < 1) filter.PageSize = 20;
+                if (filter.PageIndex < 1)
+                    filter.PageIndex = 1;
+
+                if (filter.PageSize < 1)
+                    filter.PageSize = 20;
+
+                _logger.LogInformation("Job Card Report API Called");
 
                 var result = await _jobReportService.GetJobReportAsync(filter);
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching job card report");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                _logger.LogError(ex, ex.ToString());
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message,
+                    innerException = ex.InnerException?.Message,
+                    stackTrace = ex.StackTrace
+                });
             }
         }
-
         /// <summary>
         /// Get Dealer Wise Job Card Summary Report
         /// </summary>
@@ -192,7 +208,7 @@ namespace DMS_BAPL_Api.Controllers
         /// Get Job Report Summary Statistics
         /// </summary>
         [HttpGet("job-card/summary-stats")]
-        [ProducesResponseType(typeof(JobReportSummaryStats), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(JobReportViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobReportSummaryStats(

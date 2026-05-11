@@ -2,7 +2,7 @@
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
-namespace DMS_BAPL_Data.Repositories.StockReportRepo
+namespace DMS_BAPL_Data.Repositories.StockRepo
 {
     public class StockReportRepo : IStockReportRepo
     {

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-namespace DMS_BAPL_Data.Repositories.JobCardRepo
+namespace DMS_BAPL_Data.Repositories.JobReportRepo
 {
     public interface IJobReportRepo
     {
