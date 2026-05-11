@@ -327,11 +327,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Retrieves all purchase orders.
         /// </summary>
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync()
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode)
         {
             try
             {
-                return await _repo.GetPOListAsync();
+                return await _repo.GetPOListAsync(dealerCode);
             }
             catch (Exception)
             {
@@ -555,7 +555,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         {
             try
             {
-                var data = await GetPOListAsync();
+                var data = await GetPOListAsync(null);
 
                 // Apply Filters
                 if (!string.IsNullOrEmpty(filter.PurchaseNo))

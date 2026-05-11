@@ -58,16 +58,15 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GetPOList()
+        public async Task<ActionResult> GetPOList(string? dealerCode)
         {
             try
             {
-                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
-                if (string.IsNullOrEmpty(dealerCode))
-                    return Unauthorized("User not authorized");
+                //if (string.IsNullOrEmpty(dealerCode))
+                //    return Unauthorized("User not authorized");
 
-                var result = await _purchaseOrderService.GetPOListAsync();
+                var result = await _purchaseOrderService.GetPOListAsync(dealerCode);
 
                 return Ok(result);
             }

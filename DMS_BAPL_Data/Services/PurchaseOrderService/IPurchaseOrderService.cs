@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
     {
         Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
+        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode);
 
         // Parts PO Methods
         Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string dealerCode);

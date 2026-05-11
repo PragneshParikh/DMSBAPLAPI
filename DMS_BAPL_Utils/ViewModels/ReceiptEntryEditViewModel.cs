@@ -40,6 +40,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Narration { get; set; }
         public string? BusinessType {  get; set; }
+        public string? DealerCode {  get; set; }
 
         public decimal? TotalAmount { get; set; }
 

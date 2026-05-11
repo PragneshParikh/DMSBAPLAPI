@@ -157,11 +157,11 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             }
         }
 
-        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode,string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
         {
             try
             {
-                return await _receiptEntryRepo.GetReceiptEntryListAsyncWithSearch(searchTerm, fromDate, toDate);
+                return await _receiptEntryRepo.GetReceiptEntryListAsyncWithSearch(dealerCode,searchTerm, fromDate, toDate);
             }
             catch
             {

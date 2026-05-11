@@ -92,11 +92,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAllAcceptedInvoiceList(string? search)
+        public async Task<IActionResult> GetAllAcceptedInvoiceList(string? dealerCode,string? search)
         {
             try
             {
-                var result = await _invoiceService.GetAllLotInspectionHeaderDetailsAsync(search);
+                var result = await _invoiceService.GetAllLotInspectionHeaderDetailsAsync(dealerCode,search);
                 return Ok(new
                 {
                     Message = "All accepted invoiceHeader list retrieved successfully",
