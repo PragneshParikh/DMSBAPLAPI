@@ -165,7 +165,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string dealerCode)
+        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode)
         {
             var jobCardsResult = await (
                 from jh in _context.JobCardHeaders
@@ -194,7 +194,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     on jh.JobSource equals js.Id into jsJoin
                 from js in jsJoin.DefaultIfEmpty()
 
-                where jh.DealerCode == dealerCode
+               // where jh.DealerCode == dealerCode
 
                 select new JobCardDetailsViewModel
                 {
@@ -208,6 +208,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     JobCardHeader = new JobCardHeaderVM
                     {
                         Id = jh.Id,
+                        DealerCode=jh.DealerCode,
                         Jobtype = jh.Jobtype,
                         Servicehead = jh.Servicehead,
                         Servicetype = jh.Servicetype,
@@ -347,6 +348,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         .FirstOrDefault()
                 }
             ).ToListAsync();
+
+            if(!string.IsNullOrWhiteSpace(dealerCode))
+            {
+                jobCardsResult =jobCardsResult.Where(i=>i.JobCardHeader.DealerCode == dealerCode).ToList();
+            }
 
             return jobCardsResult;
         }
