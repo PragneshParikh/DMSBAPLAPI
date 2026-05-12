@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.PerformaInvoiceRepo;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -71,7 +72,7 @@ namespace DMS_BAPL_Data.Services.PerformaInvoiceService
         {
             await _repository.DeleteAsync(id);
         }
-        public async Task<List<InvoiceHeader>> GetAllAsync()
+        public async Task<List<InvoiceViewModel>> GetAllAsync()
         {
             return await _repository.GetAllAsync();
         }

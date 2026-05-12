@@ -1,3 +1,4 @@
+using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
@@ -108,6 +109,7 @@ namespace DMS_BAPL_Utils.Constants
         //PDI Checklist Master
         public const string DeletePdiChecklist = "This checklist is already used. So marked as inactive.";
 
-
+        //VehicleSaleBill
+        public const string VehicleSaleBillExcel = "Vehicle Sale Bill";
     }
 }
