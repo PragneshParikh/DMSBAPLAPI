@@ -1,7 +1,7 @@
-﻿using DMS_BAPL_Data.Repositories.StockReportRepo;
+﻿using DMS_BAPL_Data.Repositories.StockRepo;
 using DMS_BAPL_Utils.ViewModels;
 
-namespace DMS_BAPL_Data.Services.StockReportService
+namespace DMS_BAPL_Data.Services.StockServices
 {
     public class StockReportService
         : IStockReportService
