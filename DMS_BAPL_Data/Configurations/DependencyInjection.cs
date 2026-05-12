@@ -39,6 +39,7 @@ using DMS_BAPL_Data.Repositories.StockRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
+using DMS_BAPL_Data.Repositories.VehicleSaleReportRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -78,6 +79,7 @@ using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
+using DMS_BAPL_Data.Services.VehicleSaleReportService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -130,6 +132,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisRepo, ChassisRepo>();
             services.AddScoped<IJobReportRepo, JobReportRepo>();
             services.AddScoped<IStockReportRepo, StockReportRepo>();
+            services.AddScoped<IVehicleSaleReportRepo, VehicleSaleReportRepo>();
 
             #endregion
 
@@ -174,6 +177,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisService, ChassisService>();
             services.AddScoped<IStockReportService, StockReportService>();
             services.AddScoped<IJobReportService, JobReportService>();
+            services.AddScoped<IVehicleSaleReportService, VehicleSaleReportService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

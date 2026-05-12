@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.Services.JobReportService;
 using DMS_BAPL_Data.Services.StockServices;
+using DMS_BAPL_Data.Services.VehicleSaleReportService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -12,15 +13,18 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IStockReportService _stockReportService;
         private readonly IJobReportService _jobReportService;
+        private readonly IVehicleSaleReportService _vehicleSaleReportService;
         private readonly ILogger<ReportController> _logger;
 
         public ReportController(
             IStockReportService stockReportService,
             IJobReportService jobReportService,
+            IVehicleSaleReportService vehicleSaleReportService,
             ILogger<ReportController> logger)
         {
             _stockReportService = stockReportService;
             _jobReportService = jobReportService;
+            _vehicleSaleReportService = vehicleSaleReportService;
             _logger = logger;
         }
 
@@ -229,6 +233,36 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error fetching job report summary stats");
                 return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("vehicle-sale")]
+        [ProducesResponseType(typeof(List<VehicleSaleReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetVehicleSaleReport(
+                [FromQuery] string? dealerCode,
+                [FromQuery] DateTime? fromDate,
+                [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                var result = await _vehicleSaleReportService
+                    .GetVehicleSaleReportAsync(
+                        fromDate,
+                        toDate,
+                        dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale report");
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
     }
