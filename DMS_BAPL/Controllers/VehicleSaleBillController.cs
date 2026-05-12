@@ -249,5 +249,36 @@ namespace DMS_BAPL_Api.Controllers
                 throw ex;
             }
         }
+
+        /// <summary>
+        /// Downloads dealer list as an Excel file.
+        /// </summary>
+        /// <returns>Excel file containing dealer data</returns>
+        [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Download(DateTime? dateFrom = null, DateTime? dateTo = null)
+        {
+            try
+            {
+
+                var file = await _vehicleSaleBillService.DownloadDealerExcel(dateFrom,dateTo);
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "SaleBillList.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

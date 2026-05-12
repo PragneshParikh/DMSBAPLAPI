@@ -18,10 +18,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task DeleteAsync(int id);
         Task<string> GenerateNextVehicleSaleNo();
         Task<VehicleSaleExportViewModel?> GetExportData(int id);
-       // Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
-        Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode,int ledgerId);
+        // Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
+        Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId);
         Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
         Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
+        Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null);
     }
 }
