@@ -313,7 +313,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync()
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode)
         {
             try
             {
@@ -321,6 +321,11 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
 
                 if (poList == null || !poList.Any())
                     return new List<PurchaseOrderResponseViewModel>();
+
+                if(!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    poList =poList.Where(x=>x.CustomerCode == dealerCode).ToList();
+                }
 
                 var resultList = new List<PurchaseOrderResponseViewModel>();
 

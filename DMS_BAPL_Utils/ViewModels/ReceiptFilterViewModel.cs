@@ -17,6 +17,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Location { get; set; }
         public string? SaleType { get; set; }
         public string? ItemCode { get; set; }
+        public string? DealerCode { get; set; }
 
     }
 }

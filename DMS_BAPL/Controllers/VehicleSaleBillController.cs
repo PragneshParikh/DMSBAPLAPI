@@ -67,11 +67,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet]
-        public async Task<IActionResult> GetAll(string? search, DateTime? fromDate, DateTime? toDate, string? erpStatus)
+        public async Task<IActionResult> GetAll(string? dealerCode,string? search, DateTime? fromDate, DateTime? toDate, string? erpStatus)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetAllAsync(search, fromDate, toDate, erpStatus));
+                return Ok(await _vehicleSaleBillService.GetAllAsync(dealerCode,search, fromDate, toDate, erpStatus));
             }
             catch (Exception ex)
             {

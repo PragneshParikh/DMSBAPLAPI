@@ -24,6 +24,6 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task RollbackTransactionAsync();
         Task SaveAsync();
         Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
-        Task<object> UpdateByDealerCode(string dealerCode, string userId, DealerMasterViewModel dealerMasterViewModel);
+        Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
     }
 }

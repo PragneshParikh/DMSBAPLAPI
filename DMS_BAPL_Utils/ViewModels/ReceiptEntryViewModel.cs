@@ -29,6 +29,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? MobileNo { get; set; }
         public DateOnly BillDate { get; set; }
         public string? BillNo { get; set; }
+        public string? DealerCode { get; set; }
         public string? BusinessType { get; set; }
 
 

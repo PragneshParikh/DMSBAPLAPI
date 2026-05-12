@@ -88,6 +88,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         MobileNo = r.MobileNo,
                         Financier = r.Financier,
                         BusinessType=r.BusinessType,
+                        DealerCode=r.DealerCode,
 
                         ProductCode = r.ProductCode,
 
@@ -108,6 +109,8 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 // APPLY FILTERS
                 if (filter != null)
                 {
+                    if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                        query = query.Where(x => x.DealerCode == filter.DealerCode);
                     if (filter.FromDate.HasValue)
                         query = query.Where(x => x.ReceiptDate >= filter.FromDate.Value);
 
@@ -319,7 +322,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
             }
         }
 
-        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? search,DateOnly? fromDate,DateOnly? toDate)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode,string? search,DateOnly? fromDate,DateOnly? toDate)
         {
             try
             {
@@ -347,6 +350,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         Financier = r.Financier,
                         ProductCode = r.ProductCode,
                         BusinessType = r.BusinessType,
+                        DealerCode =r.DealerCode,
 
                         // ✅ Product Details
                         ProductName = i.Itemname,
@@ -363,14 +367,16 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         UpdatedBy = r.UpdatedBy,
                         UpdatedDate = r.UpdatedDate
                     };
-                if (fromDate.HasValue)
-                {
-                    query = query.Where(x => x.ReceiptDate >= fromDate.Value);
-                }
+               
 
                 if (toDate.HasValue)
                 {
                     query = query.Where(x => x.ReceiptDate <= toDate.Value);
+                }
+                if(!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    
+                    query= query.Where(x=>x.DealerCode == dealerCode);
                 }
                 // APPLY SEARCH
                 if (!string.IsNullOrWhiteSpace(search))

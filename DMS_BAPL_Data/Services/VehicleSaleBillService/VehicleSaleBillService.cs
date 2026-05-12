@@ -84,7 +84,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         }
 
 
-        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
+        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? dealerCode,string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
         {
             try
             {
@@ -120,6 +120,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 if (!string.IsNullOrWhiteSpace(erpStatus))
                 {
                     list = list.Where(x => x.Erpstatus.ToLower() == erpStatus.ToLower()).ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    list =list.Where(i=>i.DealerCode.ToLower() == dealerCode.ToLower()).ToList();
                 }
 
                 var result = list.Select(x => MapToResponse(x)).ToList();

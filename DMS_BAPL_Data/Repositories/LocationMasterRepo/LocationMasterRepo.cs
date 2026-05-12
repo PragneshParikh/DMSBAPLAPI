@@ -224,10 +224,10 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             return result;
         }
 
-        public async Task<object> UpdateByLocationCode(string locCode, string userId, LocationMasterViewModel locationMasterViewModel)
+        public async Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
         {
             var _existingLocation = await _context.LocationMasters
-                .FirstOrDefaultAsync(x => x.Loccode == locCode);
+                .FirstOrDefaultAsync(x => x.Loccode == locationMasterViewModel.Loccode);
 
             if (_existingLocation == null)
                 return null;
