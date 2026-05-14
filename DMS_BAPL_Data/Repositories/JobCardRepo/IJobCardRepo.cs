@@ -16,7 +16,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<ServiceHeadViewModel>> GetServiceHead(int jobTypeId);
         Task<List<ServiceTypeViewModel>> GetServiceType(int serviceHeadId);
         Task<List<JobSourceViewModel>> GetJobSource();
-        Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode);
+        Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId);
         Task<List<PdichecklistMaster>> GetPdichecklist();
         Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode);
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
@@ -28,6 +28,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
         Task<JobCardHeader> GetJobCardById(int Id);
 
-        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo);   
+        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo); 
+        
+        Task<CIRJobcardViewModel> GetCIRJobCardDetails (int id);
     }
 }

@@ -68,7 +68,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return result;
         }
-        public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode)
+        public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
         {
             try
             {
@@ -91,10 +91,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                       into oGroup
                                   from o in oGroup.DefaultIfEmpty()
 
-                                  where h.IsLotInspected == true 
+                                  where h.IsLotInspected == true
                                         && h.DealerCode == dealerCode
-                                          && (jc == null || jc.SaleDate != null)
-
+                                          &&
+                                            (jobTypeId == 1 || jobTypeId == 2 ? (jc == null || jc.SaleDate == null) : true)   // 👈 ONLY unsold
                                   select new { h, d, v, i, dm, o })
                                   .ToListAsync();
 
@@ -909,10 +909,30 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 var finalResult = rawData.Select(x =>
                 {
                     DateTime? dueDate = null; DateTime? graceDate = null;
+                    string status = "Pending";
                     if (x.j.SaleDate.HasValue)
                     {
                         dueDate = x.j.SaleDate.Value.AddDays(x.m.DaysTo);
                         graceDate = dueDate.Value.AddDays(15);
+                        var today = DateTime.Today;
+
+                        //pending when clain service table create i uncommet it
+                        //if (x.j.ClaimDate != null)
+                        //{
+                        //    status = "Availed";
+                        //}
+                        //else if (today < dueDate)
+                        //{
+                        //    status = "Upcoming";
+                        //}
+                        //else if (today >= dueDate && today <= graceDate)
+                        //{
+                        //    status = "Due";
+                        //}
+                        //else if (today > graceDate)
+                        //{
+                        //    status = "Overdue";
+                        //}
                     }
                     return new ServiceHistoryViewModel
                     {
@@ -923,7 +943,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         DealerName = x.j.CustomerName,
                         DueDate = dueDate,
                         GraceDate = graceDate,
-                        ServiceStatus = "Pending",
+                        ServiceStatus = status,
                         ClaimDate = DateTime.Now
                     };
                 }).ToList();
@@ -933,6 +953,51 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             {
                 throw new Exception("Error while fetching service history", ex);
             }
+        }
+
+        public  async Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id)
+        {
+            var ObjCIRJobcardViewModel = await (from jh in _context.JobCardHeaders
+                                                join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                                                where jh.Id == id
+                                                select new CIRJobcardViewModel
+                                                {
+                                                    JobNo = jh.JobNo,
+                                                    ChassisNo = jh.Chassisno,
+                                                    CustomerName = jc.CustomerName,
+                                                    ModelName = jc.ModelName,
+                                                    Vehiclekms = jh.Vehiclekms,
+                                                    RegisterNo = jc.RegisterNo,
+                                                    Observation = jh.Observation,
+                                                    Serviceloc = jh.Serviceloc,
+                                                    VehicleSaleDate = jc.SaleDate,
+                                                    CustomerVoice = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.CustomerVoice)
+                                                                .FirstOrDefault(),
+                                                    ComplaintCode = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.ComplaintCode)
+                                                                .FirstOrDefault(),
+                                                    Complaint = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.Complaint)
+                                                                .FirstOrDefault(),
+                                                    }).FirstOrDefaultAsync();
+            // Generate Sequence Number
+            //var connection = _context.Database.GetDbConnection();
+
+            //await connection.OpenAsync();
+
+            //using var command = connection.CreateCommand();
+            //command.CommandText = "SELECT current_value FROM sys.sequences WHERE name = 'CirnoSeq'";
+
+            //var result = await command.ExecuteScalarAsync();
+
+            //// numeric value
+            //ObjCIRJobcardViewModel.CIRNo = Convert.ToInt64(result);
+
+            return ObjCIRJobcardViewModel;
         }
     }
 }

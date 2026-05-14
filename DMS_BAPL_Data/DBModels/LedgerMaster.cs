@@ -45,5 +45,7 @@ public partial class LedgerMaster
 
     public virtual City? CityNavigation { get; set; }
 
+    public virtual ICollection<Hsrporder> Hsrporders { get; set; } = new List<Hsrporder>();
+
     public virtual State? StateNavigation { get; set; }
 }

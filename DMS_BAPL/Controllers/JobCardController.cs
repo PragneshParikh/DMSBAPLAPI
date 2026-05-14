@@ -105,11 +105,11 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while fetching service types.");
             }
         }
-        [HttpGet("GetAllInspectedChassis")]
+        [HttpGet("GetAllInspectedChassis/{dealerCode}/{jobTypeId}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAllInspectedChassis(string dealerCode)
+        public async Task<IActionResult> GetAllInspectedChassis(string dealerCode, int jobTypeId)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode);
+                var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode, jobTypeId);
 
                 //if (data == null || !data.Any())
                 //{
@@ -381,5 +381,27 @@ namespace DMS_BAPL_Api.Controllers
             }
 
         }
+
+        [HttpGet("GetCIRJobCardDetails/{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetCIRJobCardDetails(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _jobCardRepo.GetCIRJobCardDetails(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetCIRJobCardDetails");
+                return StatusCode(500, "An error occurred while fetching CIR job card details.");
+            }
+        }
+
     }
 }

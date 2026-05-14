@@ -39,5 +39,7 @@ public partial class InvoiceHeader
 
     public string? DealerCode { get; set; }
 
+    public string? InvoiceNo { get; set; }
+
     public virtual ICollection<InvoiceDetail> InvoiceDetails { get; set; } = new List<InvoiceDetail>();
 }

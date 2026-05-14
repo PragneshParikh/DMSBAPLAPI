@@ -109,6 +109,10 @@ namespace DMS_BAPL_Utils.Constants
         //PDI Checklist Master
         public const string DeletePdiChecklist = "This checklist is already used. So marked as inactive.";
 
+        //FFIR
+        public const string FFIRInsert = "FFIR inserted successfully";
+
+
         //VehicleSaleBill
         public const string VehicleSaleBillExcel = "Vehicle Sale Bill";
     }

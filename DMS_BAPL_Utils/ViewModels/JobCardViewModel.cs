@@ -348,4 +348,23 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? ServiceStatus { get; set; }
     }
 
+    public class CIRJobcardViewModel
+    {
+        public int? JobNo { get; set; }
+        public string? ChassisNo { get; set; }
+        public string? CustomerName { get; set; }
+        public string? ModelName { get; set; }
+        public int? Vehiclekms { get; set; }
+        public string? RegisterNo { get; set; }
+        public string? Observation { get; set; }
+        public string? CustomerVoice { get; set; }
+        public string? ComplaintCode { get; set; }
+        public string? Complaint { get; set; }
+        public string? actionTaken { get; set; }
+        public DateTime? VehicleSaleDate { get; set; }
+        public string? Serviceloc { get; set; }
+        public long CIRNo { get; set; }
+
+    }
+
 }
