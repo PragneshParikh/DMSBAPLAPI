@@ -13,7 +13,6 @@ using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
-using DMS_BAPL_Data.Repositories.JobReportRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
@@ -33,10 +32,10 @@ using DMS_BAPL_Data.Repositories.PerformaInvoiceRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
+using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
-using DMS_BAPL_Data.Repositories.StockRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
@@ -55,7 +54,6 @@ using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Data.Services.itemMasterService;
-using DMS_BAPL_Data.Services.JobReportService;
 using DMS_BAPL_Data.Services.KitDetailsService;
 using DMS_BAPL_Data.Services.KitHeaderService;
 using DMS_BAPL_Data.Services.LeadMasterService;
@@ -71,14 +69,15 @@ using DMS_BAPL_Data.Services.PerformaInvoiceService;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Data.Services.ReceiptEntryService;
+using DMS_BAPL_Data.Services.ReportService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
 using DMS_BAPL_Data.Services.StateService;
-using DMS_BAPL_Data.Services.StockServices;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -130,8 +129,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IFFIRRepo,FFIRRepo>();
             services.AddScoped<IPartInwardRepo, PartInwardRepo>();
             services.AddScoped<IChassisRepo, ChassisRepo>();
-            services.AddScoped<IJobReportRepo, JobReportRepo>();
-            services.AddScoped<IStockReportRepo, StockReportRepo>();
+            services.AddScoped<IReportRepo, ReportRepo>();
 
             #endregion
 
@@ -174,8 +172,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
             services.AddScoped<IPartInwardService, PartInwardService>();
             services.AddScoped<IChassisService, ChassisService>();
-            services.AddScoped<IStockReportService, StockReportService>();
-            services.AddScoped<IJobReportService, JobReportService>();
+            services.AddScoped<IReportService, ReportService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
