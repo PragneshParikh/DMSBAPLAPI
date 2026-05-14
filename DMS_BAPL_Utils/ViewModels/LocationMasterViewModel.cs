@@ -73,6 +73,8 @@ namespace DMS_BAPL_Utils.ViewModels
     public class LocationTypewiseNameViewModel
     {
         public string locname { get; set; }
+
+        public string locCode { get; set; }
         public int locareadidNo { get; set; }
     }
 

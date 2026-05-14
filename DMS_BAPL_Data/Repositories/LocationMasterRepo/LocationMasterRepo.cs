@@ -217,6 +217,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 .Select(x => new LocationTypewiseNameViewModel
                 {
                     locname = x.Locname,
+                    locCode = x.Loccode,
                     locareadidNo = x.Locareaidno
                 })
                 .ToListAsync();
