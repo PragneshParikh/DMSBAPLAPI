@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace DMS_BAPL_Data.DBModels;
+
+public partial class ChassisDetail
+{
+    public int Id { get; set; }
+
+    public int? LedgerId { get; set; }
+
+    public string ChassisNo { get; set; } = null!;
+
+    public string ItemCode { get; set; } = null!;
+
+    public string ItemName { get; set; } = null!;
+
+    public string ItemColor { get; set; } = null!;
+
+    public string DealerId { get; set; } = null!;
+
+    public DateTime? SaleDate { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public DateTime CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
+}

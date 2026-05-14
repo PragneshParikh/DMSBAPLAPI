@@ -53,7 +53,7 @@ public partial class VehicleSaleBillDetail
 
     public string? InsNo { get; set; }
 
-    public DateOnly? InsStartDate { get; set; }
+    public DateTime? InsStartDate { get; set; }
 
     public string? RegNo { get; set; }
 
@@ -96,6 +96,8 @@ public partial class VehicleSaleBillDetail
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public string? Hsrpstatus { get; set; }
 
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }

@@ -6,6 +6,7 @@ using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
+using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
@@ -118,6 +119,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
             services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
+            services.AddScoped<IFFIRRepo,FFIRRepo>();
             #endregion
 
             #region Services Registration

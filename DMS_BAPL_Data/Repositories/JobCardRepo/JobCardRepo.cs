@@ -93,7 +93,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                                   where h.IsLotInspected == true
                                         && h.DealerCode == dealerCode
-                                          && 
+                                          &&
                                             (jobTypeId == 1 || jobTypeId == 2 ? (jc == null || jc.SaleDate == null) : true)   // 👈 ONLY unsold
                                   select new { h, d, v, i, dm, o })
                                   .ToListAsync();
@@ -947,6 +947,51 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             {
                 throw new Exception("Error while fetching service history", ex);
             }
+        }
+
+        public  async Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id)
+        {
+            var ObjCIRJobcardViewModel = await (from jh in _context.JobCardHeaders
+                                                join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                                                where jh.Id == id
+                                                select new CIRJobcardViewModel
+                                                {
+                                                    JobNo = jh.JobNo,
+                                                    ChassisNo = jh.Chassisno,
+                                                    CustomerName = jc.CustomerName,
+                                                    ModelName = jc.ModelName,
+                                                    Vehiclekms = jh.Vehiclekms,
+                                                    RegisterNo = jc.RegisterNo,
+                                                    Observation = jh.Observation,
+                                                    Serviceloc = jh.Serviceloc,
+                                                    VehicleSaleDate = jc.SaleDate,
+                                                    CustomerVoice = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.CustomerVoice)
+                                                                .FirstOrDefault(),
+                                                    ComplaintCode = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.ComplaintCode)
+                                                                .FirstOrDefault(),
+                                                    Complaint = _context.JobCardComplaints
+                                                                .Where(c => c.JobCardHeaderId == jh.Id)
+                                                                .Select(c => c.Complaint)
+                                                                .FirstOrDefault(),
+                                                    }).FirstOrDefaultAsync();
+            // Generate Sequence Number
+            //var connection = _context.Database.GetDbConnection();
+
+            //await connection.OpenAsync();
+
+            //using var command = connection.CreateCommand();
+            //command.CommandText = "SELECT current_value FROM sys.sequences WHERE name = 'CirnoSeq'";
+
+            //var result = await command.ExecuteScalarAsync();
+
+            //// numeric value
+            //ObjCIRJobcardViewModel.CIRNo = Convert.ToInt64(result);
+
+            return ObjCIRJobcardViewModel;
         }
     }
 }

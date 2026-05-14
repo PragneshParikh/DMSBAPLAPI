@@ -28,6 +28,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
         Task<JobCardHeader> GetJobCardById(int Id);
 
-        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo);   
+        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo); 
+        
+        Task<CIRJobcardViewModel> GetCIRJobCardDetails (int id);
     }
 }
