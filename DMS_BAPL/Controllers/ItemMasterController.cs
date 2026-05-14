@@ -22,35 +22,7 @@ namespace DMS_BAPL_Api.Controllers
             _itemMasterService = itemservice;
         }
 
-        // POST api/itemMaster
-        [HttpPost]
-        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> InsertItem([FromBody] insertItemMasterViewModel items)
-        {
-            try
-            {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not found");
-
-                var result = await _itemMasterService.InsertItemAsync(items, userId);
-                return Ok(new
-                {
-
-                    Message = "Item Master details inserted successfully",
-                    Data = result
-                });
-
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-        // GET api/itemMaster
         [HttpGet]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -68,25 +40,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // PUT api/itemMaster/{id}
-        //[HttpPut("{id}")]
-        [HttpPut("{id}")]
-        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateItem(int id, [FromBody] ItemMaster item)
-        {
-            try
-            {
-                item.Id = id;
-                await _itemMasterService.UpdateItemAsync(item);
-                return Ok("Item updated successfully");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
         [HttpGet("download")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -173,6 +126,52 @@ namespace DMS_BAPL_Api.Controllers
             catch { throw; }
         }
 
+        [HttpGet("GetItemsByOEMModel/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<ItemMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<ItemMaster>>> GetItemsByOEMModel(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemsByOEMModel(id);
+
+                return Ok(items);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetItemsWithHsnTaxGroupId")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<object>>> GetItemsWithHsnTaxGroupId([FromQuery] int? groupId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId);
+
+                return Ok(items);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
         [HttpPut("UpdateByItemCode")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -203,27 +202,52 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-
-        [HttpGet("GetItemsByOEMModel/{id}")]
-        [ProducesResponseType(typeof(IEnumerable<ItemMaster>), StatusCodes.Status200OK)]
+        // PUT api/itemMaster/{id}
+        //[HttpPut("{id}")]
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<ItemMaster>>> GetItemsByOEMModel(int id)
+        public async Task<IActionResult> UpdateItem(int id, [FromBody] ItemMaster item)
+        {
+            try
+            {
+                item.Id = id;
+                await _itemMasterService.UpdateItemAsync(item);
+                return Ok("Item updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        // POST api/itemMaster
+        [HttpPost]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> InsertItem([FromBody] insertItemMasterViewModel items)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authorized");
+                    return Unauthorized("User not found");
 
-                var items = await _itemMasterService.GetItemsByOEMModel(id);
+                var result = await _itemMasterService.InsertItemAsync(items, userId);
+                return Ok(new
+                {
 
-                return Ok(items);
+                    Message = "Item Master details inserted successfully",
+                    Data = result
+                });
+
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                return BadRequest(ex.Message);
             }
         }
     }
