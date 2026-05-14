@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -451,14 +452,57 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         {
             try
             {
-                 return await _context.ItemMasters
-                .Where(x => x.Itemcode != null && itemCodes.Contains(x.Itemcode))
-                .ToListAsync();
+                return await _context.ItemMasters
+               .Where(x => x.Itemcode != null && itemCodes.Contains(x.Itemcode))
+               .ToListAsync();
             }
             catch
             {
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
+        {
+            try
+            {
+                var result = await (
+                    from IM in _context.ItemMasters
+
+                    join HM in _context.HsncodeMasters
+                        on IM.Hsncode equals HM.Hsncode
+
+                    join PI in _context.PartsInventories
+                            .Where(x => x.FinalStockFlag == "Y")
+                        on IM.Itemcode equals PI.ItemCode into PIGroup
+
+                    from PI in PIGroup.DefaultIfEmpty()
+
+                    where IM.Grpidno == groupId
+
+                    select new
+                    {
+                        IM.Id,
+                        IM.Itemcode,
+                        IM.Itemname,
+                        IM.Itemdesc,
+                        IM.Hsncode,
+                        IM.Dlrprice,
+                        IM.Custprice,
+                        IM.Sgst,
+                        IM.Cgst,
+                        IM.Igst,
+                        IM.Ugst,
+                        IM.Grpidno,
+                        IM.Colorcode,
+                        BatchClosingQty = PI != null ? PI.BatchClosingQty : 0
+                    })
+                    .Distinct()
+                    .ToListAsync();
+
+                return result;
+            }
+            catch { throw; }
         }
 
     }
