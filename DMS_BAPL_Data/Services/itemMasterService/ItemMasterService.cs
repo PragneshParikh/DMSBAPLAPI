@@ -108,5 +108,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         public Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id) => _itemMasterRepo.GetItemsByOEMModel(id);
 
         public Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(userId, insertItemMasterViewModel);
+        public Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId) => _itemMasterRepo.GetItemsWithHSNTaxGroupId(groupId);
+
     }
 }

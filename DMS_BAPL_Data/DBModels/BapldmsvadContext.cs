@@ -47,6 +47,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ExtendedBatteryWarranty> ExtendedBatteryWarranties { get; set; }
 
+    public virtual DbSet<FfirdetailObservation> FfirdetailObservations { get; set; }
+
+    public virtual DbSet<Ffirheader> Ffirheaders { get; set; }
+
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
     public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
@@ -54,6 +58,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<HsncodeMaster> HsncodeMasters { get; set; }
 
     public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
+
+    public virtual DbSet<Hsrporder> Hsrporders { get; set; }
 
     public virtual DbSet<InvoiceDetail> InvoiceDetails { get; set; }
 
@@ -88,6 +94,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<LotinspectionDetail> LotinspectionDetails { get; set; }
 
     public virtual DbSet<LotinspectionHeader> LotinspectionHeaders { get; set; }
+
+    public virtual DbSet<MainPartAffectedFfir> MainPartAffectedFfirs { get; set; }
 
     public virtual DbSet<MaterialTransfer> MaterialTransfers { get; set; }
 
@@ -547,6 +555,109 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_ExtendedBatteryWarranty_OEMModelMaster");
         });
 
+        modelBuilder.Entity<FfirdetailObservation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FFIRDeta__3214EC0773FED17E");
+
+            entity.ToTable("FFIRDetailObservation");
+
+            entity.Property(e => e.CorrectiveAction)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+            entity.Property(e => e.ObservationFailedParts)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.PresentStatusofVehicle)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.ResolutionComplaint)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.RootCauseofFailure)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.VehicleOffRoadReason)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Ffir).WithMany(p => p.FfirdetailObservations)
+                .HasForeignKey(d => d.Ffirid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FFIRDetailObservation_FFIRHeader");
+        });
+
+        modelBuilder.Entity<Ffirheader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FFIRHead__3214EC07FE3E802F");
+
+            entity.ToTable("FFIRHeader");
+
+            entity.Property(e => e.Cirdate)
+                .HasColumnType("datetime")
+                .HasColumnName("CIRDate");
+            entity.Property(e => e.Cirno).HasColumnName("CIRNo");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.FailureDate).HasColumnType("datetime");
+            entity.Property(e => e.FfirchassisNo)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("FFIRChassisNo");
+            entity.Property(e => e.Ffirprefix)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("FFIRPrefix");
+            entity.Property(e => e.Ffirremarks)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("FFIRRemarks");
+            entity.Property(e => e.PurposeOfCir)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("PurposeOfCIR");
+            entity.Property(e => e.ReportPreparedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ReportTitle)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.TypeOfRoadSurface)
+                .HasMaxLength(150)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.JobCardCustomer).WithMany(p => p.Ffirheaders)
+                .HasForeignKey(d => d.JobCardCustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FFIRHeader_JobCardCustomer");
+
+            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.Ffirheaders)
+                .HasForeignKey(d => d.JobCardHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FFIRHeader_JobCardHeader");
+        });
+
         modelBuilder.Entity<Form22Master>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Form22Ma__3214EC07F814C78A");
@@ -663,6 +774,54 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<Hsrporder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__HSRPOrde__3214EC07EA749058");
+
+            entity.ToTable("HSRPOrder");
+
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.CustomerLedgerId).HasColumnName("CustomerLedgerID");
+            entity.Property(e => e.Hsrpresponse)
+                .HasMaxLength(300)
+                .IsUnicode(false)
+                .HasColumnName("HSRPResponse");
+            entity.Property(e => e.Hsrpstatus)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("HSRPStatus");
+            entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.IsTlpsticker).HasColumnName("IsTLPSticker");
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+            entity.Property(e => e.OrderNo)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.RegNo)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.SaleBillNo)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.SupplierLedger).WithMany(p => p.Hsrporders)
+                .HasForeignKey(d => d.SupplierLedgerId)
+                .HasConstraintName("FK_HSRPOrder_SupplierLedger");
+        });
+
         modelBuilder.Entity<InvoiceDetail>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__InvoiceI__3214EC079CDA5F45");
@@ -705,6 +864,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DocumentNo)
                 .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.InvoiceType)
                 .HasMaxLength(20)
@@ -1547,6 +1709,36 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("vehicleFasteningBracket");
         });
 
+        modelBuilder.Entity<MainPartAffectedFfir>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__MainPart__3214EC0747337187");
+
+            entity.ToTable("MainPartAffectedFFIR");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+            entity.Property(e => e.PartAffectedDescription)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartAffectedName)
+                .HasMaxLength(150)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Ffir).WithMany(p => p.MainPartAffectedFfirs)
+                .HasForeignKey(d => d.Ffirid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MainPartAffectedFFIR_FFIRHeader");
+        });
+
         modelBuilder.Entity<MaterialTransfer>(entity =>
         {
             entity.ToTable("MaterialTransfer");
@@ -2361,6 +2553,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.ExtWarranty).HasMaxLength(50);
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Hsrpstatus)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("HSRPStatus");
             entity.Property(e => e.Igstamnt)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("IGSTAmnt");

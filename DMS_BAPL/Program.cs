@@ -3,7 +3,6 @@ using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Middleware;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
-using DMS_BAPL_Data.Repositories.JobReportRepo;
 using DMS_BAPL_Utils.Helpers;
 using DocumentFormat.OpenXml.Drawing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

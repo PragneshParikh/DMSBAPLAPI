@@ -43,5 +43,7 @@ public partial class JobCardCustomer
 
     public DateTime? UpdatedDate { get; set; }
 
+    public virtual ICollection<Ffirheader> Ffirheaders { get; set; } = new List<Ffirheader>();
+
     public virtual JobCardHeader JobCardHeader { get; set; } = null!;
 }

@@ -312,7 +312,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         VehicleFasteningBracket = x.VehicleFasteningBracket,
                         PlasticCover = x.PlasticCover,
                         NameSupervisor = x.SupervisorName,
-                        LocationName = x.LocationName
+                        LocationName = x.LocationName,
+                        IsLotInspected = x.IsLotInspected
                     })
                     .ToListAsync();
 

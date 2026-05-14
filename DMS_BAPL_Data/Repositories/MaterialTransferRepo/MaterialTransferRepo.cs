@@ -143,6 +143,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                                  IM.Itemcode,
                                  IM.Itemdesc,
                                  IM.Dlrprice,
+                                 IM.Custprice,
 
                                  Amount = MT.ItemRate * MT.Quantity,
                              };

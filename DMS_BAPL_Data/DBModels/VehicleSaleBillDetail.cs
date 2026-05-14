@@ -97,5 +97,7 @@ public partial class VehicleSaleBillDetail
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? Hsrpstatus { get; set; }
+
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }

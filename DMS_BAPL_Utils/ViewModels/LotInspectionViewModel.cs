@@ -51,6 +51,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? NameSupervisor { get; set; }
 
         public string? LocationName { get; set; }
+
+        public bool? IsLotInspected { get; set; } = false;
     }
     public class InvoiceAcceptHeaderViewModel
     {
