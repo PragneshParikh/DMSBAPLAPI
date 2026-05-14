@@ -9,17 +9,17 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
     public interface IPurchaseOrderService
     {
-        Task<bool> CreatePOAsync(PurchaseOrderViewModel model,string userId);
+        Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync();
-        
+        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode);
+
         // Parts PO Methods
-        Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string userId);
+        Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string dealerCode);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
-        
+
         Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
 
-        Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string userId);
+        Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<bool> DeletePOItemsAsync(string poNumber);
         Task<decimal> GetSubsidyValueAsync();
         Task<byte[]> DownloadPurchaseOrderExcel(PurchaseOrderSearchViewModel filter);

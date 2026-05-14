@@ -11,6 +11,6 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
     {
         Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId);
         Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId, string dealerCode);
-        Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? search);
+        Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string?dealerCode,string? search);
     }
 }

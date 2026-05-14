@@ -191,9 +191,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
         //update data particular on Item ID
-        public async Task UpdateItemAsync(ItemMaster item)
+        public async Task<ItemMaster> UpdateItemAsync(ItemMaster item)
         {
-            var existingItem = await _context.ItemMasters.FindAsync(item.Itemcode);
+            var existingItem = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Itemcode == item.Itemcode);
+
+            if (existingItem == null)
+                return null;
 
             if (existingItem != null)
             {
@@ -232,6 +235,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                 await _context.SaveChangesAsync();
             }
+
+            return existingItem;
         }
         //Get purchase details by model no
         public async Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo)
@@ -347,7 +352,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                                 var isInterEntry = sFlag.StartsWith("I") || sFlag.Contains("INT");
 
                                 // Local taxes
-                                if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().Contains("S") || (x.TaxCode ?? "").ToUpper().Contains("C"))))
+                                if (isLocalEntry || (!isInterEntry && taxRates.Any(x => (x.TaxCode ?? "").ToUpper().StartsWith("S") || (x.TaxCode ?? "").ToUpper().StartsWith("C"))))
                                 {
                                     var sgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("S"))?.TaxRate;
                                     var cgst = taxRates.FirstOrDefault(x => (x.TaxCode ?? "").ToUpper().Contains("C"))?.TaxRate;
@@ -380,10 +385,13 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
 
-        public async Task<object> UpdateByItemCode(string itemCode, string userId, insertItemMasterViewModel insertItemMasterViewModel)
+        public async Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel)
         {
             var existingItem = await _context.ItemMasters
                     .FirstOrDefaultAsync(x => x.Itemcode == insertItemMasterViewModel.Itemcode);
+
+            if (existingItem == null)
+                return null;
 
             if (existingItem != null)
             {
@@ -437,6 +445,20 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 return result;
             }
             catch { throw; }
+        }
+
+        public async Task<List<ItemMaster>> GetByItemCodesAsync(List<string> itemCodes)
+        {
+            try
+            {
+                 return await _context.ItemMasters
+                .Where(x => x.Itemcode != null && itemCodes.Contains(x.Itemcode))
+                .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
         }
 
     }

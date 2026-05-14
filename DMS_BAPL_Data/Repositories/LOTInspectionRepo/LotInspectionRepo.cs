@@ -247,12 +247,16 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 return false;
             }
         }
-        public async Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? search)
+        public async Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? dealerCode, string? search)
         {
             try
             {
                 var query = _context.LotinspectionHeaders.AsQueryable();
 
+                if(!string.IsNullOrEmpty(dealerCode) )
+                {
+                    query =query.Where(i=>i.DealerCode == dealerCode);
+                }
                 //  SEARCH LOGIC
                 if (!string.IsNullOrWhiteSpace(search))
                 {

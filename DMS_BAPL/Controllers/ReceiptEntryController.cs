@@ -97,11 +97,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string dealer = GetUserInfoFromToken.GetDealerCode(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))
                     return BadRequest(StringConstants.UserUnauthorized);
 
-                var result = await _receiptEntryService.AddReceiptEntryAsync(receiptEntry, userId);
+                var result = await _receiptEntryService.AddReceiptEntryAsync(receiptEntry,userId,dealer);
                 return Ok(result);
 
             }
@@ -212,11 +213,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("getAllReceiptList")]
-        public async Task<IActionResult> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
+        public async Task<IActionResult> GetReceiptEntryListAsyncWithSearch(string? dealerCode,string? searchTerm, DateOnly? fromDate, DateOnly? toDate)
         {
             try
             {
-                var result = await _receiptEntryService.GetReceiptEntryListAsyncWithSearch(searchTerm,fromDate, toDate);
+                var result = await _receiptEntryService.GetReceiptEntryListAsyncWithSearch(dealerCode, searchTerm,fromDate, toDate);
                 return Ok(result);
             }
             catch (Exception ex)

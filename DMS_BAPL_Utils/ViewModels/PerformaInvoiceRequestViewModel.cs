@@ -8,6 +8,9 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class PerformaInvoiceRequestViewModel
     {
-        public string? vehicleSaleBillNo {  get; set; }
+        public string? documentNo { get; set; }
+        public string? serviceType{get; set;}
+
+        public string? referenceId{get; set;}
     }
 }

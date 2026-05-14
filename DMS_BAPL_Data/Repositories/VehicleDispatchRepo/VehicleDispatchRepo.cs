@@ -72,5 +72,18 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
+        public async Task<List<VehicleInward>> GetByChassisNosAsync(List<string> chassisNos)
+        {
+            try
+            {
+                 return await _context.VehicleInwards
+                .Where(x => x.ChasisNo != null && chassisNos.Contains(x.ChasisNo))
+                .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

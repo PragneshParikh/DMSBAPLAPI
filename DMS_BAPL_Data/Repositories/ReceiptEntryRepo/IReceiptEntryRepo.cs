@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
     public interface IReceiptEntryRepo
     {
         Task<string?> GetLastReceiptNoAsync();
-        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
+        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId, string dealercode);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
         //Task<List<ReceiptEntry>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
         Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
        Task<ReceiptEntryEditViewModel?> GetReceiptByIdAsync(int id);
         Task<ReceiptEntry?> UpdateReceiptEntryAsync(int id, ReceiptEntryViewModel receiptEntry, string userId);
         Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId);
-        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm,DateOnly? fromDate,DateOnly? toDate);
+        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode, string? searchTerm,DateOnly? fromDate,DateOnly? toDate);
 
 
 

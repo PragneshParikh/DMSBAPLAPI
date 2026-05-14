@@ -119,10 +119,10 @@ namespace DMS_BAPL_Api.Controllers
 
                 var data = await _jobCardRepo.GetAllInspectedLotChassisAsync(dealerCode, jobTypeId);
 
-                if (data == null || !data.Any())
-                {
-                    return NotFound("No inspected records found.");
-                }
+                //if (data == null || !data.Any())
+                //{
+                //    return NotFound("No inspected records found.");
+                //}
 
                 return Ok(data);
             }
@@ -178,19 +178,19 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetJobCardList(string dealerCode)
+        public async Task<IActionResult> GetJobCardList(string? dealerCode)
         {
             try
-            {
+                {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
                 var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(dealerCode);
-                if (jobCardList == null || !jobCardList.Any())
-                {
-                    return NotFound(StringConstants.JobCardNotFound);
-                }
+                //if (jobCardList == null || !jobCardList.Any())
+                //{
+                //    return NotFound(StringConstants.JobCardNotFound);
+                //}
                 return Ok(jobCardList);
             }
             catch (Exception ex)

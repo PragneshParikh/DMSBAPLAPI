@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
     public interface IReceiptEntryService
     {
         Task<string> GenerateNextReceiptNoAsync();
-        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId);
+        Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId,string dealerCode);
         // Task<List<ReceiptEntry>> GetReceiptEntryListAsync();
         Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter);
         Task<List<LedgerMaster>> GetLedgerMasterDetailsByTypeAsync(string ledgerType);
@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
         Task<ReceiptEntryEditViewModel?> GetReceiptByIdAsync(int id);
         Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId);
         Task<byte[]> downloadReceiptExcel();
-        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? searchTerm, DateOnly? fromDate, DateOnly? toDate);
+        Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode, string? searchTerm, DateOnly? fromDate, DateOnly? toDate);
 
     }
 }

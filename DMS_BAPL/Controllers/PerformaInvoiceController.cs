@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.Services.PerformaInvoiceService;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.PerformaInvoiceService;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,7 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                if (request == null || string.IsNullOrEmpty(request.vehicleSaleBillNo))
+                if (request == null || string.IsNullOrEmpty(request.documentNo))
                 {
                     return BadRequest(new
                     {
@@ -32,7 +33,7 @@ namespace DMS_BAPL_Api.Controllers
                     });
                 }
 
-                var result = await _service.GeneratePerformaInvoice(request.vehicleSaleBillNo);
+                var result = await _service.GeneratePerformaInvoice(request.documentNo);
 
                 return Ok(new
                 {
@@ -48,6 +49,41 @@ namespace DMS_BAPL_Api.Controllers
                     message = ex.Message
                 });
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            return Ok(await _service.GetAllAsync());
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
+        {
+            var data = await _service.GetByIdAsync(id);
+            if (data == null) return NotFound();
+            return Ok(data);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] InvoiceHeader invoice)
+        {
+            var id = await _service.CreateAsync(invoice);
+            return Ok(id);
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> Update([FromBody] InvoiceHeader invoice)
+        {
+            await _service.UpdateAsync(invoice);
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            await _service.DeleteAsync(id);
+            return Ok();
         }
     }
 }

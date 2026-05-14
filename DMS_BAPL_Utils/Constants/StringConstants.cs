@@ -1,3 +1,4 @@
+using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
@@ -112,5 +113,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string FFIRInsert = "FFIR inserted successfully";
 
 
+        //VehicleSaleBill
+        public const string VehicleSaleBillExcel = "Vehicle Sale Bill";
     }
 }
