@@ -7,6 +7,7 @@ using DMS_BAPL_Utils.ViewModels;
 using MailKit.Net.Imap;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -16,10 +17,12 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IPurchaseOrderService _purchaseOrderService;
         private readonly IPrefixService _prefixService;
-        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService, IPrefixService prefixService)
+        private readonly ILogger<PurchaseOrderController> _logger;
+        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService, IPrefixService prefixService, ILogger<PurchaseOrderController> logger)
         {
             _purchaseOrderService = purchaseOrderService;
             _prefixService = prefixService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -197,6 +200,30 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
+                throw;
+            }
+        }
+
+        [HttpPut("UpdatePOStatus")]
+        [ProducesResponseType(typeof(Boolean), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<bool>> UpdatePOStatus([FromBody] string poNumber, bool status)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var poStatus = await _purchaseOrderService.UpdatePOStatusAsync(poNumber, status);
+
+                return Ok(poStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating PO status for PO Number: {PONumber}", poNumber);
                 throw;
             }
         }

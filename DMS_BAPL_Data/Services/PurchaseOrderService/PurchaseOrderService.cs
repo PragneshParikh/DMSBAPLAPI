@@ -626,5 +626,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 throw;
             }
         }
+
+        public async Task<bool> UpdatePOStatusAsync(string poNumber, bool status) => await _repo.UpdatePOStatusAsync(poNumber, status);
+
     }
 }
