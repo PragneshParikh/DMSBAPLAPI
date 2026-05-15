@@ -6,21 +6,13 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
     public interface IPurchaseOrderRepo
     {
         Task AddPODetailAsync(PurchaseOrderDetail detail);
-        
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
-
-        
         Task AddPOAsync(PurchaseOrder po);
-        //Task AddPODetailAsync(PurchaseOrderDetail detail);
         Task AddTaxAsync(TaxDetail tax);
-
-       
         Task UpdatePOHeaderAsync(PurchaseOrder po);
         Task UpdatePOAmountAsync(string poNumber, decimal amount);
-
-        
         Task<ItemMaster> GetItemAsync(string itemCode);
         Task<HsncodeMaster> GetHSNByCodeAsync(string? hsnCode);
         Task<HsnwiseTaxCode> GetHSNTaxAsync(string hsnCode);
@@ -29,17 +21,15 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<HsnwiseTaxCode> GetHSNTaxWithFallbackAsync(string hsnCode, string preferredFlag, DateTime poDate);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode);
-        
-        // Parts PO Methods
         Task<PartsPurchaseOrderResponseViewModel> GetPartsPOByNumberAsync(string poNumber);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
-        
         Task<decimal> GetSubsidyValue();
         Task UpdateStatus(string PoNumber);
-
         Task<List<PurchaseOrderDetail>> GetPODetails(string poNumber);
         Task DeletePODetailAsync(PurchaseOrderDetail detail);
         Task DeleteTaxByItemAsync(string poNumber, string itemCode);
         Task DeleteTaxesByPOAsync(string poNumber);
-        Task DeleteDetailsByPOAsync(string poNumber);    }
+        Task DeleteDetailsByPOAsync(string poNumber);
+        Task<bool> UpdatePOStatusAsync(string poNumber, bool status);
+    }
 }

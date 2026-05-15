@@ -104,7 +104,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 existing.LedgerCode = po.LedgerCode;
                 existing.UpdatedBy = po.UpdatedBy;
                 existing.UpdatedDate = po.UpdatedDate;
-                
+
                 await _context.SaveChangesAsync();
             }
             catch
@@ -322,9 +322,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 if (poList == null || !poList.Any())
                     return new List<PurchaseOrderResponseViewModel>();
 
-                if(!string.IsNullOrWhiteSpace(dealerCode))
+                if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    poList =poList.Where(x=>x.CustomerCode == dealerCode).ToList();
+                    poList = poList.Where(x => x.CustomerCode == dealerCode).ToList();
                 }
 
                 var resultList = new List<PurchaseOrderResponseViewModel>();
@@ -530,12 +530,28 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
-       public async Task UpdateStatus(string PoNumber)
+        public async Task UpdateStatus(string PoNumber)
         {
-            var result = await _context.PurchaseOrders.Where(i=>i.Ponumber == PoNumber).FirstOrDefaultAsync();
+            var result = await _context.PurchaseOrders.Where(i => i.Ponumber == PoNumber).FirstOrDefaultAsync();
             result.Status = true;
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> UpdatePOStatusAsync(string poNumber, bool status)
+        {
+            try
+            {
+                var po = await _context.PurchaseOrders
+                    .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+
+                if (po == null)
+                    throw new Exception(StringConstants.PONotFound);
+
+                po.Status = status;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch { throw; }
+        }
     }
 }
