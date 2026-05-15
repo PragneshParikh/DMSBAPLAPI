@@ -87,13 +87,18 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
+            var maxCirNo = await _context.Ffirheaders
+                                .MaxAsync(x => (int?)x.Cirno) ?? 0;
+
+            var nextCirNo = maxCirNo + 1;
+
             try
             {
                 var ffirHeader = new Ffirheader
                 {
                     Ffirprefix = model.FFIRPrefix,
                     DealerCode = model.DealerCode,
-                    Cirno = model.CIRNo,
+                    Cirno = nextCirNo,
                     Cirdate = model.CIRDate,
                     JobCardCustomerId = model.JobCardCustomerId,
                     JobCardHeaderId = model.JobCardHeaderId,
@@ -122,7 +127,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                     {
                         Ffirid = ffirHeader.Id,
                         PartAffectedName = x.PartAffectedName,
-                        PartAffectedDescription = x.PartAffectedName,
+                        PartAffectedDescription = x.PartAffectedDescription,
                         CreatedBy = model.CreatedBy,
                         CreatedDate = DateTime.Now
                     }).ToList();
@@ -230,6 +235,147 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
             return await query
                 .OrderByDescending(x => x.Id)
                 .ToListAsync();
+        }
+
+        public async Task<FFIRViewModel> GetFFIRById(int id)
+        {
+            
+            var data = await _context.Ffirheaders
+                    .Where(x => x.Id == id)
+                    .Select(x => new FFIRViewModel
+                    {
+                        Id = x.Id,
+                        CIRNo = x.Cirno,
+                        FFIRPrefix = x.Ffirprefix,
+                        JobCardHeaderId = x.JobCardHeaderId,
+                        JobCardCustomerId = x.JobCardCustomerId,
+                        CIRDate = x.Cirdate,
+                        PurposeOfCIR = x.PurposeOfCir,
+                        FFIRChassisNo = x.FfirchassisNo,
+                        FailureDate = x.FailureDate,
+                        ReportTitle = x.ReportTitle,
+                        ReportPreparedBy = x.ReportPreparedBy,
+                        NoOfPassenger = x.NoOfPassenger,
+                        TypeOfRoadSurface = x.TypeOfRoadSurface,
+                        RepeatFailure = x.RepeatFailure,
+                        ChassisModified = x.ChassisModified,
+                        FFIRRemarks = x.Ffirremarks,
+
+                        // Main Parts
+                        MainParts = _context.MainPartAffectedFfirs
+                            .Where(m => m.Ffirid == x.Id)
+                            .Select(m => new MainPartAffectedFFIRViewModel
+                            {
+                                PartAffectedName = m.PartAffectedName,
+                                PartAffectedDescription = m.PartAffectedDescription
+                            }).ToList(),
+
+                        // Complaints
+                        FFIRJobcardComplaints = _context.JobCardComplaints
+                            .Where(c => c.JobCardHeaderId == x.JobCardHeaderId)
+                            .Select(c => new FFirCompalintCodeListViewModel
+                            {
+                                Id = c.Id,
+                                Complaint = c.Complaint
+                            }).ToList(),
+
+                        // Observation
+                        DetailObservation = _context.FfirdetailObservations
+                            .Where(o => o.Ffirid == x.Id)
+                            .Select(o => new FFIRDetailObservationViewModel
+                            {
+                                ObservationFailedParts = o.ObservationFailedParts,
+                                RootCauseofFailure = o.RootCauseofFailure,
+                                CorrectiveAction = o.CorrectiveAction,
+                                ResolutionComplaint = o.ResolutionComplaint,
+                                PresentStatusofVehicle = o.PresentStatusofVehicle,
+                                VehicleOffRoadReason = o.VehicleOffRoadReason
+                            })
+                            .FirstOrDefault()
+
+                    })
+                    .FirstOrDefaultAsync();
+
+            return data;
+        }
+        public async Task<bool> UpdateFFIRAsync(int id, FFIRViewModel model)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var ffirHeader = await _context.Ffirheaders
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (ffirHeader == null)
+                    return false;
+
+                // Header Update
+                ffirHeader.Cirdate = model.CIRDate;
+                ffirHeader.PurposeOfCir = model.PurposeOfCIR;
+                ffirHeader.FfirchassisNo = model.FFIRChassisNo;
+                ffirHeader.FailureDate = model.FailureDate;
+                ffirHeader.ReportTitle = model.ReportTitle;
+                ffirHeader.ReportPreparedBy = model.ReportPreparedBy;
+                ffirHeader.NoOfPassenger = model.NoOfPassenger;
+                ffirHeader.TypeOfRoadSurface = model.TypeOfRoadSurface;
+                ffirHeader.RepeatFailure = model.RepeatFailure;
+                ffirHeader.ChassisModified = model.ChassisModified;
+                ffirHeader.Ffirremarks = model.FFIRRemarks;
+
+                ffirHeader.UpdatedBy = "Admin";
+                ffirHeader.UpdatedDate = DateTime.Now;
+
+                // Remove Old Main Parts
+                var oldParts = await _context.MainPartAffectedFfirs
+                    .Where(x => x.Ffirid == id)
+                    .ToListAsync();
+
+                _context.MainPartAffectedFfirs.RemoveRange(oldParts);
+
+                // Add New Main Parts
+                if (model.MainParts != null && model.MainParts.Any())
+                {
+                    var mainParts = model.MainParts.Select(x => new MainPartAffectedFfir
+                    {
+                        Ffirid = id,
+                        PartAffectedName = x.PartAffectedName,
+                        PartAffectedDescription = x.PartAffectedDescription,
+                        CreatedBy = "Admin",
+                        CreatedDate = DateTime.Now
+                    }).ToList();
+
+                    _context.MainPartAffectedFfirs.AddRange(mainParts);
+                }
+
+                // Observation Update
+                var observation = await _context.FfirdetailObservations
+                    .FirstOrDefaultAsync(x => x.Ffirid == id);
+
+                if (observation != null)
+                {
+                    observation.ObservationFailedParts = model.DetailObservation.ObservationFailedParts;
+                    observation.RootCauseofFailure = model.DetailObservation.RootCauseofFailure;
+                    observation.CorrectiveAction = model.DetailObservation.CorrectiveAction;
+                    observation.ResolutionComplaint = model.DetailObservation.ResolutionComplaint;
+                    observation.PresentStatusofVehicle = model.DetailObservation.PresentStatusofVehicle;
+                    observation.VehicleOffRoadReason = model.DetailObservation.VehicleOffRoadReason;
+
+                    observation.UpdatedBy = "Admin";
+                    observation.UpdatedDate = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
     }
