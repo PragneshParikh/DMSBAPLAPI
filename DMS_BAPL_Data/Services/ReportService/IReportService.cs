@@ -53,6 +53,10 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         Task<List<string>> GetPOTypeDropdownAsync();
         Task<List<string>> GetPOStatusDropdownAsync();
+
+        Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode);
+
+        Task<List<object>> GetDealerListAsync();
     }
 
     public class JobReportSummaryStats
