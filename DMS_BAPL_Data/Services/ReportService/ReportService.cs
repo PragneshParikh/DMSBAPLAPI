@@ -251,5 +251,21 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo
                 .GetDealerListAsync();
         }
+
+        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            return await _reportRepo
+                .GetPartDispatchKitReportAsync(
+                    fromDate,
+                    toDate,
+                    dealerCode
+                );
+        }
+
+        public async Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync()
+        {
+            return await _reportRepo
+                .GetPartDispatchKitPOTypeDropdownAsync();
+        }
     }
 }

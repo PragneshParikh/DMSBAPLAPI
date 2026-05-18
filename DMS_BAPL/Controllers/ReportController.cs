@@ -413,5 +413,50 @@ namespace DMS_BAPL_Api.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("part-dispatch-kit")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartDispatchKitReport([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                var result =
+                    await _reportService
+                    .GetPartDispatchKitReportAsync(
+                        fromDate,
+                        toDate,
+                        dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching Part Dispatch Kit Report");
+
+                return StatusCode(500,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message
+                    });
+            }
+        }
+
+        [HttpGet("part-dispatch-kit-po-types")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartDispatchKitPOTypeDropdown()
+        {
+            var result =
+                await _reportService
+                    .GetPartDispatchKitPOTypeDropdownAsync();
+
+            return Ok(result);
+        }
     }
 }

@@ -1255,6 +1255,161 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ex);
             }
         }
+
+        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            try
+            {
+                var query =
+
+                    from po in _context.PurchaseOrders
+
+                    join dealer in _context.DealerMasters
+                        on po.CustomerCode equals dealer.Dealercode
+                        into dealerGroup
+
+                    from dealer in dealerGroup.DefaultIfEmpty()
+
+                    where po.Id > 0
+
+                    select new PartDispatchKitReportViewModel
+                    {
+                        // =====================================
+                        // PO DETAILS
+                        // =====================================
+
+                        PONumber = po.Ponumber,
+
+                        PODate = po.PurchaseDate,
+
+                        SubmitToERPDate = po.UpdatedDate,
+
+                        POType =
+                                (po.TransactionType ?? "") +
+                                "-" +
+                                (po.OrderType ?? ""),
+
+                        // =====================================
+                        // DEALER DETAILS
+                        // =====================================
+
+                        CompanyName = dealer != null
+                            ? dealer.Compname
+                            : "",
+
+                        MobileNo = dealer != null
+                            ? dealer.Mobile
+                            : "",
+
+                        DealerCode = dealer != null
+                            ? dealer.Dealercode
+                            : "",
+
+                        DealerCity = dealer != null
+                            ? dealer.City
+                            : "",
+
+                        DealerState = dealer != null
+                            ? dealer.State
+                            : "",
+
+                        // =====================================
+                        // LOCATION
+                        // =====================================
+
+                        LocationCode = po.LocCode,
+
+                        LocationName = dealer != null
+                            ? dealer.Compname
+                            : "",
+
+                        LocationCity = dealer != null
+                            ? dealer.City
+                            : ""
+                    };
+
+                // =========================================
+                // DEALER FILTER
+                // =========================================
+
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(x =>
+                        x.DealerCode == dealerCode);
+                }
+
+                // =========================================
+                // FROM DATE
+                // =========================================
+
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.PODate.HasValue &&
+                        x.PODate.Value.Date >=
+                        fromDate.Value.Date);
+                }
+
+                // =========================================
+                // TO DATE
+                // =========================================
+
+                if (toDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.PODate.HasValue &&
+                        x.PODate.Value.Date <=
+                        toDate.Value.Date);
+                }
+
+                var result = await query
+                    .OrderByDescending(x => x.PODate)
+                    .ToListAsync();
+
+                // =========================================
+                // SR NO
+                // =========================================
+
+                for (int i = 0; i < result.Count; i++)
+                {
+                    result[i].SrNo = i + 1;
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching Part Dispatch Kit Report",
+                    ex
+                );
+            }
+        }
+
+        public async Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync()
+        {
+            try
+            {
+                return await _context.PurchaseOrders
+
+                    .Where(x =>
+                        x.TransactionType != null &&
+                        x.OrderType != null)
+
+                    .Select(x =>
+                        x.TransactionType + "-" + x.OrderType)
+
+                    .Distinct()
+
+                    .OrderBy(x => x)
+
+                    .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 
 }
