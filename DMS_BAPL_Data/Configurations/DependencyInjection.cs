@@ -108,7 +108,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxCodeMasterRepo, TaxCodeMasterRepo>();
             services.AddScoped<IHSNWiseTaxcodeRepo, HSNWiseTaxcodeRepo>();
             services.AddScoped<IPurchaseOrderRepo, PurchaseOrderRepo>();
-            services.AddScoped<IVehicleDispatchRepo, VehicleDispatchRepo>();
+            services.AddScoped<IVehicleInwardRepo, VehicleInwardRepo>();
             services.AddScoped<ILotInspection, LotInspectionRepo>();
             services.AddScoped<ILotInspectionDetails, LotInspectionDetailsRepo>();
             services.AddScoped<IReceiptEntryRepo, ReceiptEntryRepo>();
@@ -156,7 +156,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxCodeMasterService, TaxCodeMasterService>();
             services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
-            services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();
+            services.AddScoped<IVehicleInwardService, VehicleInwardService>();
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();

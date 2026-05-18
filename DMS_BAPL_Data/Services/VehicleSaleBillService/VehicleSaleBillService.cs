@@ -29,7 +29,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IitemMasterRepo _itemRepo;
-        private readonly IVehicleDispatchRepo _vehicleInwardRepo;
+        private readonly IVehicleInwardRepo _vehicleInwardRepo;
         private readonly IExcelService _excelService;
         #endregion
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
