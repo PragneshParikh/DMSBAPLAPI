@@ -183,5 +183,89 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Fetching PO Tracking Report");
+
+                return await _reportRepo
+                    .GetPOTrackingReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching PO Tracking Report");
+
+                throw;
+            }
+        }
+
+        public async Task<List<string>> GetPOTypeDropdownAsync()
+        {
+            try
+            {
+                return await _reportRepo.GetPOTypeDropdownAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Type dropdown");
+                throw;
+            }
+        }
+
+        public async Task<List<string>> GetPOStatusDropdownAsync()
+        {
+            try
+            {
+                return await _reportRepo.GetPOStatusDropdownAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Status dropdown");
+                throw;
+            }
+        }
+
+        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate,DateTime? toDate,string? dealerCode)
+        {
+            try
+            {
+                return await _reportRepo.GetPartsDispatchReportAsync(
+                    fromDate,
+                    toDate,
+                    dealerCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching Parts Dispatch Report");
+                throw;
+            }
+        }
+
+        public async Task<List<object>> GetDealerListAsync()
+        {
+            return await _reportRepo
+                .GetDealerListAsync();
+        }
+
+        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            return await _reportRepo
+                .GetPartDispatchKitReportAsync(
+                    fromDate,
+                    toDate,
+                    dealerCode
+                );
+        }
+
+        public async Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync()
+        {
+            return await _reportRepo
+                .GetPartDispatchKitPOTypeDropdownAsync();
+        }
     }
 }
