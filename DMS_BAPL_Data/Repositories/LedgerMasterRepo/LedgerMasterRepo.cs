@@ -283,5 +283,18 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
             catch { throw; }
         }
+
+        public async Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType)
+        {
+            try
+            {
+                return await _context.LedgerMasters.
+                    Where(i => i.LedgerType == ledgerType).ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

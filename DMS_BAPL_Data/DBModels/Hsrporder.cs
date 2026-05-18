@@ -43,5 +43,11 @@ public partial class Hsrporder
 
     public string? UpdatedBy { get; set; }
 
+    public string? DealerCode { get; set; }
+
+    public string? InwardStatus { get; set; }
+
+    public string? InwardResponse { get; set; }
+
     public virtual LedgerMaster? SupplierLedger { get; set; }
 }
