@@ -14,36 +14,43 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IDealerMasterService _dealerService;
         private readonly ILocationMasterService _locationMasterService;
+        private readonly ILogger<LocationMasterController> _logger;
 
-        public LocationMasterController(ILocationMasterService locationMasterService, IDealerMasterService dealerMasterService)
+        public LocationMasterController(ILocationMasterService locationMasterService, IDealerMasterService dealerMasterService, ILogger<LocationMasterController> logger)
         {
             _dealerService = dealerMasterService;
             _locationMasterService = locationMasterService;
+            _logger = logger;
         }
+
         [HttpGet("GetAllLocationMaster")]
         public async Task<IActionResult> GetAllLocationMaster()
         {
             var result = await _locationMasterService.GetAllLocationMaster();
             return Ok(result);
         }
+
         [HttpGet("GetLocationMasterById/{id}")]
         public async Task<IActionResult> GetLocationMasterById(int id)
         {
             var result = await _locationMasterService.GetLocationMasterById(id);
             return Ok(result);
         }
+
         [HttpPost("AddLocationMaster")]
         public async Task<IActionResult> AddLocationMaster(LocationMasterViewModel model)
         {
             var result = await _locationMasterService.AddLocationMaster(model);
             return Ok(result);
         }
+
         [HttpPut("UpdateLocationMaster")]
         public async Task<IActionResult> UpdateLocationMaster(LocationMasterViewModel model)
         {
             var result = await _locationMasterService.UpdateLocationMaster(model);
             return Ok(result);
         }
+
         [HttpGet("DownloadLocationMasterExcel")]
         public async Task<IActionResult> DownloadLocationMasterExcel()
         {
@@ -62,6 +69,7 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpGet("GetAllShowroomLocationsofCurrentDelaer")]
         public async Task<IActionResult> GetAllShowroomlocation(string dealerCode)
         {
@@ -86,6 +94,7 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpGet("GetLocationTypeWiseNameByDealerCode")]
         [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -100,6 +109,30 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("GetLocationByDealerByAreaId")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string dealerCode, [FromQuery] int areaId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var locations = await _locationMasterService.GetLocationByDealerByAreaId(dealerCode, areaId);
+
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while featching location details: ${ex.Message}");
+                throw;
             }
         }
 

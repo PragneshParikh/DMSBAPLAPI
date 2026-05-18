@@ -85,5 +85,40 @@ namespace DMS_BAPL_Api.Controllers
 
         }
 
+        [HttpGet("GetFFIRById/{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetFFIRById(int id)
+        {
+            var result = await _ffirRepo.GetFFIRById(id);
+
+            return Ok(result);
+        }
+
+        [HttpPut("UpdateFFIR/{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateFFIR(int id, [FromBody] FFIRViewModel model)
+        {
+            try
+            {
+                var result = await _ffirRepo.UpdateFFIRAsync(id, model);
+
+                if (!result)
+                    return NotFound();
+
+                return Ok(new
+                {
+                    message = "FFIR Updated Successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

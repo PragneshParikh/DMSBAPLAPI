@@ -94,7 +94,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                   where h.IsLotInspected == true
                                         && h.DealerCode == dealerCode
                                           &&
-                                            (jobTypeId == 1 || jobTypeId == 2 ? (jc == null || jc.SaleDate == null) : true)   // 👈 ONLY unsold
+                                            (jobTypeId == 1  ? (jc == null || jc.SaleDate == null) : true)   // 👈 ONLY unsold
                                   select new { h, d, v, i, dm, o })
                                   .ToListAsync();
 
@@ -959,6 +959,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             var ObjCIRJobcardViewModel = await (from jh in _context.JobCardHeaders
                                                 join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                                                join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode
                                                 where jh.Id == id
                                                 select new CIRJobcardViewModel
                                                 {
@@ -970,6 +971,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                     RegisterNo = jc.RegisterNo,
                                                     Observation = jh.Observation,
                                                     Serviceloc = jh.Serviceloc,
+                                                    LocationName = loc.Locname,
                                                     VehicleSaleDate = jc.SaleDate,
                                                     CustomerVoice = _context.JobCardComplaints
                                                                 .Where(c => c.JobCardHeaderId == jh.Id)
@@ -984,18 +986,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                                 .Select(c => c.Complaint)
                                                                 .FirstOrDefault(),
                                                     }).FirstOrDefaultAsync();
-            // Generate Sequence Number
-            //var connection = _context.Database.GetDbConnection();
-
-            //await connection.OpenAsync();
-
-            //using var command = connection.CreateCommand();
-            //command.CommandText = "SELECT current_value FROM sys.sequences WHERE name = 'CirnoSeq'";
-
-            //var result = await command.ExecuteScalarAsync();
-
-            //// numeric value
-            //ObjCIRJobcardViewModel.CIRNo = Convert.ToInt64(result);
 
             return ObjCIRJobcardViewModel;
         }

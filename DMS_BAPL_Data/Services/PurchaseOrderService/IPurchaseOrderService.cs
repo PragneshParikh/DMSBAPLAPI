@@ -12,16 +12,13 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode);
-
-        // Parts PO Methods
         Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string dealerCode);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
-
         Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
-
         Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<bool> DeletePOItemsAsync(string poNumber);
         Task<decimal> GetSubsidyValueAsync();
         Task<byte[]> DownloadPurchaseOrderExcel(PurchaseOrderSearchViewModel filter);
+        Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel);
     }
 }
