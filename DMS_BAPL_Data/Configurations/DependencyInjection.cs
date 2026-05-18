@@ -11,6 +11,7 @@ using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
+using DMS_BAPL_Data.Repositories.HSRPRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
@@ -52,6 +53,7 @@ using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
+using DMS_BAPL_Data.Services.HSRPService;
 using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Data.Services.itemMasterService;
 using DMS_BAPL_Data.Services.KitDetailsService;
@@ -126,9 +128,10 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
             services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
-            services.AddScoped<IFFIRRepo,FFIRRepo>();
+            services.AddScoped<IFFIRRepo, FFIRRepo>();
             services.AddScoped<IPartInwardRepo, PartInwardRepo>();
             services.AddScoped<IChassisRepo, ChassisRepo>();
+            services.AddScoped<IHSRPRepo, HSRPRepo>();
             services.AddScoped<IReportRepo, ReportRepo>();
 
             #endregion
@@ -172,6 +175,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
             services.AddScoped<IPartInwardService, PartInwardService>();
             services.AddScoped<IChassisService, ChassisService>();
+            services.AddScoped<IHSRPService, HSRPService>();
             services.AddScoped<IReportService, ReportService>();
 
             // Email SErvice
