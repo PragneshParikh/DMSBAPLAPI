@@ -19,6 +19,6 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<bool> DeletePOItemsAsync(string poNumber);
         Task<decimal> GetSubsidyValueAsync();
         Task<byte[]> DownloadPurchaseOrderExcel(PurchaseOrderSearchViewModel filter);
-        Task<bool> UpdatePOStatusAsync(string poNumber, bool status);
+        Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel);
     }
 }
