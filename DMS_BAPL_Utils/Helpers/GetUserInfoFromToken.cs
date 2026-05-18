@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DMS_BAPL_Utils.Helpers
 {
@@ -14,16 +10,11 @@ namespace DMS_BAPL_Utils.Helpers
         {
             try
             {
-                //return context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
                 if (!string.IsNullOrEmpty(userId))
-                {
                     return userId;
-                }
 
                 return "CUS0345A";
-
             }
             catch (Exception ex)
             {
@@ -32,14 +23,31 @@ namespace DMS_BAPL_Utils.Helpers
             }
         }
 
+        // ── existing method (kept for any existing callers) ──────────────
         public static string GetDealerCode(HttpContext context)
         {
             var username = context.User?.FindFirstValue(ClaimTypes.Name);
-            //return username;
             if (!string.IsNullOrEmpty(username))
                 return username;
 
-            return "CUS0345U";
+            return string.Empty;   // empty = no restriction (admin user)
+        }
+
+        // ── NEW: called by ReportController ─────────────────────────────
+        public static string GetDealerCodeFromToken(HttpContext context)
+        {
+            // First try the dedicated "DealerCode" claim (set at login for dealer users)
+            var dealerCode = context.User?.FindFirst("DealerCode")?.Value;
+            if (!string.IsNullOrEmpty(dealerCode))
+                return dealerCode;
+
+            // Fallback: try ClaimTypes.Name (your existing logic)
+            var username = context.User?.FindFirstValue(ClaimTypes.Name);
+            if (!string.IsNullOrEmpty(username))
+                return username;
+
+            // Empty = admin user, no dealer restriction applied
+            return string.Empty;
         }
     }
 }
