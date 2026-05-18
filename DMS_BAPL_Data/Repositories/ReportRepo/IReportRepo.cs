@@ -43,5 +43,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             string? dealerCode);
 
         Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter);
+
+        Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter);
+
+        Task<List<string>> GetPOTypeDropdownAsync();
+        Task<List<string>> GetPOStatusDropdownAsync();
     }
 }

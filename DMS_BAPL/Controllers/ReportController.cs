@@ -277,5 +277,66 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        [HttpPost("po-tracking")]
+        [ProducesResponseType(typeof(PagedResponse<POTrackingReportViewModel>),StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOTrackingReport([FromBody]POTrackingFilterModel filter)
+        {
+            try
+            {
+                var result =
+                    await _reportService
+                    .GetPOTrackingReportAsync(filter);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching PO Tracking Report");
+
+                return StatusCode(
+                    500,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message
+                    });
+            }
+        }
+
+        [HttpGet("po-tracking/dropdown/po-type")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOTypeDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetPOTypeDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Type dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("po-tracking/dropdown/po-status")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOStatusDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetPOStatusDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Status dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
     }
 }

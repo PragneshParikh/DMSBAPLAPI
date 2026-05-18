@@ -692,6 +692,300 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
+        {
+            try
+            {
+                var query =
+                    from po in _context.PurchaseOrders
+
+                    join dealer in _context.DealerMasters
+                        on po.CustomerCode equals dealer.Dealercode
+                        into dealerGroup
+
+                    from dealer in dealerGroup.DefaultIfEmpty()
+
+                    join loc in _context.LocationMasters
+                        on po.LocCode equals loc.Loccode
+                        into locationGroup
+
+                    from loc in locationGroup.DefaultIfEmpty()
+
+                    select new
+                    {
+                        po,
+                        dealer,
+                        loc
+                    };
+
+                // =====================================================
+                // FILTERS
+                // =====================================================
+
+                if (!string.IsNullOrWhiteSpace(
+                    filter.DealerCode))
+                {
+                    query = query.Where(x =>
+                        x.po.CustomerCode ==
+                        filter.DealerCode);
+                }
+
+                if (filter.FromDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.po.PurchaseDate >=
+                        filter.FromDate.Value);
+                }
+
+                if (filter.ToDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.po.PurchaseDate <=
+                        filter.ToDate.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(
+                    filter.POType))
+                {
+                    query = query.Where(x =>
+                        x.po.OrderType ==
+                        filter.POType);
+                }
+
+                if (!string.IsNullOrWhiteSpace(filter.POStatus))
+                {
+                    bool isActive = filter.POStatus == "Active";
+                    query = query.Where(x => x.po.Status == isActive);
+                }
+
+                // =====================================================
+                // TOTAL RECORDS
+                // =====================================================
+
+                var totalRecords =
+                    await query.CountAsync();
+
+                // =====================================================
+                // PAGINATION
+                // =====================================================
+
+                var rawData =
+                    await query
+                    .OrderByDescending(x =>
+                        x.po.PurchaseDate)
+                    .Skip(
+                        (filter.PageIndex - 1)
+                        * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToListAsync();
+
+                int srNo =
+                    ((filter.PageIndex - 1)
+                    * filter.PageSize) + 1;
+
+                // =====================================================
+                // FINAL RESULT
+                // =====================================================
+
+                var result =
+                    rawData.Select(x =>
+                    {
+                        // =============================================
+                        // PURCHASE ORDER DETAILS
+                        // =============================================
+
+                        var poDetails =
+                            _context.PurchaseOrderDetails
+                            .Where(d =>
+                                d.Ponumber ==
+                                x.po.Ponumber)
+                            .ToList();
+
+                        // =============================================
+                        // QTY CALCULATIONS
+                        // =============================================
+
+                        decimal poQty =
+                            poDetails.Sum(d =>
+                                d.Qty ?? 0);
+
+                        // =============================================
+                        // PRICE CALCULATIONS
+                        // =============================================
+
+                        decimal poPrice =
+                            poDetails.Sum(d =>
+                                d.LineAmount ?? 0);
+
+                        // =============================================
+                        // TEMP VALUES
+                        // =============================================
+
+                        decimal billedQty = 0;
+
+                        decimal billedPrice = 0;
+
+                        decimal pendingQty =
+                            poQty - billedQty;
+
+                        decimal pendingPrice =
+                            poPrice - billedPrice;
+
+                        // =============================================
+                        // RETURN VIEWMODEL
+                        // =============================================
+
+                        return new
+                            POTrackingReportViewModel
+                        {
+                            // =========================================
+                            // BASIC DETAILS
+                            // =========================================
+
+                            SrNo = srNo++,
+
+                            DealerName =
+                                x.dealer != null
+                                ? x.dealer.Compname
+                                : "",
+
+                            DealerCode =
+                                x.po.CustomerCode,
+
+                            LocationName =
+                                x.loc != null
+                                ? x.loc.Locname
+                                : "",
+
+                            // =========================================
+                            // ORDER DETAILS
+                            // =========================================
+
+                            OrderNumber =
+                                x.po.Ponumber,
+
+                            OrderDate =
+                                x.po.PurchaseDate,
+
+                            SubmitToERPDate =
+                                x.po.UpdatedDate,
+
+                            POType =
+                                x.po.OrderType,
+
+                            // =========================================
+                            // QUANTITY DETAILS
+                            // =========================================
+
+                            POQty =
+                                poQty,
+
+                            BilledQty =
+                                billedQty,
+
+                            PendingQty =
+                                pendingQty,
+
+                            Archived = 0,
+
+                            // =========================================
+                            // PRICE DETAILS
+                            // =========================================
+
+                            POPrice =
+                                poPrice,
+
+                            BilledPrice =
+                                billedPrice,
+
+                            PendingPOPrice =
+                                pendingPrice,
+
+                            ArchivedPriceExclGST = 0,
+
+                            // =========================================
+                            // STATUS DETAILS
+                            // =========================================
+
+                            POStatus =
+                                x.po.Status
+                                ? "Active"
+                                : "Inactive",
+
+                            UniqueId =
+                                x.po.Id.ToString(),
+
+                            DealerPONo =
+                                x.po.Ponumber,
+
+                            // =========================================
+                            // PAYMENT DETAILS
+                            // =========================================
+
+                            WalletDebit = 0,
+
+                            PGDebit = 0,
+
+                            PGStatus = "",
+
+                            PaymentLink = "",
+
+                            PaymentType = "",
+
+                            TempPONo =
+                                x.po.Ponumber,
+
+                            MerchantOrderNo = "",
+
+                            MerchantOrderStatus = ""
+                        };
+                    })
+                    .ToList();
+
+                // =====================================================
+                // RESPONSE
+                // =====================================================
+
+                return new
+                    PagedResponse<
+                        POTrackingReportViewModel>
+                {
+                    Data = result,
+
+                    TotalRecords =
+                        totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching PO Tracking Report",
+                    ex);
+            }
+        }
+
+        public async Task<List<string>> GetPOTypeDropdownAsync()
+        {
+            return await _context.PurchaseOrders
+                .Where(x => x.OrderType != null && x.OrderType != "")
+                .Select(x => x.OrderType!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+        }
+
+        public async Task<List<string>> GetPOStatusDropdownAsync()
+        {
+
+            // PO Status is derived from bool Status field
+            // Active / Inactive — return fixed meaningful labels
+            return await Task.FromResult(new List<string>
+            {
+                "Active",
+                "Inactive"
+            });
+        }
+
 
 
         // ═════════════════════════════════════════════════════════════════════
