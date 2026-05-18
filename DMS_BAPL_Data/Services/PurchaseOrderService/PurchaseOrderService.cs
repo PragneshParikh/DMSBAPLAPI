@@ -339,7 +339,6 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
-
         public async Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber)
         {
             try
@@ -627,7 +626,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
-        public async Task<bool> UpdatePOStatusAsync(string poNumber, bool status) => await _repo.UpdatePOStatusAsync(poNumber, status);
+        public async Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel) => await _repo.UpdatePOStatusAsync(updatePOStatusViewModel);
 
     }
 }
