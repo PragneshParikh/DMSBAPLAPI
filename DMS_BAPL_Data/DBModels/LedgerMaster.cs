@@ -47,5 +47,7 @@ public partial class LedgerMaster
 
     public virtual ICollection<Hsrporder> Hsrporders { get; set; } = new List<Hsrporder>();
 
+    public virtual ICollection<JobCardCustomer> JobCardCustomers { get; set; } = new List<JobCardCustomer>();
+
     public virtual State? StateNavigation { get; set; }
 }

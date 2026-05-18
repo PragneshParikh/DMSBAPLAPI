@@ -6,6 +6,7 @@ using DMS_BAPL_Data.Repositories.ChassisRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
@@ -47,6 +48,7 @@ using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.EmailService;
+using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.Form22Services;
@@ -126,10 +128,11 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IExtendedBatteryWarrantyRepo, ExtendedBatteryWarrantyRepo>();
             services.AddScoped<IModelwiseServiceSchedule, ModelwiseServiceScheduleRepo>();
             services.AddScoped<IPerformaInvoiceRepo, PerformaInvoiceRepo>();
-            services.AddScoped<IFFIRRepo,FFIRRepo>();
+            services.AddScoped<IFFIRRepo, FFIRRepo>();
             services.AddScoped<IPartInwardRepo, PartInwardRepo>();
             services.AddScoped<IChassisRepo, ChassisRepo>();
             services.AddScoped<IReportRepo, ReportRepo>();
+            services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();
 
             #endregion
 
@@ -173,6 +176,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPartInwardService, PartInwardService>();
             services.AddScoped<IChassisService, ChassisService>();
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<IEmployeeService, EmployeeService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
