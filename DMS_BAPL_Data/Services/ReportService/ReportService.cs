@@ -35,6 +35,8 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo.GetColourWiseStockReportAsync();
         }
 
+
+
         // ═════════════════════════════════════════════════════════════════════
         // JOB REPORT  (unchanged from JobReportService)
         // ═════════════════════════════════════════════════════════════════════
@@ -251,6 +253,22 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo
                 .GetDealerListAsync();
         }
+
+        public async Task<List<object>> GetModelListAsync()
+        {
+            return await _reportRepo.GetModelListAsync();
+        }
+
+        public async Task<List<object>> GetModelListByDealerAsync(string dealerCode)
+        {
+            return await _reportRepo .GetModelListByDealerAsync(dealerCode);
+        }
+
+        public async Task<List<string>> GetChassisListAsync()
+        {
+            return await _reportRepo.GetChassisListAsync();
+        }
+
 
         public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
