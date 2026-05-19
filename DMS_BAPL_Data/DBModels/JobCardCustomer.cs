@@ -9,6 +9,10 @@ public partial class JobCardCustomer
 
     public int JobCardHeaderId { get; set; }
 
+    public int? CustomerLedgerId { get; set; }
+
+    public int? VehicleSaleBillid { get; set; }
+
     public string? CustomerName { get; set; }
 
     public string? CustomerMobile { get; set; }
@@ -43,7 +47,11 @@ public partial class JobCardCustomer
 
     public DateTime? UpdatedDate { get; set; }
 
+    public virtual LedgerMaster? CustomerLedger { get; set; }
+
     public virtual ICollection<Ffirheader> Ffirheaders { get; set; } = new List<Ffirheader>();
 
     public virtual JobCardHeader JobCardHeader { get; set; } = null!;
+
+    public virtual VehicleSaleBillHeader? VehicleSaleBill { get; set; }
 }

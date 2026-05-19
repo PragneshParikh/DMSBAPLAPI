@@ -16,10 +16,10 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IJobCardRepo _jobCardRepo;
         private readonly ILogger<LOTInspectionController> _logger;
-
-        public JobCardController(IJobCardRepo jobCardRepo)
+        public JobCardController(IJobCardRepo jobCardRepo, ILogger<LOTInspectionController> logger)
         {
             _jobCardRepo = jobCardRepo;
+            _logger = logger;
         }
 
         [HttpGet("GetJobType")]
@@ -31,9 +31,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
                 var jobTypes = await _jobCardRepo.GetJobtype();
+
                 return Ok(jobTypes);
             }
             catch (Exception ex)

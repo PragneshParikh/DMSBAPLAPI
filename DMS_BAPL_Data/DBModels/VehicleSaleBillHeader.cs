@@ -65,5 +65,7 @@ public partial class VehicleSaleBillHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public virtual ICollection<JobCardCustomer> JobCardCustomers { get; set; } = new List<JobCardCustomer>();
+
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
 }

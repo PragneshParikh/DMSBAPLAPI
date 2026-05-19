@@ -35,6 +35,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
 
+    public virtual DbSet<ChassisBatteryDetail> ChassisBatteryDetails { get; set; }
+
     public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
 
     public virtual DbSet<City> Cities { get; set; }
@@ -42,6 +44,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ColorMaster> ColorMasters { get; set; }
 
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
+
+    public virtual DbSet<EmployeeMaster> EmployeeMasters { get; set; }
 
     public virtual DbSet<ExceptionLog> ExceptionLogs { get; set; }
 
@@ -292,6 +296,39 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<ChassisBatteryDetail>(entity =>
+        {
+            entity.Property(e => e.BatteryCapacity)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryMake)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChargerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ControllerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.MotorNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<ChassisDetail>(entity =>
         {
             entity.Property(e => e.ChassisNo)
@@ -486,6 +523,55 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("vat_no");
+        });
+
+        modelBuilder.Entity<EmployeeMaster>(entity =>
+        {
+            entity.ToTable("EmployeeMaster");
+
+            entity.Property(e => e.Address)
+                .HasMaxLength(2000)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.EmailId)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("EmailID");
+            entity.Property(e => e.EmployeeCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LastName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Mobile)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Notes)
+                .HasMaxLength(2000)
+                .IsUnicode(false);
+            entity.Property(e => e.Password)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.ProfileImage)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<ExceptionLog>(entity =>
@@ -784,12 +870,15 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
-                .HasMaxLength(20)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.CustomerLedgerId).HasColumnName("CustomerLedgerID");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.Hsrpresponse)
                 .HasMaxLength(300)
                 .IsUnicode(false)
@@ -799,6 +888,12 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("HSRPStatus");
             entity.Property(e => e.InvoiceNo)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.InwardResponse)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.InwardStatus)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.IsTlpsticker).HasColumnName("IsTLPSticker");
@@ -813,7 +908,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
-                .HasMaxLength(20)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
@@ -1126,10 +1221,18 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
+            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.JobCardCustomers)
+                .HasForeignKey(d => d.CustomerLedgerId)
+                .HasConstraintName("FK_JobCardCustomer_LedgerMaster");
+
             entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardCustomers)
                 .HasForeignKey(d => d.JobCardHeaderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_JobCardCustomer_JobCardHeader");
+
+            entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.JobCardCustomers)
+                .HasForeignKey(d => d.VehicleSaleBillid)
+                .HasConstraintName("FK_JobCardCustomer_VehicleSaleBillHeader");
         });
 
         modelBuilder.Entity<JobCardHeader>(entity =>

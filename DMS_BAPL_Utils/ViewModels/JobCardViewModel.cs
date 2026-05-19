@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -74,6 +75,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string serviceHead { get; set; }
         public string serviceType { get; set; }
         public string Complaint { get; set; }
+        public string Location { get; set; }
+        public string PartyName { get; set; }
+        public string PartyMobileNo { get; set; }
+
+        public string PartyState { get; set; }
 
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
@@ -229,6 +235,8 @@ namespace DMS_BAPL_Utils.ViewModels
     public class JobCardComplaintVM
     {
         public int Id { get; set; }
+
+        public string DealerCode { get; set; }
         public int JobCardHeaderId { get; set; }
         public string? CustomerVoice { get; set; }
         public string? ComplaintCode { get; set; }
@@ -245,7 +253,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public int PdichecklistMasterId { get; set; }
 
-        public int JobCardMasterId { get; set; }
+        public int? JobCardMasterId { get; set; }
 
         public bool? IsStatus { get; set; }
 
