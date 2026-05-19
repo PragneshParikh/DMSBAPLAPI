@@ -113,6 +113,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     on d.ItemCode equals i.Itemcode into itemJoin
                 from i in itemJoin.DefaultIfEmpty()
 
+                join inv in _context.InvoiceHeaders
+                on d.VehicleSaleBillId equals  inv.ReferenceId into InvDetails
+                from inv in InvDetails.DefaultIfEmpty()
+
                 select new VehicleSaleBillDetailVM
                 {
                     Id = d.Id,
@@ -162,7 +166,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                     Vcu = d.Vcu,
                     HsnCode = i.Hsncode,
-                    MotorNo = v.MotorNo
+                    MotorNo = v.MotorNo,
+                    InvoiceNo =inv.InvoiceNo
                 }
             ).ToList()
 
