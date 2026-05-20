@@ -1256,6 +1256,113 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        public async Task<List<object>> GetModelListAsync()
+        {
+            try
+            {
+                var data = await (
+
+                    from vi in _context.VehicleInwards
+
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
+
+                    where
+                        !string.IsNullOrEmpty(im.Itemname)
+
+                        // REMOVE ASSEMBLY / PART ITEMS
+
+                        && !im.Itemname.Contains("BRAKE")
+                        && !im.Itemname.Contains("LEVER")
+                        && !im.Itemname.Contains("BUZZER")
+                        && !im.Itemname.Contains("CONTROLLER")
+                        && !im.Itemname.Contains("HARNESS")
+                        && !im.Itemname.Contains("CABLE")
+                        && !im.Itemname.Contains("SWITCH")
+                        && !im.Itemname.Contains("FOOTREST")
+                        && !im.Itemname.Contains("DRUM")
+                        && !im.Itemname.Contains("TOOL")
+                        && !im.Itemname.Contains("PART")
+                        && !im.Itemname.Contains("KIT")
+
+                    select new
+                    {
+                        modelCode = im.Itemcode,
+                        modelName = im.Itemname
+                    }
+
+                )
+                .Distinct()
+                .OrderBy(x => x.modelName)
+                .ToListAsync();
+
+                return data
+                    .Cast<object>()
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching model list",
+                    ex);
+            }
+        }
+
+        public async Task<List<object>> GetModelListByDealerAsync(string dealerCode)
+        {
+            try
+            {
+                var data = await (
+
+                    from vi in _context.VehicleInwards
+
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
+
+                    where vi.DealerCode == dealerCode
+
+                    select new
+                    {
+                        modelCode = im.Itemcode,
+                        modelName = im.Itemname
+                    }
+
+                )
+                .Distinct()
+                .OrderBy(x => x.modelName)
+                .ToListAsync();
+
+                return data
+                    .Cast<object>()
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching model list",
+                    ex);
+            }
+        }
+        public async Task<List<string>> GetChassisListAsync()
+        {
+            try
+            {
+                return await _context.VehicleInwards
+                    .AsNoTracking()
+                    .Where(x => x.ChasisNo != null)
+                    .Select(x => x.ChasisNo!)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching chassis list",
+                    ex);
+            }
+        }
+
         public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
             try
@@ -1337,6 +1444,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     query = query.Where(x =>
                         x.DealerCode == dealerCode);
                 }
+
 
                 // =========================================
                 // FROM DATE
