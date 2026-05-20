@@ -28,7 +28,7 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
             {
                 // Get Color from ColorMaster
                 var color = await _context.ColorMasters
-                    .FirstOrDefaultAsync(c => c.Id == leadViewModel.ColorId);
+                    .FirstOrDefaultAsync(c => c.Colorcode == leadViewModel.Color);
 
                 if (color == null)
                 {
@@ -36,8 +36,10 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
                 }
 
                 // Get Dealer from DealerMaster
+                //var dealer = await _context.DealerMasters
+                //    .FirstOrDefaultAsync(d => d.Id == leadViewModel.DealerId);
                 var dealer = await _context.DealerMasters
-                    .FirstOrDefaultAsync(d => d.Id == leadViewModel.DealerId);
+                    .FirstOrDefaultAsync(d => d.Dealercode == leadViewModel.Dealercode);
 
                 if (dealer == null)
                 {
@@ -64,8 +66,8 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
                     Sourceapp = leadViewModel.Sourceapp,
 
                     // Foreign Keys
-                    ColorId = leadViewModel.ColorId,
-                    DealerId = leadViewModel.DealerId,
+                    ColorId = color.Id,
+                    DealerId = dealer.Id,
 
                     // Master table values
                     Color = color.Colorname,
@@ -94,8 +96,8 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
         public async Task<List<LmsleadMaster>> GetAlllmsleadMasters()
         {
             var query = _context.LmsleadMasters.AsQueryable();
-            
-             
+
+
             return await query.ToListAsync();
         }
 
@@ -126,7 +128,7 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
             return result;
         }
 
-       
+
 
     }
 }

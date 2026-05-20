@@ -42,7 +42,7 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 // Log error here (important)
-                return StatusCode(500, "Something went wrong while inserting data.");
+                return StatusCode(500, ex.Message);
             }
         }
 
@@ -69,7 +69,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo,int? bookingId)
+        public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo, int? bookingId)
         {
             try
             {
@@ -81,7 +81,8 @@ namespace DMS_BAPL_Api.Controllers
                     isNew = item.isNew
                 });
             }
-            catch (Exception ex){
+            catch (Exception ex)
+            {
                 return BadRequest(ex.Message);
             }
         }

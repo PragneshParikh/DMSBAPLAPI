@@ -102,6 +102,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Vcu { get; set; }
         public string? HsnCode { get; set; }
         public string? MotorNo { get; set; }
+        public string? InvoiceNo { get; set; }
 
     }
 }
