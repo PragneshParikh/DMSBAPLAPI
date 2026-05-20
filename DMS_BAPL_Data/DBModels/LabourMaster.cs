@@ -36,4 +36,8 @@ public partial class LabourMaster
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public string? Oemmodelname { get; set; }
+
+    public bool? IsLabourActive { get; set; }
 }
