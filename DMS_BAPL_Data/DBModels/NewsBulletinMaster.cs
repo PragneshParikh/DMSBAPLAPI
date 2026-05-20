@@ -3,15 +3,21 @@ using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public partial class ColorMaster
+public partial class NewsBulletinMaster
 {
     public int Id { get; set; }
 
-    public int Rrgcoloridno { get; set; }
+    public string Title { get; set; } = null!;
 
-    public string Colorname { get; set; } = null!;
+    public string? Description { get; set; }
 
-    public string Colorcode { get; set; } = null!;
+    public DateTime PublishDate { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public byte[]? FileData { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 
