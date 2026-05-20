@@ -48,6 +48,26 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("model-list")]
+        public async Task<IActionResult> GetModelList()
+        {
+            var result =
+                await _reportService.GetModelListAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("chassis-list")]
+        public async Task<IActionResult> GetChassisList()
+        {
+            var result =
+                await _reportService.GetChassisListAsync();
+
+            return Ok(result);
+        }
+
+
+
         // ─────────────────────────────────────────────────────────────────────
         // JOB CARD
         // ─────────────────────────────────────────────────────────────────────
@@ -410,6 +430,20 @@ namespace DMS_BAPL_Api.Controllers
             var result =
                 await _reportService
                 .GetDealerListAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("model-list/{dealerCode}")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetModelListByDealer(string dealerCode)
+        {
+            var result =
+                await _reportService
+                .GetModelListByDealerAsync(
+                    dealerCode);
 
             return Ok(result);
         }
