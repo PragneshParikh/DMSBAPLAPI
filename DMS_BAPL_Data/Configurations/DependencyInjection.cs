@@ -6,6 +6,7 @@ using DMS_BAPL_Data.Repositories.ChassisRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
@@ -24,6 +25,8 @@ using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
+using DMS_BAPL_Data.Repositories.NewsBulletinAttachmentRepo;
+using DMS_BAPL_Data.Repositories.NewsBulletinRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
@@ -48,6 +51,7 @@ using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.EmailService;
+using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.Form22Services;
@@ -64,6 +68,8 @@ using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
+using DMS_BAPL_Data.Services.NewsBulletinAttachmentService;
+using DMS_BAPL_Data.Services.NewsBulletinService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.OEMModelWarrantyService;
 using DMS_BAPL_Data.Services.PartsInwardService;
@@ -133,6 +139,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisRepo, ChassisRepo>();
             services.AddScoped<IHSRPRepo, HSRPRepo>();
             services.AddScoped<IReportRepo, ReportRepo>();
+            services.AddScoped<INewsBulletinRepo, NewsBulletinRepo>();
+            services.AddScoped<INewsBulletinAttachmentRepo, NewsBulletinAttachmentRepo>();
+            services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();
 
             #endregion
 
@@ -177,6 +186,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisService, ChassisService>();
             services.AddScoped<IHSRPService, HSRPService>();
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<INewsBulletinService, NewsBulletinService>();
+            services.AddScoped<INewsBulletinAttachmentService, NewsBulletinAttachmentService>();
+            services.AddScoped<IEmployeeService, EmployeeService>();
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();

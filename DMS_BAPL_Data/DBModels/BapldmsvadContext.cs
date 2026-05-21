@@ -109,6 +109,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<NewsBulletinMaster> NewsBulletinMasters { get; set; }
 
+    public virtual DbSet<NewsBulletinMasterAttachment> NewsBulletinMasterAttachments { get; set; }
+
     public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
@@ -1389,6 +1391,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("createdDate");
+            entity.Property(e => e.EffectiveDate)
+                .HasColumnType("datetime")
+                .HasColumnName("effectiveDate");
             entity.Property(e => e.Hsncode)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -1961,6 +1966,31 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<NewsBulletinMasterAttachment>(entity =>
+        {
+            entity.ToTable("NewsBulletinMasterAttachment");
+
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.NewsBulletin).WithMany(p => p.NewsBulletinMasterAttachments)
+                .HasForeignKey(d => d.NewsBulletinId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsBulletinMasterAttachment_NewsBulletinMaster");
         });
 
         modelBuilder.Entity<NumberSequence>(entity =>
