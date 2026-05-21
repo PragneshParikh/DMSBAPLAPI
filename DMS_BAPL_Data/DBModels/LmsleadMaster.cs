@@ -55,7 +55,5 @@ public partial class LmsleadMaster
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual ColorMaster? ColorNavigation { get; set; }
-
     public virtual DealerMaster? Dealer { get; set; }
 }
