@@ -26,4 +26,6 @@ public partial class NewsBulletinMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual ICollection<NewsBulletinMasterAttachment> NewsBulletinMasterAttachments { get; set; } = new List<NewsBulletinMasterAttachment>();
 }

@@ -40,4 +40,6 @@ public partial class LabourMaster
     public string? Oemmodelname { get; set; }
 
     public bool? IsLabourActive { get; set; }
+
+    public DateTime? EffectiveDate { get; set; }
 }
