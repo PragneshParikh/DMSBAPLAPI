@@ -114,7 +114,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 from i in itemJoin.DefaultIfEmpty()
 
                 join inv in _context.InvoiceHeaders
-                on d.VehicleSaleBillId equals  inv.ReferenceId into InvDetails
+                on d.VehicleSaleBillId equals inv.ReferenceId into InvDetails
                 from inv in InvDetails.DefaultIfEmpty()
 
                 select new VehicleSaleBillDetailVM
@@ -167,7 +167,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     Vcu = d.Vcu,
                     HsnCode = i.Hsncode,
                     MotorNo = v.MotorNo,
-                    InvoiceNo =inv.InvoiceNo
+                    InvoiceNo = inv.InvoiceNo
                 }
             ).ToList()
 
@@ -327,7 +327,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
              where jc.DealerCode == dealerCode
-                   && jc.IsPdiSuccess == true
+                && jc.IsPdiSuccess == true
              && jcu.SaleDate == null
 
              select new PdiOkVehicleChassisViewModel
@@ -567,18 +567,20 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .ToListAsync();
 
 
-                foreach (var item in jobCardList)
+                foreach (var job in jobCardList)
                 {
-                    var job = jobCardList.Where(c => c.ChassisNo == item.ChassisNo).FirstOrDefault();
+                    var saleDetail = saleBill.VehicleSaleBillDetails
+                        .FirstOrDefault(d => d.ChassisNo == job.ChassisNo);
 
-                    if (job == null) continue;
+                    if (saleDetail == null) continue;
 
-                    job.SaleDate = DateTime.Now;
-                    job.InsuranceExpDate = item.InsuranceExpDate;
-                    job.RegisterNo = item.RegisterNo;
+                    job.CustomerLedgerId = saleBill.LedgerId;
+                    job.VehicleSaleBillid = saleBill.Id;
+                    job.SaleDate = saleBill.SaleDate; 
+                    job.InsuranceExpDate = saleDetail.InsExpDate;
+                    job.RegisterNo = saleDetail.RegNo;
                 }
 
-                // Mark other sale bills with same chassis as Invalid
                 var invalidSalesBills = await _context.VehicleSaleBillHeaders
                 .Include(x => x.VehicleSaleBillDetails)
                 .Where(x => x.SaleBillNo != saleBillNo &&
@@ -673,6 +675,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     job.SaleDate = item.SaleDate;
                     job.InsuranceExpDate = item.InsuranceExpDate;
                     job.RegisterNo = item.RegisterNo;
+
                 }
                 await _context.SaveChangesAsync();
                 return saleBill;

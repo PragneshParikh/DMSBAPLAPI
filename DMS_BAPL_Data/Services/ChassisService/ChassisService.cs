@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.Repositories.ChassisRepo;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,11 @@ namespace DMS_BAPL_Data.Services.ChassisService
             _chassisRepo = chassisRepo;
         }
         Task<object> IChassisService.GetChassisDataAsync(string chassisNumber) => _chassisRepo.GetChassisDataAsync(chassisNumber);
+
+        public async Task<string>ImportChassisExcelAsync(IFormFile file)
+        {
+            return await _chassisRepo
+                .ImportChassisExcelAsync(file);
+        }
     }
 }
