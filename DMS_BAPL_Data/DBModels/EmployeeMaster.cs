@@ -23,21 +23,24 @@ public partial class EmployeeMaster
 
     public string? Address { get; set; }
 
-    public int State { get; set; }
+    public int? State { get; set; }
 
-    public int City { get; set; }
+    public int? City { get; set; }
 
-    public int Pincode { get; set; }
+    public int? Pincode { get; set; }
 
     public DateTime DateOfJoin { get; set; }
 
-    public int Designation { get; set; }
+    // CHANGED TO STRING
+    public string? Designation { get; set; }
 
-    public int Department { get; set; }
+    // CHANGED TO STRING
+    public string? Department { get; set; }
 
     public string DealerCode { get; set; } = null!;
 
-    public int Supervisor { get; set; }
+    // CHANGED TO STRING
+    public string? Supervisor { get; set; }
 
     public bool IsActive { get; set; }
 
