@@ -107,6 +107,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; }
 
+    public virtual DbSet<NewsBulletinMaster> NewsBulletinMasters { get; set; }
+
+    public virtual DbSet<NewsBulletinMasterAttachment> NewsBulletinMasterAttachments { get; set; }
+
     public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
@@ -114,6 +118,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<OemmodelWarranty> OemmodelWarranties { get; set; }
 
     public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
+
+    public virtual DbSet<PartWiseLabourMaster> PartWiseLabourMasters { get; set; }
 
     public virtual DbSet<PartsInventory> PartsInventories { get; set; }
 
@@ -1387,6 +1393,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("createdDate");
+            entity.Property(e => e.EffectiveDate)
+                .HasColumnType("datetime")
+                .HasColumnName("effectiveDate");
             entity.Property(e => e.Hsncode)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -1394,6 +1403,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Igst)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("IGST");
+            entity.Property(e => e.IsLabourActive).HasColumnName("isLabourActive");
             entity.Property(e => e.LabourCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1405,6 +1415,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ModelCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.Oemmodelname)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("oemmodelname");
             entity.Property(e => e.Sgst)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("SGST");
@@ -1551,10 +1565,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("variant");
-
-            entity.HasOne(d => d.ColorNavigation).WithMany(p => p.LmsleadMasters)
-                .HasForeignKey(d => d.ColorId)
-                .HasConstraintName("FKColorMaster");
 
             entity.HasOne(d => d.Dealer).WithMany(p => p.LmsleadMasters)
                 .HasForeignKey(d => d.DealerId)
@@ -1938,6 +1948,53 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceType");
         });
 
+        modelBuilder.Entity<NewsBulletinMaster>(entity =>
+        {
+            entity.ToTable("NewsBulletinMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Description)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+            entity.Property(e => e.PublishDate).HasColumnType("datetime");
+            entity.Property(e => e.Title)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<NewsBulletinMasterAttachment>(entity =>
+        {
+            entity.ToTable("NewsBulletinMasterAttachment");
+
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.NewsBulletin).WithMany(p => p.NewsBulletinMasterAttachments)
+                .HasForeignKey(d => d.NewsBulletinId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsBulletinMasterAttachment_NewsBulletinMaster");
+        });
+
         modelBuilder.Entity<NumberSequence>(entity =>
         {
             entity.ToTable("NumberSequence");
@@ -2028,6 +2085,59 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.ParameterValue).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<PartWiseLabourMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PartWise__3214EC07DB4F8264");
+
+            entity.ToTable("PartWiseLabourMaster");
+
+            entity.Property(e => e.Cgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGST");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.Hsncode)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("HSNCode");
+            entity.Property(e => e.Igst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGST");
+            entity.Property(e => e.JobType)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourHrs).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ModelName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.PartCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.PartDescription)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Sgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGST");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);

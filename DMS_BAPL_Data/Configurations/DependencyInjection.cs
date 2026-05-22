@@ -15,6 +15,7 @@ using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
+using DMS_BAPL_Data.Repositories.LabourMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
@@ -130,6 +131,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPartInwardRepo, PartInwardRepo>();
             services.AddScoped<IChassisRepo, ChassisRepo>();
             services.AddScoped<IReportRepo, ReportRepo>();
+            services.AddScoped<ILabourMasterRepo, LabourMasterRepo>();
 
             #endregion
 

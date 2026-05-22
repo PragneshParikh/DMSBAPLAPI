@@ -20,6 +20,4 @@ public partial class ColorMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public virtual ICollection<LmsleadMaster> LmsleadMasters { get; set; } = new List<LmsleadMaster>();
 }
