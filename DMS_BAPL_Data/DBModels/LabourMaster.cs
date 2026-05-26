@@ -29,6 +29,12 @@ public partial class LabourMaster
 
     public string? Hsncode { get; set; }
 
+    public string? Oemmodelname { get; set; }
+
+    public bool? IsLabourActive { get; set; }
+
+    public DateTime? EffectiveDate { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -36,10 +42,4 @@ public partial class LabourMaster
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? Oemmodelname { get; set; }
-
-    public bool? IsLabourActive { get; set; }
-
-    public DateTime? EffectiveDate { get; set; }
 }

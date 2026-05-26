@@ -20,7 +20,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<TaxCodeMaster> GetTaxMasterAsync(string taxCode);
         Task<HsnwiseTaxCode> GetHSNTaxWithFallbackAsync(string hsnCode, string preferredFlag, DateTime poDate);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode);
+        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType);
         Task<PartsPurchaseOrderResponseViewModel> GetPartsPOByNumberAsync(string poNumber);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
         Task<decimal> GetSubsidyValue();

@@ -102,6 +102,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 existing.Remarks = po.Remarks;
                 existing.LocCode = po.LocCode;
                 existing.LedgerCode = po.LedgerCode;
+                existing.SubOrderType = po.SubOrderType;
                 existing.UpdatedBy = po.UpdatedBy;
                 existing.UpdatedDate = po.UpdatedDate;
 
@@ -275,6 +276,10 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     .Where(x => x.Ponumber == poNumber)
                     .ToListAsync();
 
+                var item = await _context.ItemMasters
+                    .Where(x => x.Itemcode == details[0].ItemCode)
+                    .FirstOrDefaultAsync();
+
                 return new PurchaseOrderResponseViewModel
                 {
                     PONumber = po.Ponumber,
@@ -285,6 +290,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     TransactionType = po.TransactionType,
                     Remarks = po.Remarks,
                     LocCode = po.LocCode,
+                    SubOrderType = po.SubOrderType,
+                    LedgerCode = po.LedgerCode,
                     LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
                     Items = details.Select(d => new PurchaseOrderItemViewModel
@@ -294,6 +301,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         Rate = d.Rate,
                         LineAmount = d.LineAmount,
                         Subsidy = d.Subsidy,
+                        ItemDescription = item.Itemdesc,
+                        LineNumber = d.LineNumber,
 
                         Taxes = taxes
                             .Where(t => t.ItemCode == d.ItemCode &&
@@ -313,11 +322,12 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode)
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType)
         {
             try
             {
-                var poList = await _context.PurchaseOrders.ToListAsync();
+                var poList = await _context.PurchaseOrders
+                    .Where(x => x.OrderType == orderType).ToListAsync();
 
                 if (poList == null || !poList.Any())
                     return new List<PurchaseOrderResponseViewModel>();
