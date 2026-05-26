@@ -17,8 +17,6 @@ public partial class NewsBulletinMaster
 
     public bool IsActive { get; set; }
 
-    public byte[]? FileData { get; set; }
-
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }

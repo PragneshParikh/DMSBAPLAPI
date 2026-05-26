@@ -65,11 +65,15 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? MfgYear { get; set; }
 
         public string? InsNo { get; set; }
+        public decimal? FameIIDisc { get; set; }
+        public decimal? PostGstDiscount { get; set; }
+
 
         public DateTime? InsStartDate { get; set; }
 
 
         public string? RegNo { get; set; }
+        public string? ProformaCreated { get; set; }
         public DateTime? InsExpDate { get; set; }
         public decimal FinalAmount { get; set; }
         public bool IsAgainstExchange { get; set; }

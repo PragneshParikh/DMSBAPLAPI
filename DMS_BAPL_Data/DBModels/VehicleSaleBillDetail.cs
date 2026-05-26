@@ -99,5 +99,9 @@ public partial class VehicleSaleBillDetail
 
     public string? Hsrpstatus { get; set; }
 
+    public decimal? FameIi { get; set; }
+
+    public decimal? PostGstDisc { get; set; }
+
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }
