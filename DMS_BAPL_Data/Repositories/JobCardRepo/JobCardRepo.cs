@@ -81,8 +81,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                       on v.ItemCode equals i.Itemcode
                                   join dm in _context.DealerMasters
                                       on h.DealerCode equals dm.Dealercode
+                                  
                                   join jc in _context.JobCardCustomers
                                   on d.ChassisNo equals jc.ChassisNo
+                                    into jcGroup
+                                    from jc in jcGroup.DefaultIfEmpty() 
 
                                   // OEM Model (LEFT JOIN)
                                   join o in _context.OemmodelMasters
