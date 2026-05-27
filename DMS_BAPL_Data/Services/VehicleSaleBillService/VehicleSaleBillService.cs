@@ -862,6 +862,18 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                return await _repo.GetPolicyNo(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId)
         {
             try
@@ -943,6 +955,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         }
                     }
 
+        }
+    }
+}
                     result.Add(vm);
                 }
                 return result;

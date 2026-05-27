@@ -866,6 +866,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     result = result.Where(i => i.DealerCode == dealerCode).ToList();
                 }
 
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                var policyNos = await _context.VehicleSaleBillDetails
+                    .Where(d => d.ChassisNo == chassisNo && d.InsNo != null)
+                    .Select(d => d.InsNo!)
+                    .ToListAsync();
+                return policyNos;
                 return result;
             }
             catch
@@ -875,5 +884,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         }
 
 
+            }
+            catch
+            {
+                throw;
+            }
+        }
+    }
+}
     }
 }
