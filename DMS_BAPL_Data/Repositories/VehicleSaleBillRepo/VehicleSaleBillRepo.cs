@@ -113,6 +113,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     on d.ItemCode equals i.Itemcode into itemJoin
                 from i in itemJoin.DefaultIfEmpty()
 
+                join inv in _context.InvoiceHeaders
+                on d.VehicleSaleBillId equals inv.ReferenceId into InvDetails
+                from inv in InvDetails.DefaultIfEmpty()
+
                 select new VehicleSaleBillDetailVM
                 {
                     Id = d.Id,
@@ -162,7 +166,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                     Vcu = d.Vcu,
                     HsnCode = i.Hsncode,
-                    MotorNo = v.MotorNo
+                    MotorNo = v.MotorNo,
+                    InvoiceNo = inv.InvoiceNo,
+                    FameIIDisc = d.FameIi,
+                    PostGstDiscount =d.PostGstDisc
                 }
             ).ToList()
 
@@ -322,7 +329,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
              where jc.DealerCode == dealerCode
-                   && jc.IsPdiSuccess == true
+                && jc.IsPdiSuccess == true
              && jcu.SaleDate == null
 
              select new PdiOkVehicleChassisViewModel
@@ -346,7 +353,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                  ConverterNo = bd.ConverterNo ?? vd.Converter,
                  DealerPrice = vd.Dlrprice,
                  CustomerPrice = vd.Custprice,
-                 PreGstDisc = im.Fame2amount,
+                 //PreGstDisc = im.Fame2amount,
 
                  DealerCode = jc.DealerCode,
                  CustomerSaleDate = jcu.SaleDate
@@ -374,8 +381,49 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Add(header);
                 await _context.SaveChangesAsync();
 
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
 
-                //  Single commit
+                // 2. Create Proforma Invoice Header
+                var invoice = new InvoiceHeader
+                {
+                    InvoiceType = "Proforma Invoice", // 👈 important
+                    ServiceType = "Vehicle Sale Bill",
+                    DocumentNo = header.SaleBillNo,
+                    ReferenceId = header.Id,
+                    CustomerId = header.LedgerId,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now,
+                    Status = "Proforma"
+                };
+
+                // 3. Add Invoice Details (optional but recommended)
+                foreach (var detail in header.VehicleSaleBillDetails)
+                {
+                    var item = new InvoiceDetail
+                    {
+                        ItemId = detail.Id,
+                        Description = detail.ModelName,
+                        Quantity = 1,
+                        Rate = detail.FinalAmount,
+                        TaxPercent = detail.Igstper ?? (detail.Cgstper + detail.Sgstper),
+                    };
+
+                    item.Amount = (item.Quantity ?? 0) * (item.Rate ?? 0);
+
+                    invoice.InvoiceDetails.Add(item);
+                }
+
+                // 4. Calculate totals
+                decimal total = invoice.InvoiceDetails.Sum(x => x.Amount ?? 0);
+                decimal tax = invoice.InvoiceDetails.Sum(x => (x.Amount ?? 0) * (x.TaxPercent ?? 0) / 100);
+
+                invoice.TotalAmount = total;
+                invoice.TaxAmount = tax;
+                invoice.NetAmount = total + tax;
+
+                // 5. Save Invoice
+                _context.InvoiceHeaders.Add(invoice);
+
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -497,7 +545,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
             {
@@ -507,7 +555,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .FirstOrDefaultAsync(i => i.SaleBillNo == saleBillNo);
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
                 if (saleBill == null)
-                    return false;
+                    return 0;
 
                 saleBill.SaleDate = DateTime.Now;
 
@@ -528,6 +576,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         ItemCode = g.Key,
                         Qty = g.Count()
                     }).ToList();
+               
+                
                 //  REDUCE STOCK
                 foreach (var item in groupedItems)
                 {
@@ -562,18 +612,20 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .ToListAsync();
 
 
-                foreach (var item in jobCardList)
+                foreach (var job in jobCardList)
                 {
-                    var job = jobCardList.Where(c => c.ChassisNo == item.ChassisNo).FirstOrDefault();
+                    var saleDetail = saleBill.VehicleSaleBillDetails
+                        .FirstOrDefault(d => d.ChassisNo == job.ChassisNo);
 
-                    if (job == null) continue;
+                    if (saleDetail == null) continue;
 
-                    job.SaleDate = DateTime.Now;
-                    job.InsuranceExpDate = item.InsuranceExpDate;
-                    job.RegisterNo = item.RegisterNo;
+                    job.CustomerLedgerId = saleBill.LedgerId;
+                    job.VehicleSaleBillid = saleBill.Id;
+                    job.SaleDate = saleBill.SaleDate;
+                    job.InsuranceExpDate = saleDetail.InsExpDate;
+                    job.RegisterNo = saleDetail.RegNo;
                 }
 
-                // Mark other sale bills with same chassis as Invalid
                 var invalidSalesBills = await _context.VehicleSaleBillHeaders
                 .Include(x => x.VehicleSaleBillDetails)
                 .Where(x => x.SaleBillNo != saleBillNo &&
@@ -593,19 +645,47 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 }
 
                 // CREATE INVOICE HEADER
-                var invoice = new InvoiceHeader
-                {
-                    InvoiceType = "Sale Bill",
-                    ServiceType = "Vehicle",
-                    DocumentNo = saleBill.SaleBillNo,
-                    ReferenceId = saleBill.Id,
-                    CustomerId = saleBill.LedgerId,
-                    CreatedBy = userId,
-                    CreatedDate = DateTime.Now,
-                    Status = "Invoiced"
-                };
+                // CHECK IF INVOICE ALREADY EXISTS
+                var existingInvoice = _context.InvoiceHeaders
+                    .FirstOrDefault(x => x.DocumentNo == saleBill.SaleBillNo);
 
-                // CREATE INVOICE ITEMS FROM SALE BILL DETAILS
+                InvoiceHeader invoice;
+
+                if (existingInvoice != null)
+                {
+                    // UPDATE EXISTING INVOICE
+                    invoice = existingInvoice;
+
+                    invoice.InvoiceType = "Invoice";
+                    invoice.ServiceType = "Vehicle Sale Bill";
+                    invoice.CustomerId = saleBill.LedgerId;
+                    invoice.Status = "Invoiced";
+                    invoice.UpdatedBy = userId;
+                    invoice.UpdatedDate = DateTime.Now;
+
+                    // REMOVE OLD DETAILS (important to avoid duplicates)
+                    _context.InvoiceDetails.RemoveRange(invoice.InvoiceDetails);
+                    invoice.InvoiceDetails.Clear();
+                }
+                else
+                {
+                    // CREATE NEW INVOICE
+                    invoice = new InvoiceHeader
+                    {
+                        InvoiceType = "Invoice",
+                        ServiceType = "Vehicle Sale Bill",
+                        DocumentNo = saleBill.SaleBillNo,
+                        ReferenceId = saleBill.Id,
+                        CustomerId = saleBill.LedgerId,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        Status = "Invoiced"
+                    };
+
+                    _context.InvoiceHeaders.Add(invoice);
+                }
+
+                // ADD DETAILS (COMMON FOR BOTH CASES)
                 foreach (var detail in saleBill.VehicleSaleBillDetails)
                 {
                     var item = new InvoiceDetail
@@ -614,7 +694,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         Description = detail.ModelName,
                         Quantity = 1,
                         Rate = detail.FinalAmount,
-                        TaxPercent = detail.Igstper ?? detail.Cgstper + detail.Sgstper,
+                        TaxPercent = detail.Igstper ?? (detail.Cgstper + detail.Sgstper),
                     };
 
                     item.Amount = (item.Quantity ?? 0) * (item.Rate ?? 0);
@@ -622,7 +702,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     invoice.InvoiceDetails.Add(item);
                 }
 
-                // CALCULATE TOTALS
+                // RECALCULATE TOTALS
                 decimal total = invoice.InvoiceDetails.Sum(x => x.Amount ?? 0);
                 decimal tax = invoice.InvoiceDetails.Sum(x => (x.Amount ?? 0) * (x.TaxPercent ?? 0) / 100);
 
@@ -630,15 +710,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 invoice.TaxAmount = tax;
                 invoice.NetAmount = total + tax;
 
-                // ADD TO CONTEXT
-                _context.InvoiceHeaders.Add(invoice);
-                //Mark current bill as Invoiced
+                // UPDATE SALE BILL STATUS
                 saleBill.Erpstatus = "Invoiced";
+
+                var chassisDetailsToUpdate = await _context.ChassisDetails
+                    .Where(i => chassisNos.Contains(i.ChassisNo)).ToListAsync();
+
+                foreach (var chassis in chassisDetailsToUpdate)
+                {
+                    chassis.SaleDate = saleBill.SaleDate;
+                    chassis.LedgerId = saleBill.LedgerId;
+                    chassis.UpdatedBy = userId;
+                    chassis.UpdatedDate = DateTime.Now;
+                }
 
 
                 await _context.SaveChangesAsync();
 
-                return true;
+                return saleBill.Id;
             }
             catch
             {
@@ -668,6 +757,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     job.SaleDate = item.SaleDate;
                     job.InsuranceExpDate = item.InsuranceExpDate;
                     job.RegisterNo = item.RegisterNo;
+
                 }
                 await _context.SaveChangesAsync();
                 return saleBill;
@@ -716,6 +806,66 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode)
+        {
+            try
+            {
+                var result = await (
+                from vi in _context.VehicleInwards
+                join ch in _context.ChassisDetails on vi.ChasisNo equals ch.ChassisNo
+                join im in _context.ItemMasters on vi.ItemCode equals im.Itemcode
+                join clr in _context.ColorMasters on vi.ColrCode equals clr.Colorcode
+
+                join jc in _context.JobCardHeaders
+                    on ch.ChassisNo equals jc.Chassisno into jcGroup
+                from jc in jcGroup.DefaultIfEmpty()
+
+                join vd in _context.VehicleSaleBillDetails
+                    on ch.ChassisNo equals vd.ChassisNo into vdGroup
+                from vd in vdGroup.DefaultIfEmpty()
+
+                join vh in _context.VehicleSaleBillHeaders
+                    on vd.VehicleSaleBillId equals vh.Id into vhGroup
+                from vh in vhGroup.DefaultIfEmpty()
+
+                where ch.SaleDate == null
+
+                select new
+                {
+                    ch.ChassisNo,
+                    Data = new ChassisListWithPDIStatus
+                    {
+                        ChassisNo = ch.ChassisNo,
+                        ItemCode = vi.ItemCode,
+                        ItemColor = clr.Colorname,
+                        MfgYear = vi.MfgYear,
+                        ItemName = im.Itemname,
+                        KeyNo = vi.KeyNo,
+                        BookNo = vi.ServBkno,
+                        BatteryNo = vi.BatteryNo,
+                        BatteryChemical = vi.BatteryChemistry,
+                        BatteryCapacity = vi.BatteryCapacity,
+                        BatteryMake = vi.BatteryMake,
+                        ChargerNo = vi.ChargerNo,
+                        ControllerNo = vi.ControllerNo,
+                        FameIIAmnt = vi.Fame2Discount,
+                        DealerPrice = vi.Dlrprice,
+                        CustomerPrice = vi.Custprice,
+                        DealerCode = ch.DealerId,
+                        CustomerSaleDate = ch.SaleDate,
+                        ProformaCreated = vd == null ? null : vh.SaleBillNo,
+                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done"
+                    }
+                }
+                            ).GroupBy(x => x.ChassisNo)
+                            .Select(g => g.First().Data)
+                            .ToListAsync();
+
+                if (!string.IsNullOrEmpty(dealerCode))
+                {
+                    result = result.Where(i => i.DealerCode == dealerCode).ToList();
+                }
+
         public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
         {
             try
@@ -725,6 +875,14 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .Select(d => d.InsNo!)
                     .ToListAsync();
                 return policyNos;
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
 
             }
             catch
@@ -732,5 +890,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
+    }
+}
     }
 }

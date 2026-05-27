@@ -1,22 +1,23 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Drawing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
 {
-    [Route("api/vehicle-dispatch")]
+    [Route("api/vehicle-inward")]
     [ApiController]
-    public class VehicleDispatchController : ControllerBase
+    public class VehicleInwardController : ControllerBase
     {
-        private readonly IVehicleDispatchService _vehicleDispatchService;
-        private readonly ILogger<VehicleDispatchController> _logger;
+        private readonly IVehicleInwardService _vehicleInwardService;
+        private readonly ILogger<VehicleInwardController> _logger;
 
-        public VehicleDispatchController(IVehicleDispatchService vehicleDispatchService, ILogger<VehicleDispatchController> logger)
+        public VehicleInwardController(IVehicleInwardService vehicleInwardService, ILogger<VehicleInwardController> logger)
         {
-            _vehicleDispatchService = vehicleDispatchService;
+            _vehicleInwardService = vehicleInwardService;
             _logger = logger;
         }
 
@@ -25,10 +26,10 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         /// <returns>A list of vehicle dispatch records.</returns>
         [HttpGet("GetByVehicleStatus")]
-        [ProducesResponseType(typeof(IEnumerable<VehicleDispatch>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<VehicleInward>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<VehicleDispatch>>> Get()
+        public async Task<ActionResult<IEnumerable<VehicleInward>>> Get()
         {
             try
             {
@@ -37,9 +38,9 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var vehicleDispatch = await _vehicleDispatchService.Get();
+                var vehicleInward = await _vehicleInwardService.Get();
 
-                return Ok(vehicleDispatch);
+                return Ok(vehicleInward);
             }
             catch (Exception ex)
             {
@@ -55,10 +56,10 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="dealerCode">The unique code identifying the dealer.</param>
         /// <returns>A list of vehicle dispatch records matching the specified status and dealer code.</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<VehicleDispatch>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<VehicleInward>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<VehicleDispatch>>> GetVehicleByStatus([FromQuery] bool status, string dealerCode)
+        public async Task<ActionResult<IEnumerable<VehicleInward>>> GetVehicleByStatus([FromQuery] bool status, string dealerCode)
         {
             try
             {
@@ -67,9 +68,9 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var vehicleDispatch = await _vehicleDispatchService.GetVehicleByStatus(dealerCode, status);
+                var vehicleInward = await _vehicleInwardService.GetVehicleByStatus(dealerCode, status);
 
-                return Ok(vehicleDispatch);
+                return Ok(vehicleInward);
             }
             catch (Exception ex)
             {
@@ -83,7 +84,7 @@ namespace DMS_BAPL_Api.Controllers
         /// Validates the input, calls the service layer to save the data,
         /// and returns appropriate HTTP responses based on the outcome.
         /// </summary>
-        /// <param name="vehicleDispatch">List of vehicle dispatch details to be inserted.</param>
+        /// <param name="vehicleInward">List of vehicle dispatch details to be inserted.</param>
         /// <returns>
         /// 200 OK if insertion is successful,
         /// 400 Bad Request if input is invalid,
@@ -94,14 +95,14 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> InsertVehicleDispatchDetails([FromBody] List<VehicleInward> vehicleDispatch)
+        public async Task<IActionResult> InsertVehicleInwardDetails([FromBody] VehicleInwardViewModel vehicleInwardViewModel)
         {
             try
             {
-                if (vehicleDispatch is null)
+                if (vehicleInwardViewModel is null)
                     return BadRequest(new { message = "Invalid data" });
 
-                await _vehicleDispatchService.InsertVehicleDispatchDetail(vehicleDispatch);
+                await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
 
                 return Ok("Data inserted sucessfully.");
             }
@@ -135,7 +136,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var vehicleDispatch = await _vehicleDispatchService.UpdateInvoiceStatus(invoiceNo, userId);
+                var vehicleInward = await _vehicleInwardService.UpdateInvoiceStatus(invoiceNo, userId);
 
                 return Ok(new
                 {

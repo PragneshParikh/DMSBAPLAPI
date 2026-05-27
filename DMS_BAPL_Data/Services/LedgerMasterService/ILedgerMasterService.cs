@@ -18,5 +18,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster, string userId);
         Task<IEnumerable<LedgerMaster>> GetCompanyLedgersAsync();
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgersAsync();
+        Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
     }
 }

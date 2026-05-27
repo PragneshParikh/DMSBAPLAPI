@@ -22,5 +22,6 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<IEnumerable<LedgerMaster>> GetCompanyLedgers();
 
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers();
+        Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
     }
 }

@@ -36,5 +36,17 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         }
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetCompanyLedgersAsync() => _ledgerMasterRepo.GetCompanyLedgers();
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetInsuranceLedgersAsync() => _ledgerMasterRepo.GetInsuranceLedgers();
+
+        public async Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetLedgerByLedgerType(ledgerType);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

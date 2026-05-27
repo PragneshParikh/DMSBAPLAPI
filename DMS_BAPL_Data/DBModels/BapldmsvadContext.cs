@@ -626,6 +626,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ProfileImage).IsUnicode(false);
             entity.Property(e => e.Supervisor)
                 .HasMaxLength(100)
+            entity.Property(e => e.ProfileImage)
+                .HasMaxLength(50)
+            entity.Property(e => e.ProfileImage).IsUnicode(false);
+            entity.Property(e => e.Supervisor)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)

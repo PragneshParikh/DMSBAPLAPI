@@ -5,6 +5,7 @@ using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
+using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
@@ -14,6 +15,7 @@ using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
+using Org.BouncyCastle.Asn1.Pkcs;
 
 namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 {
@@ -29,12 +31,14 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IitemMasterRepo _itemRepo;
-        private readonly IVehicleDispatchRepo _vehicleInwardRepo;
+        private readonly IVehicleInwardRepo _vehicleInwardRepo;
         private readonly IExcelService _excelService;
+        private readonly IPrefixRepo _prefixRepo;
         #endregion
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
-            IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster, IExcelService excelService)
+            IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster,
+            IExcelService excelService,IPrefixRepo prefixRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -45,6 +49,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _jobCardRepo = jobCardRepo;
             _dealerRepo = dealerMaster;
             _excelService = excelService;
+            _prefixRepo = prefixRepo;
         }
 
 
@@ -58,7 +63,12 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
 
-                return await _repo.CreateWithJobUpdateAsync(header);
+                var result= await _repo.CreateWithJobUpdateAsync(header);
+                if (result != 0)
+                {
+                    await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
+                }
+                return result;
             }
             catch
             {
@@ -195,6 +205,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         detail.ChassisNo = d.ChassisNo;
                         detail.ItemRate = d.ItemRate;
                         detail.PreGstDiscount = d.PreGstDiscount;
+                        detail.PostGstDisc = d.PostGstDiscount;
+                        detail.FameIi = d.FameIIDisc;
                         detail.RegAmount = d.RegAmount;
                         detail.InsuranceAmount = d.InsuranceAmount;
 
@@ -256,6 +268,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             ChassisNo = d.ChassisNo,
                             ItemRate = d.ItemRate,
                             PreGstDiscount = d.PreGstDiscount,
+                            PostGstDisc =d.PostGstDiscount,
+                            FameIi =d.FameIIDisc,
                             RegAmount = d.RegAmount,
                             InsuranceAmount = d.InsuranceAmount,
                             ItemCode = d.ItemCode,
@@ -319,7 +333,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         ChassisNo = d.ChassisNo,
                         SaleDate = model.SaleDate,
                         InsuranceExpDate = d.InsExpDate,
-                        RegisterNo = d.RegNo
+                        RegisterNo = d.RegNo,
+                        
                     })
                     .ToList();
 
@@ -389,7 +404,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     {
                         ChassisNo = d.ChassisNo,
                         ItemRate = d.ItemRate,
+                        FameIi = d.FameIIDisc,
                         PreGstDiscount = d.PreGstDiscount,
+                        PostGstDisc =d.PostGstDiscount,
                         RegAmount = d.RegAmount,
                         InsuranceAmount = d.InsuranceAmount,
                         HasDevice = d.HasDevice,
@@ -506,7 +523,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         BatteryMake = d.BatteryMake ?? "",
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
-                        ItemCode = d.ItemCode ?? ""
+                        ItemCode = d.ItemCode ?? "",
+                        FameIIDisc=d.FameIi ?? 0,
+                        PostGstDiscount =d.PostGstDisc ?? 0
 
                     }).ToList()
                 };
@@ -619,7 +638,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SaleType = header.SaleType ?? ""
                     }).ToList()
                 };
-                await _repo.UpdateERPStatus(id);
+                //await _repo.UpdateERPStatus(id);
 
                 return result;
             }
@@ -680,7 +699,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     ConverterNo = item.ConverterNo,
                     CustomerPrice = item.CustomerPrice,
                     DealerPrice = item.DealerPrice,
-                    PreGstDisc = item.PreGstDisc,
+                    //  PreGstDisc = item.PreGstDisc,
                     CustomerSaleDate = item.CustomerSaleDate,
 
                 };
@@ -711,17 +730,19 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             return result;
         }
 
-        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
             {
-                return await _repo.ConfirmInvoiceAndReserveChassis(saleBillNo);
+                var result = await _repo.ConfirmInvoiceAndReserveChassis(saleBillNo);
+                await GetExportData(result);
+                return result;
 
 
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
 
@@ -851,7 +872,101 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 throw;
             }
+        }
 
+        public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId)
+        {
+            try
+            {
+                dynamic customer;
+
+                var rawData = await _repo.GetAllChassissListWithPDISatatus(dealerCode);
+                customer = await _ledgerRepo.GetLedgerById(ledgerId);
+
+                var dealerLocation = await _dealerRepo.GetDealerByCode(dealerCode);
+
+                var result = new List<ChassisListWithPDIStatus>();
+
+                //  group by ItemCode
+                var itemGroups = rawData.GroupBy(x => x.ItemCode);
+
+                var taxCache = new Dictionary<string, List<TaxDetailViewModel>>();
+
+                foreach (var group in itemGroups)
+                {
+                    var itemCode = group.Key;
+
+                    var tax = await _taxService.GetTaxDetailsAsync(itemCode, dealerLocation.State, customer.stateName);
+                    taxCache[itemCode] = tax;
+                }
+
+                foreach (var item in rawData)
+                {
+                    var taxes = taxCache[item.ItemCode];
+
+                    var vm = new ChassisListWithPDIStatus
+                    {
+                        ChassisNo = item.ChassisNo,
+                        ItemCode = item.ItemCode,
+                        ItemColor = item.ItemColor,
+                        ItemName = item.ItemName,
+                        MfgYear = item.MfgYear,
+
+                        KeyNo = item.KeyNo,
+                        BookNo = item.BookNo,
+
+                        BatteryNo = item.BatteryNo,
+                        BatteryChemical = item.BatteryChemical,
+                        BatteryCapacity = item.BatteryCapacity,
+                        BatteryMake = item.BatteryMake,
+
+                        ChargerNo = item.ChargerNo,
+                        ControllerNo = item.ControllerNo,
+                        ConverterNo = item.ConverterNo,
+                        CustomerPrice = item.CustomerPrice,
+                        DealerPrice = item.DealerPrice,
+                        //  PreGstDisc = item.PreGstDisc,
+                        CustomerSaleDate = item.CustomerSaleDate,
+                        PDIStatus = item.PDIStatus,
+                        FameIIAmnt=item.FameIIAmnt,
+                        ProformaCreated = item.ProformaCreated,
+
+                        
+
+                    };
+
+                    // Tax Mapping
+                    foreach (var tax in taxes)
+                    {
+                        if (tax.TaxCode.ToUpper().Contains("SGST"))
+                        {
+                            vm.SGSTPer = tax.TaxRate;
+                            vm.SGST = tax.TaxRate;
+                        }
+                        if (tax.TaxCode.ToUpper().Contains("CGST"))
+                        {
+                            vm.CGSTPer = tax.TaxRate;
+                            vm.CGST = tax.TaxRate;
+                        }
+                        if (tax.TaxCode.ToUpper().Contains("IGST"))
+                        {
+                            vm.IGSTPer = tax.TaxRate;
+                            vm.IGST = tax.TaxRate;
+                        }
+                    }
+
+        }
+    }
+}
+                    result.Add(vm);
+                }
+                return result;
+
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }

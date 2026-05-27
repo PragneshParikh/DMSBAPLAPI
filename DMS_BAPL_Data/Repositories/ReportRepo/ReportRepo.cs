@@ -692,6 +692,300 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
+        {
+            try
+            {
+                var query =
+                    from po in _context.PurchaseOrders
+
+                    join dealer in _context.DealerMasters
+                        on po.CustomerCode equals dealer.Dealercode
+                        into dealerGroup
+
+                    from dealer in dealerGroup.DefaultIfEmpty()
+
+                    join loc in _context.LocationMasters
+                        on po.LocCode equals loc.Loccode
+                        into locationGroup
+
+                    from loc in locationGroup.DefaultIfEmpty()
+
+                    select new
+                    {
+                        po,
+                        dealer,
+                        loc
+                    };
+
+                // =====================================================
+                // FILTERS
+                // =====================================================
+
+                if (!string.IsNullOrWhiteSpace(
+                    filter.DealerCode))
+                {
+                    query = query.Where(x =>
+                        x.po.CustomerCode ==
+                        filter.DealerCode);
+                }
+
+                if (filter.FromDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.po.PurchaseDate >=
+                        filter.FromDate.Value);
+                }
+
+                if (filter.ToDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.po.PurchaseDate <=
+                        filter.ToDate.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(
+                    filter.POType))
+                {
+                    query = query.Where(x =>
+                        x.po.OrderType ==
+                        filter.POType);
+                }
+
+                if (!string.IsNullOrWhiteSpace(filter.POStatus))
+                {
+                    bool isActive = filter.POStatus == "Active";
+                    query = query.Where(x => x.po.Status == isActive);
+                }
+
+                // =====================================================
+                // TOTAL RECORDS
+                // =====================================================
+
+                var totalRecords =
+                    await query.CountAsync();
+
+                // =====================================================
+                // PAGINATION
+                // =====================================================
+
+                var rawData =
+                    await query
+                    .OrderByDescending(x =>
+                        x.po.PurchaseDate)
+                    .Skip(
+                        (filter.PageIndex - 1)
+                        * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToListAsync();
+
+                int srNo =
+                    ((filter.PageIndex - 1)
+                    * filter.PageSize) + 1;
+
+                // =====================================================
+                // FINAL RESULT
+                // =====================================================
+
+                var result =
+                    rawData.Select(x =>
+                    {
+                        // =============================================
+                        // PURCHASE ORDER DETAILS
+                        // =============================================
+
+                        var poDetails =
+                            _context.PurchaseOrderDetails
+                            .Where(d =>
+                                d.Ponumber ==
+                                x.po.Ponumber)
+                            .ToList();
+
+                        // =============================================
+                        // QTY CALCULATIONS
+                        // =============================================
+
+                        decimal poQty =
+                            poDetails.Sum(d =>
+                                d.Qty ?? 0);
+
+                        // =============================================
+                        // PRICE CALCULATIONS
+                        // =============================================
+
+                        decimal poPrice =
+                            poDetails.Sum(d =>
+                                d.LineAmount ?? 0);
+
+                        // =============================================
+                        // TEMP VALUES
+                        // =============================================
+
+                        decimal billedQty = 0;
+
+                        decimal billedPrice = 0;
+
+                        decimal pendingQty =
+                            poQty - billedQty;
+
+                        decimal pendingPrice =
+                            poPrice - billedPrice;
+
+                        // =============================================
+                        // RETURN VIEWMODEL
+                        // =============================================
+
+                        return new
+                            POTrackingReportViewModel
+                        {
+                            // =========================================
+                            // BASIC DETAILS
+                            // =========================================
+
+                            SrNo = srNo++,
+
+                            DealerName =
+                                x.dealer != null
+                                ? x.dealer.Compname
+                                : "",
+
+                            DealerCode =
+                                x.po.CustomerCode,
+
+                            LocationName =
+                                x.loc != null
+                                ? x.loc.Locname
+                                : "",
+
+                            // =========================================
+                            // ORDER DETAILS
+                            // =========================================
+
+                            OrderNumber =
+                                x.po.Ponumber,
+
+                            OrderDate =
+                                x.po.PurchaseDate,
+
+                            SubmitToERPDate =
+                                x.po.UpdatedDate,
+
+                            POType =
+                                x.po.OrderType,
+
+                            // =========================================
+                            // QUANTITY DETAILS
+                            // =========================================
+
+                            POQty =
+                                poQty,
+
+                            BilledQty =
+                                billedQty,
+
+                            PendingQty =
+                                pendingQty,
+
+                            Archived = 0,
+
+                            // =========================================
+                            // PRICE DETAILS
+                            // =========================================
+
+                            POPrice =
+                                poPrice,
+
+                            BilledPrice =
+                                billedPrice,
+
+                            PendingPOPrice =
+                                pendingPrice,
+
+                            ArchivedPriceExclGST = 0,
+
+                            // =========================================
+                            // STATUS DETAILS
+                            // =========================================
+
+                            POStatus =
+                                x.po.Status
+                                ? "Active"
+                                : "Inactive",
+
+                            UniqueId =
+                                x.po.Id.ToString(),
+
+                            DealerPONo =
+                                x.po.Ponumber,
+
+                            // =========================================
+                            // PAYMENT DETAILS
+                            // =========================================
+
+                            WalletDebit = 0,
+
+                            PGDebit = 0,
+
+                            PGStatus = "",
+
+                            PaymentLink = "",
+
+                            PaymentType = "",
+
+                            TempPONo =
+                                x.po.Ponumber,
+
+                            MerchantOrderNo = "",
+
+                            MerchantOrderStatus = ""
+                        };
+                    })
+                    .ToList();
+
+                // =====================================================
+                // RESPONSE
+                // =====================================================
+
+                return new
+                    PagedResponse<
+                        POTrackingReportViewModel>
+                {
+                    Data = result,
+
+                    TotalRecords =
+                        totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching PO Tracking Report",
+                    ex);
+            }
+        }
+
+        public async Task<List<string>> GetPOTypeDropdownAsync()
+        {
+            return await _context.PurchaseOrders
+                .Where(x => x.OrderType != null && x.OrderType != "")
+                .Select(x => x.OrderType!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+        }
+
+        public async Task<List<string>> GetPOStatusDropdownAsync()
+        {
+
+            // PO Status is derived from bool Status field
+            // Active / Inactive — return fixed meaningful labels
+            return await Task.FromResult(new List<string>
+            {
+                "Active",
+                "Inactive"
+            });
+        }
+
 
 
         // ═════════════════════════════════════════════════════════════════════
@@ -756,7 +1050,474 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return result.AsQueryable();
         }
 
+        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            try
+            {
+                var query = await (
+                    from vd in _context.VehicleInwards.AsNoTracking()
 
-     
+                    join dm in _context.DealerMasters.AsNoTracking()
+                        on vd.DealerCode equals dm.Dealercode into dealerGroup
+                    from dm in dealerGroup.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters.AsNoTracking()
+                        on vd.ItemCode equals im.Itemcode into itemGroup
+                    from im in itemGroup.DefaultIfEmpty()
+
+                    join jc in _context.JobCardCustomers.AsNoTracking()
+                        on vd.ChasisNo equals jc.ChassisNo into customerGroup
+                    from jc in customerGroup.DefaultIfEmpty()
+
+                    join jh in _context.JobCardHeaders.AsNoTracking()
+                        on jc.JobCardHeaderId equals jh.Id into jobGroup
+                    from jh in jobGroup.DefaultIfEmpty()
+
+                    select new PartsDispatchReportViewModel
+                    {
+                        DealerName = dm != null
+                            ? dm.Compname
+                            : null,
+
+                        DealerCode = dm != null
+                            ? dm.Dealercode
+                            : null,
+
+                        CustomerName = jc != null
+                            ? jc.CustomerName
+                            : null,
+
+                        MobileNo = jc != null
+                            ? jc.CustomerMobile
+                            : null,
+
+                        City = dm != null
+                            ? dm.City
+                            : null,
+
+                        State = dm != null
+                            ? dm.State
+                            : null,
+
+                        VehicleModel = im != null
+                            ? im.Itemname
+                            : null,
+
+                        VehicleVIN = vd.ChasisNo,
+
+                        BatteryMasterName = vd.BatteryMake,
+
+                        DateOfSale = jc != null
+                            ? jc.SaleDate
+                            : null,
+
+                        PartName = im != null
+                            ? im.Itemname
+                            : null,
+
+                        DeviceGroup = im != null
+                            ? im.Itemtype.ToString()
+                            : null,
+
+                        DeviceType = im != null
+                            ? im.Vehtype.ToString()
+                            : null,
+
+                        ItemDescription = im != null
+                            ? im.Itemdesc
+                            : null,
+
+                        VehicleStandardWarrantyMonths = 36,
+
+                        VehicleStandardWarrantyODOReading = 30000,
+
+                        VehicleExtendedWarrantyMonths = 12,
+
+                        VehicleExtendedWarrantyODOReading = 10000,
+
+                        StandardWarrantyExpiryDate =
+                            jc != null &&
+                            jc.SaleDate.HasValue
+                                ? jc.SaleDate.Value.AddMonths(36)
+                                : null,
+
+                        ExtendedWarrantyExpiryDate =
+                            jc != null &&
+                            jc.SaleDate.HasValue
+                                ? jc.SaleDate.Value.AddMonths(48)
+                                : null,
+
+                        LastODOReadingDate =
+                            jh != null
+                                ? jh.CreatedDate
+                                : null,
+
+                        ODOReadingLastDate =
+                            jh != null
+                                ? (jh.Vehiclekms ?? 0)
+                                : 0,
+
+                        CurrentWarrantyStatusDate =
+                            jc != null &&
+                            jc.SaleDate.HasValue &&
+                            jc.SaleDate.Value.AddMonths(36)
+                                >= DateTime.Now
+                                    ? "In Warranty"
+                                    : "Expired",
+
+                        CurrentWarrantyStatusODO =
+                            jh != null &&
+                            (jh.Vehiclekms ?? 0) <= 30000
+                                ? "In Warranty"
+                                : "Expired",
+
+                        FinalWarrantyStatus =
+                            jc != null &&
+                            jc.SaleDate.HasValue &&
+                            jc.SaleDate.Value.AddMonths(36)
+                                >= DateTime.Now
+                            &&
+                            jh != null &&
+                            (jh.Vehiclekms ?? 0) <= 30000
+                                ? "Active"
+                                : "Expired"
+                    }).ToListAsync();
+
+                // Dealer Filter
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query
+                        .Where(x => x.DealerCode == dealerCode)
+                        .ToList();
+                }
+
+                // From Date
+                if (fromDate.HasValue)
+                {
+                    query = query
+                        .Where(x =>
+                            x.DateOfSale.HasValue &&
+                            x.DateOfSale.Value.Date >=
+                            fromDate.Value.Date)
+                        .ToList();
+                }
+
+                // To Date
+                if (toDate.HasValue)
+                {
+                    query = query
+                        .Where(x =>
+                            x.DateOfSale.HasValue &&
+                            x.DateOfSale.Value.Date <=
+                            toDate.Value.Date)
+                        .ToList();
+                }
+
+                int srNo = 1;
+
+                query = query
+                    .OrderByDescending(x => x.DateOfSale)
+                    .ToList();
+
+                query.ForEach(x =>
+                {
+                    x.SrNo = srNo++;
+                });
+
+                return query;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching Parts Dispatch Report",
+                    ex);
+            }
+        }
+
+        public async Task<List<object>> GetDealerListAsync()
+        {
+            try
+            {
+                return await _context.DealerMasters
+                    .AsNoTracking()
+                    .Select(x => new
+                    {
+                        dealerCode = x.Dealercode,
+                        dealerName = x.Compname
+                    })
+                    .OrderBy(x => x.dealerName)
+                    .ToListAsync<object>();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching dealer list",
+                    ex);
+            }
+        }
+
+        public async Task<List<object>> GetModelListAsync()
+        {
+            try
+            {
+                var data = await (
+
+                    from vi in _context.VehicleInwards
+
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
+
+                    where
+                        !string.IsNullOrEmpty(im.Itemname)
+
+                        // REMOVE ASSEMBLY / PART ITEMS
+
+                        && !im.Itemname.Contains("BRAKE")
+                        && !im.Itemname.Contains("LEVER")
+                        && !im.Itemname.Contains("BUZZER")
+                        && !im.Itemname.Contains("CONTROLLER")
+                        && !im.Itemname.Contains("HARNESS")
+                        && !im.Itemname.Contains("CABLE")
+                        && !im.Itemname.Contains("SWITCH")
+                        && !im.Itemname.Contains("FOOTREST")
+                        && !im.Itemname.Contains("DRUM")
+                        && !im.Itemname.Contains("TOOL")
+                        && !im.Itemname.Contains("PART")
+                        && !im.Itemname.Contains("KIT")
+
+                    select new
+                    {
+                        modelCode = im.Itemcode,
+                        modelName = im.Itemname
+                    }
+
+                )
+                .Distinct()
+                .OrderBy(x => x.modelName)
+                .ToListAsync();
+
+                return data
+                    .Cast<object>()
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching model list",
+                    ex);
+            }
+        }
+
+        public async Task<List<object>> GetModelListByDealerAsync(string dealerCode)
+        {
+            try
+            {
+                var data = await (
+
+                    from vi in _context.VehicleInwards
+
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
+
+                    where vi.DealerCode == dealerCode
+
+                    select new
+                    {
+                        modelCode = im.Itemcode,
+                        modelName = im.Itemname
+                    }
+
+                )
+                .Distinct()
+                .OrderBy(x => x.modelName)
+                .ToListAsync();
+
+                return data
+                    .Cast<object>()
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching model list",
+                    ex);
+            }
+        }
+        public async Task<List<string>> GetChassisListAsync()
+        {
+            try
+            {
+                return await _context.VehicleInwards
+                    .AsNoTracking()
+                    .Where(x => x.ChasisNo != null)
+                    .Select(x => x.ChasisNo!)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error while fetching chassis list",
+                    ex);
+            }
+        }
+
+        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            try
+            {
+                var query =
+
+                    from po in _context.PurchaseOrders
+
+                    join dealer in _context.DealerMasters
+                        on po.CustomerCode equals dealer.Dealercode
+                        into dealerGroup
+
+                    from dealer in dealerGroup.DefaultIfEmpty()
+
+                    where po.Id > 0
+
+                    select new PartDispatchKitReportViewModel
+                    {
+                        // =====================================
+                        // PO DETAILS
+                        // =====================================
+
+                        PONumber = po.Ponumber,
+
+                        PODate = po.PurchaseDate,
+
+                        SubmitToERPDate = po.UpdatedDate,
+
+                        POType =
+                                (po.TransactionType ?? "") +
+                                "-" +
+                                (po.OrderType ?? ""),
+
+                        // =====================================
+                        // DEALER DETAILS
+                        // =====================================
+
+                        CompanyName = dealer != null
+                            ? dealer.Compname
+                            : "",
+
+                        MobileNo = dealer != null
+                            ? dealer.Mobile
+                            : "",
+
+                        DealerCode = dealer != null
+                            ? dealer.Dealercode
+                            : "",
+
+                        DealerCity = dealer != null
+                            ? dealer.City
+                            : "",
+
+                        DealerState = dealer != null
+                            ? dealer.State
+                            : "",
+
+                        // =====================================
+                        // LOCATION
+                        // =====================================
+
+                        LocationCode = po.LocCode,
+
+                        LocationName = dealer != null
+                            ? dealer.Compname
+                            : "",
+
+                        LocationCity = dealer != null
+                            ? dealer.City
+                            : ""
+                    };
+
+                // =========================================
+                // DEALER FILTER
+                // =========================================
+
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(x =>
+                        x.DealerCode == dealerCode);
+                }
+
+
+                // =========================================
+                // FROM DATE
+                // =========================================
+
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.PODate.HasValue &&
+                        x.PODate.Value.Date >=
+                        fromDate.Value.Date);
+                }
+
+                // =========================================
+                // TO DATE
+                // =========================================
+
+                if (toDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.PODate.HasValue &&
+                        x.PODate.Value.Date <=
+                        toDate.Value.Date);
+                }
+
+                var result = await query
+                    .OrderByDescending(x => x.PODate)
+                    .ToListAsync();
+
+                // =========================================
+                // SR NO
+                // =========================================
+
+                for (int i = 0; i < result.Count; i++)
+                {
+                    result[i].SrNo = i + 1;
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching Part Dispatch Kit Report",
+                    ex
+                );
+            }
+        }
+
+        public async Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync()
+        {
+            try
+            {
+                return await _context.PurchaseOrders
+
+                    .Where(x =>
+                        x.TransactionType != null &&
+                        x.OrderType != null)
+
+                    .Select(x =>
+                        x.TransactionType + "-" + x.OrderType)
+
+                    .Distinct()
+
+                    .OrderBy(x => x)
+
+                    .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
+
 }
