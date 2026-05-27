@@ -72,7 +72,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
                     LedgerCode = model.LedgerCode,
-                    Status = false
+                    Status = false,
+                    SubOrderType = model.SubOrderType
                 };
 
                 await _repo.AddPOAsync(po);
@@ -171,16 +172,13 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
-        public async Task<bool> CreatePartsPOAsync(PartsPurchaseOrderViewModel model, string dealerCode)
+        public async Task<bool> CreatePartsPOAsync(PurchaseOrderViewModel model)
         {
             try
             {
-                // Check if PO already exists
                 var existing = await _repo.GetPOByNumberAsync(model.PONumber);
                 if (existing != null)
                 {
-                    // For now, we return false if exists to prevent accidental overwrite of Vehicle POs
-                    // or we could implement UpdatePartsPOAsync later.
                     return false;
                 }
 
@@ -204,8 +202,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     PurchaseDate = model.PODate,
                     OrderType = model.POType,
                     CustomerCode = model.CustomerCode,
-                    CreatedBy = dealerCode,
-                    CreatedDate = DateTime.Now,
+                    CreatedBy = model.CreatedBy,
+                    CreatedDate = model.CreatedDate ?? DateTime.Now,
                     TransactionType = model.TransactionType,
                     Status = false
                 };
@@ -235,8 +233,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
-                        CreatedBy = dealerCode,
-                        CreatedDate = DateTime.Now,
+                        CreatedBy = model.CreatedBy,
+                        CreatedDate = model.CreatedDate ?? DateTime.Now,
                         Status = false
                     };
 
@@ -277,8 +275,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             TaxCode = taxMaster.TaxCode,
                             TaxRate = taxMaster.TaxRate,
                             TaxAmount = taxAmount,
-                            CreatedBy = dealerCode,
-                            CreatedDate = DateTime.Now
+                            CreatedBy = model.CreatedBy,
+                            CreatedDate = model.CreatedDate ?? DateTime.Now
                         });
                     }
 
@@ -327,11 +325,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Retrieves all purchase orders.
         /// </summary>
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode)
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType)
         {
             try
             {
-                return await _repo.GetPOListAsync(dealerCode);
+                return await _repo.GetPOListAsync(dealerCode, orderType);
             }
             catch (Exception)
             {
@@ -420,6 +418,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     Ponumber = model.PONumber,
                     PurchaseDate = model.PODate,
                     OrderType = model.POType,
+                    SubOrderType = model.SubOrderType,
                     CustomerCode = model.CustomerCode,
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
@@ -554,7 +553,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         {
             try
             {
-                var data = await GetPOListAsync(null);
+                var data = await GetPOListAsync(null, filter.OrderType);
 
                 // Apply Filters
                 if (!string.IsNullOrEmpty(filter.PurchaseNo))
@@ -627,6 +626,5 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         }
 
         public async Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel) => await _repo.UpdatePOStatusAsync(updatePOStatusViewModel);
-
     }
 }

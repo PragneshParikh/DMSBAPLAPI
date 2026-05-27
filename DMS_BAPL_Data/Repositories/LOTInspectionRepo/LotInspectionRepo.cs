@@ -257,9 +257,9 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
             {
                 var query = _context.LotinspectionHeaders.AsQueryable();
 
-                if(!string.IsNullOrEmpty(dealerCode) )
+                if (!string.IsNullOrEmpty(dealerCode))
                 {
-                    query =query.Where(i=>i.DealerCode == dealerCode);
+                    query = query.Where(i => i.DealerCode == dealerCode);
                 }
                 //  SEARCH LOGIC
                 if (!string.IsNullOrWhiteSpace(search))

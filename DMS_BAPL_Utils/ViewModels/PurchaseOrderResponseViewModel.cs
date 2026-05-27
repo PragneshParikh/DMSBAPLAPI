@@ -16,7 +16,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LocCode { get; set; }
         public string? LocationName { get; set; }
         public bool? IsAgainstKit { get; set; }
-
+        public string? SubOrderType { get; set; }
+        public string? LedgerCode { get; set; }
         public List<PurchaseOrderItemViewModel> Items { get; set; }
     }
 
@@ -28,7 +29,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? LineAmount { get; set; }
         public decimal? Subsidy { get; set; }
         public decimal? MRP { get; set; }
-
+        public string ItemDescription { get; set; }
+        public int? LineNumber { get; set; }
         public List<TaxViewModel> Taxes { get; set; }
     }
 

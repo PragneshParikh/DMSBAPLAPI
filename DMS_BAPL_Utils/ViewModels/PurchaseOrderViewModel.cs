@@ -18,6 +18,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LocCode { get; set; }
         public string? LedgerCode { get; set; }
         public bool? IsAgainstKit { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? SubOrderType { get; set; }
         public List<PurchaseOrderDetailsViewModel> Items { get; set; }
     }
 
