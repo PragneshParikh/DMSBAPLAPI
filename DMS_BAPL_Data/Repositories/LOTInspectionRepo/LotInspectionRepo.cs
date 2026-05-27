@@ -132,6 +132,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.LocationName = model.lotInspectedHeaderDetails.locationName;
+                header.IsLotInspected = model.lotInspectedHeaderDetails.IsLotInspected;
 
                 header.UpdatedBy = userId;
                 //                if (!(string.IsNullOrEmpty(model.lotInspectedHeaderDetails.updatedDate) &&
@@ -253,9 +254,9 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
             {
                 var query = _context.LotinspectionHeaders.AsQueryable();
 
-                if(!string.IsNullOrEmpty(dealerCode) )
+                if (!string.IsNullOrEmpty(dealerCode))
                 {
-                    query =query.Where(i=>i.DealerCode == dealerCode);
+                    query = query.Where(i => i.DealerCode == dealerCode);
                 }
                 //  SEARCH LOGIC
                 if (!string.IsNullOrWhiteSpace(search))
