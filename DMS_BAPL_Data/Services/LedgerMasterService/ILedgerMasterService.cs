@@ -17,5 +17,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster, string userId);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster, string userId);
         Task<IEnumerable<LedgerMaster>> GetCompanyLedgersAsync();
+        Task<IEnumerable<LedgerMaster>> GetInsuranceLedgersAsync();
     }
 }

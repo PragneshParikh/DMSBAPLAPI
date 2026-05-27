@@ -715,8 +715,22 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
+
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                var policyNos = await _context.VehicleSaleBillDetails
+                    .Where(d => d.ChassisNo == chassisNo && d.InsNo != null)
+                    .Select(d => d.InsNo!)
+                    .ToListAsync();
+                return policyNos;
+
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
-
-
-
 }

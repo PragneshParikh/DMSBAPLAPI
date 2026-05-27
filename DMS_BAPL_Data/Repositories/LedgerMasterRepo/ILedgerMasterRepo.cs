@@ -20,5 +20,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<LedgerMaster> CreateLedgerFromLead(LmsleadMaster lead, string userId);
         Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile);
         Task<IEnumerable<LedgerMaster>> GetCompanyLedgers();
+
+        Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers();
     }
 }

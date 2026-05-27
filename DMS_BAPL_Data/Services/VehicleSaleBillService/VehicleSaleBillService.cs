@@ -84,7 +84,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         }
 
 
-        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? dealerCode,string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
+        public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? dealerCode, string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
         {
             try
             {
@@ -123,7 +123,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 }
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    list =list.Where(i=>i.DealerCode.ToLower() == dealerCode.ToLower()).ToList();
+                    list = list.Where(i => i.DealerCode.ToLower() == dealerCode.ToLower()).ToList();
                 }
 
                 var result = list.Select(x => MapToResponse(x)).ToList();
@@ -841,5 +841,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
         }
 
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                return await _repo.GetPolicyNo(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+
+        }
     }
 }
