@@ -67,6 +67,10 @@ public partial class LedgerMaster
 
     public virtual ICollection<RepairBillHeader> RepairBillHeaderInsurances { get; set; } = new List<RepairBillHeader>();
 
+    public virtual ICollection<QuotationHeader> QuotationHeaderCustomerLedgers { get; set; } = new List<QuotationHeader>();
+
+    public virtual ICollection<QuotationHeader> QuotationHeaderFinancerLedgers { get; set; } = new List<QuotationHeader>();
+
     public virtual State? StateNavigation { get; set; }
 
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
