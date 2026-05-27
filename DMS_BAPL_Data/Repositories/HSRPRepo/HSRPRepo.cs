@@ -137,10 +137,15 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                 {
                     result =result.Where(i=>i.InvoiceDate >= fromDate.Value).ToList();
                 }
-                if(toDate.HasValue)
+                if (toDate.HasValue)
                 {
-                    result =result.Where(i=>i.InvoiceDate <= toDate.Value).ToList();    
+                    var toDateEnd = toDate.Value.Date.AddDays(1).AddTicks(-1);
+
+                    result = result
+                        .Where(i => i.InvoiceDate != null && i.InvoiceDate <= toDateEnd)
+                        .ToList();
                 }
+
                 return result.ToList();
 
             }

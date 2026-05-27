@@ -31,13 +31,13 @@ public partial class EmployeeMaster
 
     public DateTime DateOfJoin { get; set; }
 
-    public int Designation { get; set; }
+    public string? Designation { get; set; }
 
-    public int Department { get; set; }
+    public string? Department { get; set; }
 
     public string DealerCode { get; set; } = null!;
 
-    public int Supervisor { get; set; }
+    public string? Supervisor { get; set; }
 
     public bool IsActive { get; set; }
 

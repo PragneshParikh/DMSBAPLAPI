@@ -13,6 +13,8 @@ public partial class PurchaseOrder
 
     public string? OrderType { get; set; }
 
+    public string? SubOrderType { get; set; }
+
     public string? ReferenceNo { get; set; }
 
     public string? TestCertificate { get; set; }
