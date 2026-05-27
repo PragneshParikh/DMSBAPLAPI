@@ -546,6 +546,12 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(200)
                 .IsUnicode(false);
+            entity.Property(e => e.Department)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.EmailId)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -573,6 +579,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ProfileImage)
                 .HasMaxLength(50)
+            entity.Property(e => e.ProfileImage).IsUnicode(false);
+            entity.Property(e => e.Supervisor)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
@@ -2342,6 +2351,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ReferenceNo)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.SubOrderType)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.TestCertificate)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -2765,6 +2777,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.ExtWarranty).HasMaxLength(50);
+            entity.Property(e => e.FameIi)
+                .HasDefaultValue(0.00m)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("FameII");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Hsrpstatus)
                 .HasMaxLength(20)
@@ -2788,6 +2804,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Key).HasMaxLength(50);
             entity.Property(e => e.ModelName).HasMaxLength(100);
             entity.Property(e => e.Narration).HasMaxLength(255);
+            entity.Property(e => e.PostGstDisc)
+                .HasDefaultValue(0.00m)
+                .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PreGstDiscount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");

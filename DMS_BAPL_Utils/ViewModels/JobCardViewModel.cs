@@ -325,6 +325,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string ChassisNo { get; set; }
         public string? RegisterNo { get; set; }
         public DateTime? SaleDate { get; set; }
+        public string? CustomerLedgerId { get; set; }
+        public int? VehoicleSaleBillId  { get; set; }
 
         public DateTime? InsuranceExpDate { get; set; }
     }

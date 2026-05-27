@@ -208,7 +208,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(Boolean), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<bool>> UpdatePOStatus([FromBody] string poNumber, bool status)
+        public async Task<ActionResult<bool>> UpdatePOStatus([FromBody] UpdatePOStatusViewModel updatePOStatusViewModel)
         {
             try
             {
@@ -217,13 +217,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var poStatus = await _purchaseOrderService.UpdatePOStatusAsync(poNumber, status);
+                var poStatus = await _purchaseOrderService.UpdatePOStatusAsync(updatePOStatusViewModel);
 
                 return Ok(poStatus);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating PO status for PO Number: {PONumber}", poNumber);
+                _logger.LogError(ex, "Error updating PO status for PO Number: {PONumber}", updatePOStatusViewModel.PONumber);
                 throw;
             }
         }

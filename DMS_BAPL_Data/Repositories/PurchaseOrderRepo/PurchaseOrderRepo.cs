@@ -537,17 +537,20 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> UpdatePOStatusAsync(string poNumber, bool status)
+        public async Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel)
         {
             try
             {
                 var po = await _context.PurchaseOrders
-                    .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+                    .FirstOrDefaultAsync(x => x.Ponumber == updatePOStatusViewModel.PONumber);
 
                 if (po == null)
                     throw new Exception(StringConstants.PONotFound);
 
-                po.Status = status;
+                po.Status = updatePOStatusViewModel.Status;
+                po.ReferenceNo = updatePOStatusViewModel.SaleOrderNo;
+                po.ConsigneeCode = updatePOStatusViewModel.ConsigneeCode;
+
                 await _context.SaveChangesAsync();
                 return true;
             }

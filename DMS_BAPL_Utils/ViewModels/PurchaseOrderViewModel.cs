@@ -27,5 +27,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal Qty { get; set; }
         public decimal? MRP { get; set; }
     }
+
+    public class UpdatePOStatusViewModel
+    {
+        public string PONumber { get; set; }
+        public bool Status { get; set; }
+        public string SaleOrderNo { get; set; }
+        public string ConsigneeCode { get; set; }
+    }
 }
 

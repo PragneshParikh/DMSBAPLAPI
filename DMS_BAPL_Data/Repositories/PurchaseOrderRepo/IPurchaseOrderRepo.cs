@@ -30,6 +30,6 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task DeleteTaxByItemAsync(string poNumber, string itemCode);
         Task DeleteTaxesByPOAsync(string poNumber);
         Task DeleteDetailsByPOAsync(string poNumber);
-        Task<bool> UpdatePOStatusAsync(string poNumber, bool status);
+        Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel);
     }
 }
