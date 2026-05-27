@@ -577,6 +577,8 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Password)
                 .HasMaxLength(200)
                 .IsUnicode(false);
+            entity.Property(e => e.ProfileImage)
+                .HasMaxLength(50)
             entity.Property(e => e.ProfileImage).IsUnicode(false);
             entity.Property(e => e.Supervisor)
                 .HasMaxLength(100)
