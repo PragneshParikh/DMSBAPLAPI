@@ -17,6 +17,7 @@ using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
+using DMS_BAPL_Data.Repositories.LabourMasterRepo;
 using DMS_BAPL_Data.Repositories.LeadMasterRep;
 using DMS_BAPL_Data.Repositories.LeadMasterRepo;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
@@ -139,6 +140,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisRepo, ChassisRepo>();
             services.AddScoped<IHSRPRepo, HSRPRepo>();
             services.AddScoped<IReportRepo, ReportRepo>();
+            services.AddScoped<ILabourMasterRepo, LabourMasterRepo>();
             services.AddScoped<INewsBulletinRepo, NewsBulletinRepo>();
             services.AddScoped<INewsBulletinAttachmentRepo, NewsBulletinAttachmentRepo>();
             services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();

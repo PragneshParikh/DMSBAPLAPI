@@ -175,19 +175,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        //[HttpGet("GetChasisPricing")]
-        //public async Task<IActionResult> GetChasisPricing(string dealerCode, int ledgerId)
-        //{
-        //    var request = new VehicleSaleChasisRequest
-        //    {
-        //        DealerCode = dealerCode,
-        //        LedgerId = ledgerId
-        //    };
-
-        //    var result = await _vehicleSaleBillService.GetChasisList(request);
-        //    return Ok(result);
-        //}
-
+        
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -208,9 +196,29 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpGet("ChassisList")]
+        public async Task<IActionResult> GetAllChassisList(string dealerCode, int ledgerId)
+        {
+            try
+            {
+                return Ok(await _vehicleSaleBillService.GetAllChassissListWithPDISatatus(dealerCode, ledgerId));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
 
         [HttpPut("ConfirmInvoice")]
-        public async Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
             {

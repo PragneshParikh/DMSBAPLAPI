@@ -20,9 +20,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<VehicleSaleExportViewModel?> GetExportData(int id);
         // Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId);
-        Task<bool> ConfirmInvoiceAndReserveChassis(string saleBillNo);
+        Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo);
         Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
         Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null);
+        Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId);
     }
 }

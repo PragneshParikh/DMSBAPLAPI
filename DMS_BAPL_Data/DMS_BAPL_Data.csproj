@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EPPlus" Version="8.5.4" />
     <PackageReference Include="MailKit" Version="4.15.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.5" />
@@ -23,6 +24,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DMS_BAPL_Utils\DMS_BAPL_Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DBModels\" />
   </ItemGroup>
 
 </Project>

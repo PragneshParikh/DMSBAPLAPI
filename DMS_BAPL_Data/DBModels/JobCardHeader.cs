@@ -57,6 +57,8 @@ public partial class JobCardHeader
 
     public bool? IsPdiSuccess { get; set; }
 
+    public bool? IsMaterialTransfer { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
