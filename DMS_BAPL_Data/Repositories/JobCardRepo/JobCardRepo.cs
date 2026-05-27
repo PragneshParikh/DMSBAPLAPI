@@ -82,13 +82,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                       on v.ItemCode equals i.Itemcode
                                   join dm in _context.DealerMasters
                                       on h.DealerCode equals dm.Dealercode
-                                  
+
                                   join jc in _context.JobCardCustomers
                                   on d.ChassisNo equals jc.ChassisNo
                                     into jcGroup
-                                    from jc in jcGroup.DefaultIfEmpty() 
+                                  from jc in jcGroup.DefaultIfEmpty()
 
-                                  // OEM Model (LEFT JOIN)
+                                      // OEM Model (LEFT JOIN)
                                   join o in _context.OemmodelMasters
                                       on i.Oemmodelname.Trim().ToLower()
                                       equals o.ModelName.Trim().ToLower()
@@ -169,7 +169,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode)
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode)
         {
             var jobCardsResult = await (
 
@@ -215,7 +215,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     on lg.State equals sta.StateId into staJoin
                 from sta in staJoin.DefaultIfEmpty()
 
-                select new JobCardDetailsViewModel
+                select new JobCardlistDetailsViewModel
                 {
                     // ================= DISPLAY =================
 
@@ -811,7 +811,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await _context.SaveChangesAsync();
         }
 
-        public async Task<List<JobCardDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
+        public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
         {
             var query = from jc in _context.JobCardHeaders
                         join cust in _context.JobCardCustomers
@@ -847,7 +847,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 query = query.Where(x => x.jc.Chassisno.Contains(model.ChassisNo));
 
             // FINAL SELECT
-            var result = await query.Select(x => new JobCardDetailsViewModel
+            var result = await query.Select(x => new JobCardlistDetailsViewModel
             {
                 JobCardHeader = new JobCardHeaderVM
                 {
@@ -1011,6 +1011,15 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                 }).FirstOrDefaultAsync();
 
             return ObjCIRJobcardViewModel;
+        }
+
+        public async Task<int> GetNextJobNumber(string dealerCode)
+        {
+            int maxId = await _context.JobCardHeaders
+                .Where(x => x.DealerCode == dealerCode)
+                .MaxAsync(x => (int?)x.JobNo) ?? 0;
+
+            return maxId + 1;
         }
     }
 }

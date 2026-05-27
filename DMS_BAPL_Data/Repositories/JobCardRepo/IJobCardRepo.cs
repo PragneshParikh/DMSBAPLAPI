@@ -18,18 +18,16 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<JobSourceViewModel>> GetJobSource();
         Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId);
         Task<List<PdichecklistMaster>> GetPdichecklist();
-        Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode);
+        Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode);
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails);
         Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails);
         Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize);
         Task<int> UpdateSaleDetails(UpdateSaleDetailsVM updateSale);
         Task<int> DeleteJobCard(int jobId);
-        Task<List<JobCardDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
-
+        Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
         Task<JobCardHeader> GetJobCardById(int Id);
-
-        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo); 
-        
-        Task<CIRJobcardViewModel> GetCIRJobCardDetails (int id);
+        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo);
+        Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id);
+        Task<int> GetNextJobNumber(string dealerCode);
     }
 }

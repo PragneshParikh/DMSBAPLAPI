@@ -184,7 +184,7 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> GetJobCardList(string? dealerCode)
         {
             try
-                {
+            {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
@@ -403,6 +403,30 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error in GetCIRJobCardDetails");
                 return StatusCode(500, "An error occurred while fetching CIR job card details.");
+            }
+        }
+
+        [HttpGet("GetNextJobNo/{dealerCode}")]
+        [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<int>> GetNextJobNumber(string dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobNo = await _jobCardRepo.GetNextJobNumber(dealerCode);
+
+                return Ok(jobNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while featching next job no : {ex.Message}");
+                throw;
             }
         }
 
