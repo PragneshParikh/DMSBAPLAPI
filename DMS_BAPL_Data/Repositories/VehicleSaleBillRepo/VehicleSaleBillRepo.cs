@@ -867,12 +867,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 }
                 return result;
             }
-
             catch
             {
                 throw;
             }
+            
         }
+
+
+
 
         public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
         {
@@ -889,8 +892,5 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
-
-
     }
-
 }
