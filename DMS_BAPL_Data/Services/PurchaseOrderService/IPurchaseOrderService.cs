@@ -9,7 +9,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
     public interface IPurchaseOrderService
     {
-        Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string dealerCode);
+        Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string userId);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType);
         Task<bool> CreatePartsPOAsync(PurchaseOrderViewModel purchaseOrderViewModel);

@@ -96,12 +96,12 @@ namespace DMS_BAPL_Api.Controllers
 
             try
             {
-                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-                if (string.IsNullOrEmpty(dealerCode))
+                if (string.IsNullOrEmpty(userId))
                     return Unauthorized(StringConstants.UserUnauthorized);
 
-                var result = await _purchaseOrderService.CreatePOAsync(model, dealerCode);
+                var result = await _purchaseOrderService.CreatePOAsync(model, userId);
 
                 if (result)
                 {

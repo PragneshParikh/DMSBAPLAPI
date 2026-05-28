@@ -169,7 +169,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     MotorNo = v.MotorNo,
                     InvoiceNo = inv.InvoiceNo,
                     FameIIDisc = d.FameIi,
-                    PostGstDiscount =d.PostGstDisc
+                    PostGstDiscount = d.PostGstDisc
                 }
             ).ToList()
 
@@ -576,8 +576,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         ItemCode = g.Key,
                         Qty = g.Count()
                     }).ToList();
-               
-                
+
+
                 //  REDUCE STOCK
                 foreach (var item in groupedItems)
                 {
@@ -856,17 +856,33 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         ProformaCreated = vd == null ? null : vh.SaleBillNo,
                         PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done"
                     }
-                }
-                            ).GroupBy(x => x.ChassisNo)
-                            .Select(g => g.First().Data)
-                            .ToListAsync();
+                })
+                .GroupBy(x => x.ChassisNo)
+                .Select(g => g.First().Data)
+                .ToListAsync();
 
                 if (!string.IsNullOrEmpty(dealerCode))
                 {
                     result = result.Where(i => i.DealerCode == dealerCode).ToList();
                 }
-
                 return result;
+            }
+
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                var policyNos = await _context.VehicleSaleBillDetails
+                    .Where(d => d.ChassisNo == chassisNo && d.InsNo != null)
+                    .Select(d => d.InsNo!)
+                    .ToListAsync();
+                return policyNos;
             }
             catch
             {
@@ -876,4 +892,5 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
     }
+
 }

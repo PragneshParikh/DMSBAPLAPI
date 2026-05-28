@@ -34,7 +34,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Creates a new Purchase Order with details and tax calculations.
         /// </summary>
-        public async Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string dealerCode)
+        public async Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string userId)
         {
             try
             {
@@ -42,7 +42,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 var existing = await _repo.GetPOByNumberAsync(model.PONumber);
                 if (existing != null)
                 {
-                    return await UpdatePOAsync(model, dealerCode);
+                    return await UpdatePOAsync(model, userId);
                 }
 
                 await _repo.BeginTransactionAsync();
@@ -66,14 +66,15 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     PurchaseDate = model.PODate,
                     OrderType = model.POType,
                     CustomerCode = model.CustomerCode,
-                    CreatedBy = dealerCode,
+                    CreatedBy = userId,
                     CreatedDate = DateTime.Now,
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
                     LedgerCode = model.LedgerCode,
                     Status = false,
-                    SubOrderType = model.SubOrderType
+                    SubOrderType = model.SubOrderType,
+                    IsAgainstKit = model.IsAgainstKit
                 };
 
                 await _repo.AddPOAsync(po);
@@ -100,7 +101,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
-                        CreatedBy = dealerCode,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now,
                         Status = false
                     };
@@ -151,7 +152,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             TaxCode = taxMaster.TaxCode,
                             TaxRate = taxMaster.TaxRate,
                             TaxAmount = taxAmount,
-                            CreatedBy = dealerCode,
+                            CreatedBy = userId,
                             CreatedDate = DateTime.Now
                         });
                     }
@@ -165,7 +166,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 await _repo.CommitTransactionAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await _repo.RollbackTransactionAsync();
                 throw;
@@ -406,7 +407,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
-        public async Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string dealerCode)
+        public async Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string userId)
         {
             await _repo.BeginTransactionAsync();
 
@@ -424,7 +425,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
                     LedgerCode = model.LedgerCode,
-                    UpdatedBy = dealerCode,
+                    IsAgainstKit = model.IsAgainstKit,
+                    UpdatedBy = userId,
                     UpdatedDate = DateTime.Now
                 };
                 await _repo.UpdatePOHeaderAsync(po);
@@ -463,9 +465,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Rate = rate,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
-                        CreatedBy = dealerCode,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now,
-                        UpdatedBy = dealerCode,
+                        UpdatedBy = userId,
                         UpdatedDate = DateTime.Now,
                         Status = false
                     };
@@ -504,9 +506,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             TaxCode = taxMaster.TaxCode,
                             TaxRate = taxMaster.TaxRate,
                             TaxAmount = taxAmount,
-                            CreatedBy = dealerCode,
+                            CreatedBy = userId,
                             CreatedDate = DateTime.Now,
-                            UpdatedBy = dealerCode,
+                            UpdatedBy = userId,
                             UpdatedDate = DateTime.Now
                         });
                     }

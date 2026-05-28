@@ -58,4 +58,17 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime UpdatedDate { get; set; }
 
     }
+
+    public class LabourRateDropDown
+    {
+        public string? LabourCode { get; set; }
+        public string? LabourName { get; set; }
+        public string? LabourDescription { get; set; }
+        public string? OemModelName { get; set; }
+        public decimal? LabourRate { get; set; }
+        public decimal? Cgst { get; set; }
+        public decimal? Sgst { get; set; }
+        public decimal? Igst { get; set; }
+
+    }
 }

@@ -15,5 +15,6 @@ namespace DMS_BAPL_Data.Services.KitDetailsService
         Task<PagedResponse<object>> GetKitDetailsByPaged(int pageIndex, int pageSize, int headerId);
         Task<int> InsertKitDetails(List<KitDetailsViewModel> kitDetailSViewModels);
         Task<bool> UpdateKitDetails(List<KitDetailsViewModel> kitDetailsViewModels);
+        Task<IEnumerable<object>> GetKitDetailsWithItemByHeaderAndLocation(int headerId, string dealerLocation, string companyLocation);
     }
 }

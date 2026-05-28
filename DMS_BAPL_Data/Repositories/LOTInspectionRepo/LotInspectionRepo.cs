@@ -106,7 +106,10 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         x.InvoiceNo == model.lotInspectedHeaderDetails.invoiceNo &&
                         x.DealerCode == model.lotInspectedHeaderDetails.dealerCode);
 
-                if (header == null) return false;
+                if (header == null)
+                {
+                    return false;
+                }
 
                 if (!string.IsNullOrEmpty(model.lotInspectedHeaderDetails.arrivalDate) &&
                     DateTime.TryParse(model.lotInspectedHeaderDetails.arrivalDate, out var parsedDate))

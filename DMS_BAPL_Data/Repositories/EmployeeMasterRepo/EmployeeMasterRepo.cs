@@ -45,5 +45,44 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             }
             catch { throw; }
         }
+        async Task<int> IEmployeeMasterRepo.UpdateEmployee(EmployeeMaster employeeMaster)
+        {
+            try
+            {
+                var existingEmployee = await _context.EmployeeMasters
+                    .FirstOrDefaultAsync(x => x.Id == employeeMaster.Id);
+
+                if (existingEmployee == null)
+                    return 0;
+
+                existingEmployee.EmployeeCode = employeeMaster.EmployeeCode;
+                existingEmployee.FirstName = employeeMaster.FirstName;
+                existingEmployee.LastName = employeeMaster.LastName;
+                existingEmployee.Gender = employeeMaster.Gender;
+                existingEmployee.Mobile = employeeMaster.Mobile;
+                existingEmployee.EmailId = employeeMaster.EmailId;
+                existingEmployee.Password = employeeMaster.Password;
+                existingEmployee.Address = employeeMaster.Address;
+                existingEmployee.State = employeeMaster.State;
+                existingEmployee.City = employeeMaster.City;
+                existingEmployee.Pincode = employeeMaster.Pincode;
+                existingEmployee.DateOfJoin = employeeMaster.DateOfJoin;
+                existingEmployee.Designation = employeeMaster.Designation;
+                existingEmployee.Department = employeeMaster.Department;
+                existingEmployee.DealerCode = employeeMaster.DealerCode;
+                existingEmployee.Supervisor = employeeMaster.Supervisor;
+                existingEmployee.IsActive = employeeMaster.IsActive;
+                existingEmployee.ProfileImage = employeeMaster.ProfileImage;
+                existingEmployee.Notes = employeeMaster.Notes;
+                existingEmployee.UpdatedBy = "admin";
+                existingEmployee.UpdatedDate = DateTime.Now;
+
+                return await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

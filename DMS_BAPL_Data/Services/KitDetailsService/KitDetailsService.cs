@@ -23,7 +23,7 @@ namespace DMS_BAPL_Data.Services.KitDetailsService
         Task<IEnumerable<object>> IKitDetailsService.GetKitDetailsByHeaderId(int headerId) => _kitDetailsRepo.GetKitDetailsByHeaderId(headerId);
         Task<PagedResponse<object>> IKitDetailsService.GetKitDetailsByPaged(int pageIndex, int pageSize, int headerId) => _kitDetailsRepo.GetKitDetailsByPaged(pageIndex, pageSize, headerId);
         Task<int> IKitDetailsService.InsertKitDetails(List<KitDetailsViewModel> kitDetailsViewModels) => _kitDetailsRepo.InsertKitDetails(kitDetailsViewModels);
-        public async Task<bool> UpdateKitDetails(List<KitDetailsViewModel> kitDetailsViewModels)
+        async Task<bool> IKitDetailsService.UpdateKitDetails(List<KitDetailsViewModel> kitDetailsViewModels)
         {
             bool anyUpdated = false;
 
@@ -48,6 +48,6 @@ namespace DMS_BAPL_Data.Services.KitDetailsService
 
             return anyUpdated;
         }
-
+        Task<IEnumerable<object>> IKitDetailsService.GetKitDetailsWithItemByHeaderAndLocation(int headerId, string dealerLocation, string companyLocation) => _kitDetailsRepo.GetKitDetailsWithItemByHeaderAndLocation(headerId, dealerLocation, companyLocation);
     }
 }

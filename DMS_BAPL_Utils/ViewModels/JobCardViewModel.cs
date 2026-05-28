@@ -80,6 +80,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string PartyMobileNo { get; set; }
 
         public string PartyState { get; set; }
+        public bool? IsMaterialTransfer { get; set; }
 
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
@@ -376,6 +377,48 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Serviceloc { get; set; }
         public long CIRNo { get; set; }
 
+    }
+    public class JobCardSearchVM
+    {
+        public string? DealerCode { get; set; }
+        public DateOnly? DateFrom { get; set; }
+        public DateOnly? DateTo { get; set; }
+        public int? JobNo { get; set; }
+        public string? RegisterNo { get; set; }
+        public string? ChassisNo { get; set; }
+    }
+
+    public class MaterialedJobCardListVM
+    {
+        public string? PartCode { get; set; }
+        public string? PartDesc { get; set; }
+        public int? PartQty { get; set; }
+        public decimal? PartRate { get; set; }
+        public string? issueType { get; set; }
+
+    }
+
+    public class JobCardlistDetailsViewModel
+    {
+        // Define properties for job card details here
+
+        public string Jobtype { get; set; }
+        public string Jobsource { get; set; }
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+        public string Complaint { get; set; }
+        public string Location { get; set; }
+        public string PartyName { get; set; }
+        public string PartyMobileNo { get; set; }
+
+        public string PartyState { get; set; }
+
+        public JobCardHeaderVM JobCardHeader { get; set; }
+        public JobCardBatteryVM JobCardBattery { get; set; }
+        public JobCardCustomerVM JobCardCustomer { get; set; }
+        public List<JobCardComplaintVM> JobCardComplaint { get; set; }
+
+        public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
     }
 
 }

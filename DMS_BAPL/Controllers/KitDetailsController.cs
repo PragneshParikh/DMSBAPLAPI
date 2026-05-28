@@ -74,6 +74,33 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetKitDetailsWithItemByHeaderLocation")]
+        [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<object>>> GetKitDetailsWithItemByHeaderAndLocation(
+            [FromQuery] string headerId,
+            [FromQuery] string dealerLocation,
+            [FromQuery] string companyLocation)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var kitDetails = await _kitDetailsService.GetKitDetailsWithItemByHeaderAndLocation(Convert.ToInt32(headerId), dealerLocation, companyLocation);
+
+                return Ok(kitDetails);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
