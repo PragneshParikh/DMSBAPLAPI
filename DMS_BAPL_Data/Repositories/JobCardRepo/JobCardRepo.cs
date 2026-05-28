@@ -1056,5 +1056,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await query.ToListAsync();
 
         }
+
+        public async Task<int> UpdateMaterialTransferStatus(int jobId)
+        {
+            return 
+        }
     }
 }

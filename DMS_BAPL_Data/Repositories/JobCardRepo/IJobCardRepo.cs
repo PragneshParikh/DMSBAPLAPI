@@ -30,5 +30,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id);
         Task<int> GetNextJobNumber(string dealerCode);
         Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId);
+        Task<int> UpdateMaterialTransferStatus(int jobId);
     }
 }

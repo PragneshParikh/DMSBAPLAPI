@@ -115,6 +115,11 @@ namespace DMS_BAPL_Api.Controllers
 
                 var material = await _materialTransferService.InsertMaterials(materialTransferViewModels);
 
+                if (material > 0)
+                {
+                    await _jobcar
+                }
+
                 return Ok(material);
             }
             catch (Exception ex)
