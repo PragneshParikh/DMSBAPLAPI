@@ -914,17 +914,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     {
                         if (tax.TaxCode.ToUpper().Contains("SGST"))
                         {
-                            vm.SGSTPer = tax.TaxRate;
+                            vm.SGSTPER = tax.TaxRate;
                             vm.SGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("CGST"))
                         {
-                            vm.CGSTPer = tax.TaxRate;
+                            vm.CGSTPER = tax.TaxRate;
                             vm.CGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("IGST"))
                         {
-                            vm.IGSTPer = tax.TaxRate;
+                            vm.IGSTPER = tax.TaxRate;
                             vm.IGST = tax.TaxRate;
                         }
                     }

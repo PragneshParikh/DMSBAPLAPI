@@ -75,11 +75,11 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public decimal? FameIIAmnt { get; set; }
         public decimal TaxableAmount { get; set; }
-        public decimal SGSTPer { get; set; }
+        public decimal SGSTPER { get; set; }
         public decimal SGST { get; set; }
-        public decimal CGSTPer { get; set; }
+        public decimal CGSTPER { get; set; }
         public decimal CGST { get; set; }
-        public decimal IGSTPer { get; set; }
+        public decimal IGSTPER { get; set; }
         public decimal IGST { get; set; }
         public string PDIStatus {  get; set; }
         public DateTime? CustomerSaleDate { get; set; }
