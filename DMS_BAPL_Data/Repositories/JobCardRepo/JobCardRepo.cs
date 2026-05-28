@@ -347,17 +347,33 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RsarenewalDate = x.c.RsarenewalDate,
                         Remarks = x.c.Remarks
                     },
+
                     JobCardComplaint = _context.JobCardComplaints
                         .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                         .Select(cc => new JobCardComplaintVM
-                            {
-                                Id = cc.Id,
-                                JobCardHeaderId = cc.JobCardHeaderId,
-                                Complaint = cc.Complaint,
-                                ComplaintCode = cc.ComplaintCode,
-                                CustomerVoice = cc.CustomerVoice
-                            })
+                        {
+                            Id = cc.Id,
+                            JobCardHeaderId = cc.JobCardHeaderId,
+                            Complaint = cc.Complaint,
+                            ComplaintCode = cc.ComplaintCode,
+                            CustomerVoice = cc.CustomerVoice
+                        })
                         .ToList(),
+
+                    PdiChecklistChassiWise = _context.PdichecklistChassisWises
+                        .Where(pdi => pdi.JobCardMasterId == x.jh.Id)
+                        .Select(x => new PdiChecklistChassiWiseVM
+                        {
+                            Id = x.Id,
+                            PdichecklistMasterId = x.PdichecklistMasterId,
+                            JobCardMasterId = x.JobCardMasterId,
+                            IsStatus = x.IsStatus,
+                            Remarks = x.Remarks,
+                            CreatedBy = x.CreatedBy,
+                            CreatedDate = x.CreatedDate
+                        })
+                        .ToList(),
+
                     Complaint = _context.JobCardComplaints
                         .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                         .Select(cc => cc.Complaint)
