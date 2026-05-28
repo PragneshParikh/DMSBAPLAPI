@@ -21,5 +21,7 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<EmployeeMaster?> IEmployeeService.GetEmployeeById(int id) => _employeeMasterRepo.GetEmployeeById(id);
         Task<int> IEmployeeService.CreateNewUser(EmployeeMaster employeeMaster) => _employeeMasterRepo.CreateNewUser(employeeMaster);
 
+        Task<int> IEmployeeService.UpdateEmployee(EmployeeMaster employeeMaster)=> _employeeMasterRepo.UpdateEmployee(employeeMaster);
+
     }
 }

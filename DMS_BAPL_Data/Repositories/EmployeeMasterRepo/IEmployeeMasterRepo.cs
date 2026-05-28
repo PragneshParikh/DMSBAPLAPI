@@ -12,5 +12,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         Task<IEnumerable<EmployeeMaster>> Get();
         Task<EmployeeMaster?> GetEmployeeById(int id);
         Task<int> CreateNewUser(EmployeeMaster employeeMaster);
+
+        Task<int> UpdateEmployee(EmployeeMaster employeeMaster);
     }
 }
