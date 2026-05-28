@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -1057,9 +1058,18 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
         }
 
-        public async Task<int> UpdateMaterialTransferStatus(int jobId)
+        public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
         {
-            return 
+            var jobCard = await _context.JobCardHeaders
+                    .FirstOrDefaultAsync(x => x.Id == jobId);
+
+            if (jobCard == null)
+                throw new Exception("Job card not found");
+
+            jobCard.IsMaterialTransfer = status;
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
