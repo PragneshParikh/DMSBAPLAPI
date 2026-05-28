@@ -42,11 +42,13 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string FFIRRemarks { get; set; }
 
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
 
         public List<MainPartAffectedFFIRViewModel> MainParts { get; set; }
 
         public FFIRDetailObservationViewModel DetailObservation { get; set; }
+
+        public List<FFirCompalintCodeListViewModel>? FFIRJobcardComplaints { get; set; }
     }
 
     public class MainPartAffectedFFIRViewModel

@@ -115,5 +115,8 @@ namespace DMS_BAPL_Utils.Constants
 
         //VehicleSaleBill
         public const string VehicleSaleBillExcel = "Vehicle Sale Bill";
+
+        //LabourMaster
+        public const string LabourMasterExcelSheetName = "Excel Imported Successfully";
     }
 }

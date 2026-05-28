@@ -31,15 +31,12 @@ public partial class EmployeeMaster
 
     public DateTime DateOfJoin { get; set; }
 
-    // CHANGED TO STRING
     public string? Designation { get; set; }
 
-    // CHANGED TO STRING
     public string? Department { get; set; }
 
     public string DealerCode { get; set; } = null!;
 
-    // CHANGED TO STRING
     public string? Supervisor { get; set; }
 
     public bool IsActive { get; set; }

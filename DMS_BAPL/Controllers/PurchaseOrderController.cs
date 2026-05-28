@@ -61,15 +61,16 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GetPOList(string? dealerCode)
+        public async Task<ActionResult> GetPOList(string? dealerCode, string orderType)
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-                //if (string.IsNullOrEmpty(dealerCode))
-                //    return Unauthorized("User not authorized");
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
-                var result = await _purchaseOrderService.GetPOListAsync(dealerCode);
+                var result = await _purchaseOrderService.GetPOListAsync(dealerCode, orderType);
 
                 return Ok(result);
             }
@@ -208,7 +209,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(Boolean), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<bool>> UpdatePOStatus([FromBody] string poNumber, bool status)
+        public async Task<ActionResult<bool>> UpdatePOStatus([FromBody] UpdatePOStatusViewModel updatePOStatusViewModel)
         {
             try
             {
@@ -217,13 +218,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var poStatus = await _purchaseOrderService.UpdatePOStatusAsync(poNumber, status);
+                var poStatus = await _purchaseOrderService.UpdatePOStatusAsync(updatePOStatusViewModel);
 
                 return Ok(poStatus);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating PO status for PO Number: {PONumber}", poNumber);
+                _logger.LogError(ex, "Error updating PO status for PO Number: {PONumber}", updatePOStatusViewModel.PONumber);
                 throw;
             }
         }
@@ -321,30 +322,30 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
 
-        [HttpPost("parts/create")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> CreatePartsPurchaseOrder([FromBody] PartsPurchaseOrderViewModel model)
-        {
-            if (model == null) return BadRequest(StringConstants.BadRequest);
-            try
-            {
-                string dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
+        //[HttpPost("parts/create")]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //public async Task<IActionResult> CreatePartsPurchaseOrder([FromBody] PurchaseOrderViewModel model)
+        //{
+        //    if (model == null) return BadRequest(StringConstants.BadRequest);
+        //    try
+        //    {
+        //        string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-                if (string.IsNullOrEmpty(dealerCode))
-                    return Unauthorized(StringConstants.UserUnauthorized);
+        //        if (string.IsNullOrEmpty(userId))
+        //            return Unauthorized(StringConstants.UserUnauthorized);
 
-                var result = await _purchaseOrderService.CreatePartsPOAsync(model, dealerCode);
-                if (result)
-                {
-                    return Ok(new { success = true, message = StringConstants.POCreated, poNumber = model.PONumber });
-                }
-                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = StringConstants.POCreatedPOCreationailed });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
-            }
-        }
+        //        var result = await _purchaseOrderService.CreatePartsPOAsync(model);
+        //        if (result)
+        //        {
+        //            return Ok(new { success = true, message = StringConstants.POCreated, poNumber = model.PONumber });
+        //        }
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = StringConstants.POCreatedPOCreationailed });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+        //    }
+        //}
 
         #endregion
         /// <summary>

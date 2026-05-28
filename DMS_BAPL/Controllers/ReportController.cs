@@ -48,13 +48,34 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("model-list")]
+        public async Task<IActionResult> GetModelList()
+        {
+            var result =
+                await _reportService.GetModelListAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("chassis-list")]
+        public async Task<IActionResult> GetChassisList()
+        {
+            var result =
+                await _reportService.GetChassisListAsync();
+
+            return Ok(result);
+        }
+
+
+
         // ─────────────────────────────────────────────────────────────────────
         // JOB CARD
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>Get Job Card Report with pagination and filtering</summary>
         [HttpPost("job-card")]
-        [ProducesResponseType(typeof(JobReportPagedResponse<JobReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardReport([FromBody] JobReportFilterModel filter)
         {
@@ -66,21 +87,20 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                _logger.LogInformation("Job Card Report API Called");
+                // ── Dealer restriction: override whatever the client sent ─────────
+                string dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (!string.IsNullOrEmpty(dealerCode))
+                    filter.DealerCode = dealerCode;
+                // ─────────────────────────────────────────────────────────────────
 
+                _logger.LogInformation("Job Card Report API Called");
                 var result = await _reportService.GetJobReportAsync(filter);
                 return Ok(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, ex.ToString());
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message,
-                    innerException = ex.InnerException?.Message,
-                    stackTrace = ex.StackTrace
-                });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
@@ -99,6 +119,12 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+                // ── Dealer restriction ────────────────────────────────────────────
+                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (!string.IsNullOrEmpty(tokenDealerCode))
+                    dealerCode = tokenDealerCode;
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetDealerWiseJobReportAsync(dealerCode, fromDate, toDate);
                 return Ok(result);
@@ -178,6 +204,12 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
+                // ── Dealer restriction ────────────────────────────────────────────
+                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (!string.IsNullOrEmpty(tokenDealerCode))
+                    dealerCode = tokenDealerCode;
+                // ─────────────────────────────────────────────────────────────────
+
                 var result = await _reportService.GetJobReportForExportAsync(dealerCode, fromDate, toDate);
                 return Ok(result);
             }
@@ -203,6 +235,12 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+                // ── Dealer restriction ────────────────────────────────────────────
+                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (!string.IsNullOrEmpty(tokenDealerCode))
+                    dealerCode = tokenDealerCode;
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetReportSummaryStatsAsync(dealerCode, fromDate, toDate);
                 return Ok(result);
@@ -276,6 +314,183 @@ namespace DMS_BAPL_Api.Controllers
                     message = ex.Message
                 });
             }
+        }
+
+        [HttpPost("po-tracking")]
+        [ProducesResponseType(typeof(PagedResponse<POTrackingReportViewModel>),StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOTrackingReport([FromBody]POTrackingFilterModel filter)
+        {
+            try
+            {
+                var result =
+                    await _reportService
+                    .GetPOTrackingReportAsync(filter);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching PO Tracking Report");
+
+                return StatusCode(
+                    500,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message
+                    });
+            }
+        }
+
+        [HttpGet("po-tracking/dropdown/po-type")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOTypeDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetPOTypeDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Type dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("po-tracking/dropdown/po-status")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOStatusDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetPOStatusDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PO Status dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get Parts Dispatch Report
+        /// </summary>
+        [HttpGet("parts-dispatch")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartsDispatchReport(
+    [FromQuery] DateTime? fromDate,
+    [FromQuery] DateTime? toDate,
+    [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId =
+                    GetUserInfoFromToken
+                    .GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result =
+                    await _reportService
+                    .GetPartsDispatchReportAsync(
+                        fromDate,
+                        toDate,
+                        dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching Parts Dispatch Report");
+
+                return StatusCode(500,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message
+                    });
+            }
+        }
+
+        [HttpGet("dealer-list")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetDealerList()
+        {
+            var result =
+                await _reportService
+                .GetDealerListAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("model-list/{dealerCode}")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetModelListByDealer(string dealerCode)
+        {
+            var result =
+                await _reportService
+                .GetModelListByDealerAsync(
+                    dealerCode);
+
+            return Ok(result);
+        }
+
+        [HttpGet("part-dispatch-kit")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartDispatchKitReport([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                var result =
+                    await _reportService
+                    .GetPartDispatchKitReportAsync(
+                        fromDate,
+                        toDate,
+                        dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching Part Dispatch Kit Report");
+
+                return StatusCode(500,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message
+                    });
+            }
+        }
+
+        [HttpGet("part-dispatch-kit-po-types")]
+        [ProducesResponseType(typeof(List<PartsDispatchReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartDispatchKitPOTypeDropdown()
+        {
+            var result =
+                await _reportService
+                    .GetPartDispatchKitPOTypeDropdownAsync();
+
+            return Ok(result);
         }
     }
 }

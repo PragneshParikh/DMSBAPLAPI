@@ -20,7 +20,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
         Task<ReceiptEntry?> UpdateReceiptEntryAsync(int id, ReceiptEntryViewModel receiptEntry, string userId);
         Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId);
         Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode, string? searchTerm,DateOnly? fromDate,DateOnly? toDate);
-
+        
 
 
     }

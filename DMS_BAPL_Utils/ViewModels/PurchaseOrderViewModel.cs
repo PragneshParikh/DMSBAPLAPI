@@ -18,6 +18,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LocCode { get; set; }
         public string? LedgerCode { get; set; }
         public bool? IsAgainstKit { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? SubOrderType { get; set; }
         public List<PurchaseOrderDetailsViewModel> Items { get; set; }
     }
 
@@ -26,6 +29,14 @@ namespace DMS_BAPL_Utils.ViewModels
         public string ItemCode { get; set; }
         public decimal Qty { get; set; }
         public decimal? MRP { get; set; }
+    }
+
+    public class UpdatePOStatusViewModel
+    {
+        public string PONumber { get; set; }
+        public bool Status { get; set; }
+        public string SaleOrderNo { get; set; }
+        public string ConsigneeCode { get; set; }
     }
 }
 

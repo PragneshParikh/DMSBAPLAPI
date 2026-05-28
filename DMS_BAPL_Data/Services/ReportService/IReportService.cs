@@ -47,8 +47,27 @@ namespace DMS_BAPL_Data.Services.ReportService
             DateTime? toDate,
             string? dealerCode);
 
-        Task<PagedResponse<CurrentStockReportViewModel>>
-             GetCurrentStockReportAsync(CurrentStockFilterModel filter);
+        Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter);
+
+        Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter);
+
+        Task<List<string>> GetPOTypeDropdownAsync();
+        Task<List<string>> GetPOStatusDropdownAsync();
+
+        Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode);
+
+        Task<List<object>> GetDealerListAsync();
+
+
+
+        Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode);
+
+        Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync();
+        Task<List<object>> GetModelListAsync();
+
+        Task<List<string>> GetChassisListAsync();
+
+        Task<List<object>> GetModelListByDealerAsync(string dealerCode);
     }
 
     public class JobReportSummaryStats

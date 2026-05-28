@@ -16,5 +16,9 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
         Task<int> InsertFFIRAsync(FFIRViewModel model);
 
         Task<List<FFIRViewModelList>> GetFFIRDetailListing(string dealerCode, string? search);
+
+        Task<FFIRViewModel> GetFFIRById(int id);
+
+        Task<bool> UpdateFFIRAsync(int id, FFIRViewModel model);
     }
 }

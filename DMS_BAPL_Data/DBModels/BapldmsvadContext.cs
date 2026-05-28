@@ -35,6 +35,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
 
+    public virtual DbSet<ChassisBatteryDetail> ChassisBatteryDetails { get; set; }
+
     public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
 
     public virtual DbSet<City> Cities { get; set; }
@@ -42,6 +44,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ColorMaster> ColorMasters { get; set; }
 
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
+
+    public virtual DbSet<DepartmentMaster> DepartmentMasters { get; set; }
+
+    public virtual DbSet<DesignationMaster> DesignationMasters { get; set; }
 
     public virtual DbSet<EmployeeMaster> EmployeeMasters { get; set; }
 
@@ -105,6 +111,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; }
 
+    public virtual DbSet<NewsBulletinMaster> NewsBulletinMasters { get; set; }
+
+    public virtual DbSet<NewsBulletinMasterAttachment> NewsBulletinMasterAttachments { get; set; }
+
     public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
@@ -112,6 +122,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<OemmodelWarranty> OemmodelWarranties { get; set; }
 
     public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
+
+    public virtual DbSet<PartWiseLabourMaster> PartWiseLabourMasters { get; set; }
 
     public virtual DbSet<PartsInventory> PartsInventories { get; set; }
 
@@ -124,6 +136,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
 
     public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
+
+    public virtual DbSet<QuotationDetail> QuotationDetails { get; set; }
+
+    public virtual DbSet<QuotationHeader> QuotationHeaders { get; set; }
 
     public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
 
@@ -291,6 +307,39 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ChassisBatteryDetail>(entity =>
+        {
+            entity.Property(e => e.BatteryCapacity)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryMake)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.BatteryNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChargerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ControllerNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.MotorNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
@@ -490,6 +539,48 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("vat_no");
         });
 
+        modelBuilder.Entity<DepartmentMaster>(entity =>
+        {
+            entity.HasKey(e => e.DepartmentId).HasName("PK__Departme__B2079BEDFB840A32");
+
+            entity.ToTable("DepartmentMaster");
+
+            entity.HasIndex(e => e.DepartmentCode, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DepartmentCode).HasMaxLength(50);
+            entity.Property(e => e.DepartmentName).HasMaxLength(150);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<DesignationMaster>(entity =>
+        {
+            entity.HasKey(e => e.DesignationId).HasName("PK__Designat__BABD60DED9667047");
+
+            entity.ToTable("DesignationMaster");
+
+            entity.HasIndex(e => e.DesignationCode, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
+
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DesignationCode).HasMaxLength(50);
+            entity.Property(e => e.DesignationName).HasMaxLength(150);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.DesignationMasters)
+                .HasForeignKey(d => d.DepartmentId)
+                .HasConstraintName("FK_Designation_Department");
+        });
+
         modelBuilder.Entity<EmployeeMaster>(entity =>
         {
             entity.ToTable("EmployeeMaster");
@@ -504,6 +595,12 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Department)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.EmailId)
                 .HasMaxLength(100)
@@ -530,8 +627,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Password)
                 .HasMaxLength(200)
                 .IsUnicode(false);
+            entity.Property(e => e.ProfileImage).IsUnicode(false);
+            entity.Property(e => e.Supervisor)
+                .HasMaxLength(100);
             entity.Property(e => e.ProfileImage)
-                .HasMaxLength(50)
+                .HasMaxLength(50);
+            entity.Property(e => e.ProfileImage).IsUnicode(false);
+            entity.Property(e => e.Supervisor)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
@@ -1352,6 +1455,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("createdDate");
+            entity.Property(e => e.EffectiveDate)
+                .HasColumnType("datetime")
+                .HasColumnName("effectiveDate");
             entity.Property(e => e.Hsncode)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -1359,6 +1465,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Igst)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("IGST");
+            entity.Property(e => e.IsLabourActive).HasColumnName("isLabourActive");
             entity.Property(e => e.LabourCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1370,6 +1477,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ModelCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.Oemmodelname)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("oemmodelname");
             entity.Property(e => e.Sgst)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("SGST");
@@ -1516,10 +1627,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("variant");
-
-            entity.HasOne(d => d.ColorNavigation).WithMany(p => p.LmsleadMasters)
-                .HasForeignKey(d => d.ColorId)
-                .HasConstraintName("FKColorMaster");
 
             entity.HasOne(d => d.Dealer).WithMany(p => p.LmsleadMasters)
                 .HasForeignKey(d => d.DealerId)
@@ -1903,6 +2010,53 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceType");
         });
 
+        modelBuilder.Entity<NewsBulletinMaster>(entity =>
+        {
+            entity.ToTable("NewsBulletinMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Description)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+            entity.Property(e => e.PublishDate).HasColumnType("datetime");
+            entity.Property(e => e.Title)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<NewsBulletinMasterAttachment>(entity =>
+        {
+            entity.ToTable("NewsBulletinMasterAttachment");
+
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.NewsBulletin).WithMany(p => p.NewsBulletinMasterAttachments)
+                .HasForeignKey(d => d.NewsBulletinId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsBulletinMasterAttachment_NewsBulletinMaster");
+        });
+
         modelBuilder.Entity<NumberSequence>(entity =>
         {
             entity.ToTable("NumberSequence");
@@ -1993,6 +2147,59 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.ParameterValue).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<PartWiseLabourMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PartWise__3214EC07DB4F8264");
+
+            entity.ToTable("PartWiseLabourMaster");
+
+            entity.Property(e => e.Cgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGST");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.Hsncode)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("HSNCode");
+            entity.Property(e => e.Igst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGST");
+            entity.Property(e => e.JobType)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourHrs).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ModelName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.PartCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.PartDescription)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Sgst)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGST");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -2197,6 +2404,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ReferenceNo)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.SubOrderType)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.TestCertificate)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -2241,6 +2451,111 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<QuotationDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Quotatio__3214EC074C98911B");
+
+            entity.Property(e => e.AccessoryAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Afee)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("AFee");
+            entity.Property(e => e.Cgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTAmnt");
+            entity.Property(e => e.CoatingAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Connectivity4G).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.GoodLifeAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Gstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("GSTPer");
+            entity.Property(e => e.HandlingAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Hpaamount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("HPAAmount");
+            entity.Property(e => e.Hsrpcharges)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("HSRPCharges");
+            entity.Property(e => e.Igstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTAmnt");
+            entity.Property(e => e.Igstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("IGSTPer");
+            entity.Property(e => e.Institute).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.InsuranceAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.MunicipalTaxAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OtherAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Rtoamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("RTOAmnt");
+            entity.Property(e => e.Sgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTAmnt");
+            entity.Property(e => e.StateSubsidyAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SubsidyAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.WarrantyAmnt).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.Quotation).WithMany(p => p.QuotationDetails)
+                .HasForeignKey(d => d.QuotationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_QuotationDetails_Header");
+        });
+
+        modelBuilder.Entity<QuotationHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Quotatio__3214EC071703DF40");
+
+            entity.ToTable("QuotationHeader");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.QuotationDate).HasColumnType("datetime");
+            entity.Property(e => e.QuotationNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.QuotationType)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.Reference)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.SalesExecutive)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.QuotationHeaderCustomerLedgers)
+                .HasForeignKey(d => d.CustomerLedgerId)
+                .HasConstraintName("FK_QuotationHeader_Customer");
+
+            entity.HasOne(d => d.FinancerLedger).WithMany(p => p.QuotationHeaderFinancerLedgers)
+                .HasForeignKey(d => d.FinancerLedgerId)
+                .HasConstraintName("FK_QuotationHeader_Financer");
         });
 
         modelBuilder.Entity<ReceiptEntry>(entity =>
@@ -2620,6 +2935,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.ExtWarranty).HasMaxLength(50);
+            entity.Property(e => e.FameIi)
+                .HasDefaultValue(0.00m)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("FameII");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Hsrpstatus)
                 .HasMaxLength(20)
@@ -2643,6 +2962,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Key).HasMaxLength(50);
             entity.Property(e => e.ModelName).HasMaxLength(100);
             entity.Property(e => e.Narration).HasMaxLength(255);
+            entity.Property(e => e.PostGstDisc)
+                .HasDefaultValue(0.00m)
+                .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PreGstDiscount)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");

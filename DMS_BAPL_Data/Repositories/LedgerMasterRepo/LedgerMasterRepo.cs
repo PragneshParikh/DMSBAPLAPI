@@ -108,54 +108,54 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
 
         public async Task<LedgerDetailViewModel?> GetLedgerById(int id)
         {
-                 //return await _context.LedgerMasters.Include(i => i.State)
-                //.FirstOrDefaultAsync(x => x.Id == id);
-                try
-                {
-                    var query = _context.LedgerMasters.AsNoTracking();
+            //return await _context.LedgerMasters.Include(i => i.State)
+            //.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var query = _context.LedgerMasters.AsNoTracking();
 
-                    var result = await (
-                        from LM in query
-                        join C in _context.Cities
-                            on LM.City equals C.CityId into cityGroup
-                        from city in cityGroup.DefaultIfEmpty()
+                var result = await (
+                    from LM in query
+                    join C in _context.Cities
+                        on LM.City equals C.CityId into cityGroup
+                    from city in cityGroup.DefaultIfEmpty()
 
-                        join S in _context.States
-                            on LM.State equals S.StateId into stateGroup
-                        from state in stateGroup.DefaultIfEmpty()
+                    join S in _context.States
+                        on LM.State equals S.StateId into stateGroup
+                    from state in stateGroup.DefaultIfEmpty()
 
-                        where LM.Id ==id
-                        select new LedgerDetailViewModel
-                        {
-                            Id = LM.Id,
-                            LedgerCode = LM.LedgerCode,
-                            LedgerName = LM.LedgerName,
-                            LedgerType = LM.LedgerType,
-                            Gstno = LM.Gstno,
-                            Pan = LM.Pan,
-                            AadharNumber = LM.AadharNumber,
-                            MobileNumber = LM.MobileNumber,
-                            Address = LM.Address,
-                            City = LM.City,
-                            State = LM.State,
-                            Pin = LM.Pin,
-                            EMail = LM.EMail,
-                            Gender = LM.Gender,
-                            DateOfBirth = LM.DateOfBirth,
-                            CreatedBy = LM.CreatedBy,
-                            CreatedDate = LM.CreatedDate,
-                            UpdatedBy = LM.UpdatedBy,
-                            UpdatedDate = LM.UpdatedDate,
+                    where LM.Id == id
+                    select new LedgerDetailViewModel
+                    {
+                        Id = LM.Id,
+                        LedgerCode = LM.LedgerCode,
+                        LedgerName = LM.LedgerName,
+                        LedgerType = LM.LedgerType,
+                        Gstno = LM.Gstno,
+                        Pan = LM.Pan,
+                        AadharNumber = LM.AadharNumber,
+                        MobileNumber = LM.MobileNumber,
+                        Address = LM.Address,
+                        City = LM.City,
+                        State = LM.State,
+                        Pin = LM.Pin,
+                        EMail = LM.EMail,
+                        Gender = LM.Gender,
+                        DateOfBirth = LM.DateOfBirth,
+                        CreatedBy = LM.CreatedBy,
+                        CreatedDate = LM.CreatedDate,
+                        UpdatedBy = LM.UpdatedBy,
+                        UpdatedDate = LM.UpdatedDate,
 
-                            cityName = city.CityName,
-                            stateName = state.StateName
-                        }
-                    ).FirstOrDefaultAsync();
+                        cityName = city.CityName,
+                        stateName = state.StateName
+                    }
+                ).FirstOrDefaultAsync();
 
                 return result;
-                }
-                catch { throw; }
-            
+            }
+            catch { throw; }
+
         }
 
         async Task<int> ILedgerMasterRepo.InsertLedgerDetail(LedgerMaster ledgerMaster)
@@ -282,6 +282,32 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                     .ToListAsync();
             }
             catch { throw; }
+        }
+
+        public async Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers()
+        {
+            try
+            {
+                return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "insurance")
+                    .OrderBy(c => c.LedgerName)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        public async Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType)
+        {
+            try
+            {
+                return await _context.LedgerMasters.
+                    Where(i => i.LedgerType == ledgerType).ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }
