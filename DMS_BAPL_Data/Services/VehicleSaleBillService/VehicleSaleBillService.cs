@@ -928,11 +928,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             vm.IGST = tax.TaxRate;
                         }
                     }
-
                     result.Add(vm);
                 }
                 return result;
-
             }
             catch
             {
@@ -941,3 +939,4 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         }
     }
 }
+
