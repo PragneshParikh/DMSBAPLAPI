@@ -289,6 +289,8 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
                 data.LabourRate = labourMasteUpdateViewModel.LabourRate;
 
+                data.IsLabourActive = labourMasteUpdateViewModel.IsLabourRateActive;
+
                 data.Cgst = labourMasteUpdateViewModel.Cgst;
 
                 data.Sgst = labourMasteUpdateViewModel.Sgst;
@@ -481,11 +483,10 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName)
         {
-            var modelName = oemmodelName?.Trim() ?? string.Empty;
+            var modelName = (oemmodelName ?? "").Trim();
 
-            // Model Wise Labour
-            var labourRateDropDowns = await _context.LabourMasters
-                .Where(x => x.IsLabourActive == true)
+            //Model Wise Labour
+            var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true)
                 .Select(x => new LabourRateDropDown
                 {
                     LabourCode = x.LabourCode,
@@ -495,18 +496,20 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Sgst = x.Sgst,
                     Igst = x.Igst,
                     OemModelName = x.Oemmodelname
-                })
-                .ToListAsync();
+                }).ToListAsync();
 
             labourRateDropDowns = labourRateDropDowns
-                .Where(x => !string.IsNullOrEmpty(x.OemModelName) &&
-                            modelName.Contains(x.OemModelName,
-                                StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
+         .Where(x =>
+             !string.IsNullOrWhiteSpace(x.OemModelName) &&
+             (
+                 modelName.Contains(x.OemModelName.Trim())
+                 ||
+                 x.OemModelName.Trim().Contains(modelName)
+             )
+         )
+         .ToList();
             // Part Wise Labour
-            var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters
-                .Where(x => x.IsActive == true)
+            var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters.Where(x => x.IsActive == true)
                 .Select(x => new LabourRateDropDown
                 {
                     LabourCode = x.LabourCode,
@@ -516,18 +519,19 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Sgst = x.Sgst,
                     Igst = x.Igst,
                     OemModelName = x.ModelName
-                })
-                .ToListAsync();
+                }).ToListAsync();
 
             partWiseLabourRateDropDowns = partWiseLabourRateDropDowns
-                .Where(x => !string.IsNullOrEmpty(x.OemModelName) &&
-                            modelName.Contains(x.OemModelName,
-                                StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            return labourRateDropDowns
-                .Concat(partWiseLabourRateDropDowns)
-                .ToList();
+        .Where(x =>
+            !string.IsNullOrWhiteSpace(x.OemModelName) &&
+            (
+                modelName.Contains(x.OemModelName.Trim())
+                ||
+                x.OemModelName.Trim().Contains(modelName)
+            )
+        )
+        .ToList();
+            return labourRateDropDowns.Concat(partWiseLabourRateDropDowns).ToList();
         }
     }
 }

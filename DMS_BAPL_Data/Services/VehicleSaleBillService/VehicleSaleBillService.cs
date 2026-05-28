@@ -38,7 +38,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
             IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster,
-            IExcelService excelService,IPrefixRepo prefixRepo)
+            IExcelService excelService, IPrefixRepo prefixRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -63,7 +63,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
 
-                var result= await _repo.CreateWithJobUpdateAsync(header);
+                var result = await _repo.CreateWithJobUpdateAsync(header);
                 if (result != 0)
                 {
                     await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
@@ -268,8 +268,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             ChassisNo = d.ChassisNo,
                             ItemRate = d.ItemRate,
                             PreGstDiscount = d.PreGstDiscount,
-                            PostGstDisc =d.PostGstDiscount,
-                            FameIi =d.FameIIDisc,
+                            PostGstDisc = d.PostGstDiscount,
+                            FameIi = d.FameIIDisc,
                             RegAmount = d.RegAmount,
                             InsuranceAmount = d.InsuranceAmount,
                             ItemCode = d.ItemCode,
@@ -334,7 +334,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SaleDate = model.SaleDate,
                         InsuranceExpDate = d.InsExpDate,
                         RegisterNo = d.RegNo,
-                        
+
                     })
                     .ToList();
 
@@ -406,7 +406,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         ItemRate = d.ItemRate,
                         FameIi = d.FameIIDisc,
                         PreGstDiscount = d.PreGstDiscount,
-                        PostGstDisc =d.PostGstDiscount,
+                        PostGstDisc = d.PostGstDiscount,
                         RegAmount = d.RegAmount,
                         InsuranceAmount = d.InsuranceAmount,
                         HasDevice = d.HasDevice,
@@ -524,8 +524,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
                         ItemCode = d.ItemCode ?? "",
-                        FameIIDisc=d.FameIi ?? 0,
-                        PostGstDiscount =d.PostGstDisc ?? 0
+                        FameIIDisc = d.FameIi ?? 0,
+                        PostGstDiscount = d.PostGstDisc ?? 0
 
                     }).ToList()
                 };
@@ -928,10 +928,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         //  PreGstDisc = item.PreGstDisc,
                         CustomerSaleDate = item.CustomerSaleDate,
                         PDIStatus = item.PDIStatus,
-                        FameIIAmnt=item.FameIIAmnt,
+                        FameIIAmnt = item.FameIIAmnt,
                         ProformaCreated = item.ProformaCreated,
 
-                        
+
 
                     };
 
@@ -954,14 +954,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             vm.IGST = tax.TaxRate;
                         }
                     }
-
-        }
-    }
-}
                     result.Add(vm);
                 }
                 return result;
-
             }
             catch
             {
@@ -970,3 +965,4 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         }
     }
 }
+

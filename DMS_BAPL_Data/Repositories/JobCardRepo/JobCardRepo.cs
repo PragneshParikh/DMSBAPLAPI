@@ -347,11 +347,22 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RsarenewalDate = x.c.RsarenewalDate,
                         Remarks = x.c.Remarks
                     },
-
+                    JobCardComplaint = _context.JobCardComplaints
+                        .Where(cc => cc.JobCardHeaderId == x.jh.Id)
+                        .Select(cc => new JobCardComplaintVM
+                            {
+                                Id = cc.Id,
+                                JobCardHeaderId = cc.JobCardHeaderId,
+                                Complaint = cc.Complaint,
+                                ComplaintCode = cc.ComplaintCode,
+                                CustomerVoice = cc.CustomerVoice
+                            })
+                        .ToList(),
                     Complaint = _context.JobCardComplaints
                         .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                         .Select(cc => cc.Complaint)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+
                 })
                 .GroupBy(x => x.JobCardHeader.Id)
                 .Select(g => g.First())
