@@ -398,4 +398,27 @@ namespace DMS_BAPL_Utils.ViewModels
 
     }
 
+    public class JobCardlistDetailsViewModel
+    {
+        // Define properties for job card details here
+
+        public string Jobtype { get; set; }
+        public string Jobsource { get; set; }
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+        public string Complaint { get; set; }
+        public string Location { get; set; }
+        public string PartyName { get; set; }
+        public string PartyMobileNo { get; set; }
+
+        public string PartyState { get; set; }
+
+        public JobCardHeaderVM JobCardHeader { get; set; }
+        public JobCardBatteryVM JobCardBattery { get; set; }
+        public JobCardCustomerVM JobCardCustomer { get; set; }
+        public List<JobCardComplaintVM> JobCardComplaint { get; set; }
+
+        public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
+    }
+
 }

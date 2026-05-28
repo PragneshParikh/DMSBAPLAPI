@@ -242,7 +242,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             try
             {
                 var result = await _context.HsnwiseTaxCodes
-                    .Where(x => x.Hsncode == hsnCode && x.EffectiveDate <= poDate)
+                    .Where(x => x.Hsncode == hsnCode && x.EffectiveDate.Date <= poDate.Date)
                     .OrderByDescending(x => x.StateFlag == preferredFlag)
                     .ThenByDescending(x => x.EffectiveDate)
                     .FirstOrDefaultAsync();
@@ -276,9 +276,16 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     .Where(x => x.Ponumber == poNumber)
                     .ToListAsync();
 
-                var item = await _context.ItemMasters
-                    .Where(x => x.Itemcode == details[0].ItemCode)
-                    .FirstOrDefaultAsync();
+                // Get all item codes
+                var itemCodes = details
+                    .Select(x => x.ItemCode)
+                    .Distinct()
+                    .ToList();
+
+                // Fetch all items
+                var items = await _context.ItemMasters
+                    .Where(x => itemCodes.Contains(x.Itemcode))
+                    .ToListAsync();
 
                 return new PurchaseOrderResponseViewModel
                 {
@@ -292,27 +299,34 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     LocCode = po.LocCode,
                     SubOrderType = po.SubOrderType,
                     LedgerCode = po.LedgerCode,
-                    LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
+                    IsAgainstKit = po.IsAgainstKit,
+                    LocationName = _context.LocationMasters
+                        .FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
-                    Items = details.Select(d => new PurchaseOrderItemViewModel
+                    Items = details.Select(d =>
                     {
-                        ItemCode = d.ItemCode,
-                        Qty = d.Qty,
-                        Rate = d.Rate,
-                        LineAmount = d.LineAmount,
-                        Subsidy = d.Subsidy,
-                        ItemDescription = item.Itemdesc,
-                        LineNumber = d.LineNumber,
+                        var item = items.FirstOrDefault(i => i.Itemcode == d.ItemCode);
 
-                        Taxes = taxes
-                            .Where(t => t.ItemCode == d.ItemCode &&
-                                        t.PodetailsLineNumber == d.LineNumber)
-                            .Select(t => new TaxViewModel
-                            {
-                                TaxCode = t.TaxCode,
-                                TaxRate = t.TaxRate,
-                                TaxAmount = t.TaxAmount
-                            }).ToList()
+                        return new PurchaseOrderItemViewModel
+                        {
+                            ItemCode = d.ItemCode,
+                            Qty = d.Qty,
+                            Rate = d.Rate,
+                            LineAmount = d.LineAmount,
+                            Subsidy = d.Subsidy,
+                            ItemDescription = item?.Itemdesc,
+                            LineNumber = d.LineNumber,
+
+                            Taxes = taxes
+                                .Where(t => t.ItemCode == d.ItemCode &&
+                                            t.PodetailsLineNumber == d.LineNumber)
+                                .Select(t => new TaxViewModel
+                                {
+                                    TaxCode = t.TaxCode,
+                                    TaxRate = t.TaxRate,
+                                    TaxAmount = t.TaxAmount
+                                }).ToList()
+                        };
                     }).ToList()
                 };
             }
@@ -349,6 +363,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         .Where(x => x.Ponumber == po.Ponumber)
                         .ToListAsync();
 
+                    var ledgerDetails = await _context.LedgerMasters
+                        .ToListAsync();
+
                     resultList.Add(new PurchaseOrderResponseViewModel
                     {
                         PONumber = po.Ponumber,
@@ -359,6 +376,8 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         TransactionType = po.TransactionType,
                         Remarks = po.Remarks,
                         LocCode = po.LocCode,
+                        LedgerCode = po.LedgerCode,
+                        LedgerName = ledgerDetails.Where(x => x.LedgerCode == po.LedgerCode).FirstOrDefault().LedgerName,
                         LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
                         Items = details.Select(d => new PurchaseOrderItemViewModel

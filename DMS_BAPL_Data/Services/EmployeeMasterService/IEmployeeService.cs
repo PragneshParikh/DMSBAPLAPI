@@ -12,5 +12,7 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<IEnumerable<EmployeeMaster>> Get();
         Task<EmployeeMaster?> GetEmployeeById(int id);
         Task<int> CreateNewUser(EmployeeMaster employeeMaster);
+
+        Task<int> UpdateEmployee(EmployeeMaster employeeMaster);
     }
 }

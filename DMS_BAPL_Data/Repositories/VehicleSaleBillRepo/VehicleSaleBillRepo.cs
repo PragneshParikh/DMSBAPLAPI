@@ -856,10 +856,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         ProformaCreated = vd == null ? null : vh.SaleBillNo,
                         PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done"
                     }
-                }
-                            ).GroupBy(x => x.ChassisNo)
-                            .Select(g => g.First().Data)
-                            .ToListAsync();
+                })
+                .GroupBy(x => x.ChassisNo)
+                .Select(g => g.First().Data)
+                .ToListAsync();
 
                 if (!string.IsNullOrEmpty(dealerCode))
                 {

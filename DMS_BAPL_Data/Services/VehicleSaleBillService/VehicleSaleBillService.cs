@@ -52,8 +52,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _prefixRepo = prefixRepo;
         }
 
-
-
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -75,8 +73,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         // ✅ GET BY ID
         public async Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id)
         {
@@ -92,8 +88,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? dealerCode, string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
         {
             try
@@ -145,7 +139,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -350,7 +343,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task DeleteAsync(int id)
         {
             try
@@ -362,9 +354,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         // Mapping Methods
-
         private VehicleSaleBillHeader MapToEntity(VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -454,7 +444,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         private VehicleSaleBillResponseViewModel MapToResponse(VehicleSaleBillHeader data)
         {
             try
@@ -535,10 +524,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
-
-
         public async Task<string> GenerateNextVehicleSaleNo()
         {
             try
@@ -563,8 +548,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         public async Task<VehicleSaleExportViewModel?> GetExportData(int id)
         {
             try
@@ -648,9 +631,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
 
         }
-
-
-
         public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId)
         {
             dynamic customer;
@@ -729,7 +709,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
             return result;
         }
-
         public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
@@ -745,7 +724,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 return 0;
             }
         }
-
         public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
         {
             try
@@ -757,7 +735,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
         {
             try
@@ -769,7 +746,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
@@ -861,7 +837,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
         {
             try
@@ -873,7 +848,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId)
         {
             try
