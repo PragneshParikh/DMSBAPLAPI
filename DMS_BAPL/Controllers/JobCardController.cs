@@ -5,6 +5,7 @@ using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MimeKit;
@@ -415,6 +416,25 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<int>> GetNextJobNumber(string dealerCode)
+        {
+            try
+            {
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobNo = await _jobCardRepo.GetNextJobNumber(dealerCode);
+
+                return Ok(jobNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while featching next job no : {ex.Message}");
+                throw;
+            }
+        }
 
         [HttpGet("GetMaterialedJobCardList/{jobId}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
@@ -429,17 +449,8 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobNo = await _jobCardRepo.GetNextJobNumber(dealerCode);
-
-                return Ok(jobNo);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error while featching next job no : {ex.Message}");
-                throw;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authorized");
                 var result = await _jobCardRepo.GetMaterialedJobCardList(jobId);
+
                 return Ok(result);
             }
             catch (Exception ex)

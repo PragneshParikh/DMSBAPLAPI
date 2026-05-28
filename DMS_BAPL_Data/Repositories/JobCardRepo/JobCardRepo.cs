@@ -169,7 +169,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(string? dealerCode)
+        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
         {
             var query =
                 from jh in _context.JobCardHeaders
@@ -206,7 +206,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     on lg.State equals sta.StateId into staJoin
                 from sta in staJoin.DefaultIfEmpty()
 
-                select new JobCardlistDetailsViewModel
+                select new
                 {
                     jh,
                     c,
@@ -1011,6 +1011,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .MaxAsync(x => (int?)x.JobNo) ?? 0;
 
             return maxId + 1;
+        }
         public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId)
         {
             var query = from jh in _context.JobCardHeaders
