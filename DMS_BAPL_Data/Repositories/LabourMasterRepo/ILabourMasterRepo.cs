@@ -15,6 +15,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
         Task<object> UpdatePartWiseLabourMaster(PartWiseLabourMasterRateViewModel partWiseLabourMasterRateViewModel, string? updatedBy);
         Task<List<LabourMasteUpdateViewModel>> GetLabourMasterModelwiseList();
         Task<List<PartWiseLabourMasterRateViewModel>> GetLabourMasterPartwiseList();
+        Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName);
 
     }
 }

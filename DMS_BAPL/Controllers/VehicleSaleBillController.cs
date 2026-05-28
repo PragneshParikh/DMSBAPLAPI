@@ -67,11 +67,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet]
-        public async Task<IActionResult> GetAll(string? dealerCode,string? search, DateTime? fromDate, DateTime? toDate, string? erpStatus)
+        public async Task<IActionResult> GetAll(string? dealerCode, string? search, DateTime? fromDate, DateTime? toDate, string? erpStatus)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetAllAsync(dealerCode,search, fromDate, toDate, erpStatus));
+                return Ok(await _vehicleSaleBillService.GetAllAsync(dealerCode, search, fromDate, toDate, erpStatus));
             }
             catch (Exception ex)
             {
@@ -163,7 +163,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == null)
                     return NotFound(StringConstants.PONotFound);
 
-                return Ok(result); 
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -180,11 +180,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("ChassisListPDIOK")]
-        public async Task<IActionResult> GetAllChassisListWithPDIOK(string dealerCode,int ledgerId)
+        public async Task<IActionResult> GetAllChassisListWithPDIOK(string dealerCode, int ledgerId)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetPdiVehiclesAsync(dealerCode,ledgerId));
+                return Ok(await _vehicleSaleBillService.GetPdiVehiclesAsync(dealerCode, ledgerId));
             }
             catch (Exception ex)
             {
@@ -271,13 +271,34 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
 
-                var file = await _vehicleSaleBillService.DownloadDealerExcel(dateFrom,dateTo);
+                var file = await _vehicleSaleBillService.DownloadDealerExcel(dateFrom, dateTo);
 
                 return File(
                     file,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "SaleBillList.xlsx"
                 );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("PolicyNos/{chassisNo}")]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPolicyNos(string chassisNo)
+        {
+            try
+            {
+                var policyNos = await _vehicleSaleBillService.GetPolicyNo(chassisNo);
+                return Ok(policyNos);
             }
             catch (Exception ex)
             {

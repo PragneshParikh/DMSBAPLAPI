@@ -38,7 +38,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
             IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster,
-            IExcelService excelService,IPrefixRepo prefixRepo)
+            IExcelService excelService, IPrefixRepo prefixRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -52,8 +52,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _prefixRepo = prefixRepo;
         }
 
-
-
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -63,7 +61,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
 
-                var result= await _repo.CreateWithJobUpdateAsync(header);
+                var result = await _repo.CreateWithJobUpdateAsync(header);
                 if (result != 0)
                 {
                     await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
@@ -75,8 +73,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         // ✅ GET BY ID
         public async Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id)
         {
@@ -92,8 +88,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         public async Task<List<VehicleSaleBillResponseViewModel>> GetAllAsync(string? dealerCode, string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, string? erpStatus = null)
         {
             try
@@ -145,7 +139,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -268,8 +261,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             ChassisNo = d.ChassisNo,
                             ItemRate = d.ItemRate,
                             PreGstDiscount = d.PreGstDiscount,
-                            PostGstDisc =d.PostGstDiscount,
-                            FameIi =d.FameIIDisc,
+                            PostGstDisc = d.PostGstDiscount,
+                            FameIi = d.FameIIDisc,
                             RegAmount = d.RegAmount,
                             InsuranceAmount = d.InsuranceAmount,
                             ItemCode = d.ItemCode,
@@ -334,7 +327,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SaleDate = model.SaleDate,
                         InsuranceExpDate = d.InsExpDate,
                         RegisterNo = d.RegNo,
-                        
+
                     })
                     .ToList();
 
@@ -350,7 +343,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task DeleteAsync(int id)
         {
             try
@@ -362,9 +354,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         // Mapping Methods
-
         private VehicleSaleBillHeader MapToEntity(VehicleSaleBillEditCreateViewModel model)
         {
             try
@@ -406,7 +396,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         ItemRate = d.ItemRate,
                         FameIi = d.FameIIDisc,
                         PreGstDiscount = d.PreGstDiscount,
-                        PostGstDisc =d.PostGstDiscount,
+                        PostGstDisc = d.PostGstDiscount,
                         RegAmount = d.RegAmount,
                         InsuranceAmount = d.InsuranceAmount,
                         HasDevice = d.HasDevice,
@@ -454,7 +444,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         private VehicleSaleBillResponseViewModel MapToResponse(VehicleSaleBillHeader data)
         {
             try
@@ -524,8 +513,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
                         ItemCode = d.ItemCode ?? "",
-                        FameIIDisc=d.FameIi ?? 0,
-                        PostGstDiscount =d.PostGstDisc ?? 0
+                        FameIIDisc = d.FameIi ?? 0,
+                        PostGstDiscount = d.PostGstDisc ?? 0
 
                     }).ToList()
                 };
@@ -535,10 +524,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
-
-
         public async Task<string> GenerateNextVehicleSaleNo()
         {
             try
@@ -563,8 +548,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
-
         public async Task<VehicleSaleExportViewModel?> GetExportData(int id)
         {
             try
@@ -648,9 +631,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             }
 
         }
-
-
-
         public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId)
         {
             dynamic customer;
@@ -729,7 +709,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
             return result;
         }
-
         public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
@@ -745,7 +724,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 return 0;
             }
         }
-
         public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
         {
             try
@@ -757,7 +735,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
         {
             try
@@ -769,7 +746,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
         public async Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
@@ -861,7 +837,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-
+        public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
+        {
+            try
+            {
+                return await _repo.GetPolicyNo(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
         public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId)
         {
             try
@@ -916,10 +902,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         //  PreGstDisc = item.PreGstDisc,
                         CustomerSaleDate = item.CustomerSaleDate,
                         PDIStatus = item.PDIStatus,
-                        FameIIAmnt=item.FameIIAmnt,
+                        FameIIAmnt = item.FameIIAmnt,
                         ProformaCreated = item.ProformaCreated,
 
-                        
+
 
                     };
 

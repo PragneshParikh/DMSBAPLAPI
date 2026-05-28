@@ -160,5 +160,29 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        [HttpGet("GetLabourRateDropDown/{oemmodelName}")]
+        [ProducesResponseType(typeof(PagedResponse<List<PartWiseLabourMasterRateViewModel>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLabourRateDropDown(string oemmodelName)
+        {
+            try
+            {
+                var result = await _labourMasterRepo.GetLabourRateDropDowns(oemmodelName);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    TotalRecords = 0,
+                    Data = new List<LabourRateDropDown>()
+                });
+            }
+        }
+
     }
 }

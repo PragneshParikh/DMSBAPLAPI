@@ -4,6 +4,7 @@ using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MimeKit;
@@ -69,6 +70,9 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
         [HttpGet("GetServiceHead")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetServiceHead(int jobTypeId)
         {
             try
@@ -181,7 +185,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetJobCardList(string? dealerCode)
+        public async Task<IActionResult> GetJobCardList([FromQuery] JobCardSearchVM search)
         {
             try
             {
@@ -189,7 +193,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(dealerCode);
+                var jobCardList = await _jobCardRepo.GetJobCardListViewAsync(search);
                 //if (jobCardList == null || !jobCardList.Any())
                 //{
                 //    return NotFound(StringConstants.JobCardNotFound);
@@ -411,6 +415,12 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<int>> GetNextJobNumber(string dealerCode)
+
+        [HttpGet("GetMaterialedJobCardList/{jobId}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetMaterialedJobCardList(int jobId)
         {
             try
             {
@@ -427,6 +437,15 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError($"Error while featching next job no : {ex.Message}");
                 throw;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _jobCardRepo.GetMaterialedJobCardList(jobId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetMaterialedJobCardList");
+                return StatusCode(500, "An error occurred while fetching materialed job card list.");
             }
         }
 
