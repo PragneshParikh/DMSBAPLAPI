@@ -18,6 +18,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool? IsAgainstKit { get; set; }
         public string? SubOrderType { get; set; }
         public string? LedgerCode { get; set; }
+        public string? LedgerName { get; set; }
         public List<PurchaseOrderItemViewModel> Items { get; set; }
     }
 
