@@ -169,7 +169,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.PdichecklistMasters.ToListAsync();
         }
-        public async Task<List<JobCardDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
         {
             var query =
                 from jh in _context.JobCardHeaders
@@ -264,7 +264,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             }
 
             var jobCardsResult = await query
-                .Select(x => new JobCardDetailsViewModel
+                .Select(x => new JobCardlistDetailsViewModel
                 {
                     Jobtype = x.job != null ? x.job.JobTypeName : null,
                     Jobsource = x.js != null ? x.js.JobSourceName : null,
