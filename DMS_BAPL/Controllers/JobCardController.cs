@@ -410,6 +410,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetNextJobNo/{dealerCode}")]
+        [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<int>> GetNextJobNumber(string dealerCode)
 
         [HttpGet("GetMaterialedJobCardList/{jobId}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
@@ -420,6 +425,18 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobNo = await _jobCardRepo.GetNextJobNumber(dealerCode);
+
+                return Ok(jobNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while featching next job no : {ex.Message}");
+                throw;
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
                 var result = await _jobCardRepo.GetMaterialedJobCardList(jobId);
