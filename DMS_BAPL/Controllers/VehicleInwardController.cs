@@ -1,4 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
+using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -13,11 +15,19 @@ namespace DMS_BAPL_Api.Controllers
     public class VehicleInwardController : ControllerBase
     {
         private readonly IVehicleInwardService _vehicleInwardService;
+        private readonly IChassisDetailService _chassisDetailService;
+        private readonly IChassisBatteryDetailService _chassisBatteryDetailService;
         private readonly ILogger<VehicleInwardController> _logger;
 
-        public VehicleInwardController(IVehicleInwardService vehicleInwardService, ILogger<VehicleInwardController> logger)
+        public VehicleInwardController(
+            IVehicleInwardService vehicleInwardService,
+            IChassisDetailService chassisDetailService,
+            IChassisBatteryDetailService chassisBatteryDetailService,
+            ILogger<VehicleInwardController> logger)
         {
             _vehicleInwardService = vehicleInwardService;
+            _chassisDetailService = chassisDetailService;
+            _chassisBatteryDetailService = chassisBatteryDetailService;
             _logger = logger;
         }
 
@@ -99,10 +109,18 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
                 if (vehicleInwardViewModel is null)
                     return BadRequest(new { message = "Invalid data" });
 
-                await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
+                var result = await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
+
+                if (result)
+                {
+                    await _chassisDetailService.InsertChassis(vehicleInwardViewModel, userId);
+                    await _chassisBatteryDetailService.InsertBatteryDetail(vehicleInwardViewModel, userId);
+                }
 
                 return Ok("Data inserted sucessfully.");
             }
