@@ -102,6 +102,8 @@ namespace DMS_BAPL_Utils.Constants
         public const string JobCardNotFound = "No Data Available";
         public const string WarrantyDetailsNotFound = "Warranty details not found for the specified model name.";
 
+        //HSRP
+        public const string HSRPSheet = "HSRPList";
 
         //City Master
         public const string CityMaster = "City Master";

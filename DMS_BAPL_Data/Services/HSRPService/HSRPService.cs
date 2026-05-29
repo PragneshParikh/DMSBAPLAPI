@@ -1,6 +1,8 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
+using DMS_BAPL_Data.Services.ExcelServices;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -14,10 +16,12 @@ namespace DMS_BAPL_Data.Services.HSRPService
     {
         private readonly IHSRPRepo _hsrpRepo;
         private readonly IPrefixRepo _prefixRepo;
-        public HSRPService(IHSRPRepo hsrpRepo,IPrefixRepo prefixRepo)
+        private readonly IExcelService _excelService;
+        public HSRPService(IHSRPRepo hsrpRepo,IPrefixRepo prefixRepo, IExcelService excelService)
         {
             _hsrpRepo = hsrpRepo;
             _prefixRepo = prefixRepo;
+            _excelService = excelService;
         }
 
         public async Task<List<VehicleSaleBillResponseViewModel>> GetAllInvoicedVehicleForHSRPOrder(string? dealerCode)
@@ -121,5 +125,49 @@ namespace DMS_BAPL_Data.Services.HSRPService
                 throw;
             }
         }
+
+        public async Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin,string? dealerCode,DateTime? fromDate,DateTime? toDate)
+        {
+            try
+            {
+                var data = await _hsrpRepo.GetHSRPOrderForExcel(isSuperAdmin,dealerCode,fromDate,toDate);
+
+                var properties = typeof(HSRPExcelViewModel)
+                    .GetProperties()
+                    .ToList();
+
+                var columns = properties.Select(p => p.Name).ToList();
+
+                var rows = data.Select(d =>
+                {
+                    var dict = new Dictionary<string, object>();
+
+                    foreach (var prop in properties)
+                    {
+                        var entityProp = d.GetType().GetProperty(prop.Name);
+                        dict[prop.Name] = entityProp != null
+                            ? entityProp.GetValue(d)
+                            : null;
+                    }
+
+                    return dict;
+                }).ToList();
+
+                var model = new ExcelExportViewModel
+                {
+                    SheetName = StringConstants.HSRPSheet,
+                    Columns = columns,
+                    Rows = rows
+                };
+
+                return await _excelService.GenerateExcel(model);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString()); 
+                throw;
+            }
+        }
+
     }
 }

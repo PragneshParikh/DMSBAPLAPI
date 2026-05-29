@@ -3157,10 +3157,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.DealerCode).HasMaxLength(50);
-            entity.Property(e => e.Erpstatus)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasColumnName("ERPStatus");
             entity.Property(e => e.Financier).HasMaxLength(100);
             entity.Property(e => e.IsD2d).HasColumnName("IsD2D");
             entity.Property(e => e.Location).HasMaxLength(100);
@@ -3179,6 +3175,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.SalesExecutive).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.TempRegNo).HasMaxLength(50);
             entity.Property(e => e.TotalAmount)
                 .HasDefaultValue(0m)

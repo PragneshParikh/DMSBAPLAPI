@@ -22,5 +22,6 @@ namespace DMS_BAPL_Data.Services.HSRPService
         Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin,string? dealerCode, DateTime? fromDate, DateTime? toDate);
     }
 }

@@ -102,7 +102,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         RefPoint = h.RefPoint,
                         RefRemarks = h.RefRemarks,
                         TotalAmount = h.TotalAmount,
-                        ErpStatus = h.Erpstatus,
+                        Status = h.Status,
                         DealerCode = h.DealerCode,
 
                         Details = (
@@ -451,7 +451,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             try
             {
                 var saleBill = await _context.VehicleSaleBillHeaders.Where(i => i.Id == id).FirstOrDefaultAsync();
-                saleBill.Erpstatus = "PushedToERP";
+                //saleBill.Erpstatus = "PushedToERP";
                 return await _context.SaveChangesAsync();
             }
             catch
@@ -470,9 +470,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Update(header);
 
                 // 2. Update JobCards 
-                if (jobUpdates == null && header.Erpstatus.ToLower() == "invalid")
+                if (jobUpdates == null && header.Status.ToLower() == "invalid")
                 {
-                    header.Erpstatus = "Pending";
+                    header.Status = "Pending";
                 }
 
                 if (jobUpdates != null)
@@ -721,7 +721,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 invoice.NetAmount = total + tax;
 
                 // UPDATE SALE BILL STATUS
-                saleBill.Erpstatus = "Invoiced";
+                saleBill.Status = "Invoiced";
 
                 var chassisDetailsToUpdate = await _context.ChassisDetails
                     .Where(i => chassisNos.Contains(i.ChassisNo)).ToListAsync();
