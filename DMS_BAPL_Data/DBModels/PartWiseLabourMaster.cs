@@ -29,13 +29,19 @@ public partial class PartWiseLabourMaster
 
     public decimal? Igst { get; set; }
 
-    public string? JobType { get; set; }
+    public int? JobType { get; set; }
 
     public string? DealerCode { get; set; }
 
     public string? Hsncode { get; set; }
 
     public DateTime? EffectiveDate { get; set; }
+
+    public int? ServiceType { get; set; }
+
+    public int? ServiceHead { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public string? CreatedBy { get; set; }
 
@@ -45,5 +51,9 @@ public partial class PartWiseLabourMaster
 
     public DateTime? UpdatedDate { get; set; }
 
-    public bool? IsActive { get; set; }
+    public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
+
+    public virtual ServiceHead? ServiceHeadNavigation { get; set; }
+
+    public virtual ServiceType? ServiceTypeNavigation { get; set; }
 }

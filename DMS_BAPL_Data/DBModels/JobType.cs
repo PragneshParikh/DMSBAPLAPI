@@ -19,5 +19,7 @@ public partial class JobType
 
     public virtual ICollection<JobCardHeader> JobCardHeaders { get; set; } = new List<JobCardHeader>();
 
+    public virtual ICollection<LabourMaster> LabourMasters { get; set; } = new List<LabourMaster>();
+
     public virtual ICollection<ServiceHead> ServiceHeads { get; set; } = new List<ServiceHead>();
 }

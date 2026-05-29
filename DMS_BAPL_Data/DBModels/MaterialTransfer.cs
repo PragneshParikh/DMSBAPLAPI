@@ -42,4 +42,6 @@ public partial class MaterialTransfer
     public string? UpdatedDate { get; set; }
 
     public virtual ItemMaster Item { get; set; } = null!;
+
+    public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
 }

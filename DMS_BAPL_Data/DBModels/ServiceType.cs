@@ -21,7 +21,11 @@ public partial class ServiceType
 
     public virtual ICollection<JobCardHeader> JobCardHeaders { get; set; } = new List<JobCardHeader>();
 
+    public virtual ICollection<LabourMaster> LabourMasters { get; set; } = new List<LabourMaster>();
+
     public virtual ICollection<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; } = new List<ModelwiseServiceSchedule>();
+
+    public virtual ICollection<PartWiseLabourMaster> PartWiseLabourMasters { get; set; } = new List<PartWiseLabourMaster>();
 
     public virtual ServiceHead? ServiceHead { get; set; }
 }
