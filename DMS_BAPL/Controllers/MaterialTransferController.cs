@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -16,11 +17,14 @@ namespace DMS_BAPL_Api.Controllers
     public class MaterialTransferController : ControllerBase
     {
         private readonly IMaterialTransferService _materialTransferService;
+        private readonly IJobCardRepo _jobCardRepo;
         private readonly ILogger<MaterialTransferController> _logger;
 
-        public MaterialTransferController(IMaterialTransferService materialTransferService, ILogger<MaterialTransferController> logger)
+        public MaterialTransferController(IMaterialTransferService materialTransferService, IJobCardRepo jobCardRepo,
+            ILogger<MaterialTransferController> logger)
         {
             _materialTransferService = materialTransferService;
+            _jobCardRepo = jobCardRepo;
             _logger = logger;
         }
 
@@ -114,6 +118,11 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
 
                 var material = await _materialTransferService.InsertMaterials(materialTransferViewModels);
+
+                if (material > 0)
+                {
+                    await _jobCardRepo.UpdateMaterialTransferStatus(materialTransferViewModels[0].JobId, true);
+                }
 
                 return Ok(material);
             }
