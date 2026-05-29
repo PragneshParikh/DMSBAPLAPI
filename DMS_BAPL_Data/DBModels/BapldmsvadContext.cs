@@ -143,6 +143,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
 
+    public virtual DbSet<RepairBillDetail> RepairBillDetails { get; set; }
+
+    public virtual DbSet<RepairBillHeader> RepairBillHeaders { get; set; }
+
     public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
 
     public virtual DbSet<SalesServicesCondition> SalesServicesConditions { get; set; }
@@ -629,11 +633,6 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ProfileImage).IsUnicode(false);
             entity.Property(e => e.Supervisor)
-                .HasMaxLength(100);
-            entity.Property(e => e.ProfileImage)
-                .HasMaxLength(50);
-            entity.Property(e => e.ProfileImage).IsUnicode(false);
-            entity.Property(e => e.Supervisor)
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
@@ -1029,7 +1028,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.InvoiceNo)
-                .HasMaxLength(20)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.InvoiceType)
                 .HasMaxLength(20)
@@ -1491,6 +1490,18 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("updatedDate");
+
+            entity.HasOne(d => d.JobtypeNavigation).WithMany(p => p.LabourMasters)
+                .HasForeignKey(d => d.Jobtype)
+                .HasConstraintName("fk_labourmaster_jobtype");
+
+            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.LabourMasters)
+                .HasForeignKey(d => d.ServiceHead)
+                .HasConstraintName("fk_labourmaster_ServiceHead");
+
+            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.LabourMasters)
+                .HasForeignKey(d => d.ServiceType)
+                .HasConstraintName("fk_labourmaster_ServiceType");
         });
 
         modelBuilder.Entity<LedgerMaster>(entity =>
@@ -2177,9 +2188,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Igst)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("IGST");
-            entity.Property(e => e.JobType)
-                .HasMaxLength(100)
-                .IsUnicode(false);
             entity.Property(e => e.LabourCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -2204,6 +2212,14 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.PartWiseLabourMasters)
+                .HasForeignKey(d => d.ServiceHead)
+                .HasConstraintName("fk_partWiseLabourMaster_ServiceHead");
+
+            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.PartWiseLabourMasters)
+                .HasForeignKey(d => d.ServiceType)
+                .HasConstraintName("fk_partWiseLabourMaster_ServiceType");
         });
 
         modelBuilder.Entity<PartsInventory>(entity =>
@@ -2613,6 +2629,133 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<RepairBillDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RepairBi__3214EC07F0FF2241");
+
+            entity.Property(e => e.Cgstamount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTAmount");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DiscountType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Fscrate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igstamount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTAmount");
+            entity.Property(e => e.ItemType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LabourDiscount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourNetAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourQty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourTaxblAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PartDiscount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PartNetAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PartQty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PartRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PartTaxblAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Sgstamount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTAmount");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.LabourMaster).WithMany(p => p.RepairBillDetails)
+                .HasForeignKey(d => d.LabourMasterId)
+                .HasConstraintName("FK__RepairBil__Labou__6339AFF7");
+
+            entity.HasOne(d => d.Material).WithMany(p => p.RepairBillDetails)
+                .HasForeignKey(d => d.MaterialId)
+                .HasConstraintName("FK__RepairBil__Mater__62458BBE");
+
+            entity.HasOne(d => d.PartWiseLabour).WithMany(p => p.RepairBillDetails)
+                .HasForeignKey(d => d.PartWiseLabourId)
+                .HasConstraintName("FK__RepairBil__PartW__642DD430");
+
+            entity.HasOne(d => d.RepairBill).WithMany(p => p.RepairBillDetails)
+                .HasForeignKey(d => d.RepairBillId)
+                .HasConstraintName("FK__RepairBil__Repai__61516785");
+        });
+
+        modelBuilder.Entity<RepairBillHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RepairBi__3214EC07B775251A");
+
+            entity.ToTable("RepairBillHeader");
+
+            entity.Property(e => e.AmountReceived)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.BillType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ContactNumber).HasColumnName("contactNumber");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.InsDecription)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("insDecription");
+            entity.Property(e => e.InsValidTill).HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.MobileNumber)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.PartyName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.PolicyNo)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("policyNo");
+            entity.Property(e => e.Prefix)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks).IsUnicode(false);
+            entity.Property(e => e.SurveyorName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("surveyorName");
+            entity.Property(e => e.TotalDiscount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalNetAmount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalTaxableAmount)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Insurance).WithMany(p => p.RepairBillHeaders)
+                .HasForeignKey(d => d.InsuranceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RepairBillHeader_LeadgerMaster");
+
+            entity.HasOne(d => d.Job).WithMany(p => p.RepairBillHeaders)
+                .HasForeignKey(d => d.JobId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RepairBillHeader_JobCardHeader");
         });
 
         modelBuilder.Entity<RoleWiseMenuRight>(entity =>

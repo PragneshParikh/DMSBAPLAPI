@@ -213,7 +213,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                             labour.Cgst = decimal.TryParse(worksheet.Cells[row, 9].Text, out decimal cgst) ? cgst : 0;
                             labour.Sgst = decimal.TryParse(worksheet.Cells[row, 10].Text, out decimal sgst) ? sgst : 0;
                             labour.Igst = decimal.TryParse(worksheet.Cells[row, 11].Text, out decimal igst) ? igst : 0;
-                            labour.JobType = worksheet.Cells[row, 12].Text.Trim();
+                            labour.JobType = int.TryParse(worksheet.Cells[row, 12].Text,out int JobType)?JobType:0;
                             labour.DealerCode = worksheet.Cells[row, 13].Text.Trim();
                             labour.Hsncode = worksheet.Cells[row, 14].Text.Trim();
                             labour.EffectiveDate = labourMasterViewModel.effectiveDate;
@@ -303,6 +303,10 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
                 data.CityTier = labourMasteUpdateViewModel.CityTier;
 
+                data.Jobtype = labourMasteUpdateViewModel.JobType;
+                data.ServiceHead = labourMasteUpdateViewModel.ServiceHead;
+                data.ServiceType = labourMasteUpdateViewModel.Servicetype;
+
                 // ============================
                 // Backend Handle Fields
                 // ============================
@@ -381,6 +385,8 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                 data.Igst = partWiseLabourMasterRateViewModel.Igst;
 
                 data.JobType = partWiseLabourMasterRateViewModel.JobType;
+                data.ServiceHead = partWiseLabourMasterRateViewModel.ServiceHead;
+                data.ServiceType = partWiseLabourMasterRateViewModel.Servicetype;
                 data.Hsncode = partWiseLabourMasterRateViewModel.HSNCode;
                 data.EffectiveDate = partWiseLabourMasterRateViewModel.EffectiveDate;
 
@@ -431,21 +437,31 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         public async Task<List<LabourMasteUpdateViewModel>> GetLabourMasterModelwiseList()
         {
-            var LaboorRateModelwiseListingdata = await _context.LabourMasters
-                .Select(x => new LabourMasteUpdateViewModel
+            var LaboorRateModelwiseListingdata = await(from labour in _context.LabourMasters
+                join jobType in _context.JobTypes on labour.Jobtype equals jobType.Id into jobTypeJoin
+                from jobType in jobTypeJoin.DefaultIfEmpty()
+                join serviceHead in _context.ServiceHeads on labour.ServiceHead equals serviceHead.Id into serviceHeadJoin
+                from serviceHead in serviceHeadJoin.DefaultIfEmpty()
+                join serviceType in _context.ServiceTypes on labour.ServiceType equals serviceType.Id into serviceTypeJoin
+                from serviceType in serviceTypeJoin.DefaultIfEmpty()
+
+                select new LabourMasteUpdateViewModel
                 {
-                    Id = x.Id,
-                    LabourCode = x.LabourCode,
-                    LabourDescription = x.LabourDescription,
-                    LabourRate = x.LabourRate,
-                    HSNCode = x.Hsncode,
-                    Cgst = x.Cgst,
-                    Sgst = x.Sgst,
-                    Igst = x.Igst,
-                    EffectiveDate = x.EffectiveDate,
-                    OemModelName = x.Oemmodelname,
-                    CityTier = x.CityTier,
-                    IsLabourRateActive = x.IsLabourActive
+                    Id = labour.Id,
+                    LabourCode = labour.LabourCode,
+                    LabourDescription = labour.LabourDescription,
+                    LabourRate = labour.LabourRate,
+                    HSNCode = labour.Hsncode,
+                    Cgst = labour.Cgst,
+                    Sgst = labour.Sgst,
+                    Igst = labour.Igst,
+                    EffectiveDate = labour.EffectiveDate,
+                    OemModelName = labour.Oemmodelname,
+                    CityTier = labour.CityTier,
+                    JobTypeName = jobType != null ? jobType.JobTypeName : null,
+                    ServiceHeadName = serviceHead != null ? serviceHead.ServiceHeadName : null,
+                    ServicetypeName = serviceType != null ? serviceType.ServiceTypeName : null,
+                    IsLabourRateActive = labour.IsLabourActive
                 }).ToListAsync();
 
             return LaboorRateModelwiseListingdata;
@@ -455,26 +471,34 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourMasterPartwiseList()
         {
-            var LaboorRatePartwiseListingdata = await _context.PartWiseLabourMasters
-                .Select(x => new PartWiseLabourMasterRateViewModel
+            var LaboorRatePartwiseListingdata = await( from partwiselabour in _context.PartWiseLabourMasters
+                                                       join jobType in _context.JobTypes on partwiselabour.JobType equals jobType.Id into jobTypeJoin
+                                                         from jobType in jobTypeJoin.DefaultIfEmpty()
+                                                       join serviceHead in _context.ServiceHeads on partwiselabour.ServiceHead equals serviceHead.Id into serviceHeadJoin
+                                                         from serviceHead in serviceHeadJoin.DefaultIfEmpty()
+                                                    join serviceType in _context.ServiceTypes on partwiselabour.ServiceType equals serviceType.Id into serviceTypeJoin
+                                                         from serviceType in serviceTypeJoin.DefaultIfEmpty()
+                select new PartWiseLabourMasterRateViewModel
                 {
-                    Id = x.Id,
-                    LabourCode = x.LabourCode,
-                    LabourName = x.LabourName,
-                    PartCode = x.PartCode,
-                    PartDescription = x.PartDescription,
-                    oemModelName = x.ModelName,
-                    CityTier = x.CityTier,
-                    LabourRate = x.LabourRate,
-                    LabourHours = x.LabourHrs,
-                    Cgst = x.Cgst,
-                    Sgst = x.Sgst,
-                    Igst = x.Igst,
-                    JobType = x.JobType,
-                    DealerCode = x.DealerCode,
-                    HSNCode = x.Hsncode,
-                    EffectiveDate = x.EffectiveDate,
-                    IsActive = x.IsActive
+                    Id = partwiselabour.Id,
+                    LabourCode = partwiselabour.LabourCode,
+                    LabourName = partwiselabour.LabourName,
+                    PartCode = partwiselabour.PartCode,
+                    PartDescription = partwiselabour.PartDescription,
+                    oemModelName = partwiselabour.ModelName,
+                    CityTier = partwiselabour.CityTier,
+                    LabourRate = partwiselabour.LabourRate,
+                    LabourHours = partwiselabour.LabourHrs,
+                    Cgst = partwiselabour.Cgst,
+                    Sgst = partwiselabour.Sgst,
+                    Igst = partwiselabour.Igst,
+                    JobTypeName = jobType != null ? jobType.JobTypeName : null,
+                    ServiceHeadName = serviceHead != null ? serviceHead.ServiceHeadName : null,
+                    ServicetypeName = serviceType != null ? serviceType.ServiceTypeName : null,
+                    DealerCode = partwiselabour.DealerCode,
+                    HSNCode = partwiselabour.Hsncode,
+                    EffectiveDate = partwiselabour.EffectiveDate,
+                    IsActive = partwiselabour.IsActive
                 }).ToListAsync();
             return LaboorRatePartwiseListingdata;
 

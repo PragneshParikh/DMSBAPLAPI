@@ -35,6 +35,12 @@ public partial class LabourMaster
 
     public DateTime? EffectiveDate { get; set; }
 
+    public int? Jobtype { get; set; }
+
+    public int? ServiceHead { get; set; }
+
+    public int? ServiceType { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -42,4 +48,12 @@ public partial class LabourMaster
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual JobType? JobtypeNavigation { get; set; }
+
+    public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
+
+    public virtual ServiceHead? ServiceHeadNavigation { get; set; }
+
+    public virtual ServiceType? ServiceTypeNavigation { get; set; }
 }
