@@ -40,7 +40,7 @@ namespace DMS_BAPL_Data.Repositories.PerformaInvoiceRepo
             try
             {
                 var saleBill= await _context.VehicleSaleBillHeaders.Where(i=>i.SaleBillNo == vehicleSaleBillNo).FirstOrDefaultAsync();
-                saleBill.Erpstatus = "Alloted";
+                //saleBill.Status = "Alloted";
                 var result= _context.SaveChangesAsync();
                 return result.IsCompletedSuccessfully;
 

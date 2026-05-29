@@ -53,7 +53,7 @@ public partial class VehicleSaleBillHeader
 
     public decimal? TotalAmount { get; set; }
 
-    public string? Erpstatus { get; set; }
+    public string? Status { get; set; }
 
     public string? DealerCode { get; set; }
 
