@@ -2,6 +2,9 @@
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
+using DMS_BAPL_Data.Repositories.ChassisBatteryDetailRepo;
+using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
+using DMS_BAPL_Data.Repositories.ChassisDetailsRepo;
 using DMS_BAPL_Data.Repositories.ChassisRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
@@ -47,6 +50,8 @@ using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
+using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
+using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.ChassisService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
@@ -144,6 +149,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<INewsBulletinRepo, NewsBulletinRepo>();
             services.AddScoped<INewsBulletinAttachmentRepo, NewsBulletinAttachmentRepo>();
             services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();
+            services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
+            services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
 
             #endregion
 
@@ -191,6 +198,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<INewsBulletinService, NewsBulletinService>();
             services.AddScoped<INewsBulletinAttachmentService, NewsBulletinAttachmentService>();
             services.AddScoped<IEmployeeService, EmployeeService>();
+            services.AddScoped<IChassisDetailService, ChassisDetailService>();
+            services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
+
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
