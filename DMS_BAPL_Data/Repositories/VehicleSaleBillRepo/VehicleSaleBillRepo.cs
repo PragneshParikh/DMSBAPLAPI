@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -20,14 +21,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
     {
         private readonly BapldmsvadContext _context;
         private readonly IPartInventoryService _partInventoryService;
+        private readonly IPrefixRepo _prefixRepo;
         private readonly IHttpContextAccessor _contextAccessor;
 
         public VehicleSaleBillRepo(BapldmsvadContext context, IPartInventoryService partInventoryService,
+            IPrefixRepo prefixRepo,
             IHttpContextAccessor contextAccessor)
         {
             _context = context;
             _partInventoryService = partInventoryService;
             _contextAccessor = contextAccessor;
+            _prefixRepo = prefixRepo;
         }
 
         //public async Task<int> CreateAsync(VehicleSaleBillHeader entity)
@@ -98,7 +102,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         RefPoint = h.RefPoint,
                         RefRemarks = h.RefRemarks,
                         TotalAmount = h.TotalAmount,
-                        ErpStatus = h.Erpstatus,
+                        Status = h.Status,
                         DealerCode = h.DealerCode,
 
                         Details = (
@@ -381,19 +385,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Add(header);
                 await _context.SaveChangesAsync();
 
+
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+               // var invoiceNo = await _prefixRepo.GetPrefixByDealerCodeModuleName(header.DealerCode, "invoice");
+
 
                 // 2. Create Proforma Invoice Header
                 var invoice = new InvoiceHeader
                 {
-                    InvoiceType = "Proforma Invoice", // 👈 important
+                    InvoiceType = "Proforma Invoice", 
                     ServiceType = "Vehicle Sale Bill",
                     DocumentNo = header.SaleBillNo,
                     ReferenceId = header.Id,
                     CustomerId = header.LedgerId,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now,
-                    Status = "Proforma"
+                    Status = "Proforma",
+                   InvoiceNo ="IN-"+ header.SaleBillNo,
+                    DealerCode =header.DealerCode,
                 };
 
                 // 3. Add Invoice Details (optional but recommended)
@@ -442,7 +451,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             try
             {
                 var saleBill = await _context.VehicleSaleBillHeaders.Where(i => i.Id == id).FirstOrDefaultAsync();
-                saleBill.Erpstatus = "PushedToERP";
+                //saleBill.Erpstatus = "PushedToERP";
                 return await _context.SaveChangesAsync();
             }
             catch
@@ -461,9 +470,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 _context.VehicleSaleBillHeaders.Update(header);
 
                 // 2. Update JobCards 
-                if (jobUpdates == null && header.Erpstatus.ToLower() == "invalid")
+                if (jobUpdates == null && header.Status.ToLower() == "invalid")
                 {
-                    header.Erpstatus = "Pending";
+                    header.Status = "Pending";
                 }
 
                 if (jobUpdates != null)
@@ -487,7 +496,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         job.InsuranceExpDate = item.InsuranceExpDate;
                         job.RegisterNo = item.RegisterNo;
                     }
-                    header.Erpstatus = "Reserved";
+                  //  header.Erpstatus = "Reserved";
 
                     // Mark other sale bills with same chassis as Invalid
                     var invalidSalesBills = await _context.VehicleSaleBillHeaders
@@ -498,7 +507,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                     foreach (var bill in invalidSalesBills)
                     {
-                        bill.Erpstatus = "Invalid";
+                       // bill.Erpstatus = "Invalid";
 
                         var detailsToRemove = await _context.VehicleSaleBillDetails
                              .Where(d => d.VehicleSaleBillId == bill.Id)
@@ -634,7 +643,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                 foreach (var bill in invalidSalesBills)
                 {
-                    bill.Erpstatus = "Invalid";
+                    //bill.Erpstatus = "Invalid";
 
                     var detailsToRemove = await _context.VehicleSaleBillDetails
                          .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
@@ -662,6 +671,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     invoice.Status = "Invoiced";
                     invoice.UpdatedBy = userId;
                     invoice.UpdatedDate = DateTime.Now;
+                    invoice.InvoiceNo = "IN" + saleBill.SaleBillNo;
 
                     // REMOVE OLD DETAILS (important to avoid duplicates)
                     _context.InvoiceDetails.RemoveRange(invoice.InvoiceDetails);
@@ -711,7 +721,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 invoice.NetAmount = total + tax;
 
                 // UPDATE SALE BILL STATUS
-                saleBill.Erpstatus = "Invoiced";
+                saleBill.Status = "Invoiced";
 
                 var chassisDetailsToUpdate = await _context.ChassisDetails
                     .Where(i => chassisNos.Contains(i.ChassisNo)).ToListAsync();

@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
@@ -15,10 +16,14 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
     {
         private readonly IReceiptEntryRepo _receiptEntryRepo;
         private readonly IExcelService _excelService;
-        public ReceiptEntryService(IReceiptEntryRepo receiptEntryRepo, IExcelService excelService)
+        private readonly IPrefixRepo _prefixRepo;
+        public ReceiptEntryService(IReceiptEntryRepo receiptEntryRepo, IExcelService excelService,
+            IPrefixRepo prefixRepo)
+    
         {
             _receiptEntryRepo = receiptEntryRepo;
             _excelService = excelService;
+            _prefixRepo = prefixRepo;
         }
 
         public async Task<string> GenerateNextReceiptNoAsync()
@@ -56,7 +61,13 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
         {
             try
             {
-                return await _receiptEntryRepo.AddReceiptEntryAsync(receiptEntry, userId,dealerCode);
+                var result = await _receiptEntryRepo.AddReceiptEntryAsync(receiptEntry, userId,dealerCode);
+
+                if (result != null)
+                {
+                    await _prefixRepo.UpdateNextNumberByDealerByModule(receiptEntry.DealerCode, "receipt_entry");
+                }
+                return result;
 
             }
             catch (Exception)

@@ -31,7 +31,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             {
                 var result = _context.VehicleSaleBillHeaders
                     .Include(i => i.VehicleSaleBillDetails)
-                    .Where(i => i.Erpstatus.ToLower() == "invoiced");
+                    .Where(i => i.Status.ToLower() == "invoiced");
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
@@ -64,7 +64,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         RefPoint = i.RefPoint,
                         RefRemarks = i.RefRemarks,
                         TotalAmount = i.TotalAmount,
-                        ErpStatus = i.Erpstatus,
+                        Status = i.Status,
                         DealerCode = i.DealerCode,
                         isD2d = i.IsD2d,
 
@@ -107,7 +107,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                              on vd.Id equals ho.SaleBillDetailsId into HSRPDetails
                              from ho in HSRPDetails.DefaultIfEmpty()
 
-                             where vh.Erpstatus.ToLower() == "invoiced" && vd.Hsrpstatus == null
+                             where vh.Status.ToLower() == "invoiced" && vd.Hsrpstatus == null
 
                              select new HSRPOrderAddEditViewModel
                              {
@@ -253,6 +253,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         SaleBillNo = item.SaleBillNo,
                         OrderDate = item.OrderDate,
                         OrderNo = item.OrderNo,
+                        DealerCode = item.DealerCode,
 
 
                         //Hsrpstatus = apiRes?.status ?? "FAILED",
@@ -691,5 +692,98 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
+        public async Task<List<HSRPExcelViewModel>> GetHSRPOrderForExcel(
+            bool isSuperAdmin,
+            string? dealerCode,
+            DateTime? fromDate,
+            DateTime? toDate)
+        {
+            try
+            {
+                var query =
+                    from hs in _context.Hsrporders
+
+                    join vs in _context.VehicleSaleBillDetails
+                        on hs.SaleBillDetailsId equals vs.Id into vsJoin
+                    from vs in vsJoin.DefaultIfEmpty()
+
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vs.VehicleSaleBillId equals vh.Id into vhJoin
+                    from vh in vhJoin.DefaultIfEmpty()
+
+                    join lg in _context.LedgerMasters
+                        on hs.CustomerLedgerId equals lg.Id into lgJoin
+                    from lg in lgJoin.DefaultIfEmpty()
+
+                    join slg in _context.LedgerMasters
+                        on hs.SupplierLedgerId equals slg.Id into slgJoin
+                    from slg in slgJoin.DefaultIfEmpty()
+
+                    join dl in _context.DealerMasters
+                        on hs.DealerCode equals dl.Dealercode into dlJoin
+                    from dl in dlJoin.DefaultIfEmpty()
+
+                    select new
+                    {
+                        hs,
+                        vh,
+                        lg,
+                        slg,
+                        dl
+                    };
+
+               
+                if (!isSuperAdmin && !string.IsNullOrEmpty(dealerCode))
+                {
+                    query = query.Where(x => x.hs.DealerCode == dealerCode);
+                }
+
+                
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.hs.OrderDate >= fromDate.Value);
+                }
+
+               
+                if (toDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.hs.OrderDate <= toDate.Value);
+                }
+
+                var result = await query
+                    .Select(x => new HSRPExcelViewModel
+                    {
+                        ChassisNo = x.hs.ChassisNo,
+                        DealerName = x.dl != null ? x.dl.Compname : "",
+                        DealerCode = x.hs.DealerCode,
+                        DealerState = x.dl != null ? x.dl.State : "",
+                        PartyName = x.lg != null ? x.lg.LedgerName : "",
+                        MobileNo = x.lg != null ? x.lg.MobileNumber : "",
+                        ChassisSaleDate = x.vh != null
+                            ? x.vh.SaleDate.ToString()
+                            : "",
+                        RegNo = x.hs.RegNo,
+                        SupplerName = x.slg != null
+                            ? x.slg.LedgerName
+                            : "",
+                        OrderNo = x.hs.OrderNo,
+                        OrderDate = x.hs.OrderDate.ToString(),
+                        HSRPOrederStatus = x.hs.Hsrpstatus,
+                        HSRPResponse = x.hs.Hsrpresponse,
+                        AckInward = x.hs.InwardStatus,
+                        InwardSelectStatus = x.hs.InwardStatus,
+                        InwardStatusResponse = x.hs.InwardResponse
+                    })
+                    .ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

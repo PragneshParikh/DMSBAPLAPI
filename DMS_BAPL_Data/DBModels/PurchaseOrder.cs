@@ -23,6 +23,8 @@ public partial class PurchaseOrder
 
     public string? CustomerCode { get; set; }
 
+    public int? JobId { get; set; }
+
     public string? LocCode { get; set; }
 
     public string? LedgerCode { get; set; }

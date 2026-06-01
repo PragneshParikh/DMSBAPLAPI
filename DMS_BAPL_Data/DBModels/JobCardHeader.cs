@@ -81,6 +81,8 @@ public partial class JobCardHeader
 
     public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 
+    public virtual ICollection<RepairBillHeader> RepairBillHeaders { get; set; } = new List<RepairBillHeader>();
+
     public virtual ServiceHead? ServiceheadNavigation { get; set; }
 
     public virtual ServiceType? ServicetypeNavigation { get; set; }

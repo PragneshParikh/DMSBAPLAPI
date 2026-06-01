@@ -164,5 +164,32 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Download(bool isSuperAdmin,string? dealerCode,DateTime? fromDate,DateTime? toDate)
+        {
+            try
+            {
+
+                var file = await _hsrpService.DownloadHSRPExcel(isSuperAdmin,dealerCode,fromDate,toDate);
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "HSRPList.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

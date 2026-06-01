@@ -26,7 +26,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? TempRegNo { get; set; }
         public bool? isD2d { get; set; }
         public string? CustomerType { get; set; }
-        public string? ErpStatus { get; set; }
+        public string? Status { get; set; }
         public string DealerCode { get; set; }
         public string BookingId { get; set; }
         public string PrintType { get; set; }

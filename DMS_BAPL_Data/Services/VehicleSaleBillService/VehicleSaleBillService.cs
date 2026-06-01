@@ -103,7 +103,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     list = list.Where(x =>
                         (x.SaleBillNo != null && x.SaleBillNo.ToLower().Contains(search)) ||
                         (x.SaleType != null && x.SaleType.ToLower().Contains(search)) ||
-                        (x.Erpstatus != null && x.Erpstatus.ToLower().Contains(search)) ||
+                        (x.Status != null && x.Status.ToLower().Contains(search)) ||
                         (x.CustomerName != null && x.CustomerName.ToLower().Contains(search)) ||
                         (x.BillingName != null && x.BillingName.ToLower().Contains(search)) ||
                         (x.Location != null && x.Location.ToLower().Contains(search)) ||
@@ -123,7 +123,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 }
                 if (!string.IsNullOrWhiteSpace(erpStatus))
                 {
-                    list = list.Where(x => x.Erpstatus.ToLower() == erpStatus.ToLower()).ToList();
+                    list = list.Where(x => x.Status.ToLower() == erpStatus.ToLower()).ToList();
                 }
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
@@ -387,7 +387,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     LedgerId = model.LedgerId,
                     CreatedDate = DateTime.Now,
                     CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
-                    Erpstatus = model.ErpStatus,
+                    Status = model.Status,
                     DealerCode = model.DealerCode,
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
@@ -467,7 +467,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     isD2d = data.IsD2d,
                     CustomerType = data.CustomerType,
                     LedgerId = data.LedgerId,
-                    ErpStatus = data.Erpstatus,
+                    Status = data.Status,
                     DealerCode = data.DealerCode,
 
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
@@ -914,17 +914,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     {
                         if (tax.TaxCode.ToUpper().Contains("SGST"))
                         {
-                            vm.SGSTPer = tax.TaxRate;
+                            vm.SGSTPER = tax.TaxRate;
                             vm.SGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("CGST"))
                         {
-                            vm.CGSTPer = tax.TaxRate;
+                            vm.CGSTPER = tax.TaxRate;
                             vm.CGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("IGST"))
                         {
-                            vm.IGSTPer = tax.TaxRate;
+                            vm.IGSTPER = tax.TaxRate;
                             vm.IGST = tax.TaxRate;
                         }
                     }

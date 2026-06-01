@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Org.BouncyCastle.Asn1.X509.Qualified;
+using System.Text.RegularExpressions;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -16,12 +18,39 @@ namespace DMS_BAPL_Api.Controllers
     public class MaterialTransferController : ControllerBase
     {
         private readonly IMaterialTransferService _materialTransferService;
+        private readonly IJobCardRepo _jobCardRepo;
         private readonly ILogger<MaterialTransferController> _logger;
 
-        public MaterialTransferController(IMaterialTransferService materialTransferService, ILogger<MaterialTransferController> logger)
+        public MaterialTransferController(IMaterialTransferService materialTransferService, IJobCardRepo jobCardRepo,
+            ILogger<MaterialTransferController> logger)
         {
             _materialTransferService = materialTransferService;
+            _jobCardRepo = jobCardRepo;
             _logger = logger;
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<MaterialTransfer>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> Get()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var materilList = await _materialTransferService.Get();
+
+                return Ok(materilList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while featching the records : {ex.Message}");
+                throw;
+            }
         }
 
         [HttpGet("issue-id")]
@@ -77,6 +106,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<PagedResponse<object>>> GetMaterialTransferDetailByDealer(
+            [FromQuery] string? searchTerm,
             [FromQuery] string dealerCode,
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
@@ -88,7 +118,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var materials = await _materialTransferService.GetMaterialTransferDetailsByDealer(dealerCode, pageIndex, pageSize);
+                var materials = await _materialTransferService.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize);
 
                 return Ok(materials);
             }
@@ -99,6 +129,44 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> downloadExcel()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+
+                string? dealerCode = null;
+
+                // Normal users only
+                if (!isAdmin)
+                    dealerCode = GetUserInfoFromToken.GetDealerCode(HttpContext);
+
+                var file = await _materialTransferService.downloadMaterialExcel(dealerCode);
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "MaterialTransfer.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
 
         [HttpPost]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
@@ -114,6 +182,11 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
 
                 var material = await _materialTransferService.InsertMaterials(materialTransferViewModels);
+
+                if (material > 0)
+                {
+                    await _jobCardRepo.UpdateMaterialTransferStatus(materialTransferViewModels[0].JobId, true);
+                }
 
                 return Ok(material);
             }

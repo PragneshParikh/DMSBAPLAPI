@@ -67,6 +67,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         on LM.State equals S.StateId into stateGroup
                     from state in stateGroup.DefaultIfEmpty()
 
+                    orderby LM.CreatedDate descending
+
                     select new
                     {
                         Id = LM.Id,
