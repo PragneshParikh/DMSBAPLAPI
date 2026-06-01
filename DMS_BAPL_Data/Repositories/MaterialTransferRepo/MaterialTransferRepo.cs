@@ -1,7 +1,10 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using MailKit.Search;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -18,6 +21,12 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
         public MaterialTransferRepo(BapldmsvadContext context)
         {
             _context = context;
+        }
+
+        async Task<object> IMaterialTransferRepo.Get()
+        {
+            return await _context.MaterialTransfers
+                .ToListAsync();
         }
 
         async Task<string> IMaterialTransferRepo.GetIssueIdAsync()
@@ -153,71 +162,177 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             catch { throw; }
         }
 
-        async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(string dealerCode, int pageIndex, int pageSize)
+        async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(
+            string? searchTerm,
+            string dealerCode,
+            int pageIndex,
+            int pageSize)
         {
             try
             {
-                var query = from JH in _context.JobCardHeaders
-                            join JC in _context.JobCardCustomers
-                                on JH.Id equals JC.JobCardHeaderId
+                var materialTransferGroup = _context.MaterialTransfers
+                    .GroupBy(x => x.JobId)
+                    .Select(x => new
+                    {
+                        JobId = x.Key,
+                        CreatedDate = x.Max(y => y.CreatedDate)
+                    });
 
-                            join U in _context.AspNetUsers
-                                on JH.CreatedBy equals U.Id into userGroup
-                            from U in userGroup.DefaultIfEmpty()
+                var query =
+                    from MT in materialTransferGroup
 
-                            join UM in _context.AspNetUsers
-                                on JH.UpdateBy equals UM.Id into userModGroup
-                            from UM in userModGroup.DefaultIfEmpty()
+                    join JH in _context.JobCardHeaders
+                        on MT.JobId equals JH.Id
 
-                            orderby JH.Id
-                            select new
-                            {
-                                JH.Id,
-                                JH.InvoiceNo,
-                                JH.Chassisno,
-                                JH.JobinDate,
-                                JH.JobNo,
-                                JH.Serviceloc,
+                    join JC in _context.JobCardCustomers
+                        on JH.Id equals JC.JobCardHeaderId
 
-                                PreparedBy = U != null ? U.UserName : null,
-                                ModifiedBy = UM != null ? UM.UserName : null,
+                    join U in _context.AspNetUsers
+                        on JH.CreatedBy equals U.Id into userGroup
+                    from U in userGroup.DefaultIfEmpty()
 
-                                JC.CustomerName,
-                                JC.RegisterNo,
-                            };
+                    join UM in _context.AspNetUsers
+                        on JH.UpdateBy equals UM.Id into userModGroup
+                    from UM in userModGroup.DefaultIfEmpty()
+
+                    where JH.DealerCode == dealerCode
+
+                    select new
+                    {
+                        JH.Id,
+                        JH.InvoiceNo,
+                        JH.Chassisno,
+                        JH.JobinDate,
+                        JH.JobNo,
+                        JH.Serviceloc,
+
+                        PreparedBy = U != null ? U.UserName : null,
+                        ModifiedBy = UM != null ? UM.UserName : null,
+
+                        JC.CustomerName,
+                        JC.RegisterNo,
+
+                        MT.CreatedDate
+                    };
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    searchTerm = searchTerm.Trim();
+
+                    query = query.Where(x =>
+                        (x.InvoiceNo != null && x.InvoiceNo.Contains(searchTerm)) ||
+                        (x.Chassisno != null && x.Chassisno.Contains(searchTerm)) ||
+                        (x.JobNo != null && x.JobNo.ToString().Contains(searchTerm)) ||
+                        (x.CustomerName != null && x.CustomerName.Contains(searchTerm)) ||
+                        (x.RegisterNo != null && x.RegisterNo.Contains(searchTerm))
+                    );
+                }
 
                 int totalRecords = await query.CountAsync();
 
-                var result = query
+                var result = await query
+                    .OrderByDescending(x => x.CreatedDate)
                     .Skip((pageIndex - 1) * pageSize)
                     .Take(pageSize)
-                    .AsEnumerable()
-                    .Select((x, index) => new
-                    {
-                        SrNo = (pageIndex - 1) * pageSize + index + 1,
-                        x.Id,
-                        x.InvoiceNo,
-                        x.Chassisno,
-                        x.JobinDate,
-                        x.JobNo,
-                        x.Serviceloc,
-                        x.PreparedBy,
-                        x.ModifiedBy,
-                        x.CustomerName,
-                        x.RegisterNo
-                    })
-                    .ToList();
+                    .ToListAsync();
+
+                var data = result.Select((x, index) => new
+                {
+                    SrNo = ((pageIndex - 1) * pageSize) + index + 1,
+                    x.Id,
+                    x.InvoiceNo,
+                    x.Chassisno,
+                    x.JobinDate,
+                    x.JobNo,
+                    x.Serviceloc,
+                    x.PreparedBy,
+                    x.ModifiedBy,
+                    x.CustomerName,
+                    x.RegisterNo
+                }).Cast<object>().ToList();
 
                 return new PagedResponse<object>
                 {
-                    Data = result.Cast<object>().ToList(),
+                    Data = data,
                     TotalRecords = totalRecords
                 };
-
             }
-            catch { throw; }
+            catch
+            {
+                throw;
+            }
         }
 
+        async Task<List<MaterialTransferExcelViewModel>> IMaterialTransferRepo.GetMaterialTransferExcelByDealer(string? dealerCode)
+        {
+            try
+            {
+                var materialTransferGroup = _context.MaterialTransfers
+                    .GroupBy(x => x.JobId)
+                    .Select(x => new
+                    {
+                        JobId = x.Key,
+                        CreatedDate = x.Max(y => y.CreatedDate)
+                    });
+
+                var query =
+                    from MT in materialTransferGroup
+
+                    join JH in _context.JobCardHeaders
+                        on MT.JobId equals JH.Id
+
+                    join JC in _context.JobCardCustomers
+                        on JH.Id equals JC.JobCardHeaderId
+
+                    join U in _context.AspNetUsers
+                        on JH.CreatedBy equals U.Id into userGroup
+                    from U in userGroup.DefaultIfEmpty()
+
+                    join UM in _context.AspNetUsers
+                        on JH.UpdateBy equals UM.Id into userModGroup
+                    from UM in userModGroup.DefaultIfEmpty()
+
+                    where string.IsNullOrEmpty(dealerCode)
+                        || JH.DealerCode == dealerCode
+
+                    select new
+                    {
+                        JH.InvoiceNo,
+                        JH.Chassisno,
+                        JH.JobinDate,
+                        JH.JobNo,
+                        JH.Serviceloc,
+                        JH.DealerCode,
+
+                        JC.CustomerName,
+                        JC.RegisterNo,
+
+                        MT.CreatedDate
+                    };
+
+                var result = await query
+                    .OrderByDescending(x => x.CreatedDate)
+                    .ToListAsync();
+
+                var data = result.Select(x => new MaterialTransferExcelViewModel
+                {
+                    InvoiceNo = x.InvoiceNo,
+                    Chassisno = x.Chassisno,
+                    JobinDate = x.JobinDate,
+                    JobNo = x.JobNo,
+                    DealerCode = x.DealerCode,
+                    Serviceloc = x.Serviceloc,
+                    CustomerName = x.CustomerName,
+                    RegisterNo = x.RegisterNo
+                }).ToList();
+
+                return data;
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
     }
 }

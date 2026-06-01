@@ -11,11 +11,13 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
 {
     public interface IMaterialTransferService
     {
+        Task<object> Get();
         Task<string> GetIssueIdAsync();
         Task<IEnumerable<object>> GetMeterialByJobId(int jobId);
-        Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(string dealerCode, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(string searchTerm, string dealerCode, int pageIndex, int pageSize);
         Task<int> InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels);
         Task<int> DeleteMaterials(List<int> ids);
         Task<int> UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels);
+        Task<byte[]> downloadMaterialExcel(string? dealerCode);
     }
 }
