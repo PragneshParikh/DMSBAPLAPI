@@ -1100,6 +1100,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Ipurrate)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("ipurrate");
+            entity.Property(e => e.IsVor).HasColumnName("IsVOR");
             entity.Property(e => e.Iselectric).HasColumnName("iselectric");
             entity.Property(e => e.Itemcc).HasColumnName("itemcc");
             entity.Property(e => e.Itemcode)
@@ -1121,6 +1122,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("oemmodelname");
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(1000)
+                .IsUnicode(false);
             entity.Property(e => e.Rrgitemidno).HasColumnName("rrgitemidno");
             entity.Property(e => e.Sgst)
                 .HasColumnType("decimal(18, 2)")
@@ -1134,6 +1138,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
             entity.Property(e => e.Vehtype).HasColumnName("vehtype");
+            entity.Property(e => e.Vorrate)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("VORRate");
 
             entity.HasOne(d => d.HsncodeNavigation).WithMany(p => p.ItemMasters)
                 .HasForeignKey(d => d.HsncodeId)
@@ -3129,6 +3136,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Vcu)
                 .HasMaxLength(50)
                 .HasColumnName("VCU");
+
+            entity.HasOne(d => d.InsuranceLedger).WithMany(p => p.VehicleSaleBillDetails)
+                .HasForeignKey(d => d.InsuranceLedgerId)
+                .HasConstraintName("FK_VehicleSaleBillDetails_Insurance");
 
             entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
                 .HasForeignKey(d => d.VehicleSaleBillId)
