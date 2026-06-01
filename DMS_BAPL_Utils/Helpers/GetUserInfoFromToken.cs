@@ -33,6 +33,23 @@ namespace DMS_BAPL_Utils.Helpers
             return string.Empty;   // empty = no restriction (admin user)
         }
 
+        public static bool GetUserGroup(HttpContext context)
+        {
+            try
+            {
+                var role = context.User?.FindFirst(ClaimTypes.Role)?.Value;
+
+                return role != null &&
+               (role.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
+                role.Equals("superadmin", StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing token: {ex.Message}");
+                return false;
+            }
+        }
+
         // ── NEW: called by ReportController ─────────────────────────────
         public static string GetDealerCodeFromToken(HttpContext context)
         {
