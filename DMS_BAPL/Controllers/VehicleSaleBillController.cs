@@ -271,7 +271,7 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
 
-                var file = await _vehicleSaleBillService.DownloadDealerExcel(dateFrom, dateTo);
+                var file = await _vehicleSaleBillService.DownloadSaleBillExcel(dateFrom, dateTo);
 
                 return File(
                     file,

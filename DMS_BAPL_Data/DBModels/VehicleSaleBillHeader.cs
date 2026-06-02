@@ -23,9 +23,9 @@ public partial class VehicleSaleBillHeader
 
     public string? CashAccount { get; set; }
 
-    public string? Financier { get; set; }
+    public int? Financier { get; set; }
 
-    public string? BillType { get; set; }
+    public int? BillType { get; set; }
 
     public string? BillFrom { get; set; }
 

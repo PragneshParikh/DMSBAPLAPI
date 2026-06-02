@@ -424,6 +424,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     on vi.ColrCode equals clr.Colorcode into clrJoin
                 from clr in clrJoin.DefaultIfEmpty()
 
+                join fnr in _context.LedgerMasters
+                 on h.Financier equals fnr.Id into fnrJoin
+                 from fnr in fnrJoin.DefaultIfEmpty()
+
                 where
                     (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                     && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
@@ -462,7 +466,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     SaleDate = h.SaleDate,
                     InvoiceNo = h.SaleBillNo,
                     BillType = h.BillType,
-                    FinanceBy = h.Financier,
+                    FinanceBy = fnr.LedgerName,
                     FinancerCode = "",
                     FinancerCategory = "",
                     ExecutiveName = h.SalesExecutive,
