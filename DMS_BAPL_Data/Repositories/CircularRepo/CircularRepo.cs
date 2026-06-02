@@ -2,26 +2,25 @@
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
-namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
+namespace DMS_BAPL_Data.Repositories.CircularRepo
 {
-    public partial class NewsBulletinRepo : INewsBulletinRepo
+    public partial class CircularRepo : ICircularRepo
     {
         private readonly BapldmsvadContext _context;
 
-        public NewsBulletinRepo(BapldmsvadContext context)
+        public CircularRepo(BapldmsvadContext context)
         {
             _context = context;
         }
 
-        async Task<int> INewsBulletinRepo.Create(NewsBulletinMaster newsBulletinMasters)
+        async Task<int> ICircularRepo.Create(CircularMaster circularMaster)
         {
             try
             {
-                await _context.NewsBulletinMasters.AddAsync(newsBulletinMasters);
-
+                await _context.CircularMasters.AddAsync(circularMaster);
                 await _context.SaveChangesAsync();
 
-                return newsBulletinMasters.Id;
+                return circularMaster.Id;
             }
             catch
             {
@@ -29,51 +28,50 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
             }
         }
 
-        async Task<bool> INewsBulletinRepo.Delete(int Id)
+        async Task<bool> ICircularRepo.Delete(int Id)
         {
             try
             {
-                var newsBulletin =
-                    await _context.NewsBulletinMasters
+                var circular =
+                    await _context.CircularMasters
                     .FirstOrDefaultAsync(x => x.Id == Id);
 
-                if (newsBulletin == null)
+                if (circular == null)
                     return false;
 
-                _context.NewsBulletinMasters
-                    .Remove(newsBulletin);
-
+                _context.CircularMasters
+                    .Remove(circular);
                 return await _context.SaveChangesAsync() > 0;
             }
             catch { throw; }
         }
 
-        async Task<IEnumerable<NewsBulletinMasterViewModel>> INewsBulletinRepo.Get()
+        async Task<IEnumerable<CircularMasterViewModel>> ICircularRepo.Get()
         {
             var result = await (
-                from NB in _context.NewsBulletinMasters
+                from CM in _context.CircularMasters
 
-                join NBA in _context.NewsBulletinMasterAttachments
-                on NB.Id equals NBA.NewsBulletinId into attachmentGroup
+                join CMA in _context.CircularMasterAttachments
+                on CM.Id equals CMA.CircularId into attachmentGroup
 
-                from NBA in attachmentGroup.DefaultIfEmpty()
+                from CMA in attachmentGroup.DefaultIfEmpty()
 
                 select new
                 {
-                    NB.Id,
-                    NB.Title,
-                    NB.Description,
-                    NB.PublishDate,
-                    NB.ExpiryDate,
-                    NB.IsActive,
-                    NB.CreatedBy,
-                    NB.CreatedDate,
-                    NB.UpdatedBy,
-                    NB.UpdatedDate,
+                    CM.Id,
+                    CM.Title,
+                    CM.Description,
+                    CM.PublishDate,
+                    CM.ExpiryDate,
+                    CM.IsActive,
+                    CM.CreatedBy,
+                    CM.CreatedDate,
+                    CM.UpdatedBy,
+                    CM.UpdatedDate,
 
-                    FileName = NBA != null ? NBA.FileName : null,
-                    ContentType = NBA != null ? NBA.ContentType : null,
-                    FileData = NBA != null ? NBA.FileData : null
+                    FileName = CMA != null ? CMA.FileName : null,
+                    ContentType = CMA != null ? CMA.ContentType : null,
+                    FileData = CMA != null ? CMA.FileData : null
                 }
 
             ).ToListAsync();
@@ -84,7 +82,7 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
                 {
                     var first = g.First();
 
-                    return new NewsBulletinMasterViewModel
+                    return new CircularMasterViewModel
                     {
                         Id = first.Id,
                         Title = first.Title,
@@ -99,7 +97,7 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
 
                         Files = g
                             .Where(f => f.FileName != null)
-                            .Select(f => new NewsBulletinFileViewModel
+                            .Select(f => new CircularFileViewModel
                             {
                                 FileName = f.FileName!,
                                 ContentType = f.ContentType!,
@@ -111,35 +109,35 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
                 .ToList();
         }
 
-        async Task<NewsBulletinMasterViewModel?> INewsBulletinRepo.GetById(int Id)
+        async Task<CircularMasterViewModel?> ICircularRepo.GetById(int Id)
         {
             var result = await (
-                from NB in _context.NewsBulletinMasters
+                from CM in _context.CircularMasters
 
-                where NB.Id == Id
+                where CM.Id == Id
 
-                join NBA in _context.NewsBulletinMasterAttachments
-                on NB.Id equals NBA.NewsBulletinId into attachmentGroup
+                join CMA in _context.CircularMasterAttachments
+                on CM.Id equals CMA.CircularId into attachmentGroup
 
-                from NBA in attachmentGroup.DefaultIfEmpty()
+                from CMA in attachmentGroup.DefaultIfEmpty()
 
                 select new
                 {
-                    NB.Id,
-                    NB.Title,
-                    NB.Description,
-                    NB.PublishDate,
-                    NB.ExpiryDate,
-                    NB.IsActive,
-                    NB.CreatedBy,
-                    NB.CreatedDate,
-                    NB.UpdatedBy,
-                    NB.UpdatedDate,
+                    CM.Id,
+                    CM.Title,
+                    CM.Description,
+                    CM.PublishDate,
+                    CM.ExpiryDate,
+                    CM.IsActive,
+                    CM.CreatedBy,
+                    CM.CreatedDate,
+                    CM.UpdatedBy,
+                    CM.UpdatedDate,
 
-                    AttachmentId = NBA != null ? NBA.Id : 0,
-                    FileName = NBA != null ? NBA.FileName : null,
-                    ContentType = NBA != null ? NBA.ContentType : null,
-                    FileData = NBA != null ? NBA.FileData : null
+                    AttachmentId = CMA != null ? CMA.Id : 0,
+                    FileName = CMA != null ? CMA.FileName : null,
+                    ContentType = CMA != null ? CMA.ContentType : null,
+                    FileData = CMA != null ? CMA.FileData : null
                 }
 
             ).ToListAsync();
@@ -150,7 +148,7 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
                 {
                     var first = g.First();
 
-                    return new NewsBulletinMasterViewModel
+                    return new CircularMasterViewModel
                     {
                         Id = first.Id,
                         Title = first.Title,
@@ -165,7 +163,7 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
 
                         Files = g
                             .Where(f => f.FileName != null)
-                            .Select(f => new NewsBulletinFileViewModel
+                            .Select(f => new CircularFileViewModel
                             {
                                 AttachmentId = f.AttachmentId,
                                 FileName = f.FileName!,
@@ -178,15 +176,14 @@ namespace DMS_BAPL_Data.Repositories.NewsBulletinRepo
                 .FirstOrDefault();
         }
 
-        async Task<int> INewsBulletinRepo.Update(NewsBulletinMaster newsBulletinMasters)
+        async Task<int> ICircularRepo.Update(CircularMaster circularMaster)
         {
             try
             {
-                _context.NewsBulletinMasters.Update(newsBulletinMasters);
-
+                _context.CircularMasters.Update(circularMaster);
                 await _context.SaveChangesAsync();
 
-                return newsBulletinMasters.Id;
+                return circularMaster.Id;
             }
             catch
             {

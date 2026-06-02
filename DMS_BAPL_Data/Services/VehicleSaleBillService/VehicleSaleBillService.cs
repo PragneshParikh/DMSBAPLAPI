@@ -106,8 +106,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         (x.Status != null && x.Status.ToLower().Contains(search)) ||
                         (x.CustomerName != null && x.CustomerName.ToLower().Contains(search)) ||
                         (x.BillingName != null && x.BillingName.ToLower().Contains(search)) ||
-                        (x.Location != null && x.Location.ToLower().Contains(search)) ||
-                        (x.BillType != null && x.BillType.ToLower().Contains(search))
+                        (x.Location != null && x.Location.ToLower().Contains(search))
+                       // (x.BillType != null && x.BillType.ToLower().Contains(search))
                     ).ToList();
                 }
 
@@ -247,6 +247,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                         detail.StockDetailsNo = d.StockDetailsNo ?? "";
                         detail.Vcu = d.Vcu ?? "";
+                        detail.InsuranceLedgerId = d.InsuranceId ?? null;
 
                         detail.UpdatedDate = DateTime.Now;
                         detail.UpdatedBy = userId;
@@ -310,6 +311,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                             StockDetailsNo = d.StockDetailsNo ?? "",
                             Vcu = d.Vcu ?? "",
+                            InsuranceLedgerId = d.InsuranceId ?? null,
 
                             CreatedDate = DateTime.Now,
                             CreatedBy = userId
@@ -434,6 +436,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         BatteryMake = d.BatteryMake ?? "",
                         StockDetailsNo = d.StockDetailsNo ?? "",
                         Vcu = d.Vcu ?? "",
+                        InsuranceLedgerId = d.InsuranceId ?? null,
                         CreatedDate = DateTime.Now,
                         CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext)
                     }).ToList()
@@ -553,10 +556,16 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 LedgerDetailViewModel? ledger = null;
+                LedgerDetailViewModel? financierLedger = null;
+
 
 
                 var header = await _repo.GetByIdAsync(id);
                 if (header == null) return null;
+                if (header.Financier.HasValue)
+                {
+                    financierLedger = await _ledgerRepo.GetLedgerById(header.Financier.Value);
+                }
 
                 ledger = header.LedgerId.HasValue
                    ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
@@ -607,7 +616,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         SaleBillNo = header.SaleBillNo ?? "",
                         SaleBillDate = header.SaleDate.ToString("dd-MM-yyyy"),
 
-                        FinancedBy = header.Financier ?? "",
+                        FinancedBy = financierLedger.LedgerName ?? "",
 
                         ItemRate = detail.ItemRate.ToString(),
                         SGSTPer = detail.Sgstper?.ToString() ?? "0",
@@ -746,12 +755,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-        public async Task<byte[]> DownloadDealerExcel(DateTime? dateFrom = null, DateTime? dateTo = null)
+        public async Task<byte[]> DownloadSaleBillExcel(DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
             {
 
                 var headerData = await _repo.GetAllAsync();
+                var financiers = await _ledgerRepo.GetAll();
+                var financierLookup = financiers.ToDictionary(
+                            x => x.Id,
+                            x => x.LedgerName
+                        );
 
                 if (dateFrom.HasValue)
                 {
@@ -776,7 +790,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             CustomerType = h.CustomerType,
                             Location = h.Location,
                             SaleType = h.SaleType,
-                            Financier = h.Financier,
+                            Financier = h.Financier.HasValue
+                                        && financierLookup.ContainsKey(h.Financier.Value)
+                                            ? financierLookup[h.Financier.Value]
+                                            : "",
+
                             SalesExecutive = h.SalesExecutive,
                             //TotalAmount = h.TotalAmount,
 

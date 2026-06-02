@@ -341,7 +341,9 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             try
             {
                 var poList = await _context.PurchaseOrders
-                    .Where(x => x.OrderType == orderType).ToListAsync();
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Where(x => x.OrderType == orderType)
+                    .ToListAsync();
 
                 if (poList == null || !poList.Any())
                     return new List<PurchaseOrderResponseViewModel>();

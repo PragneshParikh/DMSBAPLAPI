@@ -213,8 +213,8 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 item.Id = id;
-                await _itemMasterService.UpdateItemAsync(item);
-                return Ok("Item updated successfully");
+               var _item = await _itemMasterService.UpdateItemAsync(item);
+                return Ok(_item);
             }
             catch (Exception ex)
             {

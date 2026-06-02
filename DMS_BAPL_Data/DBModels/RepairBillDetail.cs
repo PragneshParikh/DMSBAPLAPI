@@ -41,6 +41,8 @@ public partial class RepairBillDetail
 
     public decimal? Sgstamount { get; set; }
 
+    public int? IssutypeId { get; set; }
+
     public decimal? LabourTaxblAmount { get; set; }
 
     public decimal? PartTaxblAmount { get; set; }
@@ -56,6 +58,8 @@ public partial class RepairBillDetail
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public int? IssutypeId { get; set; }
 
     public virtual LabourMaster? LabourMaster { get; set; }
 

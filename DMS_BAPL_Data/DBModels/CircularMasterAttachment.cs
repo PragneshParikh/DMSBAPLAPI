@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public partial class NewsBulletinMasterAttachment
+public partial class CircularMasterAttachment
 {
     public int Id { get; set; }
 
-    public int NewsBulletinId { get; set; }
+    public int CircularId { get; set; }
 
     public string ContentType { get; set; } = null!;
 
@@ -23,5 +23,5 @@ public partial class NewsBulletinMasterAttachment
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual NewsBulletinMaster NewsBulletin { get; set; } = null!;
+    public virtual CircularMaster Circular { get; set; } = null!;
 }
