@@ -37,7 +37,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     PartyName = model.RepairBillheader.PartyName,
                     MobileNumber = model.RepairBillheader.MobileNumber,
                     JobId = model.RepairBillheader.JobId,
-                    InsuranceId = model.RepairBillheader.InsuranceId,
+                    InsuranceId = model.RepairBillheader.InsuranceId == 0 ? null : model.RepairBillheader.InsuranceId,
                     InsDecription = model.RepairBillheader.insDescription,
                     SurveyorName = model.RepairBillheader.SurveyorName,
                     ContactNumber = model.RepairBillheader.ContactNumber,

@@ -381,6 +381,9 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("CircularMaster");
 
+            entity.Property(e => e.Categoroy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -2763,7 +2766,6 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasOne(d => d.Insurance).WithMany(p => p.RepairBillHeaders)
                 .HasForeignKey(d => d.InsuranceId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RepairBillHeader_LeadgerMaster");
 
             entity.HasOne(d => d.Job).WithMany(p => p.RepairBillHeaders)

@@ -21,11 +21,9 @@ public partial class RepairBillHeader
 
     public string? MobileNumber { get; set; }
 
-    public int? Scheme { get; set; }
-
     public int JobId { get; set; }
 
-    public int InsuranceId { get; set; }
+    public int? InsuranceId { get; set; }
 
     public string? InsDecription { get; set; }
 
@@ -61,7 +59,7 @@ public partial class RepairBillHeader
 
     public string? DealerCode { get; set; }
 
-    public virtual LedgerMaster Insurance { get; set; } = null!;
+    public virtual LedgerMaster? Insurance { get; set; }
 
     public virtual JobCardHeader Job { get; set; } = null!;
 
