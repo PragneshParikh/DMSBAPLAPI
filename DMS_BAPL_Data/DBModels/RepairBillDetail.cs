@@ -59,6 +59,8 @@ public partial class RepairBillDetail
 
     public DateTime? UpdatedDate { get; set; }
 
+    public int? IssutypeId { get; set; }
+
     public virtual LabourMaster? LabourMaster { get; set; }
 
     public virtual MaterialTransfer? Material { get; set; }
