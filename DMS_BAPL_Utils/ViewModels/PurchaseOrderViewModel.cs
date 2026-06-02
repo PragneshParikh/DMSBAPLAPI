@@ -21,6 +21,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? SubOrderType { get; set; }
+        public int? JobId { get; set; }
         public List<PurchaseOrderDetailsViewModel> Items { get; set; }
     }
 

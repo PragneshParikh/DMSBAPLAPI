@@ -168,6 +168,25 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     Compcode = x.i.Compcode,
                     Displayname = x.i.Displayname,
                     Oemmodelname = x.i.Oemmodelname,
+                    MinBillQty = x.i.MinBillQty,
+                    MinOrderQty = x.i.MinOrderQty,
+                    WarrantyPeriod = x.i.WarrantyPeriod,
+                    WarrantyDurationType = x.i.WarrantyDurationType,
+                    WarrantyKms = x.i.WarrantyKms,
+                    IsWarrantyApproval = x.i.IsWarrantyApproval,
+                    VORRate = x.i.Vorrate,
+                    IsVOR = x.i.IsVor,
+                    Remarks = x.i.Remarks,
+                    IsExempted = x.i.IsExempted,
+                    IsToolkitFirstAid = x.i.IsToolkitFirstAid,
+                    IsStockRequired = x.i.IsStockRequired,
+                    IsHelmet = x.i.IsHelmet,
+                    IsInventory = x.i.IsInventory,
+                    IsInEligibleInput = x.i.IsInEligibleInput,
+                    CreatedBy = x.i.CreatedBy,
+                    CreatedDate = x.i.CreatedDate,
+                    UpdatedBy = x.i.UpdatedBy,
+                    UpdatedDate = x.i.UpdatedDate
                 })
                 .ToListAsync();
 
@@ -228,11 +247,26 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.Fame2amount = item.Fame2amount;
                 existingItem.Compcode = item.Compcode;
                 existingItem.Displayname = item.Displayname;
+                existingItem.MinBillQty = item.MinBillQty;
+                existingItem.MinOrderQty = item.MinOrderQty;
+                existingItem.WarrantyPeriod = item.WarrantyPeriod;
+                existingItem.WarrantyDurationType = item.WarrantyDurationType;
+                existingItem.WarrantyKms = item.WarrantyKms;
+                existingItem.IsWarrantyApproval = item.IsWarrantyApproval;
+                existingItem.Vorrate = item.Vorrate;
+                existingItem.IsVor = item.IsVor;
+                existingItem.Remarks = item.Remarks;
+                existingItem.IsExempted = item.IsExempted;
+                existingItem.IsToolkitFirstAid = item.IsToolkitFirstAid;
+                existingItem.IsStockRequired = item.IsStockRequired;
+                existingItem.IsHelmet = item.IsHelmet;
+                existingItem.IsInventory = item.IsInventory;
+                existingItem.IsInEligibleInput = item.IsInEligibleInput;
                 existingItem.Oemmodelname = item.Oemmodelname;
-                existingItem.UpdatedBy = "Null";
-                existingItem.UpdatedDate = DateTime.UtcNow;
-                existingItem.CreatedBy = "Kajal Tiwari";
-                existingItem.CreatedDate = DateTime.UtcNow;
+                existingItem.CreatedBy = item.CreatedBy;
+                existingItem.CreatedDate = item.CreatedDate;
+                existingItem.UpdatedBy = item.UpdatedBy;
+                existingItem.UpdatedDate = item.UpdatedDate;
 
                 await _context.SaveChangesAsync();
             }

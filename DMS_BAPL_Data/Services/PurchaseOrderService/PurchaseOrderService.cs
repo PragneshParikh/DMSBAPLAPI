@@ -74,7 +74,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     LedgerCode = model.LedgerCode,
                     Status = false,
                     SubOrderType = model.SubOrderType,
-                    IsAgainstKit = model.IsAgainstKit
+                    IsAgainstKit = model.IsAgainstKit,
+                    JobId = model.JobId
                 };
 
                 await _repo.AddPOAsync(po);

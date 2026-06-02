@@ -16,10 +16,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Location { get; set; }
         public DateTime SaleDate { get; set; }
         public string SaleType { get; set; }
-        public string BillType { get; set; }
+        public int? BillType { get; set; }
         public string BillFrom { get; set; }
         public string BillingName { get; set; }
-        public string? Financier { get; set; }
+        public int? Financier { get; set; }
         public string? CashAccount { get; set; }
         public string? SalesExecutive { get; set; }
         public string? isTempRegNo { get; set; }

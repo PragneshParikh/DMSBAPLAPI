@@ -46,7 +46,7 @@
 
         public string? InvoiceNo { get; set; }
 
-        public string? BillType { get; set; }
+        public int? BillType { get; set; }
 
         public string? FinanceBy { get; set; }
 

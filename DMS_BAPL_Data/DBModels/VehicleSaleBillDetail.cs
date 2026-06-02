@@ -103,5 +103,9 @@ public partial class VehicleSaleBillDetail
 
     public decimal? PostGstDisc { get; set; }
 
+    public int? InsuranceLedgerId { get; set; }
+
+    public virtual LedgerMaster? InsuranceLedger { get; set; }
+
     public virtual VehicleSaleBillHeader VehicleSaleBill { get; set; } = null!;
 }
