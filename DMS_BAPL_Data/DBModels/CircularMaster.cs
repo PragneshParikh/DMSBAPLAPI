@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public partial class NewsBulletinMaster
+public partial class CircularMaster
 {
     public int Id { get; set; }
 
@@ -25,5 +25,5 @@ public partial class NewsBulletinMaster
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual ICollection<NewsBulletinMasterAttachment> NewsBulletinMasterAttachments { get; set; } = new List<NewsBulletinMasterAttachment>();
+    public virtual ICollection<CircularMasterAttachment> CircularMasterAttachments { get; set; } = new List<CircularMasterAttachment>();
 }

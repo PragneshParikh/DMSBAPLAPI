@@ -12,15 +12,15 @@ namespace DMS_BAPL_Api.Controllers
 {
     [Route("api/news-bulletin")]
     [ApiController]
-    public class NewsBulletinController : ControllerBase
+    public class CircularController : ControllerBase
     {
-        private readonly INewsBulletinService _newsBulletinService;
-        private readonly INewsBulletinAttachmentService _newsBulletinAttachmentService;
-        private readonly ILogger<NewsBulletinController> _logger;
-        public NewsBulletinController(INewsBulletinService newsBulletinService, INewsBulletinAttachmentService newsBulletinAttachmentService, ILogger<NewsBulletinController> logger)
+        private readonly ICircularService _circularService;
+        private readonly ICircularAttachmentService _circularAttachmentService;
+        private readonly ILogger<CircularController> _logger;
+        public CircularController(ICircularService circularService, ICircularAttachmentService circularAttachmentService, ILogger<CircularController> logger)
         {
-            _newsBulletinService = newsBulletinService;
-            _newsBulletinAttachmentService = newsBulletinAttachmentService;
+            _circularService = circularService;
+            _circularAttachmentService = circularAttachmentService;
             _logger = logger;
         }
 
@@ -37,7 +37,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var news = await _newsBulletinService.Get();
+                var news = await _circularService.Get();
 
                 return Ok(news);
             }
@@ -49,7 +49,7 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("{Id}")]
-        [ProducesResponseType(typeof(NewsBulletinMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CircularMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> GetById(int Id)
@@ -61,7 +61,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var newsBulletin = await _newsBulletinService.GetById(Id);
+                var newsBulletin = await _circularService.GetById(Id);
 
                 return Ok(newsBulletin);
             }
@@ -97,10 +97,10 @@ namespace DMS_BAPL_Api.Controllers
         //}
 
         [HttpPost]
-        [ProducesResponseType(typeof(NewsBulletinMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CircularMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> Create(NewsBulletinMasterViewModel newsBulletinMasterViewModel)
+        public async Task<ActionResult> Create(CircularMasterViewModel circularMasterViewModel)
         {
             try
             {
@@ -109,45 +109,44 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var newsBulletinId = await _newsBulletinService.Create(newsBulletinMasterViewModel);
+                var circularId = await _circularService.Create(circularMasterViewModel);
 
-                if (newsBulletinId > 0)
+                if (circularId > 0)
                 {
-                    var newsBulletinAttachmentList = new List<NewsBulletinMasterAttachment>();
-
-                    foreach (var item in newsBulletinMasterViewModel.Files)
+                    var circularAttachmentList = new List<CircularMasterAttachment>();
+                    foreach (var item in circularMasterViewModel.Files)
                     {
-                        var newsBulletinAtt = new NewsBulletinMasterAttachment
+                        var circularAtt = new CircularMasterAttachment
                         {
-                            NewsBulletinId = newsBulletinId,
+                            CircularId = circularId,
                             FileData = item.FileData,
                             FileName = item.FileName,
                             ContentType = item.ContentType,
-                            CreatedBy = newsBulletinMasterViewModel.CreatedBy,
-                            CreatedDate = newsBulletinMasterViewModel.CreatedDate,
+                            CreatedBy = circularMasterViewModel.CreatedBy,
+                            CreatedDate = circularMasterViewModel.CreatedDate,
 
                         };
 
-                        newsBulletinAttachmentList.Add(newsBulletinAtt);
+                        circularAttachmentList.Add(circularAtt);
                     }
 
-                    bool result = await _newsBulletinAttachmentService.Insert(newsBulletinAttachmentList);
+                    bool result = await _circularAttachmentService.Insert(circularAttachmentList);
                 }
 
-                return Ok(newsBulletinId);
+                return Ok(circularId);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error while inserting news : {ex.Message}");
+                _logger.LogError($"Error while inserting circular : {ex.Message}");
                 throw;
             }
         }
 
         [HttpPut]
-        [ProducesResponseType(typeof(NewsBulletinMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CircularMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> Update(NewsBulletinMasterViewModel newsBulletinMasterViewModel)
+        public async Task<ActionResult> Update(CircularMasterViewModel circularMasterViewModel)
         {
             try
             {
@@ -156,20 +155,20 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var newsBulletinId = await _newsBulletinService.Update(newsBulletinMasterViewModel);
+                var circularId = await _circularService.Update(circularMasterViewModel);
 
-                if (newsBulletinId > 0)
+                if (circularId > 0)
                 {
-                    var newAttachment = new List<NewsBulletinMasterAttachment>();
+                    var newAttachment = new List<CircularMasterAttachment>();
                     var removedAttachmentIds = new List<int>();
 
-                    foreach (var item in newsBulletinMasterViewModel.Files)
+                    foreach (var item in circularMasterViewModel.Files)
                     {
                         if (item.Status == "Added")
                         {
-                            newAttachment.Add(new NewsBulletinMasterAttachment
+                            newAttachment.Add(new CircularMasterAttachment
                             {
-                                NewsBulletinId = newsBulletinId,
+                                CircularId = circularId,
                                 FileData = item.FileData,
                                 FileName = item.FileName,
                                 ContentType = item.ContentType,
@@ -184,23 +183,23 @@ namespace DMS_BAPL_Api.Controllers
                     }
 
                     if (newAttachment.Count > 0)
-                        await _newsBulletinAttachmentService.Insert(newAttachment);
+                        await _circularAttachmentService.Insert(newAttachment);
 
                     if (removedAttachmentIds.Count > 0)
-                        await _newsBulletinAttachmentService.Delete(removedAttachmentIds);
+                        await _circularAttachmentService.Delete(removedAttachmentIds);
                 }
 
-                return Ok(newsBulletinId);
+                return Ok(circularId);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error while updating news : {ex.Message}");
+                _logger.LogError($"Error while updating circular : {ex.Message}");
                 throw;
             }
         }
 
         [HttpDelete("{Id}")]
-        [ProducesResponseType(typeof(NewsBulletinMasterViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CircularMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> Delete(int Id)
@@ -212,13 +211,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var news = await _newsBulletinService.Delete(Id);
+                var circular = await _circularService.Delete(Id);
 
-                return Ok(news);
+                return Ok(circular);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error while deleting news bulletin data : ${ex.Message}");
+                _logger.LogError($"Error while deleting circular data : {ex.Message}");
                 throw;
             }
         }
