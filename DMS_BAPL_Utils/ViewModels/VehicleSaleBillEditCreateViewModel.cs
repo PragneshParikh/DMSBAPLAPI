@@ -16,8 +16,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Location { get; set; } = null!;
         public string SaleType { get; set; } = null!;
         public string? CashAccount { get; set; }
-        public string? Financier { get; set; }
-        public string BillType { get; set; }
+        public int? Financier { get; set; }
+        public int BillType { get; set; }
         public string BillFrom { get; set; }
         public string CustomerName { get; set; }
         public string BillingName { get; set; }
@@ -49,6 +49,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? PreGstDiscount { get; set; }
         public decimal? RegAmount { get; set; }
         public decimal? InsuranceAmount { get; set; }
+        public int? InsuranceId { get; set; }
+        public string? InsuranceName { get; set; }
         public bool HasDevice { get; set; }
         public bool HasKit { get; set; }
         public bool IsDelivered { get; set; }
