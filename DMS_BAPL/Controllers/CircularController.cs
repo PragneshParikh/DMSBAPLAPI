@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace DMS_BAPL_Api.Controllers
 {
-    [Route("api/news-bulletin")]
+    [Route("api/circular")]
     [ApiController]
     public class CircularController : ControllerBase
     {

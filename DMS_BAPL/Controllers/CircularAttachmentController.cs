@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
 {
-    [Route("api/news-bulletin-attachment")]
+    [Route("api/circular-attachment")]
     [ApiController]
     public class CircularAttachmentController : ControllerBase
     {
