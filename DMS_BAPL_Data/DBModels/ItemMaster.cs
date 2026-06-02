@@ -63,6 +63,36 @@ public partial class ItemMaster
 
     public int? HsncodeId { get; set; }
 
+    public int? MinBillQty { get; set; }
+
+    public int? MinOrderQty { get; set; }
+
+    public int? WarrantyPeriod { get; set; }
+
+    public int? WarrantyDurationType { get; set; }
+
+    public int? WarrantyKms { get; set; }
+
+    public bool? IsWarrantyApproval { get; set; }
+
+    public decimal? Vorrate { get; set; }
+
+    public bool? IsVor { get; set; }
+
+    public string? Remarks { get; set; }
+
+    public bool? IsExempted { get; set; }
+
+    public bool? IsToolkitFirstAid { get; set; }
+
+    public bool? IsStockRequired { get; set; }
+
+    public bool? IsHelmet { get; set; }
+
+    public bool? IsInventory { get; set; }
+
+    public bool? IsInEligibleInput { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }

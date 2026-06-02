@@ -41,6 +41,8 @@ public partial class RepairBillDetail
 
     public decimal? Sgstamount { get; set; }
 
+    public int? IssutypeId { get; set; }
+
     public decimal? LabourTaxblAmount { get; set; }
 
     public decimal? PartTaxblAmount { get; set; }

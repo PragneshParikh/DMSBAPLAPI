@@ -9,13 +9,13 @@ using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.NewsBulletinService
 {
-    public interface INewsBulletinService
+    public interface ICircularService
     {
         Task<object> Get();
-        Task<int> Create(NewsBulletinMasterViewModel newsBulletinMasterViewModel);
+        Task<int> Create(CircularMasterViewModel circularMasterViewModel);
         Task<bool> Delete(int Id);
-        Task<NewsBulletinMasterViewModel> GetById(int Id);
-        Task<int> Update(NewsBulletinMasterViewModel newsBulletinMasterViewModel);
-        //Task<NewsBulletinMasterViewModel> GetByDate(DateTime date);
+        Task<CircularMasterViewModel> GetById(int Id);
+        Task<int> Update(CircularMasterViewModel circularMasterViewModel);
+        //Task<CircularMasterViewModel> GetByDate(DateTime date);
     }
 }

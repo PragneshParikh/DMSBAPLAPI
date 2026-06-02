@@ -6,23 +6,23 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
 {
-    [Route("api/news-bulletin-attachment")]
+    [Route("api/circular-attachment")]
     [ApiController]
-    public class NewsBulletinAttachmentController : ControllerBase
+    public class CircularAttachmentController : ControllerBase
     {
-        private readonly INewsBulletinAttachmentService _newsBulletinAttachmentService;
-        private readonly ILogger<NewsBulletinAttachmentController> _logger;
-        public NewsBulletinAttachmentController(INewsBulletinAttachmentService newsBulletinAttachmentService, ILogger<NewsBulletinAttachmentController> logger)
+        private readonly ICircularAttachmentService _circularAttachmentService;
+        private readonly ILogger<CircularAttachmentController> _logger;
+        public CircularAttachmentController(ICircularAttachmentService circularAttachmentService, ILogger<CircularAttachmentController> logger)
         {
-            _newsBulletinAttachmentService = newsBulletinAttachmentService;
+            _circularAttachmentService = circularAttachmentService;
             _logger = logger;
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<NewsBulletinMasterAttachment>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<CircularMasterAttachment>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<NewsBulletinMasterAttachment>>> Get()
+        public async Task<ActionResult<IEnumerable<CircularMasterAttachment>>> Get()
         {
             try
             {
@@ -31,7 +31,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var attachment = await _newsBulletinAttachmentService.Get();
+                var attachment = await _circularAttachmentService.Get();
 
                 return Ok(attachment);
             }
@@ -43,10 +43,10 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("{Id}")]
-        [ProducesResponseType(typeof(NewsBulletinMasterAttachment), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CircularMasterAttachment), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<NewsBulletinMasterAttachment>> GetById(int Id)
+        public async Task<ActionResult<CircularMasterAttachment>> GetById(int Id)
         {
             try
             {
@@ -55,7 +55,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var attachment = await _newsBulletinAttachmentService.GetById(Id);
+                var attachment = await _circularAttachmentService.GetById(Id);
 
                 return Ok(attachment);
             }
@@ -66,11 +66,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("GetByNewsBulletinId/{Id}")]
-        [ProducesResponseType(typeof(IEnumerable<NewsBulletinMasterAttachment>), StatusCodes.Status200OK)]
+        [HttpGet("GetByCircularId/{Id}")]
+        [ProducesResponseType(typeof(IEnumerable<CircularMasterAttachment>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<NewsBulletinMasterAttachment>>> GetByNewsBulletinId(int Id)
+        public async Task<ActionResult<IEnumerable<CircularMasterAttachment>>> GetByCircularId(int Id)
         {
             try
             {
@@ -79,7 +79,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var attachment = await _newsBulletinAttachmentService.GetByNewsBulletinId(Id);
+                var attachment = await _circularAttachmentService.GetByCircularId(Id);
 
                 return Ok(attachment);
             }
@@ -94,7 +94,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<bool>> Insert(List<NewsBulletinMasterAttachment> newsBulletinMasterAttachment)
+        public async Task<ActionResult<bool>> Insert(List<CircularMasterAttachment> circularMasterAttachment)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var attachment = await _newsBulletinAttachmentService.Insert(newsBulletinMasterAttachment);
+                var attachment = await _circularAttachmentService.Insert(circularMasterAttachment);
 
                 return Ok(attachment);
             }
