@@ -151,7 +151,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICircularRepo, CircularRepo>();
             services.AddScoped<ICircularAttachmentRepo, CircularAttachmentRepo>();
             services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();
-            services.AddScoped<IRepairBillRepo,RepairBillRepo>();
+            services.AddScoped<IRepairBillRepo, RepairBillRepo>();
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
 
@@ -198,8 +198,6 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisService, ChassisService>();
             services.AddScoped<IHSRPService, HSRPService>();
             services.AddScoped<IReportService, ReportService>();
-            services.AddScoped<INewsBulletinService, NewsBulletinService>();
-            //services.AddScoped<INewsBulletinAttachmentService, NewsBulletinAttachmentService>();
             services.AddScoped<ICircularService, CircularService>();
             services.AddScoped<ICircularAttachmentService, CircularAttachmentService>();
             services.AddScoped<IEmployeeService, EmployeeService>();
