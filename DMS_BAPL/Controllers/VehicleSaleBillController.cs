@@ -151,14 +151,14 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ConvertPO([FromBody] int saleBillId)
+        public async Task<IActionResult> ConvertPO(string dealerCode,int id)
         {
             try
             {
-                if (saleBillId <= 0)
+                if (id <= 0)
                     return BadRequest(StringConstants.PORequired);
 
-                var result = await _vehicleSaleBillService.GetExportData(saleBillId);
+                var result = await _vehicleSaleBillService.GetExportDetails(dealerCode,id);
 
                 if (result == null)
                     return NotFound(StringConstants.PONotFound);
@@ -175,7 +175,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        
+
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

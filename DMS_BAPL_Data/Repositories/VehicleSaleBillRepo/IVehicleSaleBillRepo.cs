@@ -19,10 +19,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task DeleteAsync(int id);
         Task<string?> GetLastSaleBillNo();
 
-        Task<string?> GetDealerLocation(string dealerCode);
-        Task<ItemMaster?> GetItem(string itemCode);
-        Task<decimal?> GetPurchaseRate(string dealerCode, string itemCode);
-        Task<List<(string chassisNo, string itemCode)>> GetChassisByDealer(string dealerCode);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiRawDataAsync(string dealerCode);
         Task<int> UpdateERPStatus(int id);
         Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM>? jobUpdates,List<string> deletedChassisList);
@@ -32,5 +28,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode);
+        Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
     }
 }

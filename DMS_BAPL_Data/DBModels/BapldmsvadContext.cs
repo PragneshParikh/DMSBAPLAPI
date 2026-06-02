@@ -381,7 +381,7 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("CircularMaster");
 
-            entity.Property(e => e.Categoroy)
+            entity.Property(e => e.Category)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedBy)

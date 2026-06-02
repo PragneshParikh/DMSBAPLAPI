@@ -551,95 +551,95 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-        public async Task<VehicleSaleExportViewModel?> GetExportData(int id)
-        {
-            try
-            {
-                LedgerDetailViewModel? ledger = null;
-                LedgerDetailViewModel? financierLedger = null;
+        //public async Task<VehicleSaleExportViewModel?> GetExportData(int id)
+        //{
+        //    try
+        //    {
+        //        LedgerDetailViewModel? ledger = null;
+        //        LedgerDetailViewModel? financierLedger = null;
 
 
 
-                var header = await _repo.GetByIdAsync(id);
-                if (header == null) return null;
-                if (header.Financier.HasValue)
-                {
-                    financierLedger = await _ledgerRepo.GetLedgerById(header.Financier.Value);
-                }
+        //        var header = await _repo.GetByIdAsync(id);
+        //        if (header == null) return null;
+        //        if (header.Financier.HasValue)
+        //        {
+        //            financierLedger = await _ledgerRepo.GetLedgerById(header.Financier.Value);
+        //        }
 
-                ledger = header.LedgerId.HasValue
-                   ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
-                   : null;
-                var states = await _stateRepo.GetStatesAsync();
+        //        ledger = header.LedgerId.HasValue
+        //           ? await _ledgerRepo.GetLedgerById(header.LedgerId.Value)
+        //           : null;
+        //        var states = await _stateRepo.GetStatesAsync();
 
-                var result = new VehicleSaleExportViewModel
-                {
+        //        var result = new VehicleSaleExportViewModel
+        //        {
 
-                    User = new UserViewModel
-                    {
-                        Mobile = ledger?.MobileNumber ?? "",
-                        FirstName = header.CustomerName ?? "",
-                        EmailId = ledger?.EMail ?? "",
+        //            User = new UserViewModel
+        //            {
+        //                Mobile = ledger?.MobileNumber ?? "",
+        //                FirstName = header.CustomerName ?? "",
+        //                EmailId = ledger?.EMail ?? "",
 
-                        DateOfBirth = ledger?.DateOfBirth.HasValue == true
-                ? ledger.DateOfBirth.Value.ToString("dd-MM-yyyy")
-                : "",
+        //                DateOfBirth = ledger?.DateOfBirth.HasValue == true
+        //        ? ledger.DateOfBirth.Value.ToString("dd-MM-yyyy")
+        //        : "",
 
-                        DateOfAnniversary = "",
-                        Id = "",
-                        ModifiedOn = "",
-                        IsDeleted = "",
-                        DeletedOn = "",
+        //                DateOfAnniversary = "",
+        //                Id = "",
+        //                ModifiedOn = "",
+        //                IsDeleted = "",
+        //                DeletedOn = "",
 
-                        Address1 = ledger?.Address ?? "",
-                        Address2 = "",
-                        State = ledger?.stateName ?? "",
-                        City = ledger?.cityName ?? ""
-                    },
+        //                Address1 = ledger?.Address ?? "",
+        //                Address2 = "",
+        //                State = ledger?.stateName ?? "",
+        //                City = ledger?.cityName ?? ""
+        //            },
 
-                    Vehicle = header.VehicleSaleBillDetails.Select(detail => new VehicleViewModel
-                    {
-                        ChassisNo = detail.ChassisNo ?? "",
-                        ModelId = "",
-                        MotorId = "",
-                        MotorControllerNo = "",
-                        EcuSerialNo = "",
-                        EcuImeiNo = "",
+        //            Vehicle = header.VehicleSaleBillDetails.Select(detail => new VehicleViewModel
+        //            {
+        //                ChassisNo = detail.ChassisNo ?? "",
+        //                ModelId = "",
+        //                MotorId = "",
+        //                MotorControllerNo = "",
+        //                EcuSerialNo = "",
+        //                EcuImeiNo = "",
 
-                        BikeSimId = "1",
-                        BatterySerialNo = "",
+        //                BikeSimId = "1",
+        //                BatterySerialNo = "",
 
-                        RegNumber = header.TempRegNo ?? "",
-                        StartDate = header.SaleDate.ToString("dd-MM-yyyy"),
-                        DealerCode = header.Location ?? "",
+        //                RegNumber = header.TempRegNo ?? "",
+        //                StartDate = header.SaleDate.ToString("dd-MM-yyyy"),
+        //                DealerCode = header.Location ?? "",
 
-                        SaleBillNo = header.SaleBillNo ?? "",
-                        SaleBillDate = header.SaleDate.ToString("dd-MM-yyyy"),
+        //                SaleBillNo = header.SaleBillNo ?? "",
+        //                SaleBillDate = header.SaleDate.ToString("dd-MM-yyyy"),
 
-                        FinancedBy = financierLedger.LedgerName ?? "",
+        //                FinancedBy = financierLedger.LedgerName ?? "",
 
-                        ItemRate = detail.ItemRate.ToString(),
-                        SGSTPer = detail.Sgstper?.ToString() ?? "0",
-                        SGSTAmnt = detail.Sgstamnt?.ToString() ?? "0",
-                        CGSTPer = detail.Cgstper?.ToString() ?? "0",
-                        CGSTAmnt = detail.Cgstamnt?.ToString() ?? "0",
-                        NetAmnt = detail.FinalAmount.ToString(),
+        //               // ItemRate = detail.ItemRate.ToString(),
+        //                //SGSTPer = detail.Sgstper?.ToString() ?? "0",
+        //                //SGSTAmnt = detail.Sgstamnt?.ToString() ?? "0",
+        //                //CGSTPer = detail.Cgstper?.ToString() ?? "0",
+        //                //CGSTAmnt = detail.Cgstamnt?.ToString() ?? "0",
+        //                //NetAmnt = detail.FinalAmount.ToString(),
 
-                        BatteryMake = "",
-                        ChargerNo = "",
-                        SaleType = header.SaleType ?? ""
-                    }).ToList()
-                };
-                //await _repo.UpdateERPStatus(id);
+        //                BatteryMake = "",
+        //                ChargerNo = "",
+        //                SaleType = header.SaleType ?? ""
+        //            }).ToList()
+        //        };
+        //        //await _repo.UpdateERPStatus(id);
 
-                return result;
-            }
-            catch
-            {
-                throw;
-            }
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
 
-        }
+        //}
         public async Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId)
         {
             dynamic customer;
@@ -723,7 +723,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 var result = await _repo.ConfirmInvoiceAndReserveChassis(saleBillNo);
-                await GetExportData(result);
+             
                 return result;
 
 
@@ -949,6 +949,18 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     result.Add(vm);
                 }
                 return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id)
+        {
+            try
+            {
+                return await _repo.GetExportDetails(dealerCode, id);
             }
             catch
             {
