@@ -34,7 +34,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? TotalDiscount { get; set; }
             public decimal? TaxableAmount { get; set; }
             public decimal? NetAmount { get; set; }
-            public int InsuranceId { get; set; }
+            public int? InsuranceId { get; set; }
             public string insDescription { get; set; }
             public string SurveyorName { get; set; }
             public int? ContactNumber { get; set; }
