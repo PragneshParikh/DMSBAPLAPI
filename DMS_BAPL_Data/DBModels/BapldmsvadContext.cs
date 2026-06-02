@@ -2717,6 +2717,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.InsDecription)
                 .HasMaxLength(100)
                 .IsUnicode(false)

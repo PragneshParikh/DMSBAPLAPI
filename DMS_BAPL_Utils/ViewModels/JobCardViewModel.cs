@@ -281,11 +281,31 @@ namespace DMS_BAPL_Utils.ViewModels
     }
     public class MaterialedJobCardListVM
     {
+        public int? MaterialTransferId { get; set; }
+        public int? ItemId { get; set; }
         public string? PartCode { get; set; }
         public string? PartDesc { get; set; }
         public int? PartQty { get; set; }
         public decimal? PartRate { get; set; }
-        public string? issueType { get; set; }
+        public decimal? Igst { get; set; }
+        public decimal? Cgst { get; set; }
+        public decimal? Sgst { get; set; }
+        public string? IssueType { get; set; }
+
+        public List<LabourCodeDetails> LabourCodeDetailslist { get; set; }
+
+    }
+
+    public class LabourCodeDetails
+    {
+        public int LabourId { get; set; }
+        public string? LabourCode { get; set; }
+        public string? LabourName { get; set; }
+        public decimal? LabourRate { get; set; }
+        public int? CityTier { get; set; }
+        public decimal? Igst { get; set; }
+        public decimal? Cgst { get; set; }
+        public decimal? Sgst { get; set; }
     }
     public class JobCardlistDetailsViewModel
     {

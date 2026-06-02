@@ -1042,20 +1042,70 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         }
         public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId)
         {
-            var query = from jh in _context.JobCardHeaders
-                        join m in _context.MaterialTransfers on jh.Id equals m.JobId
-                        join i in _context.ItemMasters on m.ItemId equals i.Id
-                        where jh.Id == jobId
-                        select new MaterialedJobCardListVM
-                        {
-                            PartCode = i.Itemcode,
-                            PartDesc = i.Itemdesc,
-                            PartQty = m.Quantity,
-                            PartRate = m.ItemRate,
-                            issueType = m.IssueType
-                        };
-            return await query.ToListAsync();
+            // First get customer city tier
+            var cityTier = await (
+                from c in _context.JobCardCustomers
 
+                join lg in _context.LedgerMasters
+                    on c.CustomerLedgerId equals lg.Id into lgJoin
+                from lg in lgJoin.DefaultIfEmpty()
+
+                join ct in _context.Cities
+                    on lg.City equals ct.CityId into ctJoin
+                from ct in ctJoin.DefaultIfEmpty()
+
+                where c.JobCardHeaderId == jobId
+
+                select ct.TierLevel
+            ).FirstOrDefaultAsync();
+
+
+            // Material Transfer + Item Details
+            var data = await (
+                from m in _context.MaterialTransfers
+
+                join i in _context.ItemMasters
+                    on m.ItemId equals i.Id into itemJoin
+                from i in itemJoin.DefaultIfEmpty()
+
+                where m.JobId == jobId
+
+                select new MaterialedJobCardListVM
+                {
+
+                    ItemId = i.Id,
+                    MaterialTransferId = m.Id,
+                    PartCode = i.Itemcode,
+                    PartDesc = i.Itemdesc,
+                    PartQty = m.Quantity,
+                    PartRate = m.ItemRate,
+                    Igst = i.Igst,
+                    Cgst = i.Cgst,
+                    Sgst = i.Sgst,
+                    IssueType = m.IssueType,
+
+                    // Labour Codes
+                    LabourCodeDetailslist = _context.PartWiseLabourMasters
+                        .Where(pl =>
+                            pl.PartCode == i.Itemcode &&
+                            pl.CityTier == cityTier)
+                        .Select(pl => new LabourCodeDetails
+                        {
+                            LabourId = pl.Id,
+                            LabourCode = pl.LabourCode,
+                            LabourName = pl.LabourName,
+                            LabourRate = pl.LabourRate,
+                            CityTier = pl.CityTier,
+                            Igst = pl.Igst,
+                            Cgst = pl.Cgst,
+                            Sgst = pl.Sgst
+                        })
+                        .ToList()
+                }
+
+            ).ToListAsync();
+
+            return data;
         }
 
         public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
