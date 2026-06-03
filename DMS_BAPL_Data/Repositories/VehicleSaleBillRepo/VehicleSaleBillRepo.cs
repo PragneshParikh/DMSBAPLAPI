@@ -187,6 +187,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
                     }).FirstOrDefaultAsync();
+                if (result == null)
+                {
+                    return null;
+                }
+                result.TermsAndConditions = await _context.SalesServicesConditions
+                    .Where(i => i.ConditionType.ToLower() == "sales" && i.Status.ToLower() == "active")
+                    .OrderBy(i => i.SrNo)
+                    .Select(i => new SalesConditionViewModel
+                    {
+                        Id = i.Id,
+                        SrNo = i.SrNo,
+                        ConditionText = i.ConditionText,
+                    }).ToListAsync();
                 return result;
             }
             catch

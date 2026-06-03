@@ -37,12 +37,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public string RefRemarks { get; set; }
         public string? hsnCode { get; set; }
         public string? motorNo { get; set; }
+        public List<SalesConditionViewModel>? TermsAndConditions { get; set; }
 
 
 
         public List<VehicleSaleBillDetailVM> Details { get; set; } = new();
 
 
+
+    }
+
+    public class SalesConditionViewModel
+    {
+        public int Id { get; set; }
+        public int? SrNo { get; set; }
+        public string? ConditionText { get; set; }
 
     }
 }
