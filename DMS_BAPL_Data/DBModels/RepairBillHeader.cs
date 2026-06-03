@@ -7,6 +7,8 @@ public partial class RepairBillHeader
 {
     public int Id { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public string LocationCode { get; set; } = null!;
 
     public string Prefix { get; set; } = null!;
@@ -17,15 +19,11 @@ public partial class RepairBillHeader
 
     public int? CashAccount { get; set; }
 
-    public string? PartyName { get; set; }
-
-    public string? MobileNumber { get; set; }
-
-    public int? Scheme { get; set; }
+    public int? CustomerLedgerId { get; set; }
 
     public int JobId { get; set; }
 
-    public int InsuranceId { get; set; }
+    public int? InsuranceId { get; set; }
 
     public string? InsDecription { get; set; }
 
@@ -51,6 +49,12 @@ public partial class RepairBillHeader
 
     public bool? IsActive { get; set; }
 
+    public bool? IsSavedPerforma { get; set; }
+
+    public bool? IsSavedInvoice { get; set; }
+
+    public string? RepairbillStatus { get; set; }
+
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }
@@ -59,7 +63,9 @@ public partial class RepairBillHeader
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual LedgerMaster Insurance { get; set; } = null!;
+    public virtual LedgerMaster? CustomerLedger { get; set; }
+
+    public virtual LedgerMaster? Insurance { get; set; }
 
     public virtual JobCardHeader Job { get; set; } = null!;
 

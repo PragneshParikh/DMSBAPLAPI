@@ -27,7 +27,6 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 throw;
             }
         }
-
         async Task<bool> ICircularRepo.Delete(int Id)
         {
             try
@@ -45,7 +44,6 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
             }
             catch { throw; }
         }
-
         async Task<IEnumerable<CircularMasterViewModel>> ICircularRepo.Get()
         {
             var result = await (
@@ -59,6 +57,7 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 select new
                 {
                     CM.Id,
+                    CM.Category,
                     CM.Title,
                     CM.Description,
                     CM.PublishDate,
@@ -85,6 +84,7 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                     return new CircularMasterViewModel
                     {
                         Id = first.Id,
+                        Category = first.Category,
                         Title = first.Title,
                         Description = first.Description,
                         PublishDate = first.PublishDate,
@@ -108,7 +108,6 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 })
                 .ToList();
         }
-
         async Task<CircularMasterViewModel?> ICircularRepo.GetById(int Id)
         {
             var result = await (
@@ -124,6 +123,7 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 select new
                 {
                     CM.Id,
+                    CM.Category,
                     CM.Title,
                     CM.Description,
                     CM.PublishDate,
@@ -151,6 +151,7 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                     return new CircularMasterViewModel
                     {
                         Id = first.Id,
+                        Category = first.Category,
                         Title = first.Title,
                         Description = first.Description,
                         PublishDate = first.PublishDate,
@@ -175,7 +176,6 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 })
                 .FirstOrDefault();
         }
-
         async Task<int> ICircularRepo.Update(CircularMaster circularMaster)
         {
             try
@@ -190,46 +190,78 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
                 throw;
             }
         }
+        async Task<IEnumerable<CircularMaster>> ICircularRepo.GetCircularList()
+        {
+            return await _context.CircularMasters
+                .ToListAsync();
+        }
+        async Task<IEnumerable<CircularMasterViewModel>> ICircularRepo.GetCircularListByDealerCode(string? dealerCode)
+        {
+            var result = await (
+                from CM in _context.CircularMasters
 
-        //async Task<NewsBulletinMasterViewModel?> INewsBulletinRepo.GetByDate(DateTime date)
-        //{
-        //    return await _context.NewsBulletinMasters
-        //        .Where(x => x.PublishDate.Date == date.Date)
-        //        .GroupBy(x => new
-        //        {
-        //            x.Id,
-        //            x.Title,
-        //            x.Description,
-        //            x.PublishDate,
-        //            x.ExpiryDate,
-        //            x.IsActive,
-        //            x.CreatedBy,
-        //            x.CreatedDate,
-        //            x.UpdatedBy,
-        //            x.UpdatedDate
-        //        })
+                where string.IsNullOrWhiteSpace(dealerCode)
+                    || _context.CircularDealerAssignments.Any(cda =>
+                        cda.CircularId == CM.Id &&
+                        cda.DealerCode == dealerCode)
 
-        //        .Select(g => new NewsBulletinMasterViewModel
-        //        {
-        //            Id = g.Key.Id,
-        //            Title = g.Key.Title,
-        //            Description = g.Key.Description,
-        //            PublishDate = g.Key.PublishDate,
-        //            ExpiryDate = g.Key.ExpiryDate,
-        //            IsActive = g.Key.IsActive,
-        //            CreatedBy = g.Key.CreatedBy,
-        //            CreatedDate = g.Key.CreatedDate,
-        //            UpdatedBy = g.Key.UpdatedBy,
-        //            UpdatedDate = g.Key.UpdatedDate,
-        //            //Files = g.Select(x => new NewsBulletinFileViewModel
-        //            //{
-        //            //    FileName = x.FileName,
-        //            //    ContentType = x.ContentType,
-        //            //    FileData = x.FileData
-        //            //}).ToList()
-        //        })
+                join CMA in _context.CircularMasterAttachments
+                    on CM.Id equals CMA.CircularId into attachmentGroup
 
-        //        .FirstOrDefaultAsync();
-        //}
+                from CMA in attachmentGroup.DefaultIfEmpty()
+
+                select new
+                {
+                    CM.Id,
+                    CM.Category,
+                    CM.Title,
+                    CM.Description,
+                    CM.PublishDate,
+                    CM.ExpiryDate,
+                    CM.IsActive,
+                    CM.CreatedBy,
+                    CM.CreatedDate,
+                    CM.UpdatedBy,
+                    CM.UpdatedDate,
+
+                    FileName = CMA != null ? CMA.FileName : null,
+                    ContentType = CMA != null ? CMA.ContentType : null,
+                    FileData = CMA != null ? CMA.FileData : null
+                })
+                .ToListAsync();
+
+            return result
+                .GroupBy(x => x.Id)
+                .Select(g =>
+                {
+                    var first = g.First();
+
+                    return new CircularMasterViewModel
+                    {
+                        Id = first.Id,
+                        Category = first.Category,
+                        Title = first.Title,
+                        Description = first.Description,
+                        PublishDate = first.PublishDate,
+                        ExpiryDate = first.ExpiryDate,
+                        IsActive = first.IsActive,
+                        CreatedBy = first.CreatedBy,
+                        CreatedDate = first.CreatedDate,
+                        UpdatedBy = first.UpdatedBy,
+                        UpdatedDate = first.UpdatedDate,
+
+                        Files = g
+                            .Where(f => f.FileName != null)
+                            .Select(f => new CircularFileViewModel
+                            {
+                                FileName = f.FileName!,
+                                ContentType = f.ContentType!,
+                                FileData = f.FileData
+                            })
+                            .ToList()
+                    };
+                })
+                .ToList();
+        }
     }
 }

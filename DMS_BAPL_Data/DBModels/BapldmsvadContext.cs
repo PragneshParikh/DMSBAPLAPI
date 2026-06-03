@@ -39,6 +39,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
 
+    public virtual DbSet<CircularDealerAssignment> CircularDealerAssignments { get; set; }
+
     public virtual DbSet<CircularMaster> CircularMasters { get; set; }
 
     public virtual DbSet<CircularMasterAttachment> CircularMasterAttachments { get; set; }
@@ -375,12 +377,32 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<CircularDealerAssignment>(entity =>
+        {
+            entity.ToTable("CircularDealerAssignment");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<CircularMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_NewsBulletinMaster");
 
             entity.ToTable("CircularMaster");
 
+            entity.Property(e => e.Category)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -2717,20 +2739,19 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.InsDecription)
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("insDecription");
             entity.Property(e => e.InsValidTill).HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsSavedInvoice).HasDefaultValue(false);
+            entity.Property(e => e.IsSavedPerforma).HasDefaultValue(false);
             entity.Property(e => e.LocationCode)
                 .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.MobileNumber)
-                .HasMaxLength(20)
-                .IsUnicode(false);
-            entity.Property(e => e.PartyName)
-                .HasMaxLength(200)
                 .IsUnicode(false);
             entity.Property(e => e.PolicyNo)
                 .HasMaxLength(100)
@@ -2740,6 +2761,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.Remarks).IsUnicode(false);
+            entity.Property(e => e.RepairbillStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.SurveyorName)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -2758,9 +2782,12 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Insurance).WithMany(p => p.RepairBillHeaders)
+            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.RepairBillHeaderCustomerLedgers)
+                .HasForeignKey(d => d.CustomerLedgerId)
+                .HasConstraintName("FK_RepairBillHeader_LeadgerMaster_CustomerID");
+
+            entity.HasOne(d => d.Insurance).WithMany(p => p.RepairBillHeaderInsurances)
                 .HasForeignKey(d => d.InsuranceId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RepairBillHeader_LeadgerMaster");
 
             entity.HasOne(d => d.Job).WithMany(p => p.RepairBillHeaders)
