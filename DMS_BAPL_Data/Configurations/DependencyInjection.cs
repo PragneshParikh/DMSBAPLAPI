@@ -41,6 +41,7 @@ using DMS_BAPL_Data.Repositories.PerformaInvoiceRepo;
 using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
+using DMS_BAPL_Data.Repositories.RepairBillRepo;
 using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
@@ -152,6 +153,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICircularRepo, CircularRepo>();
             services.AddScoped<ICircularAttachmentRepo, CircularAttachmentRepo>();
             services.AddScoped<IEmployeeMasterRepo, EmployeeMasterRepo>();
+            services.AddScoped<IRepairBillRepo, RepairBillRepo>();
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
             services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
