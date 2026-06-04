@@ -394,22 +394,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
-        modelBuilder.Entity<CircularDealerAssignment>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToTable("CircularDealerAssignment");
-
-            entity.Property(e => e.CreatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.UpdatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
-        });
-
         modelBuilder.Entity<CircularMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_NewsBulletinMaster");
