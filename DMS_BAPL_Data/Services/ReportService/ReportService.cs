@@ -285,5 +285,18 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo
                 .GetPartDispatchKitPOTypeDropdownAsync();
         }
+        
+        //FORM22 REPORT FOR SALEBILL
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                return await _reportRepo.GenerateForm22Report(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

@@ -68,6 +68,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<List<string>> GetChassisListAsync();
 
         Task<List<object>> GetModelListByDealerAsync(string dealerCode);
+        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
     }
 
     public class JobReportSummaryStats
