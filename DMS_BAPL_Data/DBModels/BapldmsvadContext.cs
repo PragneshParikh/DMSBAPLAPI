@@ -2734,6 +2734,9 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.RepairBill).WithMany(p => p.RepairBillDetails)
                 .HasForeignKey(d => d.RepairBillId)
                 .HasConstraintName("FK__RepairBil__Repai__61516785");
+            entity.HasOne(d => d.PartItem).WithMany().HasForeignKey(d => d.PartItemId)
+                .HasPrincipalKey(p => p.Id)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<RepairBillHeader>(entity =>
