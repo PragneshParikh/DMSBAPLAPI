@@ -16,6 +16,7 @@ namespace DMS_BAPL_Data.Services.NewsBulletinService
         Task<bool> Delete(int Id);
         Task<CircularMasterViewModel> GetById(int Id);
         Task<int> Update(CircularMasterViewModel circularMasterViewModel);
-        //Task<CircularMasterViewModel> GetByDate(DateTime date);
+        Task<IEnumerable<CircularMaster>> GetCircularList();
+        Task<object> GetCircularListByDealerCode(string? dealerCode);
     }
 }

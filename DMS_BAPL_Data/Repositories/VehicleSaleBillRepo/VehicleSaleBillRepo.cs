@@ -187,6 +187,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
                     }).FirstOrDefaultAsync();
+                if (result == null)
+                {
+                    return null;
+                }
+                result.TermsAndConditions = await _context.SalesServicesConditions
+                    .Where(i => i.ConditionType.ToLower() == "sales" && i.Status.ToLower() == "active")
+                    .OrderBy(i => i.SrNo)
+                    .Select(i => new SalesConditionViewModel
+                    {
+                        Id = i.Id,
+                        SrNo = i.SrNo,
+                        ConditionText = i.ConditionText,
+                    }).ToListAsync();
                 return result;
             }
             catch
@@ -892,7 +905,176 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
         }
 
+        public async Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id)
+        {
+            try
+            {
+                var data = await (
+                    from vd in _context.VehicleSaleBillDetails
 
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vd.VehicleSaleBillId equals vh.Id
+
+                    join vi in _context.VehicleInwards
+                        on vd.ChassisNo equals vi.ChasisNo
+
+                    join c in _context.LedgerMasters
+                        on vh.LedgerId equals c.Id into customerInfo
+                    from c in customerInfo.DefaultIfEmpty()
+
+                    join invoice in _context.InvoiceHeaders
+                        on vd.Id equals invoice.ReferenceId into invoiceInfo
+                    from invoice in invoiceInfo.DefaultIfEmpty()
+
+                    join city in _context.Cities
+                        on c.City equals city.CityId into cityInfo
+                    from city in cityInfo.DefaultIfEmpty()
+
+                    join state in _context.States
+                        on c.State equals state.StateId into stateInfo
+                    from state in stateInfo.DefaultIfEmpty()
+
+                    join location in _context.LocationMasters
+                        on vh.Location equals location.Loccode into locationInfo
+                    from location in locationInfo.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters
+                    on vd.ItemCode equals im.Itemcode into ItemInfo
+                    from im in ItemInfo.DefaultIfEmpty()
+
+                    join f in _context.LedgerMasters
+                    on vh.Financier equals f.Id into financierInfo
+                    from f in financierInfo.DefaultIfEmpty()
+
+                    where vh.Id == id
+                         
+
+                    select new
+                    {
+                        vd,
+                        vh,
+                        vi,
+                        c,
+                        invoice,
+                        city,
+                        state,
+                        location,
+                        f,
+                        im
+                    }
+                ).ToListAsync();
+
+                if (!data.Any())
+                    return null;
+
+                var first = data.First();
+
+                return new VehicleSaleExportViewModel
+                {
+                    User = new UserViewModel
+                    {
+                        Mobile = first.c?.MobileNumber,
+                        FirstName = first.c?.LedgerName,
+                        EmailId = first.c?.EMail,
+                        DateOfBirth = first.c?.DateOfBirth?.ToString("yyyy-MM-dd"),
+                        DateOfAnniversary = "",
+                        Id = first.c?.Id.ToString(),
+                        Address1 = first.c?.Address,
+                        Address2 = "",
+                        City = first.city?.CityName,
+                        State = first.state?.StateName
+                    },
+
+                    Vehicle = data.DistinctBy(x=>x.vi.ChasisNo). Select(x => new VehicleViewModel
+                    {
+                        ChassisNo = x.vi?.ChasisNo,
+                        ModelId = x.vd?.ItemCode,
+                        MotorId = x.vi?.MotorNo,
+                        MotorControllerNo = x.vi?.ControllerNo,
+                        EcuSerialNo = x.vi?.EcuSerno,
+                        EcuImeiNo = x.vi?.EcuImEi,
+                        EcuBlMac = x.vi?.EcuBalMac,
+                        BikeSimId = x.vi?.BikeSimid,
+                        BikeMobileNo = x.vi?.BikeMobileno,
+                        SoundSerialNo = x.vi?.SoundbarSerno,
+                        SoundBleMac = x.vi?.SoundbarBalMac,
+                        BatteryId = x.vi?.BatteryId,
+                        BatterySerialNo = x.vi?.BatteryNo,
+
+                        RegNumber = x.vd?.RegNo,
+                        Validity = "",
+                        StartDate = x.vh?.SaleDate.ToShortDateString(),
+
+                        DealerCode = dealerCode,
+                        VendorIdNo = "",
+
+                        SaleBillNo = x.vh?.SaleBillNo,
+                        SaleBillDate = x.vh?.SaleDate.ToString("yyyy-MM-dd"),
+
+                        ReceiptGuid = "",
+                        ItemModel = x.vd?.ItemCode,
+
+                        LocationName = x.location?.Locname,
+
+                        Id = x.vd.Id.ToString(),
+                        CustId = x.c?.Id.ToString(),
+
+                        DeletedOn = "",
+                        InvoiceDate = x.invoice?.CreatedDate.ToString(),
+                        InvoiceNo = x.invoice?.InvoiceNo,
+
+                        LocCode = x.location?.Loccode,
+                        LocationCity = x.location?.City,
+                        Pin = x.location?.Pincode,
+                        
+
+                        AccountType = x.c?.LedgerType,
+                        OEMModel = x.im?.Oemmodelname,
+                        Group1 =x.im?.Grpidno.ToString(),
+                        HSNSACCode = x.im?.Hsncode,
+
+                        SaleType = x.vh?.SaleType,
+                        FinancedBy = x.f?.LedgerName,
+
+
+                        ItemRate =x.vd?.ItemRate,
+                        InsuAmnt = x.vd ?.InsuranceAmount,
+                        RegnAmnt = x.vd ?.RegAmount,
+                        RegDiscAmnt = x.vd?.PostGstDisc,
+                        DiscountType = 0,
+
+                        FameII = x.vd?.FameIi,
+                        StateFameII = 0,
+
+                        SGSTPer = x.vd ?.Sgstper,
+                        SGSTAmnt = x.vd ?.Sgstamnt,
+                        CGSTPer = x.vd ?.Cgstper,
+                        CGSTAmnt = x.vd ?.Cgstamnt,
+                        IGSTPer = x.vd ?.Igstper,
+                        IGSTAmnt = x.vd ?.Igstamnt,
+
+                        NetAmnt = x.vd ?.FinalAmount,
+
+                        BatteryChemical = x.vi?.BatteryChemistry,
+                        BatteryCapacity = x.vi?.BatteryCapacity,
+                        BatteryMake = x.vi?.BatteryMake,
+
+                        ChargerNo = x.vi?.ChargerNo,
+                        Converter = x.vi?.Converter,
+                        VCU = x.vi?.Vcu,
+                        FameIIRequired = x.vi?.Fame2Discount > 0 ? "Yes" : "No",
+
+                        SegmentName =x.vd?.Segment,
+                        InstitutionalName = x.vd?.InstitutionalType,
+                        SchemeName = x.vd?.SchemeName,
+                    }).ToList()
+                };
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
 
         public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)

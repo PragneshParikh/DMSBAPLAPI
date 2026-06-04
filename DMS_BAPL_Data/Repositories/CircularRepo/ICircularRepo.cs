@@ -15,6 +15,7 @@ namespace DMS_BAPL_Data.Repositories.CircularRepo
         Task<bool> Delete(int Id);
         Task<CircularMasterViewModel> GetById(int Id);
         Task<int> Update(CircularMaster circularMaster);
-        //Task<CircularMasterViewModel> GetByDate(DateTime date);
+        Task<IEnumerable<CircularMaster>> GetCircularList();
+        Task<IEnumerable<CircularMasterViewModel>> GetCircularListByDealerCode(string dealerCode);
     }
 }
