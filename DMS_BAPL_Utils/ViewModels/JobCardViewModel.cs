@@ -298,6 +298,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class LabourCodeDetails
     {
+        public int PartwiseLabourId { get; set; }
         public int LabourId { get; set; }
         public string? LabourCode { get; set; }
         public string? LabourName { get; set; }
@@ -320,6 +321,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string PartyMobileNo { get; set; }
         public string PartyState { get; set; }
         public bool? IsMaterialTransfer { get; set; }
+        public int? CustomerLedgerId { get; set; }
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
         public JobCardCustomerVM JobCardCustomer { get; set; }
