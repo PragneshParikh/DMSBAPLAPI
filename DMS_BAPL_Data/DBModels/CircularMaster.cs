@@ -7,6 +7,8 @@ public partial class CircularMaster
 {
     public int Id { get; set; }
 
+    public string? Category { get; set; }
+
     public string Title { get; set; } = null!;
 
     public string? Description { get; set; }

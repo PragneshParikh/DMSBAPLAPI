@@ -513,6 +513,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
             var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true)
                 .Select(x => new LabourRateDropDown
                 {
+                    LabourId = x.Id,
                     LabourCode = x.LabourCode,
                     LabourDescription = x.LabourDescription,
                     LabourRate = x.LabourRate,
@@ -520,6 +521,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Sgst = x.Sgst,
                     Igst = x.Igst,
                     OemModelName = x.Oemmodelname
+
                 }).ToListAsync();
 
             labourRateDropDowns = labourRateDropDowns
@@ -544,7 +546,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Igst = x.Igst,
                     OemModelName = x.ModelName
                 }).ToListAsync();
-
+            
             partWiseLabourRateDropDowns = partWiseLabourRateDropDowns
         .Where(x =>
             !string.IsNullOrWhiteSpace(x.OemModelName) &&

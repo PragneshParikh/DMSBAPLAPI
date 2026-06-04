@@ -7,6 +7,7 @@ using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
 using DMS_BAPL_Data.Repositories.ChassisDetailsRepo;
 using DMS_BAPL_Data.Repositories.ChassisRepo;
 using DMS_BAPL_Data.Repositories.CircularAttachmentRepo;
+using DMS_BAPL_Data.Repositories.CircularDealerAssignmentRepo;
 using DMS_BAPL_Data.Repositories.CircularRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
@@ -55,6 +56,7 @@ using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
 using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.ChassisService;
 using DMS_BAPL_Data.Services.CircularAttachmentService;
+using DMS_BAPL_Data.Services.CircularDealerAssignmentService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
@@ -154,6 +156,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IRepairBillRepo, RepairBillRepo>();
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
+            services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
 
             #endregion
 
@@ -203,6 +206,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IEmployeeService, EmployeeService>();
             services.AddScoped<IChassisDetailService, ChassisDetailService>();
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
+            services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
 
 
             // Email SErvice

@@ -12,5 +12,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
     {
         Task<int> InsertRepairBill(RepairBillInsertVM model, string userId);
         Task<List<RepairBillListVM>> GetAllRepairBillList(RepairBillSearchVM search);
+
+        Task<RepairBillUpdateVM?> GetRepairBillById(int id);
     }
 }

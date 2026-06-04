@@ -4,6 +4,7 @@ using DMS_BAPL_Data.Services.NewsBulletinService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -48,6 +49,30 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetCircularList")]
+        [ProducesResponseType(typeof(IEnumerable<CircularMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<CircularMaster>>> GetCircularList()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var circular = await _circularService.GetCircularList();
+
+                return Ok(circular);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while getting circular list: {ex.Message}");
+                throw;
+            }
+        }
+
         [HttpGet("{Id}")]
         [ProducesResponseType(typeof(CircularMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -68,6 +93,35 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError($"Error while featching records by Id : {ex.Message}");
+                throw;
+            }
+        }
+
+        [HttpGet("GetByDealerCode/{dealerCode}")]
+        [ProducesResponseType(typeof(IEnumerable<CircularMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<CircularMaster>>> GetCircularListByDealerCode(string? dealerCode = null)
+        {
+            try
+            {
+                if (dealerCode == "null")
+                {
+                    dealerCode = null;
+                }
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var circular = await _circularService.GetCircularListByDealerCode(dealerCode);
+
+                return Ok(circular);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while getting circular list: {ex.Message}");
                 throw;
             }
         }

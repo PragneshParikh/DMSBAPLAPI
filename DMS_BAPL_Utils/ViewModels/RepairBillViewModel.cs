@@ -13,8 +13,10 @@ namespace DMS_BAPL_Utils.ViewModels
             public RepairBillHeaderVM RepairBillheader { get; set; }
             public List<RepairBillDetailVM> RepairBillDetail { get; set; }
         }
+        
         public class RepairBillHeaderVM
         {
+            public int Id { get; set; }
             public string? LocationCode { get; set; }
 
             public string DealerCode { get; set; }
@@ -22,9 +24,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public int BillNo { get; set; }
             public string? BillType { get; set; }
             public int? CashAccount { get; set; }
-
-            public string? PartyName { get; set; }
-            public string? MobileNumber { get; set; }
+            public int? CustomerLedgerId { get; set; }
 
             public int? Scheme { get; set; }
             public int JobId { get; set; }
@@ -45,10 +45,14 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? TotalNetAmount { get; set; }
             public decimal? AmountRecived { get; set; }
             public bool? IsActive { get; set; }
+            public bool? IsSavedPerforma { get; set; }
+            public bool? IsSavedInvoice { get; set; }
+            public string? RepairBillStatus { get; set; }
         }
 
         public class RepairBillDetailVM
         {
+            public int Id { get; set; }
             public decimal? PartRate;
 
             public string? ItemType { get; set; } // Part/Labour
@@ -109,9 +113,58 @@ namespace DMS_BAPL_Utils.ViewModels
             public int JobId { get; set; }
             public int? JobCardNo { get; set; }
             public decimal? TotalNetAmount { get; set; }
+            public string? RepairBillStatus { get; set; }
             public string? CreatedBy { get; set; }
             public DateTime? CreatedDate { get; set; }
             public string? UpdatedBy { get; set; }
         }
+        public class RepairBillUpdateHeaderVM
+        {
+            public int Id { get; set; }
+            public string? LocationCode { get; set; }
+
+            public string DealerCode { get; set; }
+            public string? Prefix { get; set; }
+            public int BillNo { get; set; }
+            public string? BillType { get; set; }
+            public int? CashAccount { get; set; }
+            public int? CustomerLedgerId { get; set; }
+            public string? PartyName { get; set; }
+            public string? MobileNumber { get; set; }
+
+            public string? PartyState { get; set; }
+
+            public int? Scheme { get; set; }
+            public int JobId { get; set; }
+
+            public string? Remarks { get; set; }
+
+            public decimal? TotalDiscount { get; set; }
+            public decimal? TaxableAmount { get; set; }
+            public decimal? NetAmount { get; set; }
+            public int? InsuranceId { get; set; }
+            public string insDescription { get; set; }
+            public string SurveyorName { get; set; }
+            public int? ContactNumber { get; set; }
+            public string? policyNo { get; set; }
+            public DateTime? ValidTill { get; set; }
+            public bool? zeroDepo { get; set; }
+            public decimal? TotalTaxableAmount { get; set; }
+            public decimal? TotalNetAmount { get; set; }
+            public decimal? AmountRecived { get; set; }
+            public bool? IsActive { get; set; }
+            public bool? IsSavedPerforma { get; set; }
+            public bool? IsSavedInvoice { get; set; }
+            public string? RepairBillStatus { get; set; }
+        }
+
+        public class RepairBillUpdateVM
+        {
+            public RepairBillUpdateHeaderVM RepairBillheader { get; set; }
+            public List<RepairBillDetailVM> RepairBillDetail { get; set; }
+        }
+
+
+
     }
 }
