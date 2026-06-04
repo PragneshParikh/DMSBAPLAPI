@@ -17,7 +17,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task UpdateAsync(int id, VehicleSaleBillEditCreateViewModel model);
         Task DeleteAsync(int id);
         Task<string> GenerateNextVehicleSaleNo();
-        Task<VehicleSaleExportViewModel?> GetExportData(int id);
+
+        //Task<VehicleSaleExportViewModel?> GetExportData(int id);
         // Task<List<VehicleSaleChasisResponse>> GetChasisList(VehicleSaleChasisRequest request);
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId);
         Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo);
@@ -27,5 +28,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId);
+        Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
     }
 }

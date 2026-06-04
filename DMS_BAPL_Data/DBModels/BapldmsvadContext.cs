@@ -419,9 +419,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Category)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.Category)
-                .HasMaxLength(50)
-                .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
