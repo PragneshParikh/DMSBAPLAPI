@@ -64,7 +64,6 @@ public partial class RepairBillHeader
     public DateTime? UpdatedDate { get; set; }
 
     public virtual LedgerMaster? CustomerLedger { get; set; }
-    public string? DealerCode { get; set; }
 
     public virtual LedgerMaster? Insurance { get; set; }
 

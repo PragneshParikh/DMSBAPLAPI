@@ -34,8 +34,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     BillNo = model.RepairBillheader.BillNo,
                     BillType = model.RepairBillheader.BillType,
                     CashAccount = model.RepairBillheader.CashAccount,
-                    PartyName = model.RepairBillheader.PartyName,
-                    MobileNumber = model.RepairBillheader.MobileNumber,
+                    CustomerLedgerId = model.RepairBillheader.CustomerLedgerId == 0 ? null : model.RepairBillheader.CustomerLedgerId,
                     JobId = model.RepairBillheader.JobId,
                     InsuranceId = model.RepairBillheader.InsuranceId == 0 ? null : model.RepairBillheader.InsuranceId,
                     InsDecription = model.RepairBillheader.insDescription,
@@ -50,8 +49,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     TotalNetAmount = model.RepairBillheader.TotalNetAmount ?? 0,
                     AmountReceived = model.RepairBillheader.AmountRecived ?? 0,
                     IsActive = model.RepairBillheader.IsActive,
-
-
+                    IsSavedPerforma = model.RepairBillheader.IsSavedPerforma,
+                    IsSavedInvoice = model.RepairBillheader.IsSavedInvoice,
+                    RepairbillStatus = model.RepairBillheader.RepairBillStatus,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
@@ -137,16 +137,20 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     join jc in _context.JobCardCustomers
                         on jh.Id equals jc.JobCardHeaderId into jcJoin
                     from jc in jcJoin.DefaultIfEmpty()
-
+                    join lg in _context.LedgerMasters
+                        on rb.CustomerLedgerId equals lg.Id into lgJoin
+                        from lg in lgJoin.DefaultIfEmpty()
                     select new
                     {
                         RepairBill = rb,
+                        ledger = lg,
                         JobCard = jh,
-                        Customer = jc
+                        Customer = jc,
+                        
                     };
                 // DealerCode
 
-                if(!string.IsNullOrWhiteSpace(search.DealerCode))
+                if (!string.IsNullOrWhiteSpace(search.DealerCode))
                 {
                     query = query.Where(x =>
                         x.RepairBill.DealerCode == search.DealerCode);
@@ -205,16 +209,18 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         Prefix = x.RepairBill.Prefix,
                         BillNo = x.RepairBill.BillNo,
                         BillType = x.RepairBill.BillType,
-                        PartyName = x.RepairBill.PartyName,
-                       
+                        PartyName = x.ledger.LedgerName,
+                        
+
                         ChassisNumber = x.Customer != null ? x.Customer.ChassisNo : null,
                         RegistrationNo = x.Customer != null ? x.Customer.RegisterNo : null,
                         JobCardNo = x.JobCard != null ? x.JobCard.JobNo : null,
                         TotalNetAmount = x.RepairBill.TotalNetAmount,
+                        RepairBillStatus = x.RepairBill.RepairbillStatus,
                         CreatedBy = x.RepairBill.DealerCode,
                         CreatedDate = x.RepairBill.CreatedDate,
                         UpdatedBy = x.RepairBill.DealerCode,
-                        
+
                     })
                     .OrderByDescending(x => x.Id)
                     .ToListAsync();
@@ -225,6 +231,103 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             {
                 throw new Exception(ex.Message);
             }
+        }
+
+        public async Task<RepairBillUpdateVM?> GetRepairBillById(int id)
+        {
+            var billedResult = await (
+                from rbh in _context.RepairBillHeaders
+
+                join st in _context.States
+                    on rbh.CustomerLedger.State equals st.StateId into stJoin
+                from st in stJoin.DefaultIfEmpty()
+
+                where rbh.Id == id
+
+                select new RepairBillUpdateVM
+                {
+                    RepairBillheader = new RepairBillUpdateHeaderVM
+                    {
+                        Id = rbh.Id,
+                        LocationCode = rbh.LocationCode,
+                        DealerCode = rbh.DealerCode,
+                        Prefix = rbh.Prefix,
+                        BillNo = rbh.BillNo,
+                        BillType = rbh.BillType,
+                        CashAccount = rbh.CashAccount,
+
+                        CustomerLedgerId =
+                            rbh.CustomerLedgerId == 0
+                            ? null
+                            : rbh.CustomerLedgerId,
+
+                        PartyName = rbh.CustomerLedger != null
+                            ? rbh.CustomerLedger.LedgerName
+                            : null,
+
+                        MobileNumber = rbh.CustomerLedger != null
+                            ? rbh.CustomerLedger.MobileNumber
+                            : null,
+
+                        PartyState = st != null
+                            ? st.StateName
+                            : null,
+
+                        JobId = rbh.JobId,
+                        InsuranceId = rbh.InsuranceId ?? 0,
+                        insDescription = rbh.InsDecription,
+                        SurveyorName = rbh.SurveyorName,
+                        ContactNumber = rbh.ContactNumber,
+                        policyNo = rbh.PolicyNo,
+                        ValidTill = rbh.InsValidTill,
+                        zeroDepo = rbh.ZeroDepo ?? false,
+                        Remarks = rbh.Remarks,
+                        TotalDiscount = rbh.TotalDiscount ?? 0,
+                        TotalTaxableAmount = rbh.TotalTaxableAmount ?? 0,
+                        TotalNetAmount = rbh.TotalNetAmount ?? 0,
+                        AmountRecived = rbh.AmountReceived ?? 0
+                    },
+
+                    RepairBillDetail = rbh.RepairBillDetails
+                        .Select(d => new RepairBillDetailVM
+                        {
+                            Id = d.Id,
+                            ItemType = d.ItemType,
+                            MaterialId = d.MaterialId ?? 0,
+                            LabourId = d.LabourMasterId ?? 0,
+                            PartWiseLabourId = d.PartWiseLabourId ?? 0,
+                            PartItemId = d.PartItemId,
+
+                            Qty = d.LabourQty ?? 0,
+                            Rate = d.LabourRate ?? 0,
+
+                            PartQty = d.PartQty ?? 0,
+                            PartRate = d.PartRate ?? 0,
+
+                            FscRate = d.Fscrate ?? 0,
+
+                            Discount = d.LabourDiscount ?? 0,
+                            DiscountType = d.DiscountType,
+
+                            PartDiscount = d.PartDiscount ?? 0,
+
+                            IgstAmount = d.Igstamount ?? 0,
+                            CgstAmount = d.Cgstamount ?? 0,
+                            SgstAmount = d.Sgstamount ?? 0,
+
+                            TaxableAmount = d.LabourTaxblAmount ?? 0,
+                            NetAmount = d.LabourNetAmount ?? 0,
+
+                            PartTaxbleAmount = d.PartTaxblAmount ?? 0,
+                            PartNetAmount = d.PartNetAmount ?? 0,
+
+                            IssueType = d.IssutypeId ?? 0
+                        })
+                        .ToList()
+                }
+            ).FirstOrDefaultAsync();
+
+            return billedResult;
         }
     }
 }

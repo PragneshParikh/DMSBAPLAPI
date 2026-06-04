@@ -219,6 +219,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     lg,
                     sta
                 };
+            query = query.Where(x => !_context.RepairBillHeaders.Any(rb => rb.JobId == x.jh.Id && rb.IsActive == true));
 
             // Dealer Filter
             if (!string.IsNullOrWhiteSpace(search.DealerCode))
@@ -263,6 +264,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     x.c != null &&
                     x.c.ChassisNo.Contains(search.ChassisNo));
             }
+            
 
             var jobCardsResult = await query
                 .Select(x => new JobCardlistDetailsViewModel
@@ -276,6 +278,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     PartyName = x.lg != null ? x.lg.LedgerName : null,
                     PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
                     PartyState = x.sta != null ? x.sta.StateName : null,
+                    CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
                     IsMaterialTransfer = x.jh.IsMaterialTransfer,
 
                     JobCardHeader = new JobCardHeaderVM
@@ -1091,7 +1094,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             pl.CityTier == cityTier)
                         .Select(pl => new LabourCodeDetails
                         {
-                            LabourId = pl.Id,
+                            PartwiseLabourId = pl.Id,
+                            //LabourId = pl.Id,
                             LabourCode = pl.LabourCode,
                             LabourName = pl.LabourName,
                             LabourRate = pl.LabourRate,

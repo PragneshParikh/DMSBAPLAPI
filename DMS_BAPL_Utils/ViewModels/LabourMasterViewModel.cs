@@ -73,6 +73,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class LabourRateDropDown
     {
+        public int LabourId { get; set; }
         public string? LabourCode { get; set; }
         public string? LabourName { get; set; }
         public string? LabourDescription { get; set; }

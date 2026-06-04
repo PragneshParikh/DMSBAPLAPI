@@ -86,7 +86,18 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        
+        [HttpGet("GetRepairBillById/{id}")]
+        public async Task<IActionResult> GetRepairBillById(int id)
+        {
+            var result = await _repairBillRepo.GetRepairBillById(id);
+
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
+        }
+
+
 
 
     }
