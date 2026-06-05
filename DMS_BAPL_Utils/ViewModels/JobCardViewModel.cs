@@ -133,6 +133,7 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public int Id { get; set; }
         public int JobCardHeaderId { get; set; }
+        public int? CustomerLedgerId { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerAltMobile { get; set; }

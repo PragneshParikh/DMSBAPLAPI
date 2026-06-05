@@ -341,6 +341,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RegisterNo = x.c.RegisterNo,
                         ChassisNo = x.c.ChassisNo,
                         ModelName = x.c.ModelName,
+                        CustomerLedgerId = x.c.CustomerLedgerId,
                         CustomerName = x.c.CustomerName,
                         CustomerMobile = x.c.CustomerMobile,
                         CustomerAltMobile = x.c.CustomerAltMobile,

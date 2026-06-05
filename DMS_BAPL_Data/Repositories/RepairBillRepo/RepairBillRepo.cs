@@ -501,6 +501,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         _context.RepairBillDetails.Add(newDetail);
                     }
                 }
+                Console.WriteLine(
+    $"CustomerLedgerId = {header.CustomerLedgerId}"
+);
                 foreach (var item in model.RepairBillDetail)
                 {
                     Console.WriteLine(
