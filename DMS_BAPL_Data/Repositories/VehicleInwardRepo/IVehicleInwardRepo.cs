@@ -14,7 +14,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         Task<IEnumerable<VehicleInward>> Get();
         Task<IEnumerable<VehicleInward>> GetVehicleByStatus(string dealerCode, Boolean status);
         Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
-        Task<bool> InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel);
+        Task<object> InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel);
         Task<List<VehicleInward>> GetByChassisNosAsync(List<string> chassisNos);
     }
 }
