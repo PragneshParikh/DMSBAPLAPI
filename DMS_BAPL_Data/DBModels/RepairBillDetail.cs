@@ -66,4 +66,6 @@ public partial class RepairBillDetail
     public virtual PartWiseLabourMaster? PartWiseLabour { get; set; }
 
     public virtual RepairBillHeader? RepairBill { get; set; }
+
+    public virtual ItemMaster? PartItem { get; set; }
 }

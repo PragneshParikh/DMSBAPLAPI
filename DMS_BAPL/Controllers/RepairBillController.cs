@@ -87,18 +87,62 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("GetRepairBillById/{id}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetRepairBillById(int id)
         {
-            var result = await _repairBillRepo.GetRepairBillById(id);
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _repairBillRepo.GetRepairBillById(id);
 
-            if (result == null)
-                return NotFound();
+                if(result == null)
+                {
+                    return NotFound($"Repair bill with ID {id} not found.");
+                }
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in GetRepairBillById for id: {id}");
+                return StatusCode(500, "An error occurred while retrieving the repair bill.");
+            }
+            
         }
 
+        [HttpPut("UpdateRepairBill")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateRepairBill(RepairBillViewModel.RepairBillUpdateVM model)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
+                var result = await _repairBillRepo.UpdateRepairBill(model, userId);
+                if (result)
+                {
+                    return Ok(new { Success = true, Message = "Repair bill updated successfully." });
+                }
+                else
+                {
+                    _logger.LogError("Failed to update repair bill.");
+                    return StatusCode(500, new { Success = false, Message = "An error occurred while updating the repair bill." });
+                }
 
-
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while updating the repair bill.");
+                return StatusCode(500, new { Success = false, Message = "An error occurred while updating the repair bill.", Details = ex.Message });
+            }
+        }
     }
 }
