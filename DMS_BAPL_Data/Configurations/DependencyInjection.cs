@@ -64,6 +64,7 @@ using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
+using DMS_BAPL_Data.Services.FileService;
 using DMS_BAPL_Data.Services.Form22Services;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
@@ -211,6 +212,7 @@ namespace DMS_BAPL_Data.Configurations
 
             // Email SErvice
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IFileService, FileService>();
 
             #endregion
 
