@@ -11,6 +11,7 @@ using DMS_BAPL_Data.Repositories.CircularDealerAssignmentRepo;
 using DMS_BAPL_Data.Repositories.CircularRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
+using DMS_BAPL_Data.Repositories.ComplaintMasterRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
@@ -157,6 +158,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
             services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
+            services.AddScoped<IComplaintMaster, ComplaintMaster>();
 
             #endregion
 
