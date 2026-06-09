@@ -244,19 +244,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("Form22")]
-
-        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
-        {
-            try
-            {
-                return await _vehicleSaleBillService.GenerateForm22Report(chassisNo);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+        
 
         /// <summary>
         /// Downloads dealer list as an Excel file.

@@ -209,7 +209,56 @@ namespace DMS_BAPL_Utils.ViewModels
             public List<RepairBillUpdateDetailVM> RepairBillDetail { get; set; }
         }
 
+        public class RepairBillPerformaVM
+        {
+            public int Id { get; set; }
+            //Dealer info
+            public string? DealerName { get; set; }
+            public string? ContactPerson { get; set; }
+            public string? DealerAddress { get; set; }
+            public string? DealerPhoneNo { get; set; }
+            public string? DealerEmail { get; set; }
+            public string? DealergstNo { get; set; }
+            public string? DealerPanNo { get; set; }
+            public string? DealerState { get; set; }
+            
 
+            //Bill To
+            public string? InsuranceName { get; set; }
+            public string? InsGSTINNo { get; set; }
+            public string? InsAddress { get; set; }
 
+            //Ship To
+            public string? CustomerName { get; set; }
+            public string? CustomerPhoneNo { get; set; }
+            public string? CustomerAddress{ get; set; }
+            public string? CustomerGSTINNo { get; set; }
+            public string? CustomerState { get; set; }
+            public string? CustomerCity { get; set; }
+            public string? CustomerPincode { get; set; }
+            public string? TechnicianName { get; set; }
+            public string? AdvisorName { get; set; }
+
+            //job card info
+
+            public string? InvoiceNo { get; set; }
+            public string? ChassisNo { get; set; }
+            public string? RegisterationNo { get; set; }
+            public string? MotorNo { get; set; }
+            public string? ModelName { get; set; }
+            public string? Color { get; set; }
+            public string? JobNo { get; set; }
+            public DateTime? JobInDate { get; set; }
+            public int JobTypeId { get; set; }
+            public string? JobTypeName { get; set; }
+            public string? JobSourceName { get; set; }
+            public int? ODOReading { get; set; }
+            public int? ClaimNo { get; set; }
+            public DateTime? VehicleSaleDate { get; set; }
+            public DateTime? VehicleExpiryDate { get; set; }
+
+            public List<RepairBillUpdateDetailVM> RepairBillDetail { get; set; }
+
+        }
     }
 }

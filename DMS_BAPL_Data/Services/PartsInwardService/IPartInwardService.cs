@@ -12,5 +12,6 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<IEnumerable<PartsInward>> Get();
         Task<IEnumerable<PartsInward>> GetPartInwardByDealerAsync(string dealerCode);
         Task<bool> UpdateByInvoice(string invoiceNo, string dealerCode);
+        Task<object> PartsInward(PartsInward partsInward);
     }
 }

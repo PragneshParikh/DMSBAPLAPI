@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.InventoryService;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -100,6 +101,33 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 throw;
             }
 
+        }
+
+        async Task<object> IPartInwardRepo.PartsInward(PartsInward partsInward)
+        {
+            var exist = await _context.PartsInwards
+                .FirstOrDefaultAsync(x =>
+                    x.InvoiceNo == partsInward.InvoiceNo &&
+                    x.PartNo == partsInward.PartNo);
+
+            if (exist != null)
+            {
+                return new
+                {
+                    Success = false,
+                    Message = "Part No and Invoice No already exist. Duplicate entry."
+                };
+            }
+
+            await _context.PartsInwards.AddAsync(partsInward);
+
+            var result = await _context.SaveChangesAsync();
+
+            return new
+            {
+                Success = result > 0,
+                Message = result > 0 ? "Part inward saved successfully." : "Failed to save part inward."
+            };
         }
     }
 }

@@ -59,6 +59,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync( DateTime? fromDate, DateTime? toDate,string? dealerCode);
 
         Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync();
+        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
 
     }
 }

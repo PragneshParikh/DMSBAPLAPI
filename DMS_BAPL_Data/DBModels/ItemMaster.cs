@@ -106,4 +106,6 @@ public partial class ItemMaster
     public virtual ICollection<KitDetail> KitDetails { get; set; } = new List<KitDetail>();
 
     public virtual ICollection<MaterialTransfer> MaterialTransfers { get; set; } = new List<MaterialTransfer>();
+
+    public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
 }

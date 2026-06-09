@@ -3,25 +3,17 @@ using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
-public partial class ChassisDetail
+public partial class InventoryByLocation
 {
     public int Id { get; set; }
 
-    public int? LedgerId { get; set; }
+    public string ItemCode { get; set; } = null!;
 
     public string ChassisNo { get; set; } = null!;
 
-    public string ItemCode { get; set; } = null!;
-
-    public string ItemName { get; set; } = null!;
-
-    public string ItemColor { get; set; } = null!;
-
-    public string DealerId { get; set; } = null!;
-
     public string LocationCode { get; set; } = null!;
 
-    public DateTime? SaleDate { get; set; }
+    public string DealerCode { get; set; } = null!;
 
     public string CreatedBy { get; set; } = null!;
 
