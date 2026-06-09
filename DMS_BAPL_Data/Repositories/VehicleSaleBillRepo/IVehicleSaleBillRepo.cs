@@ -24,7 +24,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task UpdateWithJobUpdateAsync(VehicleSaleBillHeader header, List<UpdateSaleDetailsVM>? jobUpdates,List<string> deletedChassisList);
         Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo);
         Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
-        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
+       
 
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode);
