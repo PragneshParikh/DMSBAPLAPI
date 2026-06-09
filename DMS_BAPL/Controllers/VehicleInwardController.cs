@@ -114,15 +114,15 @@ namespace DMS_BAPL_Api.Controllers
                 if (vehicleInwardViewModel is null)
                     return BadRequest(new { message = "Invalid data" });
 
-                var result = await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
+                dynamic result = await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
 
-                if (result)
+                if (result.Success)
                 {
                     await _chassisDetailService.InsertChassis(vehicleInwardViewModel, userId);
                     await _chassisBatteryDetailService.InsertBatteryDetail(vehicleInwardViewModel, userId);
                 }
 
-                return Ok("Data inserted sucessfully.");
+                return Ok(result.s);
             }
             catch (Exception ex)
             {

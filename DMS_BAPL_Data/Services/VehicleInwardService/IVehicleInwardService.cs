@@ -13,6 +13,6 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
         Task<IEnumerable<VehicleInward>> Get();
         Task<IEnumerable<VehicleInward>> GetVehicleByStatus(string dealerCode, Boolean status);
         Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
-        Task<bool> InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel);
+        Task<object> InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel);
     }
 }

@@ -33,7 +33,7 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             return _vehicleDispatchRepo.UpdateInvoiceStatus(invoiceNo, userId);
         }
 
-        Task<bool> IVehicleInwardService.InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel) => _vehicleDispatchRepo.InsertVehicleDispatchDetail(vehicleInwardViewModel);
+        Task<object> IVehicleInwardService.InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel) => _vehicleDispatchRepo.InsertVehicleDispatchDetail(vehicleInwardViewModel);
 
     }
 }

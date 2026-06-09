@@ -59,10 +59,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
-        async Task<bool> IVehicleInwardRepo.InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel)
+        async Task<object> IVehicleInwardRepo.InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel)
         {
             try
             {
+
+                var exist = await _context.VehicleInwards
+               .FirstOrDefaultAsync(x =>
+                   x.ChasisNo == vehicleInwardViewModel.chasis_no);
+
+                if (exist != null)
+                {
+                    return new
+                    {
+                        Success = false,
+                        Message = "Part No and Invoice No already exist. Duplicate entry."
+                    };
+                }
+
                 var vehicleInward = new VehicleInward
                 {
                     //Id = -1,
@@ -118,8 +132,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 };
 
                 _context.VehicleInwards.Add(vehicleInward);
-                await _context.SaveChangesAsync();
-                return true;
+                var result = await _context.SaveChangesAsync();
+
+                return new
+                {
+                    Success = result > 0,
+                    Message = result > 0 ? "Part inward saved successfully." : "Failed to save part inward."
+                };
             }
             catch (Exception ex)
             {
