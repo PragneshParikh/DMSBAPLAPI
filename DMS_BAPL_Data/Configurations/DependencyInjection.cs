@@ -50,6 +50,7 @@ using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
+using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -97,7 +98,7 @@ using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
-
+using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -159,6 +160,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
             services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
+            services.AddScoped<IVehicleStockTransferRepo, VehicleStockTransferRepo>();
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
 
             #endregion
@@ -210,6 +212,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailService, ChassisDetailService>();
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
             services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
+            services.AddScoped<IVehicleStockTransferService,VehicleStockTransferService>();
 
 
             // Email SErvice

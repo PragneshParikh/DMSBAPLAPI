@@ -73,7 +73,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-        // ✅ GET BY ID
+        // GET BY ID
         public async Task<VehicleSaleBillResponseViewModel?> GetByIdAsync(int id)
         {
             try
@@ -107,7 +107,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         (x.CustomerName != null && x.CustomerName.ToLower().Contains(search)) ||
                         (x.BillingName != null && x.BillingName.ToLower().Contains(search)) ||
                         (x.Location != null && x.Location.ToLower().Contains(search))
-                       // (x.BillType != null && x.BillType.ToLower().Contains(search))
+                    // (x.BillType != null && x.BillType.ToLower().Contains(search))
                     ).ToList();
                 }
 
@@ -723,7 +723,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 var result = await _repo.ConfirmInvoiceAndReserveChassis(saleBillNo);
-             
+
                 return result;
 
 
@@ -806,14 +806,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     .ToList();
 
                 // DTO Properties
-                var properties = typeof(VehicleSaleBillExcelViewModel)
-                    .GetProperties()
-                    .ToList();
+                var properties = typeof(VehicleSaleBillExcelViewModel).GetProperties().ToList();
 
                 // Excel Columns
-                var columns = properties
-                    .Select(p => p.Name)
-                    .ToList();
+                var columns = properties.Select(p => p.Name).ToList();
 
                 // Excel Rows
                 var rows = data.Select(d =>
