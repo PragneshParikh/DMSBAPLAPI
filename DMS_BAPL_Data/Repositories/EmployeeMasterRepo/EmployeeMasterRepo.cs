@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -83,6 +84,28 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             {
                 throw;
             }
+        }
+
+        async Task<List<EmployeeDesignationWiseViewModel>> IEmployeeMasterRepo.GetEmployeesByDesignation(string? dealerCode, string designation)
+        {
+            try
+            {
+                var result = await _context.EmployeeMasters
+                    .Where(e => e.DealerCode == dealerCode && e.Designation.ToLower() == designation.ToLower() && e.IsActive)
+                    .Select(e=> new EmployeeDesignationWiseViewModel
+                    {
+                        EmployeeCode = e.EmployeeCode,
+                        Designation = e.Designation,
+                        Department = e.Department,
+                        FirstName = e.FirstName,
+                        LastName = e.LastName,
+                        DealerCode = e.DealerCode,
+                        LocationCode = e.LocationCode,
+                    })
+                    .ToListAsync();
+                return result;
+            }
+            catch { throw; }
         }
     }
 }

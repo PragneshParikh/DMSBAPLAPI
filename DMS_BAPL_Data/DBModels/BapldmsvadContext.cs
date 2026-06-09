@@ -728,6 +728,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Mobile)
                 .HasMaxLength(20)
                 .IsUnicode(false);

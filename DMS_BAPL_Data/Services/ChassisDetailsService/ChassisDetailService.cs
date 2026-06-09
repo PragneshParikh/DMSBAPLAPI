@@ -32,5 +32,7 @@ namespace DMS_BAPL_Data.Services.ChassisDetailsService
 
             return _chassisDetailRepo.InsertChassis(chassis);
         }
+
+        Task<List<VehicleStockTransferChassisListViewModel>> IChassisDetailService.GetChassisList(string? locationCode) => _chassisDetailRepo.GetChassisList(locationCode);
     }
 }
