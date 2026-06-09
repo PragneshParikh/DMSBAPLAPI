@@ -284,6 +284,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                        InsValidTill = rbh.InsValidTill,
                        zeroDepo = rbh.ZeroDepo ?? false,
                        Remarks = rbh.Remarks,
+                       RepairBillStatus = rbh.RepairbillStatus,
                        TotalDiscount = rbh.TotalDiscount ?? 0,
                        TotalTaxableAmount = rbh.TotalTaxableAmount ?? 0,
                        TotalNetAmount = rbh.TotalNetAmount ?? 0,
@@ -501,23 +502,6 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         _context.RepairBillDetails.Add(newDetail);
                     }
                 }
-                Console.WriteLine(
-    $"CustomerLedgerId = {header.CustomerLedgerId}"
-);
-                foreach (var item in model.RepairBillDetail)
-                {
-                    Console.WriteLine(
-                        $"ItemType={item.ItemType}, " +
-                        $"LabourId={item.LabourId}, " +
-                        $"PartWiseLabourId={item.PartWiseLabourId}");
-                }
-                foreach (var d in model.RepairBillDetail)
-                {
-                    Console.WriteLine(
-                        $"ItemType={d.ItemType}, MaterialId={d.MaterialId}, PartItemId={d.PartItemId}"
-                    );
-                }
-
                 await _context.SaveChangesAsync();
                 return true;
 
@@ -530,5 +514,99 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             }
         }
 
+        public async Task<RepairBillPerformaVM?> generateRepairBillPerformaDetails(
+    string dealerCode,
+    int repairBillId)
+        {
+            try
+            {
+                var result = await (
+                    from rbh in _context.RepairBillHeaders
+
+                    join dl in _context.DealerMasters
+                        on rbh.DealerCode equals dl.Dealercode into dlJoin
+                    from dl in dlJoin.DefaultIfEmpty()
+
+                    join jh in _context.JobCardHeaders
+                        on rbh.JobId equals jh.Id into jhJoin
+                    from jh in jhJoin.DefaultIfEmpty()
+
+                    join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId into jcJoin
+                    from jc in jcJoin.DefaultIfEmpty()
+
+                        // Customer Ledger
+                    join cust in _context.LedgerMasters
+                        on rbh.CustomerLedgerId equals cust.Id into custJoin
+                    from cust in custJoin.DefaultIfEmpty()
+
+                        // Insurance Ledger
+                    join ins in _context.LedgerMasters
+                        on rbh.InsuranceId equals ins.Id into insJoin
+                    from ins in insJoin.DefaultIfEmpty()
+
+                    join st in _context.States
+                        on cust.State equals st.StateId into stJoin
+                    from st in stJoin.DefaultIfEmpty()
+
+                    join ct in _context.Cities
+                        on cust.City equals ct.CityId into ctJoin
+                    from ct in ctJoin.DefaultIfEmpty()
+
+                    where rbh.Id == repairBillId
+
+                    select new RepairBillPerformaVM
+                    {
+                        // Dealer
+                        DealerName = dl != null ? dl.Compname : "",
+                        DealerAddress = dl != null ? dl.Adress1 : "",
+                        DealerPhoneNo = dl != null ? dl.Mobile : "",
+                        DealerEmail = dl != null ? dl.Email : "",
+                        DealergstNo = dl != null ? dl.CompgstinNo : "",
+                        DealerPanNo = dl != null ? dl.Pan : "",
+                        DealerState = dl != null ? dl.State : "",
+                        ContactPerson = dl != null ? dl.Contactperson : "",
+
+                        // Insurance
+                        InsuranceName = ins != null ? ins.LedgerName : "",
+                        InsGSTINNo = ins != null ? ins.Gstno : "",
+                        InsAddress = ins != null ? ins.Address : "",
+
+                        // Customer
+                        CustomerName = cust != null ? cust.LedgerName : "",
+                        CustomerPhoneNo = cust != null ? cust.MobileNumber : "",
+                        CustomerAddress = cust != null ? cust.Address : "",
+                        CustomerGSTINNo = cust != null ? cust.Gstno : "",
+                        CustomerState = st != null ? st.StateName : "",
+                        CustomerCity = ct != null ? ct.CityName : "",
+                        CustomerPincode = cust != null ? cust.Pin : "",
+
+                        // Vehicle / Job Card
+                        TechnicianName = jh != null ? jh.Technician : "",
+                        InvoiceNo = jh != null ? jh.InvoiceNo : "",
+                        ChassisNo = jc != null ? jc.ChassisNo : "",
+                        
+                        RegisterationNo = jc != null ? jc.RegisterNo : "",
+                        
+
+                        // Repair Bill
+                        //RepairBillNo = rbh.Prefix,
+                        //RepairBillDate = rbh.CreatedDate,
+                        //Remarks = rbh.Remarks,
+
+                        //TotalDiscount = rbh.TotalDiscount ?? 0,
+                        //TotalTaxableAmount = rbh.TotalTaxableAmount ?? 0,
+                        //TotalNetAmount = rbh.TotalNetAmount ?? 0
+                    }
+
+                ).FirstOrDefaultAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
     }
 }

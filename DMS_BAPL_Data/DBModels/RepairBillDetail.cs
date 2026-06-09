@@ -63,9 +63,9 @@ public partial class RepairBillDetail
 
     public virtual MaterialTransfer? Material { get; set; }
 
+    public virtual ItemMaster? PartItem { get; set; }
+
     public virtual PartWiseLabourMaster? PartWiseLabour { get; set; }
 
     public virtual RepairBillHeader? RepairBill { get; set; }
-
-    public virtual ItemMaster? PartItem { get; set; }
 }
