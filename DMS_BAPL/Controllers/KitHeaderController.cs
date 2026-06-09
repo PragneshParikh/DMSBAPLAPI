@@ -72,6 +72,35 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("downloadExcel")]
+        [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DownloadExcel()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var fileBytes = await _kitHeaderService.DownloadExcel();
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "ColorMasterExcel.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error while downloading color excel");
+                throw;
+            }
+        }
+
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

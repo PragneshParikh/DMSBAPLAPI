@@ -556,7 +556,12 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         {
             try
             {
-                var data = await GetPOListAsync(null, filter.OrderType);
+                if (filter.DealerCode == "null")
+                {
+                    filter.DealerCode = null;
+                }
+
+                var data = await GetPOListAsync(filter.DealerCode, filter.OrderType);
 
                 // Apply Filters
                 if (!string.IsNullOrEmpty(filter.PurchaseNo))
