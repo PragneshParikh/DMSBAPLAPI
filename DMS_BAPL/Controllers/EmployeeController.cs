@@ -102,5 +102,22 @@ namespace DMS_BAPL_Api.Controllers
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
+
+        [HttpGet("employeeByDesignation")]
+        public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get(string? dealerCode, string designation)
+        {
+            try
+            {
+                var employeeList = await _employeeService.GetEmployeesByDesignation(dealerCode,designation);
+
+                return Ok(employeeList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
