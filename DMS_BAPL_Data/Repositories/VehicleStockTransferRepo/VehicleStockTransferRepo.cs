@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
@@ -15,10 +16,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
     {
         private readonly BapldmsvadContext _context;
         private readonly IHttpContextAccessor _httpContext;
-        public VehicleStockTransferRepo(BapldmsvadContext context, IHttpContextAccessor httpContext)
+        private readonly IPartInventoryService _partInventoryService;
+        public VehicleStockTransferRepo(BapldmsvadContext context, IHttpContextAccessor httpContext,IPartInventoryService partInventoryService)
         {
             _context = context;
             _httpContext = httpContext;
+            _partInventoryService = partInventoryService;
         }
 
         public async Task<int> CreateAsync(VehicleStockTransferCreateEditViewModel model)
@@ -75,6 +78,61 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                     item.UpdatedBy = userId;
                 }
                 await _context.SaveChangesAsync();
+
+                var itemCodes = model.VehicleStockTransferDetailsViewModel.Select(x=>x.ItemCode).ToList();
+                var groupedItems = itemCodes
+                    .GroupBy(x => x)
+                    .Select(g => new
+                    {
+                        ItemCode = g.Key,
+                        Qty = g.Count()
+                    }).ToList();
+                foreach (var item in groupedItems)
+                {
+                    var outgoingTransaction = new PartsInventory
+                    {
+                        TransId = Guid.NewGuid().ToString(),
+                        ItemCode = item.ItemCode,
+                        VoucherNo = null!,
+                        TransType = "TO",
+                        BatchNo = "Batch 1",
+                        BatchTransQty = item.Qty,
+                        BatchOpeningQty = 0,
+                        BatchClosingQty = 0,
+                        TransDate = DateOnly.FromDateTime(DateTime.Now),
+                        DealerLocation = model.IssuingLocationCode,
+                        VendorCode = model.DealerCode,
+                        TotalRate = 100.00M,
+                        PurchaseRate = 110.00M,
+                        Potype = "",
+                        PostTransaction = 0,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now
+                    };
+                    var incomingTransaction = new PartsInventory
+                    {
+                        TransId = Guid.NewGuid().ToString(),
+                        ItemCode = item.ItemCode,
+                        VoucherNo = null!,
+                        TransType = "TI",
+                        BatchNo = "Batch 1",
+                        BatchTransQty = item.Qty,
+                        BatchOpeningQty = 0,
+                        BatchClosingQty = 0,
+                        TransDate = DateOnly.FromDateTime(DateTime.Now),
+                        DealerLocation = model.ReceivingLocationCode,
+                        VendorCode = model.DealerCode,
+                        TotalRate = 100.00M,
+                        PurchaseRate = 110.00M,
+                        Potype = "",
+                        PostTransaction = 0,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now
+                    };
+
+                    await _partInventoryService.UpdateOutgoing(outgoingTransaction);
+                    await _partInventoryService.UpdateIncoming(incomingTransaction);
+                }
                 await transaction.CommitAsync();
 
                 return header.Id;
