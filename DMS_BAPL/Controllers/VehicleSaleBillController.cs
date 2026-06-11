@@ -244,19 +244,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("Form22")]
-
-        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
-        {
-            try
-            {
-                return await _vehicleSaleBillService.GenerateForm22Report(chassisNo);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+        
 
         /// <summary>
         /// Downloads dealer list as an Excel file.
@@ -309,5 +297,96 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        [HttpGet("Download/{id}")]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DownloadSaleBill(int id)
+        {
+            try
+            {
+                var pdfBytes = await _vehicleSaleBillService.DownloadSaleBillPdf(id);
+
+                return File(
+                    pdfBytes,
+                    "application/pdf",
+                    $"SaleBill_{id}.pdf"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("DownloadMultiple")]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DownloadMultiple([FromBody] List<int> ids)
+        {
+            try
+            {
+                var zipBytes =
+                    await _vehicleSaleBillService.DownloadMultipleSaleBills(ids);
+
+                return File(
+                    zipBytes,
+                    "application/zip",
+                    "SaleBills.zip"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("DownloadMultipleForm22")]
+        public async Task<IActionResult> DownloadMultipleForm22([FromBody] List<int> ids)
+        {
+            try
+            {
+                var zipBytes = await _vehicleSaleBillService.DownloadMultipleForm22(ids);
+                return File(zipBytes, "application/zip", "Form22_Bills.zip");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("DownloadMultipleInvoices")]
+        public async Task<IActionResult> DownloadMultipleInvoices([FromBody] List<int> ids)
+        {
+            try
+            {
+                var zipBytes = await _vehicleSaleBillService.DownloadMultipleInvoices(ids);
+                return File(zipBytes, "application/zip", "ExShowroom_Invoices.zip");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("DownloadMultipleCombined")]
+        public async Task<IActionResult> DownloadMultipleCombined([FromBody] CombinedDownloadRequest request)
+        {
+            try
+            {
+                var zipBytes = await _vehicleSaleBillService.DownloadMultipleCombined(
+                    request.Form22Ids,
+                    request.InvoiceIds
+                );
+                return File(zipBytes, "application/zip", "SaleBills.zip");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
     }
 }

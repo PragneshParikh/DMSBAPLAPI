@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.PartsInwardService;
 using DMS_BAPL_Utils.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -61,6 +62,31 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while fetching part inward records for dealer {DealerCode}.", dealerCode);
+                throw;
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PartsInward([FromBody] PartsInward partsInward)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var parts = await _partInwardService.PartsInward(partsInward);
+
+                return Ok(parts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while inserting part inward data : {ex.Message}");
                 throw;
             }
         }

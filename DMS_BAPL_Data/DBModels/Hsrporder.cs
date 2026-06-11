@@ -49,5 +49,15 @@ public partial class Hsrporder
 
     public string? InwardResponse { get; set; }
 
+    public string? DispatchNumber { get; set; }
+
+    public DateTime? DispatchDate { get; set; }
+
+    public string? FrontLasercode { get; set; }
+
+    public string? Rearlasercode { get; set; }
+
+    public DateTime? InwardDate { get; set; }
+
     public virtual LedgerMaster? SupplierLedger { get; set; }
 }

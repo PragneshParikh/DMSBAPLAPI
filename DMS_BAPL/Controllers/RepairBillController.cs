@@ -65,7 +65,7 @@ namespace DMS_BAPL_Api.Controllers
 
 
                 var result = await _repairBillRepo.InsertRepairBill(model, userId);
-                if(result > 0)
+                if (result > 0)
                 {
                     await _prefixService.UpdateNextNumberByDealerByModule(model.RepairBillheader.DealerCode, "Repair_bill");
                     return Ok(new { Success = true, RepairBillId = result });
@@ -73,8 +73,8 @@ namespace DMS_BAPL_Api.Controllers
                 else
                 {
                     _logger.LogError("Failed to insert repair bill.");
-                    return StatusCode(500, new { Success = false, Message = "An error occurred while inserting the repair bill."});
-                   
+                    return StatusCode(500, new { Success = false, Message = "An error occurred while inserting the repair bill." });
+
                 }
 
             }
@@ -99,7 +99,7 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
                 var result = await _repairBillRepo.GetRepairBillById(id);
 
-                if(result == null)
+                if (result == null)
                 {
                     return NotFound($"Repair bill with ID {id} not found.");
                 }
@@ -111,7 +111,7 @@ namespace DMS_BAPL_Api.Controllers
                 _logger.LogError(ex, $"Error in GetRepairBillById for id: {id}");
                 return StatusCode(500, "An error occurred while retrieving the repair bill.");
             }
-            
+
         }
 
         [HttpPut("UpdateRepairBill")]
@@ -142,6 +142,27 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "An error occurred while updating the repair bill.");
                 return StatusCode(500, new { Success = false, Message = "An error occurred while updating the repair bill.", Details = ex.Message });
+            }
+        }
+
+        [HttpPost("GenerateRepairBillPerformaDetails/{DealerCode}/{RepairBillId}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GenerateRepairBillPerformaDetails(string DealerCode, int RepairBillId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _repairBillRepo.generateRepairBillPerformaDetails(DealerCode, RepairBillId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while generating repair bill performa details.");
+                return StatusCode(500, new { Success = false, Message = "An error occurred while generating repair bill performa details.", Details = ex.Message });
             }
         }
     }

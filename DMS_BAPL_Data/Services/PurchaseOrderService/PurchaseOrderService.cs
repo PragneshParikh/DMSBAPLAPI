@@ -3,14 +3,16 @@ using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
+using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Asn1.Crmf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DMS_BAPL_Data.Services.ExcelServices;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
@@ -327,11 +329,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Retrieves all purchase orders.
         /// </summary>
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType)
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
             try
             {
-                return await _repo.GetPOListAsync(dealerCode, orderType);
+                return await _repo.GetPOListAsync(dealerCode, orderType, pageIndex, pageSize, purchaseOrderSearchViewModel);
             }
             catch (Exception)
             {
@@ -561,7 +563,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     filter.DealerCode = null;
                 }
 
-                var data = await GetPOListAsync(filter.DealerCode, filter.OrderType);
+                //var data = await GetPOListAsync(null, filter.OrderType);
+                var data = new List<PurchaseOrderViewModel>();
 
                 // Apply Filters
                 if (!string.IsNullOrEmpty(filter.PurchaseNo))
@@ -587,7 +590,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 if (!string.IsNullOrEmpty(filter.IsSubmitted))
                 {
                     bool isSub = filter.IsSubmitted == "Submited To Erp";
-                    data = data.Where(x => x.IsSubmitted == isSub).ToList();
+                    //data = data.Where(x => x.IsSubmitted == isSub).ToList();
                 }
 
                 var columns = new List<string>
@@ -605,13 +608,13 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 {
                     var dict = new Dictionary<string, object>();
 
-                    dict["Purchase No"] = po.PONumber;
-                    dict["Date"] = po.PODate?.ToString("dd-MM-yyyy") ?? "";
-                    dict["Trans Type"] = po.TransactionType;
-                    dict["Party Name"] = "BGAUSS AUTO PRIVATE LIMITED"; // Matching UI hardcoding
-                    dict["Location"] = po.LocationName ?? po.LocCode ?? "";
-                    dict["Order Amount"] = po.TotalAmount?.ToString("N2") ?? "0.00";
-                    dict["IsSubmittedToErp"] = (po.IsSubmitted == true) ? "Yes" : "No";
+                    //dict["Purchase No"] = po.PONumber;
+                    //dict["Date"] = po.PODate?.ToString("dd-MM-yyyy") ?? "";
+                    //dict["Trans Type"] = po.TransactionType;
+                    //dict["Party Name"] = "BGAUSS AUTO PRIVATE LIMITED"; // Matching UI hardcoding
+                    //dict["Location"] = po.LocationName ?? po.LocCode ?? "";
+                    //dict["Order Amount"] = po.TotalAmount?.ToString("N2") ?? "0.00";
+                    //dict["IsSubmittedToErp"] = (po.IsSubmitted == true) ? "Yes" : "No";
 
                     return dict;
 

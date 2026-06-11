@@ -25,16 +25,15 @@ namespace DMS_BAPL_Data.Services.ReportService
         // STOCK REPORT  (unchanged from StockReportService)
         // ═════════════════════════════════════════════════════════════════════
 
-        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync()
-        {
-            return await _reportRepo.GetDealerWiseStockReportAsync();
-        }
-
         public async Task<List<StockReportViewModel>> GetColourWiseStockReportAsync()
         {
             return await _reportRepo.GetColourWiseStockReportAsync();
         }
 
+        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
+        {
+            return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
+        }
 
 
         // ═════════════════════════════════════════════════════════════════════
@@ -285,5 +284,19 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo
                 .GetPartDispatchKitPOTypeDropdownAsync();
         }
+        
+        //FORM22 REPORT FOR SALEBILL
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                return await _reportRepo.GenerateForm22Report(chassisNo);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

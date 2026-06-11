@@ -9,8 +9,8 @@ namespace DMS_BAPL_Data.Services.ReportService
     public interface IReportService
     {
         // ─── Stock ────────────────────────────────────────────────────────────
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync();
         Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
+        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
 
         // ─── Job Report ───────────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(
@@ -68,6 +68,10 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<List<string>> GetChassisListAsync();
 
         Task<List<object>> GetModelListByDealerAsync(string dealerCode);
+        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
+
+        
+
     }
 
     public class JobReportSummaryStats

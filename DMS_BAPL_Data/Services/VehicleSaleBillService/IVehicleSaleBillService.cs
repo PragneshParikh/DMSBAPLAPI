@@ -23,11 +23,21 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<List<PdiOkVehicleChassisViewModel>> GetPdiVehiclesAsync(string dealerCode, int ledgerId);
         Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo);
         Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails);
-        Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
+        
         Task<byte[]> DownloadSaleBillExcel(DateTime? dateFrom = null, DateTime? dateTo = null);
 
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId);
         Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
+        Task<byte[]> DownloadSaleBillPdf(int id);
+        Task<byte[]> DownloadForm22Pdf(int id);
+        Task<byte[]> DownloadMultipleSaleBills(List<int> ids);
+
+        Task<byte[]> DownloadMultipleForm22(List<int> ids);
+        Task<byte[]> DownloadMultipleInvoices(List<int> ids);
+        Task<byte[]> DownloadMultipleCombined(List<int> form22Ids, List<int> invoiceIds);
+
+
+
     }
 }

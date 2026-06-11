@@ -24,14 +24,14 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // STOCK REPORT  (unchanged from StockReportRepo)
         // ═════════════════════════════════════════════════════════════════════
 
-        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync()
+        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
         {
             try
             {
                 var vehicleInwards = await _context.VehicleInwards
-                    .AsNoTracking()
-                    .Where(vi => vi.DealerCode != null)
-                    .ToListAsync();
+                 .AsNoTracking()
+                 .Where(vi => vi.DealerCode != null && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)) // ✅ filter here
+                 .ToListAsync();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -147,6 +147,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error in GetColourWiseStockReportAsync: " + ex.Message, ex);
             }
         }
+
 
         // ═════════════════════════════════════════════════════════════════════
         // JOB REPORT  (unchanged from JobReportRepo)
@@ -1516,6 +1517,45 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .OrderBy(x => x)
 
                     .ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        //FORM22 REPORT FOR VEHICLE SALE BILL
+        public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        {
+            try
+            {
+                var data = await (
+                     from vi in _context.VehicleInwards
+                     join im in _context.ItemMasters
+                     on vi.ItemCode equals im.Itemcode
+
+                     join f2 in _context.Form22Masters
+                     on (im.Oemmodelname ?? "").Trim().ToLower()
+                     equals (f2.OemModelName ?? "").Trim().ToLower()
+                     into formGroup
+
+                     from f2 in formGroup.DefaultIfEmpty()
+
+                     where vi.ChasisNo == chassisNo
+
+                     select new Form22SlipViewModel
+                     {
+                         ChassisNo = chassisNo,
+                         TypeApprovalCertNo = f2.ApprovalCertificateNo,
+                         BrandName = im.Itemname,
+                         MotorNo = vi.MotorNo,
+                         Emission = "",
+                         SoundLevelHorn = f2.SoundLevelHorn,
+                         NoiseLevel = f2.PassbyNoiseLevel
+
+                     }
+                     ).FirstOrDefaultAsync();
+                return data;
             }
             catch
             {

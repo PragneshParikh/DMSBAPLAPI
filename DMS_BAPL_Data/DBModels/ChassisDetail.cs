@@ -19,6 +19,8 @@ public partial class ChassisDetail
 
     public string DealerId { get; set; } = null!;
 
+    public string LocationCode { get; set; } = null!;
+
     public DateTime? SaleDate { get; set; }
 
     public string CreatedBy { get; set; } = null!;
