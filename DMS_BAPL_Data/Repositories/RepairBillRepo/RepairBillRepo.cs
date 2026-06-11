@@ -514,99 +514,281 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             }
         }
 
-        public async Task<RepairBillPerformaVM?> generateRepairBillPerformaDetails(
-    string dealerCode,
-    int repairBillId)
+
+        public async Task<RepairBillPerformaVM?> generateRepairBillPerformaDetails(string dealerCode, int repairBillId)
         {
-            try
-            {
-                var result = await (
-                    from rbh in _context.RepairBillHeaders
+            var result = await (
+                from rbh in _context.RepairBillHeaders
 
-                    join dl in _context.DealerMasters
-                        on rbh.DealerCode equals dl.Dealercode into dlJoin
-                    from dl in dlJoin.DefaultIfEmpty()
+                join dl in _context.DealerMasters
+                    on rbh.DealerCode equals dl.Dealercode into dlJoin
+                from dl in dlJoin.DefaultIfEmpty()
 
-                    join jh in _context.JobCardHeaders
-                        on rbh.JobId equals jh.Id into jhJoin
-                    from jh in jhJoin.DefaultIfEmpty()
+                join jh in _context.JobCardHeaders
+                    on rbh.JobId equals jh.Id into jhJoin
+                from jh in jhJoin.DefaultIfEmpty()
 
-                    join jc in _context.JobCardCustomers
-                        on jh.Id equals jc.JobCardHeaderId into jcJoin
-                    from jc in jcJoin.DefaultIfEmpty()
+                join jobType in _context.JobTypes
+                    on jh.Jobtype equals jobType.Id into jobTypeJoin
+                from jobType in jobTypeJoin.DefaultIfEmpty()
 
-                        // Customer Ledger
-                    join cust in _context.LedgerMasters
-                        on rbh.CustomerLedgerId equals cust.Id into custJoin
-                    from cust in custJoin.DefaultIfEmpty()
+                join jobSource in _context.JobSources
+                    on jh.JobSource equals jobSource.Id into jobSourceJoin
+                from jobSource in jobSourceJoin.DefaultIfEmpty()
 
-                        // Insurance Ledger
-                    join ins in _context.LedgerMasters
-                        on rbh.InsuranceId equals ins.Id into insJoin
-                    from ins in insJoin.DefaultIfEmpty()
+                join jc in _context.JobCardCustomers
+                    on jh.Id equals jc.JobCardHeaderId into jcJoin
+                from jc in jcJoin.DefaultIfEmpty()
 
-                    join st in _context.States
-                        on cust.State equals st.StateId into stJoin
-                    from st in stJoin.DefaultIfEmpty()
+                join cust in _context.LedgerMasters
+                    on rbh.CustomerLedgerId equals cust.Id into custJoin
+                from cust in custJoin.DefaultIfEmpty()
 
-                    join ct in _context.Cities
-                        on cust.City equals ct.CityId into ctJoin
-                    from ct in ctJoin.DefaultIfEmpty()
+                join ins in _context.LedgerMasters
+                    on rbh.InsuranceId equals ins.Id into insJoin
+                from ins in insJoin.DefaultIfEmpty()
 
-                    where rbh.Id == repairBillId
+                join st in _context.States
+                    on cust.State equals st.StateId into stJoin
+                from st in stJoin.DefaultIfEmpty()
 
-                    select new RepairBillPerformaVM
-                    {
-                        // Dealer
-                        DealerName = dl != null ? dl.Compname : "",
-                        DealerAddress = dl != null ? dl.Adress1 : "",
-                        DealerPhoneNo = dl != null ? dl.Mobile : "",
-                        DealerEmail = dl != null ? dl.Email : "",
-                        DealergstNo = dl != null ? dl.CompgstinNo : "",
-                        DealerPanNo = dl != null ? dl.Pan : "",
-                        DealerState = dl != null ? dl.State : "",
-                        ContactPerson = dl != null ? dl.Contactperson : "",
+                join ct in _context.Cities
+                    on cust.City equals ct.CityId into ctJoin
+                from ct in ctJoin.DefaultIfEmpty()
 
-                        // Insurance
-                        InsuranceName = ins != null ? ins.LedgerName : "",
-                        InsGSTINNo = ins != null ? ins.Gstno : "",
-                        InsAddress = ins != null ? ins.Address : "",
+                join insState in _context.States
+                    on ins.State equals insState.StateId into insStateJoin
+                from insState in insStateJoin.DefaultIfEmpty()
 
-                        // Customer
-                        CustomerName = cust != null ? cust.LedgerName : "",
-                        CustomerPhoneNo = cust != null ? cust.MobileNumber : "",
-                        CustomerAddress = cust != null ? cust.Address : "",
-                        CustomerGSTINNo = cust != null ? cust.Gstno : "",
-                        CustomerState = st != null ? st.StateName : "",
-                        CustomerCity = ct != null ? ct.CityName : "",
-                        CustomerPincode = cust != null ? cust.Pin : "",
+                join insCity in _context.Cities
+                    on ins.City equals insCity.CityId into insCityJoin
+                from insCity in insCityJoin.DefaultIfEmpty()
 
-                        // Vehicle / Job Card
-                        TechnicianName = jh != null ? jh.Technician : "",
-                        InvoiceNo = jh != null ? jh.InvoiceNo : "",
-                        ChassisNo = jc != null ? jc.ChassisNo : "",
-                        
-                        RegisterationNo = jc != null ? jc.RegisterNo : "",
-                        
+                join itemModel in _context.ItemMasters
+                    on jc.ModelName equals itemModel.Itemname into itemModelJoin
+                from itemModel in itemModelJoin.DefaultIfEmpty()
 
-                        // Repair Bill
-                        //RepairBillNo = rbh.Prefix,
-                        //RepairBillDate = rbh.CreatedDate,
-                        //Remarks = rbh.Remarks,
+                join modelColor in _context.ColorMasters
+                    on itemModel.Colorcode equals modelColor.Colorcode into modelColorJoin
+                from modelColor in modelColorJoin.DefaultIfEmpty()
 
-                        //TotalDiscount = rbh.TotalDiscount ?? 0,
-                        //TotalTaxableAmount = rbh.TotalTaxableAmount ?? 0,
-                        //TotalNetAmount = rbh.TotalNetAmount ?? 0
-                    }
+                where rbh.Id == repairBillId
 
-                ).FirstOrDefaultAsync();
+                select new RepairBillPerformaVM
+                {
+                    Id = rbh.Id,
+                    BillType = rbh.BillType,
+                    Remarks = rbh.Remarks,
+                    DealerName = dl != null ? dl.Compname : "",
+                    DealerAddress = dl != null ? dl.Adress1 : "",
+                    DealerPhoneNo = dl != null ? dl.Mobile : "",
+                    DealerEmail = dl != null ? dl.Email : "",
+                    DealergstNo = dl != null ? dl.CompgstinNo : "",
+                    DealerPanNo = dl != null ? dl.Pan : "",
+                    DealerPinNo = dl != null ? dl.Pin : "",
+                    DealerState = dl != null ? dl.State : "",
+                    DealerCity = dl != null ? dl.City : "",
+                    ContactPerson = dl != null ? dl.Contactperson : "",
 
-                return result;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
+                    InsuranceName = ins != null ? ins.LedgerName : "",
+                    InsGSTINNo = ins != null ? ins.Gstno : "",
+                    InsAddress = ins != null ? ins.Address : "",
+                    InsState = insState != null ? insState.StateName : "",
+                    InsCity = insCity != null ? insCity.CityName : "",
+                    InsPinNo = ins != null ? ins.Pin : "",
+
+                    CustomerName = cust != null ? cust.LedgerName : "",
+                    CustomerPhoneNo = cust != null ? cust.MobileNumber : "",
+                    CustomerAddress = cust != null ? cust.Address : "",
+                    CustomerGSTINNo = cust != null ? cust.Gstno : "",
+                    CustomerState = st != null ? st.StateName : "",
+                    CustomerCity = ct != null ? ct.CityName : "",
+                    CustomerPincode = cust != null ? cust.Pin : "",
+
+                    TechnicianName = jh != null ? jh.Technician : "",
+                    InvoiceNo = jh != null ? jh.InvoiceNo : "",
+                    ChassisNo = jc != null ? jc.ChassisNo : "",
+                    RegisterationNo = jc != null ? jc.RegisterNo : "",
+                    MotorNo = jc != null ? jc.MotorNo : "",
+                    ModelName = jc != null ? jc.ModelName : "",
+                    Color = modelColor != null ? modelColor.Colorname : "",
+                    JobNo = jh != null ? jh.JobNo : 0,
+                    JobInDate = jh != null ? jh.JobinDate : null,
+                    JobTypeName = jobType != null ? jobType.JobTypeName : "",
+                    JobSourceName = jobSource != null ? jobSource.JobSourceName : "",
+                    VehicleSaleDate = jc != null ? jc.SaleDate : null,
+                    VehicleExpiryDate = jc != null ? jc.InsuranceExpDate : null
+                })
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+                return null;
+
+            result.RepairBillDetail = await _context.RepairBillDetails
+                        .Include(x => x.PartItem)
+                        .Include(x => x.LabourMaster)
+                        .Include(x => x.PartWiseLabour)
+
+                        .Where(x => x.RepairBillId == repairBillId)
+
+                        .Select(d => new RepairBillPerformaUpdateDetailVM
+                        {
+                            ItemType = d.ItemType,
+
+                            MaterialId = d.MaterialId ?? 0,
+                            LabourId = d.LabourMasterId ?? 0,
+                            PartWiseLabourId = d.PartWiseLabourId ?? 0,
+                            PartItemId = d.PartItemId,
+
+                            PartCode = d.PartItem != null
+                                ? d.PartItem.Itemcode
+                                : "",
+
+                            PartDesc = d.PartItem != null
+                                ? d.PartItem.Itemdesc
+                                : "",
+
+                            Cgst = d.PartItem != null
+                                ? d.PartItem.Cgst
+                                : 0,
+
+                            Sgst = d.PartItem != null
+                                ? d.PartItem.Sgst
+                                : 0,
+
+                            Igst = d.PartItem != null
+                                ? d.PartItem.Igst
+                                : 0,
+
+                            LabourCode = d.LabourMaster != null
+                                ? d.LabourMaster.LabourCode
+                                : d.PartWiseLabour != null
+                                    ? d.PartWiseLabour.LabourCode
+                                    : "",
+
+                            LabourDescription = d.LabourMaster != null
+                                ? d.LabourMaster.LabourDescription
+                                : d.PartWiseLabour != null
+                                    ? d.PartWiseLabour.LabourName
+                                    : "",
+
+                            Qty = d.LabourQty ?? 0,
+                            Rate = d.LabourRate ?? 0,
+
+                            PartQty = d.PartQty ?? 0,
+                            PartRate = d.PartRate ?? 0,
+
+                            Discount = d.LabourDiscount ?? 0,
+                            DiscountType = d.DiscountType,
+
+                            PartDiscount = d.PartDiscount ?? 0,
+
+                            TaxableAmount = d.LabourTaxblAmount ?? 0,
+                            NetAmount = d.LabourNetAmount ?? 0,
+
+                            PartTaxbleAmount = d.PartTaxblAmount ?? 0,
+                            PartNetAmount = d.PartNetAmount ?? 0,
+
+                            LabourHSNCode = d.LabourMaster != null ? d.LabourMaster.Hsncode : "",
+                            PartHSNCode = d.PartItem != null ? d.PartItem.Hsncode : "",
+
+                            CgstAmount = d.PartItem != null ? d.PartItem.Cgst : 0,
+                            SgstAmount = d.PartItem != null ? d.PartItem.Sgst : 0,
+                            IgstAmount = d.PartItem != null ? d.PartItem.Igst : 0,
+                            IssueType = d.IssutypeId ?? 0,
+                        })
+                        .ToListAsync();
+
+            result.TotalPartQty = (int?)result.RepairBillDetail
+                    .Where(x => x.ItemType == "Part")
+                    .Sum(x => x.PartQty);
+
+            result.TotalPartTaxbleAmount = result.RepairBillDetail
+                .Where(x => x.ItemType == "Part")
+                .Sum(x => x.PartTaxbleAmount);
+
+            result.TotalPartSGST = result.RepairBillDetail
+                .Where(x => x.ItemType == "Part")
+                .Sum(x => x.SgstAmount);
+
+            result.TotalPartCGST = result.RepairBillDetail
+                .Where(x => x.ItemType == "Part")
+                .Sum(x => x.CgstAmount);
+
+            result.TotalPartNetAmount = result.RepairBillDetail
+                .Where(x => x.ItemType == "Part")
+                .Sum(x => x.PartNetAmount);
+
+
+            // LABOUR TOTALS
+            result.TotalLabourQty = (int?)result.RepairBillDetail
+                .Where(x => x.ItemType == "Labour")
+                .Sum(x => x.Qty);
+
+            result.TotalLabourTaxbleAmount = result.RepairBillDetail
+                .Where(x => x.ItemType == "Labour")
+                .Sum(x => x.TaxableAmount);
+
+            result.TotalLabourSGST = result.RepairBillDetail
+                .Where(x => x.ItemType == "Labour")
+                .Sum(x => x.SgstAmount);
+
+            result.TotalLabourCGST = result.RepairBillDetail
+                .Where(x => x.ItemType == "Labour")
+                .Sum(x => x.CgstAmount);
+
+            result.TotalLabourNetAmount = result.RepairBillDetail
+                .Where(x => x.ItemType == "Labour")
+                .Sum(x => x.NetAmount);
+
+            result.SubTotal = result.TotalPartNetAmount + result.TotalLabourNetAmount;
+            result.Roundoff = Math.Round(result.SubTotal ?? 0) - (result.SubTotal ?? 0);
+
+            result.HSNCODeTaxSummary = result.RepairBillDetail
+
+                   .GroupBy(x => new
+                   {
+                       HSNCode = x.ItemType == "Part"
+                           ? x.PartHSNCode
+                           : x.LabourHSNCode,
+
+                       SGST = x.Sgst,
+                       CGST = x.Cgst,
+                       IGST = x.Igst
+                   })
+
+                   .Select(g => new RepairBillTaxSummaryVM
+                   {
+                       HSNCode = g.Key.HSNCode,
+
+                       TaxableValue = g.Sum(x =>
+                           x.ItemType == "Part"
+                               ? x.PartTaxbleAmount
+                               : x.TaxableAmount),
+
+                       SGSTRate = g.Key.SGST,
+                       SGSTAmount = g.Sum(x => x.SgstAmount),
+
+                       CGSTRate = g.Key.CGST,
+                       CGSTAmount = g.Sum(x => x.CgstAmount),
+
+                       IGSTRate = g.Key.IGST,
+                       IGSTAmount = g.Sum(x => x.IgstAmount)
+                   })
+
+                   .OrderBy(x => x.HSNCode)
+                   .ToList();
+            var totalTaxable = result.HSNCODeTaxSummary.Sum(x => x.TaxableValue);
+
+            var totalSGST = result.HSNCODeTaxSummary.Sum(x => x.SGSTAmount);
+
+            var totalCGST = result.HSNCODeTaxSummary.Sum(x => x.CGSTAmount);
+
+            var totalIGST = result.HSNCODeTaxSummary.Sum(x => x.IGSTAmount);
+
+            return result;
         }
+
+
     }
 }
