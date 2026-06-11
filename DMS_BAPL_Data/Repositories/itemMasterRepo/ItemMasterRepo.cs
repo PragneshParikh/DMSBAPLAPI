@@ -1,4 +1,5 @@
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -15,10 +16,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
     public class ItemMasterRepo : IitemMasterRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly ITaxServices _taxService;
 
-        public ItemMasterRepo(BapldmsvadContext context)
+        public ItemMasterRepo(BapldmsvadContext context, ITaxServices taxService)
         {
             _context = context;
+            _taxService = taxService;
         }
 
         // add new item to the database
@@ -591,5 +594,79 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             catch { throw; }
         }
 
+        public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(
+    string dealerLocation,
+    string customerLocation)
+        {
+            try
+            {
+                // Get all Group 6 items with stock for the specified location
+                var items = await (
+                    from im in _context.ItemMasters
+
+                    join pi in _context.PartsInventories
+                        .Where(x => x.DealerLocation == dealerLocation &&
+                                    x.FinalStockFlag == "Y")
+                    on im.Itemcode equals pi.ItemCode into stockGroup
+
+                    where im.Grpidno == 1
+
+                    select new
+                    {
+                        ItemCode = im.Itemcode,
+                        ItemName = im.Itemname,
+                        ItemRate = im.Custprice,
+                        ItemStock = stockGroup
+                            .Select(x => (decimal?)x.BatchClosingQty)
+                            .FirstOrDefault() ?? 0
+                    }
+                ).ToListAsync();
+
+                // Cache tax details by item code
+                List<TaxDetailViewModel> taxes = new();
+
+                if (items.Any())
+                {
+                    taxes = await _taxService.GetTaxDetailsAsync(
+                        items.First().ItemCode,
+                        dealerLocation,
+                        customerLocation);
+                }
+
+                var sgstPer = taxes
+                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("sgst", StringComparison.OrdinalIgnoreCase) == true)
+                    ?.TaxRate ?? 0;
+
+                var cgstPer = taxes
+                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("cgst", StringComparison.OrdinalIgnoreCase) == true)
+                    ?.TaxRate ?? 0;
+
+                var igstPer = taxes
+                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("igst", StringComparison.OrdinalIgnoreCase) == true)
+                    ?.TaxRate ?? 0;
+
+                var result = items.Select(item => new ItemPartsByLocationViewModel
+                {
+                    ItemCode = item.ItemCode,
+                    ItemName = item.ItemName,
+                    ItemRate = item.ItemRate,
+                    ItemStock = item.ItemStock,
+
+                    SGSTPer = sgstPer,
+                    CGSTPer = cgstPer,
+                    IGSTPer = igstPer,
+
+                    SGSTAmount = (sgstPer * item.ItemRate)/100,
+                    CGSTAmount = (cgstPer * item.ItemRate)/100,
+                    IGSTAmount = (igstPer * item.ItemRate) / 100
+                }).ToList();
+
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
