@@ -81,7 +81,7 @@ namespace DMS_BAPL_Data.Repositories.GroupMasterRepo
                 }
                 _context.GroupMasters.Remove(groupMaster);
                 await _context.SaveChangesAsync();
-                return id; // Return the ID of the deleted record
+                return groupId; // Return the ID of the deleted record
             }
             catch (Exception ex)
             {
