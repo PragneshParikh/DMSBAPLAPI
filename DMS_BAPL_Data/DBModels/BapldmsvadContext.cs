@@ -71,13 +71,13 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
 
+    public virtual DbSet<GroupMaster> GroupMasters { get; set; }
+
     public virtual DbSet<HsncodeMaster> HsncodeMasters { get; set; }
 
     public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
 
     public virtual DbSet<Hsrporder> Hsrporders { get; set; }
-
-    public virtual DbSet<InventoryByLocation> InventoryByLocations { get; set; }
 
     public virtual DbSet<InvoiceDetail> InvoiceDetails { get; set; }
 
@@ -728,6 +728,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Mobile)
                 .HasMaxLength(20)
                 .IsUnicode(false);
@@ -978,6 +981,25 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<GroupMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GroupMas__3214EC07EE6E94C6");
+
+            entity.ToTable("GroupMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.GroupName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<HsncodeMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__HSNCodeM__3214EC07751AF33E");
@@ -1052,6 +1074,13 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.DispatchDate).HasColumnType("datetime");
+            entity.Property(e => e.DispatchNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.FrontLasercode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Hsrpresponse)
                 .HasMaxLength(300)
                 .IsUnicode(false)
@@ -1063,6 +1092,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.InvoiceNo)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.InwardDate).HasColumnType("datetime");
             entity.Property(e => e.InwardResponse)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -1073,6 +1103,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.OrderDate).HasColumnType("datetime");
             entity.Property(e => e.OrderNo)
                 .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Rearlasercode)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.RegNo)
                 .HasMaxLength(30)
@@ -1088,47 +1121,6 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.SupplierLedger).WithMany(p => p.Hsrporders)
                 .HasForeignKey(d => d.SupplierLedgerId)
                 .HasConstraintName("FK_HSRPOrder_SupplierLedger");
-        });
-
-        modelBuilder.Entity<InventoryByLocation>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Inventor__3214EC0745654F81");
-
-            entity
-                .ToTable("InventoryByLocation")
-                .ToTable(tb => tb.IsTemporal(ttb =>
-                    {
-                        ttb.UseHistoryTable("InventoryByLocationHistory", "dbo");
-                        ttb
-                            .HasPeriodStart("ValidFrom")
-                            .HasColumnName("ValidFrom");
-                        ttb
-                            .HasPeriodEnd("ValidTo")
-                            .HasColumnName("ValidTo");
-                    }));
-
-            entity.Property(e => e.ChassisNo)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedDate)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.DealerCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.ItemCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.LocationCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.UpdatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<InvoiceDetail>(entity =>
