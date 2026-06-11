@@ -30,7 +30,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetDealerWiseReport()
+        public async Task<IActionResult> GetDealerWiseReport([FromQuery] string? dealerCode)
         {
             try
             {
@@ -38,7 +38,17 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _reportService.GetDealerWiseStockReportAsync();
+                // ── Dealer restriction: skip for admin/superadmin ─────────────
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────
+
+                var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -120,18 +130,18 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction ────────────────────────────────────────────
+                // ── Dealer restriction: token always wins ─────────────────────
                 string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                 if (!string.IsNullOrEmpty(tokenDealerCode))
                     dealerCode = tokenDealerCode;
-                // ─────────────────────────────────────────────────────────────────
+                // ─────────────────────────────────────────────────────────────
 
-                var result = await _reportService.GetDealerWiseJobReportAsync(dealerCode, fromDate, toDate);
+                var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching dealer wise job card report");
+                _logger.LogError(ex, "Error fetching dealer wise stock report");
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
@@ -384,9 +394,9 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPartsDispatchReport(
-    [FromQuery] DateTime? fromDate,
-    [FromQuery] DateTime? toDate,
-    [FromQuery] string? dealerCode)
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] string? dealerCode)
         {
             try
             {
