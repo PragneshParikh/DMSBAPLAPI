@@ -16,6 +16,10 @@ using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Org.BouncyCastle.Asn1.Pkcs;
+using System.IO.Compression;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 {
@@ -957,6 +961,313 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
+
+
+        public async Task<byte[]> DownloadSaleBillPdf(int id)
+        {
+            var bill = await GetByIdAsync(id);
+
+            if (bill == null)
+                throw new Exception("Sale Bill not found");
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var pdfBytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(30);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Text("EX-SHOWROOM INVOICE")
+                            .FontSize(16).Bold().AlignCenter();
+                        col.Item().Text($"Bill No: {bill.SaleBillNo}")
+                            .FontSize(11).AlignCenter();
+                        col.Item().LineHorizontal(1);
+                    });
+
+                    page.Content().PaddingVertical(10).Column(col =>
+                    {
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn();
+                                c.RelativeColumn();
+                            });
+
+                            void AddRow(string label, string value)
+                            {
+                                table.Cell().Padding(4).Text(label).Bold();
+                                table.Cell().Padding(4).Text(value ?? "-");
+                            }
+
+                            AddRow("Sale Date:", bill.SaleDate.ToString("dd-MM-yyyy"));
+                            AddRow("Customer Name:", bill.CustomerName);
+                            AddRow("Billing Name:", bill.BillingName);
+                            AddRow("Sale Type:", bill.SaleType);
+                            AddRow("Bill Type:", (bill.BillType ?? 0).ToString());
+                            AddRow("Location:", bill.Location);
+                            AddRow("Sales Executive:", bill.SalesExecutive ?? "-");
+                            AddRow("Total Amount:", (bill.TotalAmount ?? 0m).ToString());
+                            AddRow("Status:", bill.Status ?? "-");
+                        });
+
+                        col.Item().PaddingTop(10).Text("Vehicle Details").FontSize(12).Bold();
+                        col.Item().LineHorizontal(1);
+
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(25);
+                                c.RelativeColumn(3);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                            });
+
+                            static IContainer HeaderCell(IContainer c) =>
+                                c.Background(Colors.Grey.Lighten2).Padding(4);
+
+                            table.Header(h =>
+                            {
+                                h.Cell().Element(HeaderCell).Text("#").Bold();
+                                h.Cell().Element(HeaderCell).Text("Chassis No").Bold();
+                                h.Cell().Element(HeaderCell).Text("Model").Bold();
+                                h.Cell().Element(HeaderCell).Text("Colour").Bold();
+                                h.Cell().Element(HeaderCell).Text("Item Rate").Bold();
+                                h.Cell().Element(HeaderCell).Text("Final Amount").Bold();
+                            });
+
+                            int i = 1;
+                            foreach (var d in bill.Details)
+                            {
+                                table.Cell().Padding(3).Text(i++.ToString());
+                                table.Cell().Padding(3).Text(d.ChassisNo ?? "-");
+                                table.Cell().Padding(3).Text(d.ModelName ?? "-");
+                                table.Cell().Padding(3).Text(d.Colour ?? "-");
+                                table.Cell().Padding(3).Text(d.ItemRate.ToString());
+                                table.Cell().Padding(3).Text(d.FinalAmount.ToString());
+                            }
+                        });
+                    });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                            x.Span(" of ");
+                            x.TotalPages();
+                        });
+                });
+            }).GeneratePdf();
+
+            return pdfBytes;
+        }
+
+        public async Task<byte[]> DownloadMultipleSaleBills(List<int> ids)
+        {
+            using var memory = new MemoryStream();
+
+            using (var archive =
+                   new ZipArchive(memory, ZipArchiveMode.Create, true))
+            {
+                foreach (var id in ids)
+                {
+                    var pdfBytes =
+                        await DownloadSaleBillPdf(id);
+
+                    var entry =
+                        archive.CreateEntry($"SaleBill_{id}.pdf");
+
+                    using var stream = entry.Open();
+
+                    await stream.WriteAsync(
+                        pdfBytes,
+                        0,
+                        pdfBytes.Length);
+                }
+            }
+
+            return memory.ToArray();
+        }
+        public async Task<byte[]> DownloadForm22Pdf(int id)
+        {
+            var bill = await GetByIdAsync(id);
+
+            if (bill == null)
+                throw new Exception("Sale Bill not found");
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var pdfBytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(30);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Text("FORM 22")
+                            .FontSize(16).Bold().AlignCenter();
+                        col.Item().Text("(See Rule 47 of Central Motor Vehicle Rules, 1989)")
+                            .FontSize(9).AlignCenter();
+                        col.Item().Text($"Bill No: {bill.SaleBillNo}")
+                            .FontSize(11).AlignCenter();
+                        col.Item().LineHorizontal(1);
+                    });
+
+                    page.Content().PaddingVertical(10).Column(col =>
+                    {
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn();
+                                c.RelativeColumn();
+                            });
+
+                            void AddRow(string label, string value)
+                            {
+                                table.Cell().Padding(4).Text(label).Bold();
+                                table.Cell().Padding(4).Text(value ?? "-");
+                            }
+
+                            AddRow("Sale Date:", bill.SaleDate.ToString("dd-MM-yyyy"));
+                            AddRow("Customer Name:", bill.CustomerName);
+                            AddRow("Billing Name:", bill.BillingName);
+                            AddRow("Location:", bill.Location);
+                            AddRow("Sale Type:", bill.SaleType);
+                            AddRow("Status:", bill.Status ?? "-");
+                        });
+
+                        col.Item().PaddingTop(10).Text("Vehicle Details").FontSize(12).Bold();
+                        col.Item().LineHorizontal(1);
+
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(25);
+                                c.RelativeColumn(3);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                            });
+
+                            static IContainer HeaderCell(IContainer c) =>
+                                c.Background(Colors.Grey.Lighten2).Padding(4);
+
+                            table.Header(h =>
+                            {
+                                h.Cell().Element(HeaderCell).Text("#").Bold();
+                                h.Cell().Element(HeaderCell).Text("Chassis No").Bold();
+                                h.Cell().Element(HeaderCell).Text("Model").Bold();
+                                h.Cell().Element(HeaderCell).Text("Colour").Bold();
+                                h.Cell().Element(HeaderCell).Text("Battery No").Bold();
+                                h.Cell().Element(HeaderCell).Text("Charger No").Bold();
+                                h.Cell().Element(HeaderCell).Text("Controller No").Bold();
+                            });
+
+                            int i = 1;
+                            foreach (var d in bill.Details)
+                            {
+                                table.Cell().Padding(3).Text(i++.ToString());
+                                table.Cell().Padding(3).Text(d.ChassisNo ?? "-");
+                                table.Cell().Padding(3).Text(d.ModelName ?? "-");
+                                table.Cell().Padding(3).Text(d.Colour ?? "-");
+                                table.Cell().Padding(3).Text(d.Battery ?? "-");
+                                table.Cell().Padding(3).Text(d.ChargerNo ?? "-");
+                                table.Cell().Padding(3).Text(d.ControllerNo ?? "-");
+                            }
+                        });
+                    });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                            x.Span(" of ");
+                            x.TotalPages();
+                        });
+                });
+            }).GeneratePdf();
+
+            return pdfBytes;
+        }
+        // In the service — these call separate PDF generators per type
+        public async Task<byte[]> DownloadMultipleForm22(List<int> ids)
+        {
+            using var memory = new MemoryStream();
+            using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, true))
+            {
+                foreach (var id in ids)
+                {
+                    var pdfBytes = await DownloadForm22Pdf(id); // implement separately
+                    var entry = archive.CreateEntry($"Form22_{id}.pdf");
+                    using var stream = entry.Open();
+                    await stream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                }
+            }
+            return memory.ToArray();
+        }
+
+        public async Task<byte[]> DownloadMultipleInvoices(List<int> ids)
+        {
+            using var memory = new MemoryStream();
+            using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, true))
+            {
+                foreach (var id in ids)
+                {
+                    var pdfBytes = await DownloadSaleBillPdf(id); // reuse existing
+                    var entry = archive.CreateEntry($"ExShowroom_{id}.pdf");
+                    using var stream = entry.Open();
+                    await stream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                }
+            }
+            return memory.ToArray();
+        }
+
+        public async Task<byte[]> DownloadMultipleCombined(List<int> form22Ids, List<int> invoiceIds)
+        {
+            using var memory = new MemoryStream();
+
+            using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, true))
+            {
+                foreach (var id in form22Ids)
+                {
+                    var pdfBytes = await DownloadForm22Pdf(id);
+                    var entry = archive.CreateEntry($"Form22_{id}.pdf");
+                    using var stream = entry.Open();
+                    await stream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                }
+
+                foreach (var id in invoiceIds)
+                {
+                    var pdfBytes = await DownloadSaleBillPdf(id);
+                    var entry = archive.CreateEntry($"ExShowroom_Invoice_{id}.pdf");
+                    using var stream = entry.Open();
+                    await stream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                }
+            }
+
+            return memory.ToArray();
+        }
+
+
     }
 }
 

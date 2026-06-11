@@ -21,14 +21,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DMS_BAPL_Utils\DMS_BAPL_Utils.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DBModels\" />
   </ItemGroup>
 
 </Project>
