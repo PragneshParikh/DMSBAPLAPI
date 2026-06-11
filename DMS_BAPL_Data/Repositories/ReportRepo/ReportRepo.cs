@@ -24,14 +24,14 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // STOCK REPORT  (unchanged from StockReportRepo)
         // ═════════════════════════════════════════════════════════════════════
 
-        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync()
+        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
         {
             try
             {
                 var vehicleInwards = await _context.VehicleInwards
-                    .AsNoTracking()
-                    .Where(vi => vi.DealerCode != null)
-                    .ToListAsync();
+                 .AsNoTracking()
+                 .Where(vi => vi.DealerCode != null && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)) // ✅ filter here
+                 .ToListAsync();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -147,6 +147,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error in GetColourWiseStockReportAsync: " + ex.Message, ex);
             }
         }
+
 
         // ═════════════════════════════════════════════════════════════════════
         // JOB REPORT  (unchanged from JobReportRepo)

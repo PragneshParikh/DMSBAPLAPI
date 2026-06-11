@@ -8,9 +8,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 {
     public interface IReportRepo
     {
-        // ─── Stock ────────────────────────────────────────────────────────────
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync();
+        // ─── Stock ───────────────────────────────────────────────────────────/
         Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
+        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
 
         // ─── Job Report ───────────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(
@@ -60,6 +60,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync();
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
+
+      
+
 
     }
 }
