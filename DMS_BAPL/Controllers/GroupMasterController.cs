@@ -83,17 +83,17 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpDelete("DeleteGroup")]
+        [HttpDelete("DeleteGroup/{groupId}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteGroup(int id)
+        public async Task<IActionResult> DeleteGroup(int groupId)
         {
             try
             {
-                var result = await _groupMasterRepo.DeleteGroup(id);
+                var result = await _groupMasterRepo.DeleteGroup(groupId);
                 if (result == -1)
-                    return NotFound($"Group with ID {id} not found.");
+                    return NotFound($"Group with ID {groupId} not found.");
                 return Ok(result);
             }
             catch (Exception ex)

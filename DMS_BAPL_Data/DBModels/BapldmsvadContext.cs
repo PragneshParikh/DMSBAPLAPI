@@ -167,6 +167,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<TaxDetail> TaxDetails { get; set; }
 
+    public virtual DbSet<TermandConditionMaster> TermandConditionMasters { get; set; }
+
     public virtual DbSet<VehicleInward> VehicleInwards { get; set; }
 
     public virtual DbSet<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; }
@@ -3011,6 +3013,28 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.TaxCode).HasMaxLength(20);
             entity.Property(e => e.TaxRate).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<TermandConditionMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__TermandC__3214EC073C7C7D8F");
+
+            entity.ToTable("TermandConditionMaster");
+
+            entity.Property(e => e.ConditionModule)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.TermCondition)
+                .HasMaxLength(700)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdateBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 

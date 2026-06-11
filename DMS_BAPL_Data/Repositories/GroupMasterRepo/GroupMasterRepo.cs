@@ -70,11 +70,11 @@ namespace DMS_BAPL_Data.Repositories.GroupMasterRepo
             }
         }
 
-        public async Task<int> DeleteGroup(int id)
+        public async Task<int> DeleteGroup(int groupId)
         {
             try
             {
-                var groupMaster = await _context.GroupMasters.FindAsync(id);
+                var groupMaster = await _context.GroupMasters.FindAsync(groupId);
                 if (groupMaster == null)
                 {
                     return -1; // Group not found
