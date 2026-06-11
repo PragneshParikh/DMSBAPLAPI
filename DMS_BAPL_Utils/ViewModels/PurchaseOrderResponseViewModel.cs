@@ -5,6 +5,7 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class PurchaseOrderResponseViewModel
     {
+        public int Id { get; set; }
         public string PONumber { get; set; }
         public DateTime? PODate { get; set; }
         public string CustomerCode { get; set; }

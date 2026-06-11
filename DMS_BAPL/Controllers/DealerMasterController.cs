@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
@@ -137,7 +138,7 @@ namespace DMS_BAPL_Api.Controllers
         /// <param name="dealerCode">Dealer code</param>
         /// <returns>Dealer details</returns>
 
-        [HttpGet("dealerCode")]
+        [HttpGet("GetByDealerCode/{dealerCode}")]
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -170,6 +171,34 @@ namespace DMS_BAPL_Api.Controllers
             }
 
         }
+
+        [HttpGet("paged")]
+        [ProducesResponseType(typeof(PagedResponse<DealerMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<PagedResponse<DealerMaster>>> GetDealerByPagedAsync(
+            [FromQuery] string? searchTerm,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? dealerCode = null)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var delaers = await _dealerMasterService.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode);
+
+                return Ok(delaers);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
         /// <summary>
         /// Updates dealer information.
         /// </summary>

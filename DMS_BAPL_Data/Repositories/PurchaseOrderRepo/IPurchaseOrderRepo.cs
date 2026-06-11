@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
 {
@@ -20,7 +21,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<TaxCodeMaster> GetTaxMasterAsync(string taxCode);
         Task<HsnwiseTaxCode> GetHSNTaxWithFallbackAsync(string hsnCode, string preferredFlag, DateTime poDate);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType);
+        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel);
         Task<PartsPurchaseOrderResponseViewModel> GetPartsPOByNumberAsync(string poNumber);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
         Task<decimal> GetSubsidyValue();
