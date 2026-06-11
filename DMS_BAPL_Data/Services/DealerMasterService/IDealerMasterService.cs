@@ -1,5 +1,9 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
+using MailKit.Search;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +23,6 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
         Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
+        Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
     }
 }

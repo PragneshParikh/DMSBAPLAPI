@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,5 +93,40 @@ namespace DMS_BAPL_Data.Repositories.KitHeaderRepo
             }
             catch { throw; }
         }
+        public async Task<IEnumerable<object>> GetKitDetails()
+        {
+            var kitDetails = await (
+                from kd in _context.KitDetails
+                join kh in _context.KitHeaders
+                    on kd.KitHeaderId equals kh.Id
+                join im in _context.ItemMasters
+                    on kd.ItemId equals im.Id
+
+                orderby kh.KitName
+                select new
+                {
+                    KitName = kh.KitName,
+                    kd.Quantity,
+                    ItemCode = im.Itemcode,
+                    ItemName = im.Itemname,
+                    ItemDescription = im.Itemdesc
+                })
+                .ToListAsync();
+
+            var result = kitDetails
+                .Select((x, index) => new
+                {
+                    SrNo = index + 1,
+                    x.KitName,
+                    x.ItemCode,
+                    x.Quantity,
+                    x.ItemName,
+                    x.ItemDescription
+                })
+                .ToList();
+
+            return result;
+        }
+
     }
 }

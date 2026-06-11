@@ -558,6 +558,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         {
             try
             {
+                if (filter.DealerCode == "null")
+                {
+                    filter.DealerCode = null;
+                }
+
                 //var data = await GetPOListAsync(null, filter.OrderType);
                 var data = new List<PurchaseOrderViewModel>();
 

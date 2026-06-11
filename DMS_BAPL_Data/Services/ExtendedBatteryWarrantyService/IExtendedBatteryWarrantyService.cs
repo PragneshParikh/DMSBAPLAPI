@@ -17,5 +17,6 @@ namespace DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService
         Task<ExtendedBatteryWarranty?> GetSchemeDetailById(int id);
         int Insert(ExtendedBatteryWarrantyViewModel extendedBatteryWarrntyViewModel);
         Task<int> Update(ExtendedBatteryWarrantyViewModel extendedBatteryWarrntyViewModel);
+        Task<byte[]> DownloadExcel();
     }
 }

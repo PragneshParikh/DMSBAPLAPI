@@ -8,7 +8,7 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class ColorExcelViewModel
     {
-        public int Rrgcoloridno { get; set; }
+        //public int Rrgcoloridno { get; set; }
 
         public string Colorname { get; set; } = null!;
 

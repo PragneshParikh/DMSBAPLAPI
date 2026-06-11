@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Repositories.KitHeaderRepo
         Task<int> InsertKitHeader(KitHeader kitHeader);
         Task<KitHeader?> GetKitById(int id);
         Task<int> UpdateKitHeader(KitHeader kitHeader);
+        Task<IEnumerable<object>> GetKitDetails();
     }
 }
