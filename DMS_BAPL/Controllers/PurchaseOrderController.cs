@@ -61,7 +61,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GetPOList(string? dealerCode, string orderType)
+        public async Task<ActionResult> GetPOList(string? dealerCode, string orderType, int pageIndex, int pageSize, [FromQuery] PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _purchaseOrderService.GetPOListAsync(dealerCode, orderType);
+                var result = await _purchaseOrderService.GetPOListAsync(dealerCode, orderType, pageIndex, pageSize, purchaseOrderSearchViewModel);
 
                 return Ok(result);
             }
