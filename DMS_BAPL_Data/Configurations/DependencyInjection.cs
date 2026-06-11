@@ -17,6 +17,7 @@ using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
+using DMS_BAPL_Data.Repositories.GroupMasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
@@ -162,6 +163,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
             services.AddScoped<IVehicleStockTransferRepo, VehicleStockTransferRepo>();
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
+            services.AddScoped<IGroupMasterRepo, GroupMasterRepo>();
 
             #endregion
 
