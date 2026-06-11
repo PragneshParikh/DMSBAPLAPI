@@ -1,4 +1,5 @@
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
     {
         Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string userId);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType);
+        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, [FromQuery] PurchaseOrderSearchViewModel purchaseOrderSearchViewModel);
         Task<bool> CreatePartsPOAsync(PurchaseOrderViewModel purchaseOrderViewModel);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
         Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
