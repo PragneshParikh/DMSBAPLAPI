@@ -1,4 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +13,8 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
     {
         Task<int> GetCurrentStockByItem(string itemCode);
         Task UpdateStock(PartsInventory partsInventory);
+        Task<IEnumerable<object>> Get();
+        Task<IEnumerable<object>> GetByItemCode(List<string> itemCode);
+        Task<IEnumerable<object>> GetPartsByDealerAndDateRange(InventoryFilterViewModel inventoryFilterViewModel);
     }
 }
