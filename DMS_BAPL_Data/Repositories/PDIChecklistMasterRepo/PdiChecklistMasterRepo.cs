@@ -27,6 +27,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                 var entity = new PdichecklistMaster
                 {
                     PdiheadName = "PDI Check List",
+                    OemModelId = pdiChecklistMaster.OemmodelId,
                     PdicheckName = pdiChecklistMaster.ChecklistName,
                     Pdidescription = pdiChecklistMaster.ChecklistName,
                     Isactive = pdiChecklistMaster.IsActive,
@@ -55,6 +56,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
 
                 // update fields        
                 entity.PdicheckName = pdiChecklistMaster.ChecklistName;
+                entity.OemModelId = pdiChecklistMaster.OemmodelId;
                 entity.Pdidescription = pdiChecklistMaster.ChecklistName;
                 entity.Isactive = pdiChecklistMaster.IsActive;
                 entity.UpdatedBy = "Admin";
@@ -113,6 +115,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
             try
             {
                 var query = _context.PdichecklistMasters.AsQueryable();
+                
 
                 //  Search filter
                 if (!string.IsNullOrWhiteSpace(pdicheckName))
@@ -122,14 +125,17 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
 
                 //  Select projection
                 var result = await query
-                        .OrderByDescending(x => x.CreatedDate) // DB level sorting
-                        .Select(pcm => new PdiChecklistMasterViemModel
-                        {
-                            Id = pcm.Id,
-                            ChecklistName = pcm.PdicheckName,
-                            IsActive = pcm.Isactive
-                        })
-                        .ToListAsync();
+                 
+                .OrderByDescending(x => x.CreatedDate)
+                .Select(pcm => new PdiChecklistMasterViemModel
+                {
+                    Id = pcm.Id,
+                    OemmodelId = pcm.OemModelId,
+                    OemModelName = pcm.OemModel.ModelName,
+                    ChecklistName = pcm.PdicheckName,
+                    IsActive = pcm.Isactive
+                })
+                .ToListAsync();
 
                 return result;
             }

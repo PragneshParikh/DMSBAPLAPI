@@ -9,6 +9,9 @@ namespace DMS_BAPL_Utils.ViewModels
     public class PdiChecklistMasterViemModel
     {
         public int Id { get; set; }
+
+        public int? OemmodelId { get; set; }
+        public string? OemModelName { get; set; }
         public string? ChecklistName { get; set; }
         public string? Description { get; set; }
         public bool? IsActive { get; set; } 
