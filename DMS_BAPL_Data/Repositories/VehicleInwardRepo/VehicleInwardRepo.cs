@@ -137,7 +137,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 return new
                 {
                     Success = result > 0,
-                    Message = result > 0 ? "Part inward saved successfully." : "Failed to save part inward."
+                    Message = result > 0 ? "Invoice saved successfully." : "Failed to save invoice."
                 };
             }
             catch (Exception ex)
