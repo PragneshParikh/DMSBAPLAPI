@@ -116,13 +116,15 @@ namespace DMS_BAPL_Api.Controllers
 
                 dynamic result = await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
 
-                if (result.Success)
+                var success = (bool?)result.GetType().GetProperty("Success")?.GetValue(result) ?? false;
+
+                if (success)
                 {
                     await _chassisDetailService.InsertChassis(vehicleInwardViewModel, userId);
                     await _chassisBatteryDetailService.InsertBatteryDetail(vehicleInwardViewModel, userId);
                 }
 
-                return Ok(result.s);
+                return Ok(result);
             }
             catch (Exception ex)
             {

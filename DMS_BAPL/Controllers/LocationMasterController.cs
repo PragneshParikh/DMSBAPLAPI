@@ -162,5 +162,27 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetDealerPrimaryLocationByAreaId")]
+        [ProducesResponseType(typeof(IEnumerable<LocationMasterViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<object>>> GetDealerPrimaryLocationByAreaId([FromQuery] int areaId, [FromQuery] string locCode, [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var locations = await _locationMasterService.GetDealerPrimaryLocationByAreaId(areaId, locCode, dealerCode);
+
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }

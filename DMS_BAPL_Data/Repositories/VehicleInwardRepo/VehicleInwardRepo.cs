@@ -73,7 +73,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     return new
                     {
                         Success = false,
-                        Message = "Part No and Invoice No already exist. Duplicate entry."
+                        Message = "Chassis number already exist. Duplicate entry."
                     };
                 }
 
