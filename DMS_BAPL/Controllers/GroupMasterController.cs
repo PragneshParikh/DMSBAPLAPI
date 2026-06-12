@@ -64,16 +64,16 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateGroupName(int id, string groupName)
+        public async Task<IActionResult> UpdateGroupName([FromBody] GroupMasterViewModel model)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-                var result = await _groupMasterRepo.UpdateGroupName(id, groupName, userId);
+                var result = await _groupMasterRepo.UpdateGroupName(model, userId);
                 if (result == -1)
-                    return NotFound($"Group with ID {id} not found.");
+                    return NotFound($"Group with ID {model.Id} not found.");
                 return Ok(result);
             }
             catch (Exception ex)

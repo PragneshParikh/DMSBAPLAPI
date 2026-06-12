@@ -46,16 +46,16 @@ namespace DMS_BAPL_Data.Repositories.GroupMasterRepo
             }
         }
 
-        public async Task<int> UpdateGroupName(int id, string groupName, string userId)
+        public async Task<int> UpdateGroupName(GroupMasterViewModel groupMasterViewModel, string userId)
         {
             try
             {
-                var groupMaster = await _context.GroupMasters.FindAsync(id);
+                var groupMaster = await _context.GroupMasters.FindAsync(groupMasterViewModel.Id);
                 if (groupMaster == null)
                 {
                     return -1; // Group not found
                 }
-                groupMaster.GroupName = groupName;
+                groupMaster.GroupName = groupMasterViewModel.GroupName;
                 groupMaster.UpdateBy = userId;
                 groupMaster.UpdatedDate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();

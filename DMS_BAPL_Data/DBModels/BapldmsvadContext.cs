@@ -149,6 +149,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
 
+    public virtual DbSet<ReceiptEntryDetail> ReceiptEntryDetails { get; set; }
+
     public virtual DbSet<RepairBillDetail> RepairBillDetails { get; set; }
 
     public virtual DbSet<RepairBillHeader> RepairBillHeaders { get; set; }
@@ -2732,6 +2734,31 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<ReceiptEntryDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__ReceiptE__3214EC0717FB5612");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.ReceiptType)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Receipt).WithMany(p => p.ReceiptEntryDetails)
+                .HasForeignKey(d => d.ReceiptId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ReceiptEntryDetails_ReceiptEntry");
+        });
+
         modelBuilder.Entity<RepairBillDetail>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__RepairBi__3214EC07F0FF2241");
@@ -3022,9 +3049,7 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("TermandConditionMaster");
 
-            entity.Property(e => e.ConditionModule)
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.Property(e => e.ConditionEffectiveDate).HasColumnType("datetime");
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);

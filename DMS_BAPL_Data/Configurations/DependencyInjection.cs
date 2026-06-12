@@ -49,6 +49,7 @@ using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
+using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
@@ -164,6 +165,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IVehicleStockTransferRepo, VehicleStockTransferRepo>();
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
             services.AddScoped<IGroupMasterRepo, GroupMasterRepo>();
+            services.AddScoped<ITermConditionMasterRepo, TermConditionMasterRepo>();
 
             #endregion
 
