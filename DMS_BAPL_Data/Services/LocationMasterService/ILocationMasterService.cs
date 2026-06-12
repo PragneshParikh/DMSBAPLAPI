@@ -18,5 +18,6 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode);
         Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel);
         Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string dealerCode, int areaId);
+        Task<IEnumerable<object>> GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode);
     }
 }

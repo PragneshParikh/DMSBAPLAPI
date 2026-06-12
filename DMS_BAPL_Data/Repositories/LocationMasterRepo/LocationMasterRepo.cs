@@ -296,5 +296,23 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             }
             catch { throw; }
         }
+        async Task<IEnumerable<object>> ILocationMasterRepo.GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode)
+        {
+            var query = await _context.LocationMasters
+                .Where(x => x.Locareaidno == areaId &&
+                x.Loccode.EndsWith(locCode) &&
+                (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
+                .ToListAsync();
+
+            return query.Select(x => new LocationMasterViewModel
+            {
+                Id = x.Id,
+                Loccode = x.Loccode,
+                Locname = x.Locname,
+                Locareaidno = x.Locareaidno,
+                Dealercode = x.Dealercode
+            });
+        }
+
     }
 }
