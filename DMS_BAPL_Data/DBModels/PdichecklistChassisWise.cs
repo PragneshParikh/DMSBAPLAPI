@@ -11,6 +11,8 @@ public partial class PdichecklistChassisWise
 
     public int? JobCardMasterId { get; set; }
 
+    public int? OemmodelId { get; set; }
+
     public bool? IsStatus { get; set; }
 
     public string? Remarks { get; set; }
@@ -24,6 +26,8 @@ public partial class PdichecklistChassisWise
     public DateTime? UpdatedDate { get; set; }
 
     public virtual JobCardHeader? JobCardMaster { get; set; }
+
+    public virtual OemmodelMaster? Oemmodel { get; set; }
 
     public virtual PdichecklistMaster PdichecklistMaster { get; set; } = null!;
 }
