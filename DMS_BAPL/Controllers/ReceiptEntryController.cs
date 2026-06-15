@@ -103,7 +103,10 @@ namespace DMS_BAPL_Api.Controllers
                     return BadRequest(StringConstants.UserUnauthorized);
 
                 var result = await _receiptEntryService.AddReceiptEntryAsync(receiptEntry,userId,dealer);
-                return Ok(result);
+                if (result != null)
+                    return Ok(true);
+
+                return BadRequest(false);
 
             }
 
@@ -130,7 +133,11 @@ namespace DMS_BAPL_Api.Controllers
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 var result = await _receiptEntryService.UpdateReceiptEntryAsync(id, receiptEntry, userId);
-                return Ok(result);
+                if (result!=null)
+                    return Ok(true);
+
+                return BadRequest(false);
+
             }
             catch (Exception ex)
             {
@@ -140,6 +147,7 @@ namespace DMS_BAPL_Api.Controllers
                     success = false,
                     message = ex.Message
                 });
+                ;
             }
 
         }
@@ -167,12 +175,12 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("checkLeadExist")]
-        public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo, string? bookingId)
+        [HttpGet("checkReceiptExist")]
+        public async Task<IActionResult> GetLMSLeadByMoborBookingId(string? mobileNo, string? bookingId,string? recType,string? dealerCode)
         {
             try
             {
-                var item = await _receiptEntryService.CheckReceiptExist(mobileNo, bookingId);
+                var item = await _receiptEntryService.CheckReceiptExist(mobileNo, bookingId,recType,dealerCode);
                 return Ok(item);
             }
             catch (Exception ex)

@@ -56,9 +56,6 @@ namespace DMS_BAPL_Data.Services.LeadMasterService
                 {
                     var httpContext = _httpContextAccessor.HttpContext;
                     string userId = GetUserInfoFromToken.GetUserIdFromToken(httpContext);
-
-                    var ledger = await _ledgerMasterRepo.CreateLedgerFromLead(result, userId);
-                    ledgerId = ledger.Id;
                     isNew = true;
                 }
                 else

@@ -164,6 +164,19 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         {
             try
             {
+                var existingLedger = await _context.LedgerMasters
+                    .FirstOrDefaultAsync(i => i.MobileNumber == ledgerMaster.MobileNumber &&
+                    i.LedgerType == "Receipt");
+
+                if (existingLedger != null)
+                {
+                    ledgerMaster.Id = existingLedger.Id;
+                    _context.Entry(existingLedger).CurrentValues.SetValues(ledgerMaster);
+                    _context.Entry(existingLedger).Property(x => x.Id).CurrentValue = existingLedger.Id;
+                    _context.Entry(existingLedger).Property(x => x.Id).IsModified = false;
+                    await _context.SaveChangesAsync();
+                    return existingLedger.Id;
+                }
                 await _context.LedgerMasters.AddAsync(ledgerMaster);
                 var result = await _context.SaveChangesAsync();
                 return ledgerMaster.Id;
