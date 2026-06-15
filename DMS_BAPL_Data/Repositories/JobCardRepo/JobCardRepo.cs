@@ -77,17 +77,18 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 var data = await (from h in _context.LotinspectionHeaders
                                   join d in _context.LotinspectionDetails
                                       on h.Id equals d.LotHeaderId
-                                  join v in _context.VehicleInwards
-                                      on d.ChassisNo equals v.ChasisNo
+                                  join v in _context.ChassisDetails
+                                      on d.ChassisNo equals v.ChassisNo 
                                   join i in _context.ItemMasters
                                       on v.ItemCode equals i.Itemcode
                                   join dm in _context.DealerMasters
                                       on h.DealerCode equals dm.Dealercode
-
-                                  join jc in _context.JobCardCustomers
-                                  on d.ChassisNo equals jc.ChassisNo
-                                    into jcGroup
-                                  from jc in jcGroup.DefaultIfEmpty()
+                                join vc in _context.VehicleInwards
+                                on v.ChassisNo equals vc.ChasisNo
+                                  //join jc in _context.JobCardCustomers
+                                  //on d.ChassisNo equals jc.ChassisNo
+                                  //  into jcGroup
+                                  //from jc in jcGroup.DefaultIfEmpty()
 
                                       // OEM Model (LEFT JOIN)
                                   join o in _context.OemmodelMasters
@@ -99,8 +100,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                   where h.IsLotInspected == true
                                         && h.DealerCode == dealerCode
                                           &&
-                                            (jobTypeId == 1 ? (jc == null || jc.SaleDate == null) : true)   // 👈 ONLY unsold
-                                  select new { h, d, v, i, dm, o })
+                                            (jobTypeId == 1 ? (v == null || v.SaleDate == null) : true)   // 👈 ONLY unsold
+                                  select new { h, d, v,vc, i, dm, o })
                                   .ToListAsync();
 
                 // Latest Warranty List
@@ -124,15 +125,15 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                   CustomerMobile = x.dm.Mobile,
                                   CustomerAltMobile = x.dm.PhoneOff,
                                   ModelName = x.i.Itemname,
-                                  RegisterNo = x.v.Regnumber,
-                                  BatteryNumber = x.v.BatteryNo,
-                                  ChargerNumber = x.v.ChargerNo,
-                                  ControllerNo = x.v.ControllerNo,
-                                  BatteryMake = x.v.BatteryMake,
-                                  BatteryCapacity = x.v.BatteryCapacity,
-                                  BatteryChemestry = x.v.BatteryChemistry,
-                                  ConverterNo = x.v.Converter,
-                                  MotorNo = x.v.MotorNo,
+                                  RegisterNo = x.vc.Regnumber,
+                                  BatteryNumber = x.vc.BatteryNo,
+                                  ChargerNumber = x.vc.ChargerNo,
+                                  ControllerNo = x.vc.ControllerNo,
+                                  BatteryMake = x.vc.BatteryMake,
+                                  BatteryCapacity = x.vc.BatteryCapacity,
+                                  BatteryChemestry = x.vc.BatteryChemistry,
+                                  ConverterNo = x.vc.Converter,
+                                  MotorNo = x.vc.MotorNo,
 
                                   //  Warranty (optional)
                                   OdoReading = ow?.Odoreading,
@@ -264,7 +265,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     x.c != null &&
                     x.c.ChassisNo.Contains(search.ChassisNo));
             }
-            
+
 
             var jobCardsResult = await query
                 .Select(x => new JobCardlistDetailsViewModel
@@ -387,7 +388,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 })
                 .GroupBy(x => x.JobCardHeader.Id)
                 .Select(g => g.First())
+                .OrderByDescending(x => x.JobCardHeader.CreatedDate)
                 .ToListAsync();
+                
 
             return jobCardsResult;
         }

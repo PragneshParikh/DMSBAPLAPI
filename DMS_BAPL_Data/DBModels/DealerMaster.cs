@@ -69,5 +69,7 @@ public partial class DealerMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public bool IsActive { get; set; }
+
     public virtual ICollection<LmsleadMaster> LmsleadMasters { get; set; } = new List<LmsleadMaster>();
 }
