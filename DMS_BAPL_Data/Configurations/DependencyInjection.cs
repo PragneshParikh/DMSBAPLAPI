@@ -13,6 +13,8 @@ using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.ComplaintMasterRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.DepartmentRepo;
+using DMS_BAPL_Data.Repositories.DesignationRepo;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
@@ -64,6 +66,8 @@ using DMS_BAPL_Data.Services.CircularDealerAssignmentService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Data.Services.DepartmentService;
+using DMS_BAPL_Data.Services.DesignationService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
@@ -166,6 +170,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
             services.AddScoped<IGroupMasterRepo, GroupMasterRepo>();
             services.AddScoped<ITermConditionMasterRepo, TermConditionMasterRepo>();
+            services.AddScoped<IDepartmentRepo, DepartmentRepo>();
+            services.AddScoped<IDesignationRepo, DesignationRepo>();
 
             #endregion
 
@@ -216,7 +222,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailService, ChassisDetailService>();
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
             services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
-            services.AddScoped<IVehicleStockTransferService,VehicleStockTransferService>();
+            services.AddScoped<IVehicleStockTransferService, VehicleStockTransferService>();
+            services.AddScoped<IDepartmentService, DepartmentService>();
+            services.AddScoped<IDesignationService, DesignationService>();
 
 
             // Email SErvice
