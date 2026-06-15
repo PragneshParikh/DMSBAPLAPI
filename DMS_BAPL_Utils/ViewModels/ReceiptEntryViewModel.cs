@@ -25,7 +25,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? SalesExecutive { get; set; }
 
-        public string? ReceiptType { get; set; }
+       // public string? ReceiptType { get; set; }
         public string? MobileNo { get; set; }
         public DateOnly BillDate { get; set; }
         public string? BillNo { get; set; }
@@ -38,6 +38,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Narration { get; set; }
 
         public decimal? TotalAmount { get; set; }
+        public List<ReceiptEntryDetailViewModel> ReceiptEntryDetail { get; set; }
 
     }
 }
