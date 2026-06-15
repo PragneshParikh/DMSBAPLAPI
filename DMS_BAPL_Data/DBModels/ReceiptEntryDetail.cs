@@ -13,6 +13,8 @@ public partial class ReceiptEntryDetail
 
     public string ReceiptType { get; set; } = null!;
 
+    public DateTime? LineDate { get; set; }
+
     public decimal Amount { get; set; }
 
     public string CreatedBy { get; set; } = null!;
