@@ -474,6 +474,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     CreatedBy = insertItemMasterViewModel.CreatedBy,
                     CreatedDate = DateTime.Now
                 };
+
+                await _context.ItemMasters.AddAsync(existingItem);
             }
             else
             {
