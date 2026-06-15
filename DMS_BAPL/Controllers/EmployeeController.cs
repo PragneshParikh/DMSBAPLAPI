@@ -102,5 +102,38 @@ namespace DMS_BAPL_Api.Controllers
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
+
+        // GET DEALER INFO BY CODE
+        [HttpGet("GetDealerByCode/{dealerCode}")]
+        public async Task<ActionResult> GetDealerByCode(string dealerCode)
+        {
+            try
+            {
+                var dealer = await _employeeService.GetDealerByCode(dealerCode);
+                if (dealer == null) return NotFound("Dealer Not Found");
+                return Ok(dealer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // GET DEALER LOCATIONS
+        [HttpGet("GetLocationsByDealer/{dealerCode}")]
+        public async Task<ActionResult> GetLocationsByDealer(string dealerCode)
+        {
+            try
+            {
+                var locations = await _employeeService.GetLocationsByDealer(dealerCode);
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
