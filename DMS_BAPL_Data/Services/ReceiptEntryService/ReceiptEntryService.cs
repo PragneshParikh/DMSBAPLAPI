@@ -113,11 +113,11 @@ namespace DMS_BAPL_Data.Services.ReceiptEntryService
             }
         }
 
-        public async Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId)
+        public async Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId, string? recType, string? dealerCode)
         {
             try
             {
-                return await _receiptEntryRepo.CheckReceiptExist(mobileNo, bookingId);
+                return await _receiptEntryRepo.CheckReceiptExist(mobileNo, bookingId,recType,dealerCode);
             }
             catch
             {
