@@ -33,6 +33,8 @@ public partial class LedgerMaster
 
     public string? Gender { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public DateOnly? DateOfBirth { get; set; }
 
     public string CreatedBy { get; set; } = null!;

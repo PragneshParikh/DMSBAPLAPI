@@ -16,4 +16,6 @@ public partial class GroupMaster
     public string? UpdateBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual ICollection<ComplaintMaster> ComplaintMasters { get; set; } = new List<ComplaintMaster>();
 }

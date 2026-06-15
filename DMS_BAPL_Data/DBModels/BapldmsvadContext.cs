@@ -123,6 +123,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<NumberSequence> NumberSequences { get; set; }
 
+    public virtual DbSet<OccupationMaster> OccupationMasters { get; set; }
+
     public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
 
     public virtual DbSet<OemmodelWarranty> OemmodelWarranties { get; set; }
@@ -533,13 +535,14 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.GroupName)
-                .HasMaxLength(80)
-                .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.GroupNameNavigation).WithMany(p => p.ComplaintMasters)
+                .HasForeignKey(d => d.GroupName)
+                .HasConstraintName("FK_ComplaintMaster_GroupMaster");
         });
 
         modelBuilder.Entity<DealerMaster>(entity =>
@@ -1669,6 +1672,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.EMail)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -2201,6 +2207,27 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<OccupationMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Occupati__891711ADE0A56719");
+
+            entity.ToTable("OccupationMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.OccupationName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<OemmodelMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC07901A12F4");
@@ -2437,6 +2464,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
             entity.Property(e => e.PdichecklistMasterId).HasColumnName("PDIChecklistMasterId");
             entity.Property(e => e.Remarks)
                 .HasMaxLength(20)
@@ -2449,6 +2477,8 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.JobCardMaster).WithMany(p => p.PdichecklistChassisWises)
                 .HasForeignKey(d => d.JobCardMasterId)
                 .HasConstraintName("FK_PDIChecklist_JobCard");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.PdichecklistChassisWises).HasForeignKey(d => d.OemmodelId);
 
             entity.HasOne(d => d.PdichecklistMaster).WithMany(p => p.PdichecklistChassisWises)
                 .HasForeignKey(d => d.PdichecklistMasterId)
