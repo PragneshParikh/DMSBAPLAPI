@@ -45,6 +45,8 @@ public partial class LedgerMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public int? OccupationId { get; set; }
+
     public virtual City? CityNavigation { get; set; }
 
     public virtual ICollection<Hsrporder> Hsrporders { get; set; } = new List<Hsrporder>();
