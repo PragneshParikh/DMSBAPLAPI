@@ -61,9 +61,9 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Active { get; set; }
 
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; } = null;
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime? CreatedDate { get; set; } = null;
 
         public string? UpdateBy { get; set; }
 
