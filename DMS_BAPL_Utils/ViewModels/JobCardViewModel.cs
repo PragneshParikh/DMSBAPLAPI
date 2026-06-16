@@ -101,6 +101,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Observation { get; set; }
         public string? SupervisorComment { get; set; }
         public bool? IsPdiSuccess { get; set; }
+        public string? JobStatus { get; set; }
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public string UpdatedBy { get; set; }

@@ -65,6 +65,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     CeditLimit = dealer.CeditLimit,
                     RegAddress = dealer.RegAddress,
                     B2b = dealer.B2b,
+                    IsActive = dealer.IsActive,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
@@ -366,6 +367,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.CeditLimit = dealerMasterViewModel.CeditLimit;
             existingDealer.RegAddress = dealerMasterViewModel.RegAddress;
             existingDealer.B2b = dealerMasterViewModel.B2b;
+            existingDealer.IsActive = dealerMasterViewModel.IsActive;
             existingDealer.UpdatedBy = userId;
             existingDealer.UpdatedDate = DateTime.UtcNow;
 

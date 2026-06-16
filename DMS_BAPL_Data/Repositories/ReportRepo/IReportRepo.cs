@@ -61,7 +61,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync();
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
 
-      
+        Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter);
+
+
 
 
     }

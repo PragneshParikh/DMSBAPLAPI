@@ -899,6 +899,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(500)
                 .IsUnicode(false)
                 .HasColumnName("FFIRRemarks");
+            entity.Property(e => e.Ffirstatus)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("FFIRStatus");
             entity.Property(e => e.PurposeOfCir)
                 .HasMaxLength(150)
                 .IsUnicode(false)
@@ -1477,6 +1481,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+            entity.Property(e => e.JobStatus)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.JobinTime)
                 .HasMaxLength(20)
                 .IsUnicode(false);

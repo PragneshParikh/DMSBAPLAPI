@@ -214,6 +214,15 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         on lg.State equals sta.StateId into staJoin
                     from sta in staJoin.DefaultIfEmpty()
 
+                    join rb in _context.RepairBillHeaders
+                    on jh.Id equals rb.JobId into repairBillJoin
+                    from rb in repairBillJoin.DefaultIfEmpty()
+
+                    join fr in _context.Ffirheaders
+                    on jh.Chassisno equals fr.FfirchassisNo into ffirJoin
+                    from fr in ffirJoin.DefaultIfEmpty()
+
+
                     select new
                     {
                         jh,
@@ -224,9 +233,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         js,
                         loc,
                         lg,
-                        sta
+                        sta,
+                        rb,
+                        fr
                     };
-                query = query.Where(x => !_context.RepairBillHeaders.Any(rb => rb.JobId == x.jh.Id && rb.IsActive == true));
+                //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
                 if (!string.IsNullOrWhiteSpace(search.DealerCode))
@@ -315,8 +326,25 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             AirpressurefrontTyre = x.jh.AirpressurefrontTyre,
                             IsPdiSuccess = x.jh.IsPdiSuccess,
                             Observation = x.jh.Observation,
-                            SupervisorComment = x.jh.SupervisorComment
-                        },
+                            SupervisorComment = x.jh.SupervisorComment,
+                            JobStatus =
+                                   x.rb != null && x.rb.RepairbillStatus == "Billed"
+                                        ? "Closed"
+                                  
+                                   : x.rb != null && x.rb.TotalNetAmount > 0
+                                        ? "Complete"
+                                  
+                                   : x.jh.IsMaterialTransfer == true
+                                        ? "Material Transfer"
+                                   : x.fr != null
+                                        ? "FFIR Created"
+                                   : x.fr != null &&
+                                     DateTime.Now >= x.fr.CreatedDate.AddHours(24)
+                                        ? "Work In Progress"
+                                   : x.fr != null && x.fr.Ffirstatus == "Closed"
+                                        ? "FFIR Closed"                                                                                                  
+                                   : "Open",
+                           },
 
                         JobCardBattery = _context.JobCardBatteryDetails
                             .Where(b => b.JobCardHeaderId == x.jh.Id)
@@ -390,7 +418,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                             .Select(cc => cc.Complaint)
                             .FirstOrDefault(),
-
+                        
                     })
                     //.GroupBy(x => x.JobCardHeader.Id)
                     //.Select(g => g.First())
