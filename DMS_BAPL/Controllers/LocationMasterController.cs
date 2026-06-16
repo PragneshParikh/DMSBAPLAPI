@@ -33,22 +33,55 @@ namespace DMS_BAPL_Api.Controllers
         [HttpGet("GetLocationMasterById/{id}")]
         public async Task<IActionResult> GetLocationMasterById(int id)
         {
-            var result = await _locationMasterService.GetLocationMasterById(id);
-            return Ok(result);
+            try
+            {
+                var result = await _locationMasterService.GetLocationMasterById(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpPost("AddLocationMaster")]
         public async Task<IActionResult> AddLocationMaster(LocationMasterViewModel model)
         {
-            var result = await _locationMasterService.AddLocationMaster(model);
-            return Ok(result);
+            try
+            {
+                var result = await _locationMasterService.AddLocationMaster(model);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpPut("UpdateLocationMaster")]
         public async Task<IActionResult> UpdateLocationMaster(LocationMasterViewModel model)
         {
-            var result = await _locationMasterService.UpdateLocationMaster(model);
-            return Ok(result);
+            try
+            {
+                var result = await _locationMasterService.UpdateLocationMaster(model);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpGet("DownloadLocationMasterExcel")]
@@ -66,15 +99,31 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                //return StatusCode(500, ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
             }
         }
 
         [HttpGet("GetAllShowroomLocationsofCurrentDelaer")]
         public async Task<IActionResult> GetAllShowroomlocation(string dealerCode)
         {
-            var result = await _locationMasterService.GetLocationByDealerCode(dealerCode);
-            return Ok(result);
+            try
+            {
+                var result = await _locationMasterService.GetLocationByDealerCode(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
+            }
 
         }
 
@@ -91,7 +140,12 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                //return StatusCode(500, ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
             }
         }
 
@@ -108,7 +162,12 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                //return StatusCode(500, ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
             }
         }
 
@@ -131,8 +190,13 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error while featching location details: ${ex.Message}");
-                throw;
+                //_logger.LogError($"Error while featching location details: ${ex.Message}");
+                //throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
             }
         }
 
@@ -156,9 +220,13 @@ namespace DMS_BAPL_Api.Controllers
 
                 return Ok(location);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " UpdateByLocationCode",
+                    message = ex.Message
+                });
             }
         }
 
@@ -181,7 +249,11 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false + " GetLocationByDealerByAreaId",
+                    message = ex.Message
+                });
             }
         }
     }
