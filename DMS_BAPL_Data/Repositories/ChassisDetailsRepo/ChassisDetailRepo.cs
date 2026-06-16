@@ -21,19 +21,26 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
 
         async Task<bool> IChassisDetailRepo.InsertChassis(ChassisDetail chassisDetail)
         {
-            var item = await _context.ItemMasters
-                .AsNoTracking()
-                .Where(x => x.Itemcode == chassisDetail.ItemCode)
-                .FirstOrDefaultAsync();
+            try
+            {
+                var item = await _context.ItemMasters
+                        .AsNoTracking()
+                        .Where(x => x.Itemcode == chassisDetail.ItemCode)
+                        .FirstOrDefaultAsync();
 
-            chassisDetail.ItemName = item.Itemname;
+                chassisDetail.ItemName = item.Itemname;
 
-            _context.ChassisDetails
-                .Add(chassisDetail);
+                _context.ChassisDetails
+                    .AddAsync(chassisDetail);
 
-            await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
-            return true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         async Task<List<VehicleStockTransferChassisListViewModel>> IChassisDetailRepo.GetChassisList(string? locationCode)
@@ -76,7 +83,7 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                                         Rate = vi.Dlrprice
                                     }
                                     ).ToListAsync();
-                return result.DistinctBy(i=>i.ChassisNo).ToList();
+                return result.DistinctBy(i => i.ChassisNo).ToList();
             }
             catch
             {
