@@ -54,7 +54,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
                 locationMasterViewModel.Active = item.Active;
                 locationMasterViewModel.CreatedBy = item.CreatedBy;
-                locationMasterViewModel.CreatedDate = item.CreatedDate;
+                locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
                 locationMasterViewModel.UpdateBy = item.UpdatedBy;
                 locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
@@ -99,7 +99,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
             locationMasterViewModel.Active = item.Active;
             locationMasterViewModel.CreatedBy = item.CreatedBy;
-            locationMasterViewModel.CreatedDate = item.CreatedDate;
+            locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
             locationMasterViewModel.UpdateBy = item.UpdatedBy;
             locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
