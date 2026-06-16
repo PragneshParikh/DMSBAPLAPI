@@ -147,35 +147,71 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Id == model.Id);
 
             if (location == null)
-                return false;
+            {
+                var locationMaster = new LocationMaster
+                {
+                    Action = model.Action,
+                    Loccode = model.Loccode,
+                    Locname = model.Locname,
+                    Locareaidno = model.Locareaidno,
+                    Add1 = model.Add1,
+                    Add2 = model.Add2,
+                    State = model.State,
+                    City = model.City,
+                    Pincode = model.Pincode,
+                    Gstinno = model.Gstinno,
+                    Email = model.Email,
+                    Mobileno = model.Mobileno,
+                    Contpername1 = model.Contpername1,
+                    Contpername2 = model.Contpername2,
+                    Contpermob1 = model.Contpermob1,
+                    Contpermob2 = model.Contpermob2,
+                    Contperemail1 = model.Contperemail1,
+                    Contperemail2 = model.Contperemail2,
+                    Compid = model.Compid,
+                    Acntidno = model.Acntidno,
+                    Formtype = model.Formtype,
+                    Dealercode = model.Dealercode,
+                    Lineno = model.Lineno,
+                    Rrglocationidno = model.Rrglocationidno,
+                    Active = model.Active,
+                    CreatedBy = model.CreatedBy ?? "CUS0345A",
+                    CreatedDate = DateTime.Now,
+                };
 
-            location.Action = model.Action;
-            location.Loccode = model.Loccode;
-            location.Locname = model.Locname;
-            location.Locareaidno = model.Locareaidno;
-            location.Add1 = model.Add1;
-            location.Add2 = model.Add2;
-            location.State = model.State;
-            location.City = model.City;
-            location.Pincode = model.Pincode;
-            location.Gstinno = model.Gstinno;
-            location.Email = model.Email;
-            location.Mobileno = model.Mobileno;
-            location.Contpername1 = model.Contpername1;
-            location.Contpername2 = model.Contpername2;
-            location.Contpermob1 = model.Contpermob1;
-            location.Contpermob2 = model.Contpermob2;
-            location.Contperemail1 = model.Contperemail1;
-            location.Contperemail2 = model.Contperemail2;
-            location.Compid = model.Compid;
-            location.Acntidno = model.Acntidno;
-            location.Formtype = model.Formtype;
-            location.Dealercode = model.Dealercode;
-            location.Lineno = model.Lineno;
-            location.Rrglocationidno = model.Rrglocationidno;
-            location.Active = model.Active;
-            location.UpdatedBy = model.UpdateBy;
-            location.UpdatedDate = DateTime.Now;
+                await _context.LocationMasters.AddAsync(locationMaster);
+            }
+            else
+            {
+
+                location.Action = model.Action;
+                location.Loccode = model.Loccode;
+                location.Locname = model.Locname;
+                location.Locareaidno = model.Locareaidno;
+                location.Add1 = model.Add1;
+                location.Add2 = model.Add2;
+                location.State = model.State;
+                location.City = model.City;
+                location.Pincode = model.Pincode;
+                location.Gstinno = model.Gstinno;
+                location.Email = model.Email;
+                location.Mobileno = model.Mobileno;
+                location.Contpername1 = model.Contpername1;
+                location.Contpername2 = model.Contpername2;
+                location.Contpermob1 = model.Contpermob1;
+                location.Contpermob2 = model.Contpermob2;
+                location.Contperemail1 = model.Contperemail1;
+                location.Contperemail2 = model.Contperemail2;
+                location.Compid = model.Compid;
+                location.Acntidno = model.Acntidno;
+                location.Formtype = model.Formtype;
+                location.Dealercode = model.Dealercode;
+                location.Lineno = model.Lineno;
+                location.Rrglocationidno = model.Rrglocationidno;
+                location.Active = model.Active;
+                location.UpdatedBy = model.UpdateBy;
+                location.UpdatedDate = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -227,12 +263,13 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
 
         public async Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
         {
+            var locCode = locationMasterViewModel.Loccode?.Trim().ToUpper();
+
             var _existingLocation = await _context.LocationMasters
-                .FirstOrDefaultAsync(x => x.Loccode == locationMasterViewModel.Loccode);
+                .FirstOrDefaultAsync(x => x.Loccode.ToUpper() == locCode);
 
             if (_existingLocation == null)
             {
-
                 var locationMaster = new LocationMaster
                 {
                     Action = locationMasterViewModel.Action,
