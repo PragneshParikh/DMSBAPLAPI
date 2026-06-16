@@ -33,6 +33,8 @@ public partial class LedgerMaster
 
     public string? Gender { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public DateOnly? DateOfBirth { get; set; }
 
     public string CreatedBy { get; set; } = null!;
@@ -42,6 +44,8 @@ public partial class LedgerMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public int? OccupationId { get; set; }
 
     public virtual City? CityNavigation { get; set; }
 

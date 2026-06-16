@@ -33,6 +33,9 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         {
             try
             {
+
+                var regDate = DateTime.ParseExact(dealer.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+
                 var newDealer = new DealerMaster
                 {
                     Compname = dealer.Compname,
@@ -47,7 +50,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     Mobile = dealer.Mobile,
                     Email = dealer.Email,
                     Contactperson = dealer.Contactperson,
-                    RegDate = Convert.ToDateTime(dealer.RegDate),
+                    RegDate = regDate,
                     TradCert = dealer.TradCert ?? "",
                     CompgstinNo = dealer.CompgstinNo ?? "",
                     BrandName = dealer.BrandName,
@@ -62,6 +65,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     CeditLimit = dealer.CeditLimit,
                     RegAddress = dealer.RegAddress,
                     B2b = dealer.B2b,
+                    IsActive = dealer.IsActive,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
@@ -192,6 +196,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 if (existingDealer == null)
                     return null;
 
+                var regDate = DateTime.ParseExact(dealerDto.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+
                 existingDealer.Compname = dealerDto.Compname;
                 existingDealer.Compcode = dealerDto.Compcode;
                 existingDealer.Adress1 = dealerDto.Adress1;
@@ -204,7 +210,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 existingDealer.Mobile = dealerDto.Mobile;
                 existingDealer.Email = dealerDto.Email;
                 existingDealer.Contactperson = dealerDto.Contactperson;
-                existingDealer.RegDate = Convert.ToDateTime(dealerDto.RegDate);
+                existingDealer.RegDate = regDate;
                 existingDealer.TradCert = dealerDto.TradCert ?? "";
                 existingDealer.CompgstinNo = dealerDto.CompgstinNo ?? "";
                 existingDealer.BrandName = dealerDto.BrandName;
@@ -361,6 +367,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.CeditLimit = dealerMasterViewModel.CeditLimit;
             existingDealer.RegAddress = dealerMasterViewModel.RegAddress;
             existingDealer.B2b = dealerMasterViewModel.B2b;
+            existingDealer.IsActive = dealerMasterViewModel.IsActive;
             existingDealer.UpdatedBy = userId;
             existingDealer.UpdatedDate = DateTime.UtcNow;
 

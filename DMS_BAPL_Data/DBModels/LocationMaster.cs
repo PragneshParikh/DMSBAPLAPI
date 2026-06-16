@@ -27,7 +27,7 @@ public partial class LocationMaster
 
     public string? Gstinno { get; set; }
 
-    public string Email { get; set; } = null!;
+    public string? Email { get; set; }
 
     public string Mobileno { get; set; } = null!;
 
@@ -35,7 +35,7 @@ public partial class LocationMaster
 
     public string? Contpername2 { get; set; }
 
-    public string Contpermob1 { get; set; } = null!;
+    public string? Contpermob1 { get; set; }
 
     public string? Contpermob2 { get; set; }
 
@@ -57,9 +57,9 @@ public partial class LocationMaster
 
     public string? Active { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
+    public string? CreatedBy { get; set; }
 
-    public DateTime CreatedDate { get; set; }
+    public DateTime? CreatedDate { get; set; }
 
     public string? UpdatedBy { get; set; }
 

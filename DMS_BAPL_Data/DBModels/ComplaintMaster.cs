@@ -9,7 +9,7 @@ public partial class ComplaintMaster
 
     public string? ComplaintName { get; set; }
 
-    public string? GroupName { get; set; }
+    public int? GroupName { get; set; }
 
     public bool? Status { get; set; }
 
@@ -20,4 +20,6 @@ public partial class ComplaintMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual GroupMaster? GroupNameNavigation { get; set; }
 }
