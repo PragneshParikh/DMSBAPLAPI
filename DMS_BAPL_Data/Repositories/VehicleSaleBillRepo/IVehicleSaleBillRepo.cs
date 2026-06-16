@@ -29,5 +29,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode);
         Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
+
+        Task<Form22PdfModel?> GetForm22DataAsync(int id);
+
+        Task<ProformaInvoicePdfModel?> GetProformaInvoiceDataAsync(int id);
     }
 }
