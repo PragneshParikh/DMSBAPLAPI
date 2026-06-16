@@ -237,7 +237,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         rb,
                         fr
                     };
-                query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
+                //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
                 if (!string.IsNullOrWhiteSpace(search.DealerCode))
