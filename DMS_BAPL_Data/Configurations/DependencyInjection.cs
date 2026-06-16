@@ -34,6 +34,7 @@ using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
+using DMS_BAPL_Data.Repositories.OccupationMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
@@ -85,6 +86,7 @@ using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.NewsBulletinAttachmentService;
 using DMS_BAPL_Data.Services.NewsBulletinService;
+using DMS_BAPL_Data.Services.OccupationMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.OEMModelWarrantyService;
 using DMS_BAPL_Data.Services.PartsInwardService;
@@ -166,6 +168,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
             services.AddScoped<IGroupMasterRepo, GroupMasterRepo>();
             services.AddScoped<ITermConditionMasterRepo, TermConditionMasterRepo>();
+            services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
 
             #endregion
 
@@ -217,6 +220,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
             services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
             services.AddScoped<IVehicleStockTransferService,VehicleStockTransferService>();
+            services.AddScoped<IOccupationMasterService,OccupationMasterService>();
 
 
             // Email SErvice

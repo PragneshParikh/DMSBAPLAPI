@@ -78,19 +78,19 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                   join d in _context.LotinspectionDetails
                                       on h.Id equals d.LotHeaderId
                                   join v in _context.ChassisDetails
-                                      on d.ChassisNo equals v.ChassisNo 
+                                      on d.ChassisNo equals v.ChassisNo
                                   join i in _context.ItemMasters
                                       on v.ItemCode equals i.Itemcode
                                   join dm in _context.DealerMasters
                                       on h.DealerCode equals dm.Dealercode
-                                join vc in _context.VehicleInwards
-                                on v.ChassisNo equals vc.ChasisNo
+                                  join vc in _context.VehicleInwards
+                                  on v.ChassisNo equals vc.ChasisNo
                                   //join jc in _context.JobCardCustomers
                                   //on d.ChassisNo equals jc.ChassisNo
                                   //  into jcGroup
                                   //from jc in jcGroup.DefaultIfEmpty()
 
-                                      // OEM Model (LEFT JOIN)
+                                  // OEM Model (LEFT JOIN)
                                   join o in _context.OemmodelMasters
                                       on i.Oemmodelname.Trim().ToLower()
                                       equals o.ModelName.Trim().ToLower()
@@ -101,7 +101,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                         && h.DealerCode == dealerCode
                                           &&
                                             (jobTypeId == 1 ? (v == null || v.SaleDate == null) : true)   // 👈 ONLY unsold
-                                  select new { h, d, v,vc, i, dm, o })
+                                  select new { h, d, v, vc, i, dm, o })
                                   .ToListAsync();
 
                 // Latest Warranty List
@@ -134,6 +134,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                   BatteryChemestry = x.vc.BatteryChemistry,
                                   ConverterNo = x.vc.Converter,
                                   MotorNo = x.vc.MotorNo,
+                                  oemModelId = x.o.Id,
 
                                   //  Warranty (optional)
                                   OdoReading = ow?.Odoreading,
@@ -167,232 +168,244 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 })
                 .ToListAsync();
         }
-        public async Task<List<PdichecklistMaster>> GetPdichecklist()
+        public async Task<List<PdichecklistMaster>> GetPdichecklist(int oemModelId)
         {
-            return await _context.PdichecklistMasters.ToListAsync();
+            return await _context.PdichecklistMasters
+                .Where(x => x.OemModelId == oemModelId && x.Isactive == true)
+                .OrderBy(x => x.Isactive == true)
+                .ToListAsync();
         }
         public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
         {
-            var query =
-                from jh in _context.JobCardHeaders
-
-                join c in _context.JobCardCustomers
-                    on jh.Id equals c.JobCardHeaderId into custJoin
-                from c in custJoin.DefaultIfEmpty()
-
-                join job in _context.JobTypes
-                    on jh.Jobtype equals job.Id into jobJoin
-                from job in jobJoin.DefaultIfEmpty()
-
-                join sh in _context.ServiceHeads
-                    on jh.Servicehead equals sh.Id into shJoin
-                from sh in shJoin.DefaultIfEmpty()
-
-                join st in _context.ServiceTypes
-                    on jh.Servicetype equals st.Id into stJoin
-                from st in stJoin.DefaultIfEmpty()
-
-                join js in _context.JobSources
-                    on jh.JobSource equals js.Id into jsJoin
-                from js in jsJoin.DefaultIfEmpty()
-
-                join loc in _context.LocationMasters
-                    on jh.Serviceloc equals loc.Loccode into locJoin
-                from loc in locJoin.DefaultIfEmpty()
-
-                join lg in _context.LedgerMasters
-                    on c.CustomerLedgerId equals lg.Id into lgJoin
-                from lg in lgJoin.DefaultIfEmpty()
-
-                join sta in _context.States
-                    on lg.State equals sta.StateId into staJoin
-                from sta in staJoin.DefaultIfEmpty()
-
-                select new
-                {
-                    jh,
-                    c,
-                    job,
-                    sh,
-                    st,
-                    js,
-                    loc,
-                    lg,
-                    sta
-                };
-            query = query.Where(x => !_context.RepairBillHeaders.Any(rb => rb.JobId == x.jh.Id && rb.IsActive == true));
-
-            // Dealer Filter
-            if (!string.IsNullOrWhiteSpace(search.DealerCode))
+            try
             {
-                query = query.Where(x =>
-                    x.jh.DealerCode == search.DealerCode);
-            }
+                var query =
+                    from jh in _context.JobCardHeaders
 
-            // Date From
-            if (search.DateFrom.HasValue)
-            {
-                query = query.Where(x =>
-                    x.jh.JobinDate >= search.DateFrom.Value);
-            }
+                    join c in _context.JobCardCustomers
+                        on jh.Id equals c.JobCardHeaderId into custJoin
+                    from c in custJoin.DefaultIfEmpty()
 
-            // Date To
-            if (search.DateTo.HasValue)
-            {
-                query = query.Where(x =>
-                    x.jh.JobinDate <= search.DateTo.Value);
-            }
+                    join job in _context.JobTypes
+                        on jh.Jobtype equals job.Id into jobJoin
+                    from job in jobJoin.DefaultIfEmpty()
 
-            // Job No
-            if (search.JobNo.HasValue)
-            {
-                query = query.Where(x =>
-                    x.jh.JobNo == search.JobNo.Value);
-            }
+                    join sh in _context.ServiceHeads
+                        on jh.Servicehead equals sh.Id into shJoin
+                    from sh in shJoin.DefaultIfEmpty()
 
-            // Register No
-            if (!string.IsNullOrWhiteSpace(search.RegisterNo))
-            {
-                query = query.Where(x =>
-                    x.c != null &&
-                    x.c.RegisterNo.Contains(search.RegisterNo));
-            }
+                    join st in _context.ServiceTypes
+                        on jh.Servicetype equals st.Id into stJoin
+                    from st in stJoin.DefaultIfEmpty()
 
-            // Chassis No
-            if (!string.IsNullOrWhiteSpace(search.ChassisNo))
-            {
-                query = query.Where(x =>
-                    x.c != null &&
-                    x.c.ChassisNo.Contains(search.ChassisNo));
-            }
+                    join js in _context.JobSources
+                        on jh.JobSource equals js.Id into jsJoin
+                    from js in jsJoin.DefaultIfEmpty()
 
+                    join loc in _context.LocationMasters
+                        on jh.Serviceloc equals loc.Loccode into locJoin
+                    from loc in locJoin.DefaultIfEmpty()
 
-            var jobCardsResult = await query
-                .Select(x => new JobCardlistDetailsViewModel
-                {
-                    Jobtype = x.job != null ? x.job.JobTypeName : null,
-                    Jobsource = x.js != null ? x.js.JobSourceName : null,
-                    serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
-                    serviceType = x.st != null ? x.st.ServiceTypeName : null,
-                    Location = x.loc != null ? x.loc.Locname : null,
+                    join lg in _context.LedgerMasters
+                        on c.CustomerLedgerId equals lg.Id into lgJoin
+                    from lg in lgJoin.DefaultIfEmpty()
 
-                    PartyName = x.lg != null ? x.lg.LedgerName : null,
-                    PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
-                    PartyState = x.sta != null ? x.sta.StateName : null,
-                    CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
-                    IsMaterialTransfer = x.jh.IsMaterialTransfer,
+                    join sta in _context.States
+                        on lg.State equals sta.StateId into staJoin
+                    from sta in staJoin.DefaultIfEmpty()
 
-                    JobCardHeader = new JobCardHeaderVM
+                    select new
                     {
-                        Id = x.jh.Id,
-                        DealerCode = x.jh.DealerCode,
-                        Jobtype = x.jh.Jobtype,
-                        Servicehead = x.jh.Servicehead,
-                        Servicetype = x.jh.Servicetype,
-                        JobSource = x.jh.JobSource,
-                        Chassisno = x.jh.Chassisno,
-                        Couponno = x.jh.Couponno,
-                        Jobprefix = x.jh.Jobprefix,
-                        JobNo = x.jh.JobNo,
-                        Vehiclekms = x.jh.Vehiclekms,
-                        JobinDate = x.jh.JobinDate,
-                        JobinTime = x.jh.JobinTime,
-                        EstdelDate = x.jh.EstdelDate,
-                        EstdelTime = x.jh.EstdelTime,
-                        InvoiceNo = x.jh.InvoiceNo,
-                        ManualjobNo = x.jh.ManualjobNo,
-                        Serviceloc = x.jh.Serviceloc,
-                        Supervisor = x.jh.Supervisor,
-                        Technician = x.jh.Technician,
-                        Jobestmate = x.jh.Jobestmate,
-                        AirpressureRearTyre = x.jh.AirpressureRearTyre,
-                        AirpressurefrontTyre = x.jh.AirpressurefrontTyre,
-                        IsPdiSuccess = x.jh.IsPdiSuccess,
-                        Observation = x.jh.Observation,
-                        SupervisorComment = x.jh.SupervisorComment
-                    },
+                        jh,
+                        c,
+                        job,
+                        sh,
+                        st,
+                        js,
+                        loc,
+                        lg,
+                        sta
+                    };
+                query = query.Where(x => !_context.RepairBillHeaders.Any(rb => rb.JobId == x.jh.Id && rb.IsActive == true));
 
-                    JobCardBattery = _context.JobCardBatteryDetails
-                        .Where(b => b.JobCardHeaderId == x.jh.Id)
-                        .Select(b => new JobCardBatteryVM
-                        {
-                            JobCardHeaderId = b.JobCardHeaderId,
-                            BatteryMake = b.BatteryMake,
-                            BatterySerialNo = b.BatterySerialNo,
-                            BatteryOcv = b.BatteryOcv,
-                            BatteryCcv = b.BatteryCcv,
-                            BatteryDischarge = b.BatteryDischarge,
-                            BatteryCapacityAh = b.BatteryCapacityAh,
-                            BatteryVoltage = b.BatteryVoltage,
-                            MotorDrawing = b.MotorDrawing,
-                            ChargerMake = b.ChargerMake,
-                            ChargerNo = b.ChargerNo,
-                            ConverterNo = b.ConverterNo,
-                            ControllerNo = b.ControllerNo,
-                            BatteryChemical = b.BatteryChemical,
-                            BatteryCapacity = b.BatteryCapacity
-                        })
-                        .FirstOrDefault(),
+                // Dealer Filter
+                if (!string.IsNullOrWhiteSpace(search.DealerCode))
+                {
+                    query = query.Where(x =>
+                        x.jh.DealerCode == search.DealerCode);
+                }
 
-                    JobCardCustomer = x.c == null ? null : new JobCardCustomerVM
+                // Date From
+                if (search.DateFrom.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobinDate >= search.DateFrom.Value);
+                }
+
+                // Date To
+                if (search.DateTo.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobinDate <= search.DateTo.Value);
+                }
+
+                // Job No
+                if (search.JobNo.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobNo == search.JobNo.Value);
+                }
+
+                // Register No
+                if (!string.IsNullOrWhiteSpace(search.RegisterNo))
+                {
+                    query = query.Where(x =>
+                        x.c != null &&
+                        x.c.RegisterNo.Contains(search.RegisterNo));
+                }
+
+                // Chassis No
+                if (!string.IsNullOrWhiteSpace(search.ChassisNo))
+                {
+                    query = query.Where(x =>
+                        x.c != null &&
+                        x.c.ChassisNo.Contains(search.ChassisNo));
+                }
+
+
+                var jobCardsResult = await query
+                    .Select(x => new JobCardlistDetailsViewModel
                     {
-                        Id = x.c.Id,
-                        JobCardHeaderId = x.c.JobCardHeaderId,
-                        SaleDate = x.c.SaleDate,
-                        RegisterNo = x.c.RegisterNo,
-                        ChassisNo = x.c.ChassisNo,
-                        ModelName = x.c.ModelName,
-                        CustomerLedgerId = x.c.CustomerLedgerId,
-                        CustomerName = x.c.CustomerName,
-                        CustomerMobile = x.c.CustomerMobile,
-                        CustomerAltMobile = x.c.CustomerAltMobile,
-                        MotorNo = x.c.MotorNo,
-                        BatteryNo = x.c.BatteryNo,
-                        InsuranceExpDate = x.c.InsuranceExpDate,
-                        NextserviceDueDate = x.c.NextserviceDueDate,
-                        RsarenewalDate = x.c.RsarenewalDate,
-                        Remarks = x.c.Remarks
-                    },
+                        Jobtype = x.job != null ? x.job.JobTypeName : null,
+                        Jobsource = x.js != null ? x.js.JobSourceName : null,
+                        serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
+                        serviceType = x.st != null ? x.st.ServiceTypeName : null,
+                        Location = x.loc != null ? x.loc.Locname : null,
 
-                    JobCardComplaint = _context.JobCardComplaints
-                        .Where(cc => cc.JobCardHeaderId == x.jh.Id)
-                        .Select(cc => new JobCardComplaintVM
+                        PartyName = x.lg != null ? x.lg.LedgerName : null,
+                        PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
+                        PartyState = x.sta != null ? x.sta.StateName : null,
+                        CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
+                        IsMaterialTransfer = x.jh.IsMaterialTransfer,
+
+                        JobCardHeader = new JobCardHeaderVM
                         {
-                            Id = cc.Id,
-                            JobCardHeaderId = cc.JobCardHeaderId,
-                            Complaint = cc.Complaint,
-                            ComplaintCode = cc.ComplaintCode,
-                            CustomerVoice = cc.CustomerVoice
-                        })
-                        .ToList(),
+                            Id = x.jh.Id,
+                            DealerCode = x.jh.DealerCode,
+                            Jobtype = x.jh.Jobtype,
+                            Servicehead = x.jh.Servicehead,
+                            Servicetype = x.jh.Servicetype,
+                            JobSource = x.jh.JobSource,
+                            Chassisno = x.jh.Chassisno,
+                            Couponno = x.jh.Couponno,
+                            Jobprefix = x.jh.Jobprefix,
+                            JobNo = x.jh.JobNo,
+                            Vehiclekms = x.jh.Vehiclekms,
+                            JobinDate = x.jh.JobinDate,
+                            JobinTime = x.jh.JobinTime,
+                            EstdelDate = x.jh.EstdelDate,
+                            EstdelTime = x.jh.EstdelTime,
+                            InvoiceNo = x.jh.InvoiceNo,
+                            ManualjobNo = x.jh.ManualjobNo,
+                            Serviceloc = x.jh.Serviceloc,
+                            Supervisor = x.jh.Supervisor,
+                            Technician = x.jh.Technician,
+                            Jobestmate = x.jh.Jobestmate,
+                            AirpressureRearTyre = x.jh.AirpressureRearTyre,
+                            AirpressurefrontTyre = x.jh.AirpressurefrontTyre,
+                            IsPdiSuccess = x.jh.IsPdiSuccess,
+                            Observation = x.jh.Observation,
+                            SupervisorComment = x.jh.SupervisorComment
+                        },
 
-                    PdiChecklistChassiWise = _context.PdichecklistChassisWises
-                        .Where(pdi => pdi.JobCardMasterId == x.jh.Id)
-                        .Select(x => new PdiChecklistChassiWiseVM
+                        JobCardBattery = _context.JobCardBatteryDetails
+                            .Where(b => b.JobCardHeaderId == x.jh.Id)
+                            .Select(b => new JobCardBatteryVM
+                            {
+                                JobCardHeaderId = b.JobCardHeaderId,
+                                BatteryMake = b.BatteryMake,
+                                BatterySerialNo = b.BatterySerialNo,
+                                BatteryOcv = b.BatteryOcv,
+                                BatteryCcv = b.BatteryCcv,
+                                BatteryDischarge = b.BatteryDischarge,
+                                BatteryCapacityAh = b.BatteryCapacityAh,
+                                BatteryVoltage = b.BatteryVoltage,
+                                MotorDrawing = b.MotorDrawing,
+                                ChargerMake = b.ChargerMake,
+                                ChargerNo = b.ChargerNo,
+                                ConverterNo = b.ConverterNo,
+                                ControllerNo = b.ControllerNo,
+                                BatteryChemical = b.BatteryChemical,
+                                BatteryCapacity = b.BatteryCapacity
+                            })
+                            .FirstOrDefault(),
+
+                        JobCardCustomer = x.c == null ? null : new JobCardCustomerVM
                         {
-                            Id = x.Id,
-                            PdichecklistMasterId = x.PdichecklistMasterId,
-                            JobCardMasterId = x.JobCardMasterId,
-                            IsStatus = x.IsStatus,
-                            Remarks = x.Remarks,
-                            CreatedBy = x.CreatedBy,
-                            CreatedDate = x.CreatedDate
-                        })
-                        .ToList(),
+                            Id = x.c.Id,
+                            JobCardHeaderId = x.c.JobCardHeaderId,
+                            SaleDate = x.c.SaleDate,
+                            RegisterNo = x.c.RegisterNo,
+                            ChassisNo = x.c.ChassisNo,
+                            ModelName = x.c.ModelName,
+                            CustomerLedgerId = x.c.CustomerLedgerId,
+                            CustomerName = x.c.CustomerName,
+                            CustomerMobile = x.c.CustomerMobile,
+                            CustomerAltMobile = x.c.CustomerAltMobile,
+                            MotorNo = x.c.MotorNo,
+                            BatteryNo = x.c.BatteryNo,
+                            InsuranceExpDate = x.c.InsuranceExpDate,
+                            NextserviceDueDate = x.c.NextserviceDueDate,
+                            RsarenewalDate = x.c.RsarenewalDate,
+                            Remarks = x.c.Remarks
+                        },
 
-                    Complaint = _context.JobCardComplaints
-                        .Where(cc => cc.JobCardHeaderId == x.jh.Id)
-                        .Select(cc => cc.Complaint)
-                        .FirstOrDefault(),
+                        JobCardComplaint = _context.JobCardComplaints
+                            .Where(cc => cc.JobCardHeaderId == x.jh.Id)
+                            .Select(cc => new JobCardComplaintVM
+                            {
+                                Id = cc.Id,
+                                JobCardHeaderId = cc.JobCardHeaderId,
+                                Complaint = cc.Complaint,
+                                ComplaintCode = cc.ComplaintCode,
+                                CustomerVoice = cc.CustomerVoice
+                            })
+                            .ToList(),
 
-                })
-                .GroupBy(x => x.JobCardHeader.Id)
-                .Select(g => g.First())
-                .OrderByDescending(x => x.JobCardHeader.CreatedDate)
-                .ToListAsync();
-                
+                        PdiChecklistChassiWise = _context.PdichecklistChassisWises
+                            .Where(pdi => pdi.JobCardMasterId == x.jh.Id)
+                            .Select(x => new PdiChecklistChassiWiseVM
+                            {
+                                Id = x.Id,
+                                PdichecklistMasterId = x.PdichecklistMasterId,
+                                JobCardMasterId = x.JobCardMasterId,
+                                IsStatus = x.IsStatus,
+                                Remarks = x.Remarks,
+                                CreatedBy = x.CreatedBy,
+                                CreatedDate = x.CreatedDate
+                            })
+                            .ToList(),
 
-            return jobCardsResult;
+                        Complaint = _context.JobCardComplaints
+                            .Where(cc => cc.JobCardHeaderId == x.jh.Id)
+                            .Select(cc => cc.Complaint)
+                            .FirstOrDefault(),
+
+                    })
+                    //.GroupBy(x => x.JobCardHeader.Id)
+                    //.Select(g => g.First())
+                    .OrderByDescending(x => x.JobCardHeader.Id)
+                    .ToListAsync();
+
+
+                return jobCardsResult;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+            $"GetJobCardListViewAsync Error : {ex.Message} | Inner : {ex.InnerException?.Message}",
+            ex);
+            }
         }
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
         {
@@ -407,6 +420,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 {
                     Jobtype = jobCardDetails.JobCardHeader.Jobtype,
                     DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+                    InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
                     Chassisno = jobCardDetails.JobCardHeader.Chassisno,
                     Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
                     Servicehead = jobCardDetails.JobCardHeader.Servicehead,
@@ -516,6 +530,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     {
                         PdichecklistMasterId = p.PdichecklistMasterId,
                         JobCardMasterId = headerId,
+                        OemmodelId = p.OemModelId,
                         IsStatus = p.IsStatus,
                         Remarks = p.Remarks,
                         CreatedBy = p.CreatedBy,
