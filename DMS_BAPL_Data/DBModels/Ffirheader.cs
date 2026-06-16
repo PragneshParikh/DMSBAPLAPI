@@ -47,6 +47,8 @@ public partial class Ffirheader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? Ffirstatus { get; set; }
+
     public virtual ICollection<FfirdetailObservation> FfirdetailObservations { get; set; } = new List<FfirdetailObservation>();
 
     public virtual JobCardCustomer JobCardCustomer { get; set; } = null!;
