@@ -1,6 +1,8 @@
 using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.LedgerMasterRepo;
+using DMS_BAPL_Data.Services.ExcelServices;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Org.BouncyCastle.Bcpg;
 using System;
@@ -14,9 +16,11 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
     public partial class LedgerMasterService : ILedgerMasterService
     {
         private readonly ILedgerMasterRepo _ledgerMasterRepo;
-        public LedgerMasterService(ILedgerMasterRepo ledgerMasterRepo)
+        private readonly IExcelService _excelService;
+        public LedgerMasterService(ILedgerMasterRepo ledgerMasterRepo, IExcelService excelService)
         {
             _ledgerMasterRepo = ledgerMasterRepo;
+            _excelService = excelService;
         }
 
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetAll() => _ledgerMasterRepo.GetAll();
@@ -45,6 +49,76 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             }
             catch
             {
+                throw;
+            }
+        }
+        public async Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetAllMobileNumberByDealerCode(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+        public async Task<string> GetNextLedId(string dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetNextLedCode(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        // Export ledger list to Excel
+        public async Task<byte[]> DownloadExcel(string? dealerCode)
+        {
+            try
+            {
+                var data = await _ledgerMasterRepo.GetExcelData();
+                if(dealerCode != null)
+                { 
+                 data = data.Where(i => i.DealerCode == dealerCode).ToList();
+                }
+
+                var properties = typeof(LedgerExcelViewModel)
+                    .GetProperties()
+                    .ToList();
+
+                var columns = properties.Select(p => p.Name).ToList();
+
+                var rows = data.Select(d =>
+                {
+                    var dict = new Dictionary<string, object>();
+
+                    foreach (var prop in properties)
+                    {
+                        var entityProp = d.GetType().GetProperty(prop.Name);
+                        dict[prop.Name] = entityProp != null
+                            ? entityProp.GetValue(d)
+                            : null;
+                    }
+
+                    return dict;
+                }).ToList();
+
+                var model = new ExcelExportViewModel
+                {
+                    SheetName = "LedgerExcel",
+                    Columns = columns,
+                    Rows = rows
+                };
+
+                return await _excelService.GenerateExcel(model);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString()); 
                 throw;
             }
         }
