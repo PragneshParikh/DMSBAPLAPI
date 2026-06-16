@@ -496,6 +496,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
+                // Local rule: how a finalized bill is distinguished from a proforma.
+                // ── Adjust this to match your data (Status / BillType / SaleBillNo) ──
+                static bool IsBilled(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Billed";
+
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
 
@@ -512,8 +517,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     from cm in cmJoin.DefaultIfEmpty()
 
                     join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                        on vi.ChasisNo equals vsd.ChassisNo into saleJoin
-                    from vsd in saleJoin.DefaultIfEmpty()
+                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
+                    from vsd in saleDetailJoin.DefaultIfEmpty()
+
+                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
+                    from vsh in saleHeaderJoin.DefaultIfEmpty()
 
                     select new
                     {
@@ -521,7 +530,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Dealer = dm,
                         Item = im,
                         Color = cm,
-                        Sale = vsd
+                        Sale = vsd,
+                        SaleHdr = vsh
                     };
 
                 // Filters
@@ -551,25 +561,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
                 }
 
-                if (!string.IsNullOrWhiteSpace(filter.StockStatus))
-                {
-                    if (filter.StockStatus == "Billed")
-                    {
-                        query = query.Where(x => x.Sale != null);
-                    }
-                    else if (filter.StockStatus == "In Stock")
-                    {
-                        query = query.Where(x => x.Sale == null);
-                    }
-                }
-
-                if (filter.IsBilled.HasValue)
-                {
-                    query = query.Where(x =>
-                        (x.Sale != null) == filter.IsBilled.Value);
-                }
-
                 var rawData = await query.ToListAsync();
+
+                // ── Condition 3: vehicle billed against chassis → exclude from report ──
+                rawData = rawData
+                    .Where(x => !IsBilled(x.SaleHdr))
+                    .ToList();
 
                 var result = rawData.Select((x, index) =>
                 {
@@ -581,6 +578,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             x.Vehicle.InvoiceDate.Value
                                 .ToDateTime(TimeOnly.MinValue);
                     }
+
+                    // ── Conditions 1 & 2 ──
+                    // A non-billed sale header against the chassis = proforma (Allocated).
+                    // No sale header at all = not yet allocated (Available).
+                    string vehicleStatus =
+                        x.SaleHdr != null ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
@@ -633,10 +636,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                         ReceiveDate = invoiceDate,
 
-                        VehicleStatus = "Available",
+                        VehicleStatus = vehicleStatus,
 
-                        StockStatus = x.Sale != null
-                            ? "Billed"
+                        StockStatus = x.SaleHdr != null
+                            ? "Allocated"
                             : "In Stock",
 
                         Location = x.Vehicle.LocCode,
@@ -647,13 +650,19 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                         EstimatedSaleRate = 0,
 
-                        IsBilled = x.Sale != null,
+                        IsBilled = false,
 
                         DaysInStock = invoiceDate.HasValue
                             ? (DateTime.Now - invoiceDate.Value).Days
                             : 0
                     };
                 });
+
+                // ── Vehicle Status filter (Available / Allocated) ──
+                if (!string.IsNullOrWhiteSpace(filter.StockStatus))
+                {
+                    result = result.Where(x => x.VehicleStatus == filter.StockStatus);
+                }
 
                 // Date Filters after memory conversion
 
@@ -696,6 +705,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ex);
             }
         }
+
 
         public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
         {
