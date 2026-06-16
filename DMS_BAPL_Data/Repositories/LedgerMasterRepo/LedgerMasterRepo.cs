@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using MailKit.Search;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,12 +40,68 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
+        async Task<IEnumerable<LedgerExcelViewModel>> ILedgerMasterRepo.GetExcelData()
+        {
+            try
+            {
+                var query = _context.LedgerMasters.AsNoTracking();
+                var result = await (
+                   from LM in query
+                   join C in _context.Cities
+                       on LM.City equals C.CityId into cityGroup
+                   from city in cityGroup.DefaultIfEmpty()
+
+                   join S in _context.States
+                       on LM.State equals S.StateId into stateGroup
+                   from state in stateGroup.DefaultIfEmpty()
+
+                   join O in _context.OccupationMasters
+                        on LM.OccupationId equals O.Id into occupationGroup
+                   from occupation in occupationGroup.DefaultIfEmpty()
+
+                   join D in _context.DealerMasters
+                        on LM.DealerCode equals D.Dealercode into DealerInfo
+                   from dealer in DealerInfo.DefaultIfEmpty()
+
+                   orderby LM.CreatedDate descending
+
+                   select new LedgerExcelViewModel
+                   {
+                       LedgerCode = LM.LedgerCode,
+                       LedgerName = LM.LedgerName,
+                       DealerName = dealer.Compname,
+                       LedgerType = LM.LedgerType,
+                       Gstno = LM.Gstno,
+                       Pan = LM.Pan,
+                       AadharNumber = LM.AadharNumber,
+                       MobileNumber = LM.MobileNumber,
+                       Address = LM.Address,
+                       Pin = LM.Pin,
+                       DealerCode = LM.DealerCode,
+                       EMail = LM.EMail,
+                       Gender = LM.Gender,
+                       DateOfBirth = LM.DateOfBirth,
+                       Occupation = occupation != null ? occupation.OccupationName : string.Empty,
+                       cityName = city != null ? city.CityName : string.Empty,
+                       stateName = state != null ? state.StateName : string.Empty
+                   }
+               )
+
+               .ToListAsync();
+                return result;
+
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
         {
             try
             {
                 var query = _context.LedgerMasters.AsNoTracking();
-
                 if (!string.IsNullOrWhiteSpace(searchTerms))
                 {
                     query = query.Where(c => c.LedgerType.Contains(searchTerms)
@@ -148,7 +205,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         CreatedDate = LM.CreatedDate,
                         UpdatedBy = LM.UpdatedBy,
                         UpdatedDate = LM.UpdatedDate,
-
+                        OccupationId = LM.OccupationId,
                         cityName = city.CityName,
                         stateName = state.StateName
                     }
@@ -324,5 +381,42 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 throw;
             }
         }
+
+        public async Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode)
+        {
+            try
+            {
+                return await _context.LedgerMasters.Where(i => i.DealerCode == dealerCode).Select(i => i.MobileNumber).ToListAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<string> GetNextLedCode(string dealerCode)
+        {
+            try
+            {
+                string dealerSuffix = dealerCode.Length >= 4 ? dealerCode.Substring(dealerCode.Length - 4) : dealerCode;
+                string? lastLedgerCode = await _context.LedgerMasters.Where(x => x.DealerCode == dealerCode).OrderByDescending(x => x.Id).Select(x => x.LedgerCode).FirstOrDefaultAsync();
+                int nextNumber = 1;
+                if (!string.IsNullOrWhiteSpace(lastLedgerCode))
+                {
+                    string[] parts = lastLedgerCode.Split('/');
+                    if (parts.Length == 3 && int.TryParse(parts[2], out int currentNumber))
+                    {
+                        nextNumber = currentNumber + 1;
+                    }
+                }
+
+                return $"LED/{dealerSuffix}/{nextNumber}";
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

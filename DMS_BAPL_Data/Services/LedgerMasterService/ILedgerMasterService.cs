@@ -19,5 +19,8 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<IEnumerable<LedgerMaster>> GetCompanyLedgersAsync();
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgersAsync();
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
+        Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);
+        Task<string> GetNextLedId(string dealerCode);
+        Task<byte[]> DownloadExcel(string? dealerCode);
     }
 }

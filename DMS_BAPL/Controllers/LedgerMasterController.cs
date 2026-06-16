@@ -211,5 +211,58 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("getNextLed")]
+        public async Task<string> GetNextLedId(string dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterService.GetNextLedId(dealerCode);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("getLedgerMobileList")]
+        public async Task<ActionResult<List<string>>> GetAllMobileNumberByDealerCode(string dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterService.GetAllMobileNumberByDealerCode(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("download")]
+        [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Download(string? dealerCode)
+        {
+            try
+            {
+
+                var file = await _ledgerMasterService.DownloadExcel(dealerCode);
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "LedgerList.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
     }
 }

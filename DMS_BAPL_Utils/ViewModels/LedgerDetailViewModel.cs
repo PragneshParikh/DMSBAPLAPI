@@ -35,6 +35,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? EMail { get; set; }
 
         public string? Gender { get; set; }
+        public int? OccupationId { get; set; }
 
         public DateOnly? DateOfBirth { get; set; }
 
@@ -45,6 +46,35 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? UpdatedBy { get; set; }
 
         public DateTime? UpdatedDate { get; set; }
+
+        public string? cityName { get; set; }
+        public string? stateName { get; set; }
+    }
+
+    public class LedgerExcelViewModel
+    {
+
+        public string? DealerCode { get; set; }
+        public string? DealerName { get; set; }
+        public string? LedgerCode { get; set; }
+        public string? LedgerName { get; set; }
+        public string? LedgerType { get; set; }
+        public string? Gstno { get; set; }
+        public string? Pan { get; set; }
+
+        public string? AadharNumber { get; set; }
+
+        public string? MobileNumber { get; set; }
+
+        public string? Address { get; set; }
+
+        public string? Pin { get; set; }
+
+        public string? EMail { get; set; }
+
+        public string? Gender { get; set; }
+        public string? Occupation { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
         public string? cityName { get; set; }
         public string? stateName { get; set; }
