@@ -518,5 +518,40 @@ namespace DMS_BAPL_Api.Controllers
                 throw ex;
             }
         }
+
+        /// <summary>Get Vehicle Sale Bill Report (paged, with totals)</summary>
+        [HttpPost("vehicle-sale-bill")]
+        [ProducesResponseType(typeof(VehicleSaleBillReportResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetVehicleSaleBillReport([FromBody] VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                // Dealer restriction: non-admins are forced to their own dealer
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                var result = await _reportService.GetVehicleSaleBillReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale bill report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

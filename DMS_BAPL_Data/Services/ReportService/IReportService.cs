@@ -69,8 +69,10 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         Task<List<object>> GetModelListByDealerAsync(string dealerCode);
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
-
         
+        Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter);
+
+
 
     }
 
