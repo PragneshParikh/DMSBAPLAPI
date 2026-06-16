@@ -144,7 +144,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         }
         public async Task<bool> UpdateLocationMaster(LocationMasterViewModel model)
         {
-            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Id == model.Id);
+            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Loccode == model.Loccode);
 
             if (location == null)
             {
