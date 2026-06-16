@@ -228,8 +228,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IVehicleStockTransferService, VehicleStockTransferService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IDesignationService, DesignationService>();
-            services.AddScoped<IVehicleStockTransferService,VehicleStockTransferService>();
-            services.AddScoped<IOccupationMasterService,OccupationMasterService>();
+            services.AddScoped<IOccupationMasterService, OccupationMasterService>();
 
 
             // Email SErvice
