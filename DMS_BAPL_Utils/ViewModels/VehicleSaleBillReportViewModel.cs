@@ -142,15 +142,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerCode { get; set; }
         public string? Status { get; set; }
         public string? InvoiceNo { get; set; }
-        public int SrNo { get; set; }
 
         // Header
         public int SaleBillId { get; set; }
         public string? SaleBillNo { get; set; }
         public DateTime SaleDate { get; set; }
-        public string? Status { get; set; }
-        public string? Location { get; set; }
-        public string? DealerCode { get; set; }
         public string? DealerName { get; set; }
         public string? CustomerName { get; set; }
         public string? BillingName { get; set; }
@@ -162,22 +158,18 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerMobile { get; set; }
         public string? CustomerCity { get; set; }
         public string? CustomerState { get; set; }
-        public string? InvoiceNo { get; set; }
 
         // Vehicle / detail
         public string? ChassisNo { get; set; }
         public string? MotorNo { get; set; }
         public string? ItemCode { get; set; }
         public string? ModelName { get; set; }
-        public string? OemModelName { get; set; }
         public string? Colour { get; set; }
         public string? Hsn { get; set; }
         public int? MfgYear { get; set; }
-        public string? RegNo { get; set; }
         public string? InsNo { get; set; }
 
         // Money
-        public decimal ItemRate { get; set; }
         public decimal PreGstDiscount { get; set; }
         public decimal TaxableAmount { get; set; }
         public decimal SgstPer { get; set; }

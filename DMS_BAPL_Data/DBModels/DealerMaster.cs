@@ -73,5 +73,4 @@ public partial class DealerMaster
 
     public virtual ICollection<LmsleadMaster> LmsleadMasters { get; set; } = new List<LmsleadMaster>();
 
-    public bool IsActive { get; set; }
 }

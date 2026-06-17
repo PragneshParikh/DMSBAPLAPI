@@ -86,37 +86,37 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             }
         }
 
-        async Task<object?> IEmployeeMasterRepo.GetDealerByCode(string dealerCode)
-        {
-            try
-            {
-                return await _context.DealerMasters
-                    .AsNoTracking()
-                    .Where(x => x.Dealercode == dealerCode)
-                    .Select(x => new
-                    {
-                        dealerCode = x.Dealercode,
-                        dealerName = x.Compname,
-                        isActive = x.IsActive
-                    })
-                    .FirstOrDefaultAsync();
-            }
-            catch { throw; }
-        }
+        //async Task<object?> IEmployeeMasterRepo.GetDealerByCode(string dealerCode)
+        //{
+        //    try
+        //    {
+        //        return await _context.DealerMasters
+        //            .AsNoTracking()
+        //            .Where(x => x.Dealercode == dealerCode)
+        //            .Select(x => new
+        //            {
+        //                dealerCode = x.Dealercode,
+        //                dealerName = x.Compname,
+        //                isActive = x.IsActive
+        //            })
+        //            .FirstOrDefaultAsync();
+        //    }
+        //    catch { throw; }
+        //}
 
-        async Task<List<object>> IEmployeeMasterRepo.GetLocationsByDealer(string dealerCode)
-        {
-            try
-            {
-                return await _context.LocationMasters
-                    .AsNoTracking()
-                    .Where(x => x.Dealercode == dealerCode)  
-                    .Select(x => new
-                    {
-                        locCode = x.Loccode,
-                        locName = x.Locname
-                    })
-                    .ToListAsync<object>();
+        //async Task<List<object>> IEmployeeMasterRepo.GetLocationsByDealer(string dealerCode)
+        //{
+        //    try
+        //    {
+        //        return await _context.LocationMasters
+        //            .AsNoTracking()
+        //            .Where(x => x.Dealercode == dealerCode)  
+        //            .Select(x => new
+        //            {
+        //                locCode = x.Loccode,
+        //                locName = x.Locname
+        //            })
+        //            .ToListAsync<object>();
         async Task<List<EmployeeDesignationWiseViewModel>> IEmployeeMasterRepo.GetEmployeesByDesignation(string? dealerCode, string designation)
         {
             try

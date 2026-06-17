@@ -290,11 +290,6 @@ namespace DMS_BAPL_Data.Services.ReportService
         // VEHICLE SALE BILL REPORT
         // =================================================================
 
-        public async Task<VehicleSaleBillReportPagedResponse> GetVehicleSaleBillReportAsync(
-            VehicleSaleBillReportFilterModel filter)
-        {
-            try
-            {
         public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter)
         {
             try
@@ -303,7 +298,6 @@ namespace DMS_BAPL_Data.Services.ReportService
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                _logger.LogInformation("Fetching vehicle sale bill report");
                 return await _reportRepo.GetVehicleSaleBillReportAsync(filter);
             }
             catch (Exception ex)
