@@ -209,11 +209,11 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         }
 
         // Get dealer dropdown list
-        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
+        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown(string? dealerCode)
         {
             try
             {
-                return await _dealerMasterRepo.GetDealerDropdown();
+                return await _dealerMasterRepo.GetDealerDropdown(dealerCode);
             }
             catch
             {
@@ -235,11 +235,11 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         }
 
         //Update Trade Certificate
-        public async Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate)
+        public async Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate)
         {
             try
             {
-                return await _dealerMasterRepo.EditTradeCertificate(dealerId, tradeCertificate);
+                return await _dealerMasterRepo.EditTradeCertificate(dealerCode, tradeCertificate);
             }
             catch
             {

@@ -849,7 +849,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         DealerCode = ch.DealerId,
                         CustomerSaleDate = ch.SaleDate,
                         ProformaCreated = vd == null ? null : vh.SaleBillNo,
-                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done"
+                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done",
+                        LocationCode=ch.LocationCode
                     }
                 })
                 .GroupBy(x => x.ChassisNo)

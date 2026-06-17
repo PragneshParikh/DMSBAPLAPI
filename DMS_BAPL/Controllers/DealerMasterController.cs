@@ -54,11 +54,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
         /// <summary>
@@ -86,11 +82,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -123,11 +115,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
 
         }
@@ -163,11 +151,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
 
         }
@@ -235,11 +219,7 @@ namespace DMS_BAPL_Api.Controllers
 
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -266,11 +246,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
         /// <summary>
@@ -282,11 +258,16 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetDealerDropdown()
+        public async Task<IActionResult> GetDealerDropdown([FromQuery] string? dealerCode)
         {
             try
             {
-                var result = await _dealerMasterService.GetDealerDropdown();
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _dealerMasterService.GetDealerDropdown(dealerCode);
 
                 return Ok(new
                 {
@@ -296,11 +277,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
@@ -308,13 +285,13 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateTradeCertificate(int dealerId, [FromBody] string tradeCertificate)
+        public async Task<IActionResult> UpdateTradeCertificate(string dealerCode, [FromBody] string tradeCertificate)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(tradeCertificate))
                     return BadRequest(StringConstants.BadRequest);
-                var result = await _dealerMasterService.EditTradeCertificate(dealerId, tradeCertificate);
+                var result = await _dealerMasterService.EditTradeCertificate(dealerCode, tradeCertificate);
                 if (result == null)
                 {
                     return NotFound(StringConstants.DealerNotFound);
@@ -327,14 +304,15 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
 
+        /// <summary>
+        /// Insert/Update the data from the ERP
+        /// </summary>
+        /// <param name="dealerMaster"></param>
+        /// <returns></returns>
         [HttpPut("UpdateByDealerCode")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -361,11 +339,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                throw;
             }
         }
     }

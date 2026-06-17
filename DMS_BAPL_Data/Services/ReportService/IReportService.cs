@@ -54,7 +54,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<List<string>> GetPOTypeDropdownAsync();
         Task<List<string>> GetPOStatusDropdownAsync();
 
-        Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode);
+        Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode);
 
         Task<List<object>> GetDealerListAsync();
 
@@ -69,7 +69,16 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         Task<List<object>> GetModelListByDealerAsync(string dealerCode);
         Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo);
-        
+
+        // ── Vehicle Sale Bill Report ──────────────────────────────────────
+
+        //Task<VehicleSaleBillReportPagedResponse> GetVehicleSaleBillReportAsync(
+        //    VehicleSaleBillReportFilterModel filter);
+        Task<List<VehicleSaleBillReportViewModel>> GetVehicleSaleBillReportForExportAsync(
+            string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<List<string>> GetSaleTypeDropdownAsync();
+        Task<List<string>> GetSaleBillStatusDropdownAsync();
+
         Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter);
 
 
