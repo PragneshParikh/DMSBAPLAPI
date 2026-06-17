@@ -128,10 +128,19 @@ namespace DMS_BAPL_Api.Controllers
             {
                 var locations = await _employeeService.GetLocationsByDealer(dealerCode);
                 return Ok(locations);
+        [HttpGet("employeeByDesignation")]
+        public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get(string? dealerCode, string designation)
+        {
+            try
+            {
+                var employeeList = await _employeeService.GetEmployeesByDesignation(dealerCode,designation);
+
+                return Ok(employeeList);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
+
                 return BadRequest(ex.Message);
             }
         }

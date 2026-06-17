@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,7 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<int> IEmployeeService.CreateNewUser(EmployeeMaster employeeMaster) => _employeeMasterRepo.CreateNewUser(employeeMaster);
 
         Task<int> IEmployeeService.UpdateEmployee(EmployeeMaster employeeMaster)=> _employeeMasterRepo.UpdateEmployee(employeeMaster);
+        Task<List<EmployeeDesignationWiseViewModel>> IEmployeeService.GetEmployeesByDesignation(string? dealerCode, string designation) => _employeeMasterRepo.GetEmployeesByDesignation(dealerCode, designation);
 
         Task<object?> IEmployeeService.GetDealerByCode(string dealerCode) => _employeeMasterRepo.GetDealerByCode(dealerCode);
         Task<List<object>> IEmployeeService.GetLocationsByDealer(string dealerCode) => _employeeMasterRepo.GetLocationsByDealer(dealerCode);

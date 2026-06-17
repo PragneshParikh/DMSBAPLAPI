@@ -37,11 +37,13 @@ public partial class EmployeeMaster
 
     public string DealerCode { get; set; } = null!;
 
+    public string? LocationCode { get; set; }
+
+    public string? ProfileImage { get; set; }
+
     public string? Supervisor { get; set; }
 
     public bool IsActive { get; set; }
-
-    public string? ProfileImage { get; set; }
 
     public string? Notes { get; set; }
 

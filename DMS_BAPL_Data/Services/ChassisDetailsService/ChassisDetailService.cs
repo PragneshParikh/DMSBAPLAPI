@@ -26,11 +26,14 @@ namespace DMS_BAPL_Data.Services.ChassisDetailsService
                 ItemCode = vehicleInward.item_code,
                 ItemColor = vehicleInward.colr_code,
                 DealerId = vehicleInward.dealer_code,
+                LocationCode = vehicleInward.loc_code,
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
 
             return _chassisDetailRepo.InsertChassis(chassis);
         }
+
+        Task<List<VehicleStockTransferChassisListViewModel>> IChassisDetailService.GetChassisList(string? locationCode) => _chassisDetailRepo.GetChassisList(locationCode);
     }
 }

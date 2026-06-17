@@ -12,61 +12,61 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
 {
     public class LocationMasterService : ILocationMasterService
     {
-        private readonly ILocationMasterRepo _repo;
+        private readonly ILocationMasterRepo _locationMasterRepo;
         private readonly IExcelService _excelService;
-        public LocationMasterService(ILocationMasterRepo repo, IExcelService excelService)
+        public LocationMasterService(ILocationMasterRepo locationMasterRepo, IExcelService excelService)
         {
-            _repo = repo;
+            _locationMasterRepo = locationMasterRepo;
             _excelService = excelService;
         }
         public async Task<List<LocationMasterViewModel>> GetAllLocationMaster()
         {
-            return await _repo.GetAllLocationMaster();
+            return await _locationMasterRepo.GetAllLocationMaster();
         }
         public async Task<LocationMasterViewModel> GetLocationMasterById(int id)
         {
-            return await _repo.GetLocationMasterById(id);
+            return await _locationMasterRepo.GetLocationMasterById(id);
         }
 
         public async Task<bool> AddLocationMaster(LocationMasterViewModel model)
         {
-            return await _repo.AddLocationMaster(model);
+            return await _locationMasterRepo.AddLocationMaster(model);
         }
 
         public async Task<bool> UpdateLocationMaster(LocationMasterViewModel model)
         {
-            return await _repo.UpdateLocationMaster(model);
+            return await _locationMasterRepo.UpdateLocationMaster(model);
         }
         public async Task<byte[]> DownloadLocationMasterExcel()
         {
             try
             {
-                var data = await _repo.GetAllLocationMaster();
+                var data = await _locationMasterRepo.GetAllLocationMaster();
 
                 var columns = new List<string>
-        {
-            "Loccode",
-            "Locname",
-            "LocationArea",
-            "Add1",
-            "Add2",
-            "State",
-            "City",
-            "Pincode",
-            "Gstinno",
-            "Email",
-            "Mobileno",
-            "Contpername1",
-            "Contpername2",
-            "Contpermob1",
-            "Contpermob2",
-            "Contperemail1",
-            "Contperemail2",
-            "Formtype",
-            "Dealercode",
-            "Rrglocationidno",
-            "Active"
-        };
+                {
+                    "Loccode",
+                    "Locname",
+                    "LocationArea",
+                    "Add1",
+                    "Add2",
+                    "State",
+                    "City",
+                    "Pincode",
+                    "Gstinno",
+                    "Email",
+                    "Mobileno",
+                    "Contpername1",
+                    "Contpername2",
+                    "Contpermob1",
+                    "Contpermob2",
+                    "Contperemail1",
+                    "Contperemail2",
+                    "Formtype",
+                    "Dealercode",
+                    "Rrglocationidno",
+                    "Active"
+                };
 
                 var rows = data.Select(d =>
                 {
@@ -119,14 +119,14 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
 
         public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
         {
-            return await _repo.GetLocationByDealerCode(dealerCode);
-
+            return await _locationMasterRepo.GetLocationByDealerCode(dealerCode);
         }
         public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode)
         {
-            return await _repo.GetLocationNameTypewiseListAsync(dealerCode);
+            return await _locationMasterRepo.GetLocationNameTypewiseListAsync(dealerCode);
         }
-        public Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel) => _repo.UpdateByLocationCode(userId, locationMasterViewModel);
-        public Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string dealerCode, int areaId) => _repo.GetLocationByDealerByAreaId(dealerCode, areaId);
+        public Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel) => _locationMasterRepo.UpdateByLocationCode(userId, locationMasterViewModel);
+        public Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string dealerCode, int areaId) => _locationMasterRepo.GetLocationByDealerByAreaId(dealerCode, areaId);
+        Task<IEnumerable<object>> ILocationMasterService.GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode) => _locationMasterRepo.GetDealerPrimaryLocationByAreaId(areaId, locCode, dealerCode);
     }
 }

@@ -68,6 +68,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             DateTime? toDate);
         Task<List<string>> GetSaleTypeDropdownAsync();
         Task<List<string>> GetSaleBillStatusDropdownAsync();
+        Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter);
 
 
 

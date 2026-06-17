@@ -46,4 +46,6 @@ public partial class ReceiptEntry
     public DateTime? UpdatedDate { get; set; }
 
     public string? DealerCode { get; set; }
+
+    public virtual ICollection<ReceiptEntryDetail> ReceiptEntryDetails { get; set; } = new List<ReceiptEntryDetail>();
 }

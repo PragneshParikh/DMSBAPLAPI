@@ -9,6 +9,8 @@ public partial class PdichecklistMaster
 
     public string? PdiheadName { get; set; }
 
+    public int? OemModelId { get; set; }
+
     public string? PdicheckName { get; set; }
 
     public string? Pdidescription { get; set; }
@@ -22,6 +24,8 @@ public partial class PdichecklistMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual OemmodelMaster? OemModel { get; set; }
 
     public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
 }

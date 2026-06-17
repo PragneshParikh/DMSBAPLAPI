@@ -54,7 +54,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
                 locationMasterViewModel.Active = item.Active;
                 locationMasterViewModel.CreatedBy = item.CreatedBy;
-                locationMasterViewModel.CreatedDate = item.CreatedDate;
+                locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
                 locationMasterViewModel.UpdateBy = item.UpdatedBy;
                 locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
@@ -99,7 +99,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
             locationMasterViewModel.Active = item.Active;
             locationMasterViewModel.CreatedBy = item.CreatedBy;
-            locationMasterViewModel.CreatedDate = item.CreatedDate;
+            locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
             locationMasterViewModel.UpdateBy = item.UpdatedBy;
             locationMasterViewModel.UpdatedDate = item.UpdatedDate;
 
@@ -134,7 +134,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMaster.Lineno = model.Lineno;
             locationMaster.Rrglocationidno = model.Rrglocationidno;
             locationMaster.Active = model.Active;
-            locationMaster.CreatedBy = model.CreatedBy;
+            locationMaster.CreatedBy = model.CreatedBy ?? "CUS0345A";
             locationMaster.CreatedDate = DateTime.Now;
 
             await _context.LocationMasters.AddAsync(locationMaster);
@@ -144,38 +144,74 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         }
         public async Task<bool> UpdateLocationMaster(LocationMasterViewModel model)
         {
-            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Id == model.Id);
+            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Loccode == model.Loccode);
 
             if (location == null)
-                return false;
+            {
+                var locationMaster = new LocationMaster
+                {
+                    Action = model.Action,
+                    Loccode = model.Loccode,
+                    Locname = model.Locname,
+                    Locareaidno = model.Locareaidno,
+                    Add1 = model.Add1,
+                    Add2 = model.Add2,
+                    State = model.State,
+                    City = model.City,
+                    Pincode = model.Pincode,
+                    Gstinno = model.Gstinno,
+                    Email = model.Email,
+                    Mobileno = model.Mobileno,
+                    Contpername1 = model.Contpername1,
+                    Contpername2 = model.Contpername2,
+                    Contpermob1 = model.Contpermob1,
+                    Contpermob2 = model.Contpermob2,
+                    Contperemail1 = model.Contperemail1,
+                    Contperemail2 = model.Contperemail2,
+                    Compid = model.Compid,
+                    Acntidno = model.Acntidno,
+                    Formtype = model.Formtype,
+                    Dealercode = model.Dealercode,
+                    Lineno = model.Lineno,
+                    Rrglocationidno = model.Rrglocationidno,
+                    Active = model.Active,
+                    CreatedBy = model.CreatedBy ?? "CUS0345A",
+                    CreatedDate = DateTime.Now,
+                };
 
-            location.Action = model.Action;
-            location.Loccode = model.Loccode;
-            location.Locname = model.Locname;
-            location.Locareaidno = model.Locareaidno;
-            location.Add1 = model.Add1;
-            location.Add2 = model.Add2;
-            location.State = model.State;
-            location.City = model.City;
-            location.Pincode = model.Pincode;
-            location.Gstinno = model.Gstinno;
-            location.Email = model.Email;
-            location.Mobileno = model.Mobileno;
-            location.Contpername1 = model.Contpername1;
-            location.Contpername2 = model.Contpername2;
-            location.Contpermob1 = model.Contpermob1;
-            location.Contpermob2 = model.Contpermob2;
-            location.Contperemail1 = model.Contperemail1;
-            location.Contperemail2 = model.Contperemail2;
-            location.Compid = model.Compid;
-            location.Acntidno = model.Acntidno;
-            location.Formtype = model.Formtype;
-            location.Dealercode = model.Dealercode;
-            location.Lineno = model.Lineno;
-            location.Rrglocationidno = model.Rrglocationidno;
-            location.Active = model.Active;
-            location.UpdatedBy = model.UpdateBy;
-            location.UpdatedDate = DateTime.Now;
+                await _context.LocationMasters.AddAsync(locationMaster);
+            }
+            else
+            {
+
+                location.Action = model.Action;
+                location.Loccode = model.Loccode;
+                location.Locname = model.Locname;
+                location.Locareaidno = model.Locareaidno;
+                location.Add1 = model.Add1;
+                location.Add2 = model.Add2;
+                location.State = model.State;
+                location.City = model.City;
+                location.Pincode = model.Pincode;
+                location.Gstinno = model.Gstinno;
+                location.Email = model.Email;
+                location.Mobileno = model.Mobileno;
+                location.Contpername1 = model.Contpername1;
+                location.Contpername2 = model.Contpername2;
+                location.Contpermob1 = model.Contpermob1;
+                location.Contpermob2 = model.Contpermob2;
+                location.Contperemail1 = model.Contperemail1;
+                location.Contperemail2 = model.Contperemail2;
+                location.Compid = model.Compid;
+                location.Acntidno = model.Acntidno;
+                location.Formtype = model.Formtype;
+                location.Dealercode = model.Dealercode;
+                location.Lineno = model.Lineno;
+                location.Rrglocationidno = model.Rrglocationidno;
+                location.Active = model.Active;
+                location.UpdatedBy = model.UpdateBy;
+                location.UpdatedDate = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -227,39 +263,77 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
 
         public async Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
         {
+            var locCode = locationMasterViewModel.Loccode?.Trim().ToUpper();
+
             var _existingLocation = await _context.LocationMasters
-                .FirstOrDefaultAsync(x => x.Loccode == locationMasterViewModel.Loccode);
+                .FirstOrDefaultAsync(x => x.Loccode.ToUpper() == locCode);
 
             if (_existingLocation == null)
-                return null;
+            {
+                var locationMaster = new LocationMaster
+                {
+                    Action = locationMasterViewModel.Action,
+                    Loccode = locationMasterViewModel.Loccode,
+                    Locname = locationMasterViewModel.Locname,
+                    Locareaidno = locationMasterViewModel.Locareaidno,
+                    Add1 = locationMasterViewModel.Add1,
+                    Add2 = locationMasterViewModel.Add2,
+                    State = locationMasterViewModel.State,
+                    City = locationMasterViewModel.City,
+                    Pincode = locationMasterViewModel.Pincode,
+                    Gstinno = locationMasterViewModel.Gstinno,
+                    Email = locationMasterViewModel.Email,
+                    Mobileno = locationMasterViewModel.Mobileno,
+                    Contpername1 = locationMasterViewModel.Contpername1,
+                    Contpername2 = locationMasterViewModel.Contpername2,
+                    Contpermob1 = locationMasterViewModel.Contpermob1,
+                    Contpermob2 = locationMasterViewModel.Contpermob2,
+                    Contperemail1 = locationMasterViewModel.Contperemail1,
+                    Contperemail2 = locationMasterViewModel.Contperemail2,
+                    Compid = locationMasterViewModel.Compid,
+                    Acntidno = locationMasterViewModel.Acntidno,
+                    Formtype = locationMasterViewModel.Formtype,
+                    Dealercode = locationMasterViewModel.Dealercode,
+                    Lineno = locationMasterViewModel.Lineno,
+                    Rrglocationidno = locationMasterViewModel.Rrglocationidno,
+                    Active = locationMasterViewModel.Active,
+                    CreatedBy = locationMasterViewModel.CreatedBy ?? "CUS0345A",
+                    CreatedDate = DateTime.Now,
+                };
 
-            _existingLocation.Action = locationMasterViewModel.Action;
-            _existingLocation.Loccode = locationMasterViewModel.Loccode;
-            _existingLocation.Locname = locationMasterViewModel.Locname;
-            _existingLocation.Locareaidno = locationMasterViewModel.Locareaidno;
-            _existingLocation.Add1 = locationMasterViewModel.Add1;
-            _existingLocation.Add2 = locationMasterViewModel.Add2;
-            _existingLocation.State = locationMasterViewModel.State;
-            _existingLocation.City = locationMasterViewModel.City;
-            _existingLocation.Pincode = locationMasterViewModel.Pincode;
-            _existingLocation.Gstinno = locationMasterViewModel.Gstinno;
-            _existingLocation.Email = locationMasterViewModel.Email;
-            _existingLocation.Mobileno = locationMasterViewModel.Mobileno;
-            _existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
-            _existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
-            _existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
-            _existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
-            _existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
-            _existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
-            _existingLocation.Compid = locationMasterViewModel.Compid;
-            _existingLocation.Acntidno = locationMasterViewModel.Acntidno;
-            _existingLocation.Formtype = locationMasterViewModel.Formtype;
-            _existingLocation.Dealercode = locationMasterViewModel.Dealercode;
-            _existingLocation.Lineno = locationMasterViewModel.Lineno;
-            _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
-            _existingLocation.Active = locationMasterViewModel.Active;
-            _existingLocation.UpdatedBy = userId;
-            _existingLocation.UpdatedDate = DateTime.Now;
+                await _context.LocationMasters.AddAsync(locationMaster);
+            }
+            else
+            {
+
+                _existingLocation.Action = locationMasterViewModel.Action;
+                _existingLocation.Loccode = locationMasterViewModel.Loccode;
+                _existingLocation.Locname = locationMasterViewModel.Locname;
+                _existingLocation.Locareaidno = locationMasterViewModel.Locareaidno;
+                _existingLocation.Add1 = locationMasterViewModel.Add1;
+                _existingLocation.Add2 = locationMasterViewModel.Add2;
+                _existingLocation.State = locationMasterViewModel.State;
+                _existingLocation.City = locationMasterViewModel.City;
+                _existingLocation.Pincode = locationMasterViewModel.Pincode;
+                _existingLocation.Gstinno = locationMasterViewModel.Gstinno;
+                _existingLocation.Email = locationMasterViewModel.Email;
+                _existingLocation.Mobileno = locationMasterViewModel.Mobileno;
+                _existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
+                _existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
+                _existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
+                _existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
+                _existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
+                _existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
+                _existingLocation.Compid = locationMasterViewModel.Compid;
+                _existingLocation.Acntidno = locationMasterViewModel.Acntidno;
+                _existingLocation.Formtype = locationMasterViewModel.Formtype;
+                _existingLocation.Dealercode = locationMasterViewModel.Dealercode;
+                _existingLocation.Lineno = locationMasterViewModel.Lineno;
+                _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
+                _existingLocation.Active = locationMasterViewModel.Active;
+                _existingLocation.UpdatedBy = userId;
+                _existingLocation.UpdatedDate = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -296,5 +370,23 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             }
             catch { throw; }
         }
+        async Task<IEnumerable<object>> ILocationMasterRepo.GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode)
+        {
+            var query = await _context.LocationMasters
+                .Where(x => x.Locareaidno == areaId &&
+                x.Loccode.EndsWith(locCode) &&
+                (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
+                .ToListAsync();
+
+            return query.Select(x => new LocationMasterViewModel
+            {
+                Id = x.Id,
+                Loccode = x.Loccode,
+                Locname = x.Locname,
+                Locareaidno = x.Locareaidno,
+                Dealercode = x.Dealercode
+            });
+        }
+
     }
 }

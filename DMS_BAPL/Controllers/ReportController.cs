@@ -512,6 +512,9 @@ namespace DMS_BAPL_Api.Controllers
 
         [HttpPost("sale-bill")]
         [ProducesResponseType(typeof(VehicleSaleBillReportPagedResponse), StatusCodes.Status200OK)]
+        /// <summary>Get Vehicle Sale Bill Report (paged, with totals)</summary>
+        [HttpPost("vehicle-sale-bill")]
+        [ProducesResponseType(typeof(VehicleSaleBillReportResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetVehicleSaleBillReport([FromBody] VehicleSaleBillReportFilterModel filter)
@@ -529,6 +532,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
                 // ── Dealer restriction: admins/superadmins see all dealers ────
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                // Dealer restriction: non-admins are forced to their own dealer
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -539,6 +546,7 @@ namespace DMS_BAPL_Api.Controllers
                 // ─────────────────────────────────────────────────────────────
 
                 _logger.LogInformation("Vehicle Sale Bill Report API called");
+
                 var result = await _reportService.GetVehicleSaleBillReportAsync(filter);
                 return Ok(result);
             }

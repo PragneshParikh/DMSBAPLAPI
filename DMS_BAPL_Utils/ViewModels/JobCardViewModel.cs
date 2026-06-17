@@ -56,6 +56,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string DurationType { get; set; }
         public DateOnly? EffectiveDate { get; set; }
         public DateOnly? ExpireWarrentyDate { get; set; }
+        public int? oemModelId { get; set; }
 
     }
     public class JobSourceViewModel
@@ -100,6 +101,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Observation { get; set; }
         public string? SupervisorComment { get; set; }
         public bool? IsPdiSuccess { get; set; }
+        public string? JobStatus { get; set; }
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
@@ -171,6 +173,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
         public int PdichecklistMasterId { get; set; }
         public int? JobCardMasterId { get; set; }
+        public int? OemModelId { get;set; }
         public bool? IsStatus { get; set; }
         public string? Remarks { get; set; }
         public string CreatedBy { get; set; } = null!;

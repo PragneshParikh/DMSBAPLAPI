@@ -13,10 +13,13 @@ using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.ComplaintMasterRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
+using DMS_BAPL_Data.Repositories.DepartmentRepo;
+using DMS_BAPL_Data.Repositories.DesignationRepo;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
+using DMS_BAPL_Data.Repositories.GroupMasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
@@ -33,6 +36,7 @@ using DMS_BAPL_Data.Repositories.LOTInspectionRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.ModelWiseServieScheduleRepo;
+using DMS_BAPL_Data.Repositories.OccupationMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelMasterRepo;
 using DMS_BAPL_Data.Repositories.OEMModelWarrantyRepo;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
@@ -48,8 +52,10 @@ using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
+using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
+using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -61,6 +67,8 @@ using DMS_BAPL_Data.Services.CircularDealerAssignmentService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Data.Services.DepartmentService;
+using DMS_BAPL_Data.Services.DesignationService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ExcelServices;
@@ -82,6 +90,7 @@ using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Data.Services.MenuMasterService;
 using DMS_BAPL_Data.Services.NewsBulletinAttachmentService;
 using DMS_BAPL_Data.Services.NewsBulletinService;
+using DMS_BAPL_Data.Services.OccupationMasterService;
 using DMS_BAPL_Data.Services.OEMModelMasterService;
 using DMS_BAPL_Data.Services.OEMModelWarrantyService;
 using DMS_BAPL_Data.Services.PartsInwardService;
@@ -97,7 +106,7 @@ using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
-
+using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -159,7 +168,13 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailRepo, ChassisDetailRepo>();
             services.AddScoped<IChassisBatteryDetailRepo, ChassisBatteryDetailRepo>();
             services.AddScoped<ICircularDealerAssignmentRepo, CircularDealerAssignmentRepo>();
+            services.AddScoped<IVehicleStockTransferRepo, VehicleStockTransferRepo>();
             services.AddScoped<IComplaintMaster, ComplaintMaster>();
+            services.AddScoped<IGroupMasterRepo, GroupMasterRepo>();
+            services.AddScoped<ITermConditionMasterRepo, TermConditionMasterRepo>();
+            services.AddScoped<IDepartmentRepo, DepartmentRepo>();
+            services.AddScoped<IDesignationRepo, DesignationRepo>();
+            services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
 
             #endregion
 
@@ -210,6 +225,10 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailService, ChassisDetailService>();
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
             services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
+            services.AddScoped<IVehicleStockTransferService, VehicleStockTransferService>();
+            services.AddScoped<IDepartmentService, DepartmentService>();
+            services.AddScoped<IDesignationService, DesignationService>();
+            services.AddScoped<IOccupationMasterService, OccupationMasterService>();
 
 
             // Email SErvice

@@ -29,5 +29,17 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
         Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId);
         Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
+        Task<byte[]> DownloadSaleBillPdf(int id);
+        Task<byte[]> DownloadForm22Pdf(int id);
+
+        Task<byte[]> DownloadExShowroomInvoicePdf(int id);
+        Task<byte[]> DownloadMultipleSaleBills(List<int> ids);
+
+        Task<byte[]> DownloadMultipleForm22(List<int> ids);
+        Task<byte[]> DownloadMultipleInvoices(List<int> ids);
+        Task<byte[]> DownloadMultipleCombined(List<int> form22Ids, List<int> invoiceIds);
+
+
+
     }
 }

@@ -16,7 +16,7 @@ namespace DMS_BAPL_Data.Repositories.ComplaintMasterRepo
         private readonly BapldmsvadContext _context;
         private readonly IExcelService _excelService;
 
-        public ComplaintMaster(BapldmsvadContext context,IExcelService excelService)
+        public ComplaintMaster(BapldmsvadContext context, IExcelService excelService)
         {
             _context = context;
             _excelService = excelService;
@@ -26,21 +26,24 @@ namespace DMS_BAPL_Data.Repositories.ComplaintMasterRepo
         {
             try
             {
-                return await _context.ComplaintMasters
-                    .Select(x => new ComplaintMasterViewModel
-                    {
-                        Id = x.Id,
-                        ComplaintName = x.ComplaintName,
-                        GroupName = x.GroupName,
-                        IsActive = x.Status
-                        //IsActive = x.Status == 1 ? true : false
-                    })
-                    .OrderBy(x => x.ComplaintName)
-                    .ToListAsync();
-            }
-            catch (Exception)
-            {
-                throw;
+              return await (
+                       from c in _context.ComplaintMasters
+                       join g in _context.GroupMasters
+                           on c.GroupName equals g.Id
+                       select new ComplaintMasterViewModel
+                       {
+                           Id = c.Id,
+                           ComplaintName = c.ComplaintName,
+                           ComplaintGroupName = g.GroupName,
+                           GroupName = c.GroupName,
+                           IsActive = c.Status
+                       })
+                       .OrderBy(x => x.ComplaintName)
+                       .ToListAsync();
+                 }
+           catch (Exception)
+           {
+               throw;
             }
         }
 
@@ -48,23 +51,26 @@ namespace DMS_BAPL_Data.Repositories.ComplaintMasterRepo
         {
             try
             {
-                return await _context.ComplaintMasters
-                    .Where(x => x.Id == id)
-                    .Select(x => new ComplaintMasterViewModel
+                return await (
+                    from c in _context.ComplaintMasters
+                    join g in _context.GroupMasters
+                        on c.GroupName equals g.Id
+                    where c.Id == id
+                    select new ComplaintMasterViewModel
                     {
-                        Id = x.Id,
-                        ComplaintName = x.ComplaintName,
-                        GroupName = x.GroupName,
-                        IsActive = x.Status
-                    })
-                    .FirstOrDefaultAsync();
+                        Id = c.Id,
+                        ComplaintName = c.ComplaintName,
+                        ComplaintGroupName = g.GroupName,
+                        GroupName= c.GroupName,
+                        IsActive = c.Status
+                    }
+                ).FirstOrDefaultAsync();
             }
             catch (Exception)
             {
                 throw;
             }
         }
-
         public async Task<int> InsertComplaintMaster(ComplaintMasterViewModel complaintMasterViewModel, string userId)
         {
             try

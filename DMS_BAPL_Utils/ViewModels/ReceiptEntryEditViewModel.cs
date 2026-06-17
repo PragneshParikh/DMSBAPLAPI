@@ -34,7 +34,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? SalesExecutive { get; set; }
 
-        public string? ReceiptType { get; set; }
+        //public string? ReceiptType { get; set; }
 
         public string? RefNo { get; set; }
 
@@ -51,5 +51,15 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? UpdatedBy { get; set; }
 
         public DateTime? UpdatedDate { get; set; }
+        public List<ReceiptEntryDetailViewModel> ReceiptEntryDetail { get; set; }
+    }
+    public class ReceiptEntryDetailViewModel
+    {
+        public int LineItemNo { get; set; }
+        public DateTime? LineDate {  get; set; }
+
+        public string ReceiptType { get; set; }
+
+        public decimal Amount { get; set; }
     }
 }

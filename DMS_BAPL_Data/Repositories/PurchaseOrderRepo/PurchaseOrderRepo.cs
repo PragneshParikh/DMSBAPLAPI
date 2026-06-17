@@ -1,6 +1,9 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Linq;
@@ -289,6 +292,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
 
                 return new PurchaseOrderResponseViewModel
                 {
+                    Id = po.Id,
                     PONumber = po.Ponumber,
                     PODate = po.PurchaseDate,
                     CustomerCode = po.CustomerCode,
@@ -336,78 +340,121 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType)
+        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
-            try
+            IQueryable<PurchaseOrder> query = _context.PurchaseOrders
+                .AsNoTracking()
+                .Where(x => x.OrderType == orderType);
+
+            if (!string.IsNullOrWhiteSpace(dealerCode))
             {
-                var poList = await _context.PurchaseOrders
-                    .OrderByDescending(x => x.CreatedDate)
-                    .Where(x => x.OrderType == orderType)
-                    .ToListAsync();
+                query = query.Where(x => x.CustomerCode == dealerCode);
+            }
 
-                if (poList == null || !poList.Any())
-                    return new List<PurchaseOrderResponseViewModel>();
+            if (purchaseOrderSearchViewModel.DateFrom.HasValue)
+            {
+                query = query.Where(x => x.CreatedDate >= purchaseOrderSearchViewModel.DateFrom.Value);
+            }
 
-                if (!string.IsNullOrWhiteSpace(dealerCode))
+            if (purchaseOrderSearchViewModel.DateTo.HasValue)
+            {
+                var endDate = purchaseOrderSearchViewModel.DateTo.Value.Date.AddDays(1);
+
+                query = query.Where(x => x.CreatedDate < endDate);
+            }
+
+            if (!string.IsNullOrEmpty(purchaseOrderSearchViewModel.IsSubmitted))
+            {
+                bool status = purchaseOrderSearchViewModel.IsSubmitted == "Submited To ERP" ? true : false;
+                query = query.Where(x => x.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(purchaseOrderSearchViewModel.PurchaseNo))
+            {
+                query = query.Where(x => x.Ponumber == purchaseOrderSearchViewModel.PurchaseNo);
+            }
+
+            var poList = await query
+                .OrderByDescending(x => x.CreatedDate)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (!poList.Any())
+                return new List<PurchaseOrderResponseViewModel>();
+
+            var poNumbers = poList
+                .Select(x => x.Ponumber)
+                .ToList();
+
+            var details = await _context.PurchaseOrderDetails
+                .AsNoTracking()
+                .Where(x => poNumbers.Contains(x.Ponumber))
+                .ToListAsync();
+
+            var taxes = await _context.TaxDetails
+                .AsNoTracking()
+                .Where(x => poNumbers.Contains(x.Ponumber))
+                .ToListAsync();
+
+            var ledgerMasters = await _context.LedgerMasters
+                .AsNoTracking()
+                .ToListAsync();
+
+            var locationMasters = await _context.LocationMasters
+                .AsNoTracking()
+                .ToListAsync();
+
+            var result = poList.Select(po =>
+            {
+                var poDetails = details
+                    .Where(x => x.Ponumber == po.Ponumber)
+                    .ToList();
+
+                return new PurchaseOrderResponseViewModel
                 {
-                    poList = poList.Where(x => x.CustomerCode == dealerCode).ToList();
-                }
+                    PONumber = po.Ponumber,
+                    PODate = po.PurchaseDate,
+                    CustomerCode = po.CustomerCode,
+                    TotalAmount = po.Amount.GetValueOrDefault(),
+                    IsSubmitted = po.Status,
+                    TransactionType = po.TransactionType,
+                    Remarks = po.Remarks,
+                    LocCode = po.LocCode,
+                    LedgerCode = po.LedgerCode,
 
-                var resultList = new List<PurchaseOrderResponseViewModel>();
+                    LedgerName = ledgerMasters
+                        .FirstOrDefault(x => x.LedgerCode == po.LedgerCode)
+                        ?.LedgerName,
 
-                foreach (var po in poList)
-                {
-                    var details = await _context.PurchaseOrderDetails
-                        .Where(x => x.Ponumber == po.Ponumber)
-                        .ToListAsync();
+                    LocationName = locationMasters
+                        .FirstOrDefault(x => x.Loccode == po.LocCode)
+                        ?.Locname,
 
-                    var taxes = await _context.TaxDetails
-                        .Where(x => x.Ponumber == po.Ponumber)
-                        .ToListAsync();
-
-                    var ledgerDetails = await _context.LedgerMasters
-                        .ToListAsync();
-
-                    resultList.Add(new PurchaseOrderResponseViewModel
+                    Items = poDetails.Select(d => new PurchaseOrderItemViewModel
                     {
-                        PONumber = po.Ponumber,
-                        PODate = po.PurchaseDate,
-                        CustomerCode = po.CustomerCode,
-                        TotalAmount = po.Amount.GetValueOrDefault(),
-                        IsSubmitted = po.Status,
-                        TransactionType = po.TransactionType,
-                        Remarks = po.Remarks,
-                        LocCode = po.LocCode,
-                        LedgerCode = po.LedgerCode,
-                        LedgerName = ledgerDetails.Where(x => x.LedgerCode == po.LedgerCode).FirstOrDefault().LedgerName,
-                        LocationName = _context.LocationMasters.FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
+                        ItemCode = d.ItemCode,
+                        Qty = d.Qty,
+                        Rate = d.Rate.GetValueOrDefault(),
+                        LineAmount = d.LineAmount.GetValueOrDefault(),
 
-                        Items = details.Select(d => new PurchaseOrderItemViewModel
-                        {
-                            ItemCode = d.ItemCode,
-                            Qty = d.Qty,
-                            Rate = d.Rate.GetValueOrDefault(),
-                            LineAmount = d.LineAmount.GetValueOrDefault(),
+                        Taxes = taxes
+                            .Where(t => t.Ponumber == po.Ponumber &&
+                                        t.ItemCode == d.ItemCode &&
+                                        t.PodetailsLineNumber == d.LineNumber)
+                            .Select(t => new TaxViewModel
+                            {
+                                TaxCode = t.TaxCode,
+                                TaxRate = t.TaxRate,
+                                TaxAmount = t.TaxAmount
+                            })
+                            .ToList()
 
-                            Taxes = taxes
-                                .Where(t => t.ItemCode == d.ItemCode &&
-                                            t.PodetailsLineNumber == d.LineNumber)
-                                .Select(t => new TaxViewModel
-                                {
-                                    TaxCode = t.TaxCode,
-                                    TaxRate = t.TaxRate,
-                                    TaxAmount = t.TaxAmount
-                                }).ToList()
-                        }).ToList()
-                    });
-                }
+                    }).ToList()
+                };
+            }).ToList();
 
-                return resultList;
-            }
-            catch
-            {
-                throw;
-            }
+            return result;
         }
         public async Task<List<PurchaseOrderDetail>> GetPODetails(string poNumber)
         {

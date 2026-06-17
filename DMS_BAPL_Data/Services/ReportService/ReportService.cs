@@ -295,6 +295,14 @@ namespace DMS_BAPL_Data.Services.ReportService
         {
             try
             {
+        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                filter ??= new VehicleSaleBillReportFilterModel();
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
                 _logger.LogInformation("Fetching vehicle sale bill report");
                 return await _reportRepo.GetVehicleSaleBillReportAsync(filter);
             }

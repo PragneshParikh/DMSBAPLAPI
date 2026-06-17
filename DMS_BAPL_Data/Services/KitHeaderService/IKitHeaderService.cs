@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Services.KitHeaderService
         Task<int> InsertKitHeader(KitHeader kitHeader);
         Task<KitHeader?> GetKitById(int id);
         Task<int> UpdateKitHeader(KitHeader kitHeader);
+        Task<byte[]> DownloadExcel();
     }
 }

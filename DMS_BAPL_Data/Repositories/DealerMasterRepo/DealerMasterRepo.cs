@@ -1,7 +1,9 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using MailKit.Search;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -31,6 +33,9 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         {
             try
             {
+
+                var regDate = DateTime.ParseExact(dealer.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+
                 var newDealer = new DealerMaster
                 {
                     Compname = dealer.Compname,
@@ -45,7 +50,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     Mobile = dealer.Mobile,
                     Email = dealer.Email,
                     Contactperson = dealer.Contactperson,
-                    RegDate = Convert.ToDateTime(dealer.RegDate),
+                    RegDate = regDate,
                     TradCert = dealer.TradCert ?? "",
                     CompgstinNo = dealer.CompgstinNo ?? "",
                     BrandName = dealer.BrandName,
@@ -60,6 +65,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     CeditLimit = dealer.CeditLimit,
                     RegAddress = dealer.RegAddress,
                     B2b = dealer.B2b,
+                    IsActive = dealer.IsActive,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
@@ -190,6 +196,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 if (existingDealer == null)
                     return null;
 
+                var regDate = DateTime.ParseExact(dealerDto.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+
                 existingDealer.Compname = dealerDto.Compname;
                 existingDealer.Compcode = dealerDto.Compcode;
                 existingDealer.Adress1 = dealerDto.Adress1;
@@ -202,7 +210,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 existingDealer.Mobile = dealerDto.Mobile;
                 existingDealer.Email = dealerDto.Email;
                 existingDealer.Contactperson = dealerDto.Contactperson;
-                existingDealer.RegDate = Convert.ToDateTime(dealerDto.RegDate);
+                existingDealer.RegDate = regDate;
                 existingDealer.TradCert = dealerDto.TradCert ?? "";
                 existingDealer.CompgstinNo = dealerDto.CompgstinNo ?? "";
                 existingDealer.BrandName = dealerDto.BrandName;
@@ -359,12 +367,84 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.CeditLimit = dealerMasterViewModel.CeditLimit;
             existingDealer.RegAddress = dealerMasterViewModel.RegAddress;
             existingDealer.B2b = dealerMasterViewModel.B2b;
+            existingDealer.IsActive = dealerMasterViewModel.IsActive;
             existingDealer.UpdatedBy = userId;
             existingDealer.UpdatedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             return existingDealer;
+        }
+        async Task<PagedResponse<DealerMaster>> IDealerMasterRepo.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode)
+        {
+            var query = _context.DealerMasters.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(c => c.Compname.Contains(searchTerm) ||
+                                         c.City.Contains(searchTerm) ||
+                                         c.Mobile.Contains(searchTerm) ||
+                                         c.Email.Contains(searchTerm) ||
+                                         c.Contactperson.Contains(searchTerm) ||
+                                         c.Compname.Contains(searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+            {
+                query = query.Where(c => c.Dealercode == dealerCode);
+            }
+
+            int totalRecords = await query.CountAsync();
+
+            var items = await query
+                .AsNoTracking()
+                .OrderByDescending(c => c.CreatedDate)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            int startSrNo = (pageIndex * pageSize) + 1;
+
+            var viewModelItems = items.Select((item, index) => new DealerMaster
+            {
+                Id = startSrNo + index,
+                Compname = item.Compname,
+                Compcode = item.Compcode,
+                Adress1 = item.Adress1,
+                Adress2 = item.Adress2,
+                City = item.City,
+                State = item.State,
+                Pin = item.Pin,
+                Pan = item.Pan,
+                PhoneOff = item.PhoneOff,
+                Mobile = item.Mobile,
+                Email = item.Email,
+                Contactperson = item.Contactperson,
+                RegDate = item.RegDate,
+                TradCert = item.TradCert,
+                CompgstinNo = item.CompgstinNo,
+                BrandName = item.BrandName,
+                Dealercode = item.Dealercode,
+                Areaofficeid = item.Areaofficeid,
+                CinNo = item.CinNo,
+                VatNo = item.VatNo,
+                IsTcs = item.IsTcs,
+                TcsPercent = item.TcsPercent,
+                FameiiCode = item.FameiiCode,
+                CeditLimit = item.CeditLimit,
+                RegAddress = item.RegAddress,
+                B2b = item.B2b,
+                CreatedBy = item.CreatedBy,
+                CreatedDate = item.CreatedDate,
+                UpdatedBy = item.UpdatedBy,
+                UpdatedDate = item.UpdatedDate
+            }).ToList();
+
+            return new PagedResponse<DealerMaster>
+            {
+                Data = viewModelItems,
+                TotalRecords = totalRecords
+            };
         }
     }
 }

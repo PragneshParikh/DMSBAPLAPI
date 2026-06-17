@@ -31,7 +31,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Gstinno { get; set; }
 
-        public string Email { get; set; } = null!;
+        public string? Email { get; set; } = null!;
 
         public string Mobileno { get; set; } = null!;
 
@@ -39,7 +39,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Contpername2 { get; set; }
 
-        public string Contpermob1 { get; set; } = null!;
+        public string? Contpermob1 { get; set; } = null!;
 
         public string? Contpermob2 { get; set; }
 
@@ -61,9 +61,9 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? Active { get; set; }
 
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; } = null;
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime? CreatedDate { get; set; } = null;
 
         public string? UpdateBy { get; set; }
 

@@ -28,4 +28,8 @@ public partial class OemmodelMaster
     public virtual ICollection<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; } = new List<ModelwiseServiceSchedule>();
 
     public virtual ICollection<OemmodelWarranty> OemmodelWarranties { get; set; } = new List<OemmodelWarranty>();
+
+    public virtual ICollection<PdichecklistChassisWise> PdichecklistChassisWises { get; set; } = new List<PdichecklistChassisWise>();
+
+    public virtual ICollection<PdichecklistMaster> PdichecklistMasters { get; set; } = new List<PdichecklistMaster>();
 }

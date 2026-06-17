@@ -67,6 +67,8 @@ public partial class JobCardHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? JobStatus { get; set; }
+
     public virtual ICollection<Ffirheader> Ffirheaders { get; set; } = new List<Ffirheader>();
 
     public virtual ICollection<JobCardBatteryDetail> JobCardBatteryDetails { get; set; } = new List<JobCardBatteryDetail>();

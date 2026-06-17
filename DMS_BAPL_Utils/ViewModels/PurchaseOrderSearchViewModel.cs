@@ -10,5 +10,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? TransactionType { get; set; }
         public string? IsSubmitted { get; set; }
         public string OrderType { get; set; }
+        public string? DealerCode { get; set; }
     }
 }

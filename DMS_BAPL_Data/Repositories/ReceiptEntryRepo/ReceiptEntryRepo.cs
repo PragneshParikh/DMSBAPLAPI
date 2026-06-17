@@ -15,7 +15,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
     public class ReceiptEntryRepo : IReceiptEntryRepo
     {
         private readonly BapldmsvadContext _bapldmsvadContext;
-       
+
         public ReceiptEntryRepo(BapldmsvadContext bapldmsvadContext)
         {
             _bapldmsvadContext = bapldmsvadContext;
@@ -27,7 +27,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 .Select(x => x.ReceiptNo).FirstOrDefaultAsync();
         }
 
-        public async Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId,string dealerCode)
+        public async Task<ReceiptEntry> AddReceiptEntryAsync(ReceiptEntryViewModel receiptEntry, string userId, string dealerCode)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                     ProductCode = receiptEntry.ProductCode,
                     SalesExecutive = receiptEntry.SalesExecutive,
                     MobileNo = receiptEntry.MobileNo,
-                    ReceiptType = receiptEntry.ReceiptType,
+                    //ReceiptType = receiptEntry.ReceiptType,
                     RefNo = receiptEntry.RefNo,
                     Narration = receiptEntry.Narration,
                     BusinessType = receiptEntry.BusinessType,
@@ -56,6 +56,26 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 await _bapldmsvadContext.ReceiptEntries.AddAsync(newReceiptEntry);
                 await _bapldmsvadContext.SaveChangesAsync();
 
+                if (receiptEntry.ReceiptEntryDetail != null &&
+            receiptEntry.ReceiptEntryDetail.Any())
+                {
+                    var details = receiptEntry.ReceiptEntryDetail
+                        .Select(x => new ReceiptEntryDetail
+                        {
+                            ReceiptId = newReceiptEntry.Id,
+                            LineItemNo = x.LineItemNo,
+                            ReceiptType = x.ReceiptType,
+                            LineDate = DateTime.Now,
+                            Amount = x.Amount,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        })
+                        .ToList();
+
+                    await _bapldmsvadContext.ReceiptEntryDetails.AddRangeAsync(details);
+                    await _bapldmsvadContext.SaveChangesAsync();
+                }
+
                 return newReceiptEntry;
             }
             catch
@@ -64,47 +84,55 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
             }
         }
 
-              public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsync(ReceiptFilterViewModel filter)
         {
             try
             {
-               
+
                 var query =
-                    from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
+     from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
 
-                    join i in _bapldmsvadContext.ItemMasters
-                        on r.ProductCode equals i.Itemcode into itemGroup
-                    from i in itemGroup.DefaultIfEmpty()
+     join i in _bapldmsvadContext.ItemMasters
+         on r.ProductCode equals i.Itemcode into itemGroup
+     from i in itemGroup.DefaultIfEmpty()
 
-                    select new ReceiptEntryEditViewModel
-                    {
-                        Id = r.Id,
-                        Location = r.Location,
-                        ReceiptNo = r.ReceiptNo,
-                        ReceiptDate = r.ReceiptDate,
-                        SaleType = r.SaleType,
-                        BookingId = r.BookingId,
-                        PartyName = r.PartyName,
-                        MobileNo = r.MobileNo,
-                        Financier = r.Financier,
-                        BusinessType=r.BusinessType,
-                        DealerCode=r.DealerCode,
+     select new ReceiptEntryEditViewModel
+     {
+         Id = r.Id,
+         Location = r.Location,
+         ReceiptNo = r.ReceiptNo,
+         ReceiptDate = r.ReceiptDate,
+         SaleType = r.SaleType,
+         BookingId = r.BookingId,
+         PartyName = r.PartyName,
+         MobileNo = r.MobileNo,
+         Financier = r.Financier,
+         BusinessType = r.BusinessType,
+         DealerCode = r.DealerCode,
 
-                        ProductCode = r.ProductCode,
+         ProductCode = r.ProductCode,
+         ProductName = i.Itemname,
 
-                        // ADD THIS
-                        ProductName = i.Itemname,
+         SalesExecutive = r.SalesExecutive,
+         RefNo = r.RefNo,
+         Narration = r.Narration,
+         TotalAmount = r.TotalAmount,
 
-                        SalesExecutive = r.SalesExecutive,
-                        ReceiptType = r.ReceiptType,
-                        RefNo = r.RefNo,
-                        Narration = r.Narration,
-                        TotalAmount = r.TotalAmount,
-                        CreatedBy = r.CreatedBy,
-                        CreatedDate = r.CreatedDate,
-                        UpdatedBy = r.UpdatedBy,
-                        UpdatedDate = r.UpdatedDate
-                    };
+         CreatedBy = r.CreatedBy,
+         CreatedDate = r.CreatedDate,
+         UpdatedBy = r.UpdatedBy,
+         UpdatedDate = r.UpdatedDate,
+
+         ReceiptEntryDetail = r.ReceiptEntryDetails
+             .OrderBy(x => x.LineItemNo)
+             .Select(x => new ReceiptEntryDetailViewModel
+             {
+                 LineItemNo = x.LineItemNo,
+                 ReceiptType = x.ReceiptType,
+                 Amount = x.Amount
+             })
+             .ToList()
+     };
 
                 // APPLY FILTERS
                 if (filter != null)
@@ -135,16 +163,6 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                     if (!string.IsNullOrWhiteSpace(filter.ItemCode))
                         query = query.Where(x => x.ProductCode.Contains(filter.ItemCode));
 
-                    //// ✅ OPTIONAL: filter by product name also
-                    //if (!string.IsNullOrWhiteSpace(filter.ItemCode))
-                    //{
-                    //    var itemSearch = filter.ItemCode.ToLower();
-
-                    //    query = query.Where(x =>
-                    //        x.ProductName != null &&
-                    //        x.ProductName.ToLower().Contains(itemSearch)
-                    //    );
-                    //}
 
                     if (!string.IsNullOrWhiteSpace(filter.SaleType))
                     {
@@ -218,22 +236,30 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         ProductCode = r.ProductCode,
                         BusinessType = r.BusinessType,
 
-                        // ✅ FROM ITEM MASTER
                         ProductName = i != null ? i.Itemname : null,
                         ProductDescription = i != null ? i.Itemdesc : null,
-
-                        // ✅ FROM COLOR MASTER
                         ProductColor = c != null ? c.Colorname : null,
 
                         SalesExecutive = r.SalesExecutive,
-                        ReceiptType = r.ReceiptType,
                         RefNo = r.RefNo,
                         Narration = r.Narration,
                         TotalAmount = r.TotalAmount,
+
                         CreatedBy = r.CreatedBy,
                         CreatedDate = r.CreatedDate,
                         UpdatedBy = r.UpdatedBy,
-                        UpdatedDate = r.UpdatedDate
+                        UpdatedDate = r.UpdatedDate,
+
+                        ReceiptEntryDetail = r.ReceiptEntryDetails
+                            .OrderBy(x => x.LineItemNo)
+                            .Select(x => new ReceiptEntryDetailViewModel
+                            {
+                                LineItemNo = x.LineItemNo,
+                                ReceiptType = x.ReceiptType,
+                                Amount = x.Amount,
+                                LineDate = x.LineDate,
+                            })
+                            .ToList()
                     }
                 ).FirstOrDefaultAsync();
 
@@ -246,7 +272,81 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
         }
 
 
-        public async Task<ReceiptEntry?> UpdateReceiptEntryAsync(int id, ReceiptEntryViewModel receiptEntry, string userId)
+        //    public async Task<ReceiptEntry?> UpdateReceiptEntryAsync(
+        //int id,
+        //ReceiptEntryViewModel receiptEntry,
+        //string userId)
+        //    {
+        //        try
+        //        {
+        //            var existingReceipt = await _bapldmsvadContext.ReceiptEntries
+        //                .FirstOrDefaultAsync(x => x.Id == id);
+
+        //            if (existingReceipt == null)
+        //                return null;
+
+        //            // Header Update
+        //            existingReceipt.Location = receiptEntry.Location;
+        //            existingReceipt.SaleType = receiptEntry.SaleType;
+        //            existingReceipt.BookingId = receiptEntry.BookingId;
+        //            existingReceipt.PartyName = receiptEntry.PartyName;
+        //            existingReceipt.Financier = receiptEntry.Financier;
+        //            existingReceipt.ProductCode = receiptEntry.ProductCode;
+        //            existingReceipt.SalesExecutive = receiptEntry.SalesExecutive;
+        //            existingReceipt.MobileNo = receiptEntry.MobileNo;
+        //            existingReceipt.RefNo = receiptEntry.RefNo;
+        //            existingReceipt.Narration = receiptEntry.Narration;
+        //            existingReceipt.TotalAmount = receiptEntry.TotalAmount;
+        //            existingReceipt.BusinessType = receiptEntry.BusinessType;
+
+        //            existingReceipt.ReceiptDate = receiptEntry.BillDate;
+
+        //            existingReceipt.UpdatedBy = userId;
+        //            existingReceipt.UpdatedDate = DateTime.Now;
+
+        //            // Remove old detail rows
+        //            var existingDetails = await _bapldmsvadContext.ReceiptEntryDetails
+        //                .Where(x => x.ReceiptId == id)
+        //                .ToListAsync();
+
+        //            if (existingDetails.Any())
+        //            {
+        //                _bapldmsvadContext.ReceiptEntryDetails.RemoveRange(existingDetails);
+        //            }
+
+        //            // Add new detail rows
+        //            if (receiptEntry.ReceiptEntryDetail != null)
+        //            {
+        //                var details = receiptEntry.ReceiptEntryDetail
+        //                    .Select(x => new ReceiptEntryDetail
+        //                    {
+        //                        ReceiptId = id,
+        //                        LineItemNo = x.LineItemNo,
+        //                        ReceiptType = x.ReceiptType,
+        //                        Amount = x.Amount,
+        //                        LineDate = DateTime.Now,
+        //                        CreatedBy = userId,
+        //                        CreatedDate = DateTime.Now
+        //                    })
+        //                    .ToList();
+
+        //                await _bapldmsvadContext.ReceiptEntryDetails.AddRangeAsync(details);
+        //            }
+
+        //            await _bapldmsvadContext.SaveChangesAsync();
+
+        //            return existingReceipt;
+        //        }
+        //        catch
+        //        {
+        //            throw;
+        //        }
+        //    }
+
+        public async Task<ReceiptEntry?> UpdateReceiptEntryAsync(
+    int id,
+    ReceiptEntryViewModel receiptEntry,
+    string userId)
         {
             try
             {
@@ -256,7 +356,9 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 if (existingReceipt == null)
                     return null;
 
-                //   Update fields
+                // =========================
+                // HEADER UPDATE
+                // =========================
                 existingReceipt.Location = receiptEntry.Location;
                 existingReceipt.SaleType = receiptEntry.SaleType;
                 existingReceipt.BookingId = receiptEntry.BookingId;
@@ -265,19 +367,82 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 existingReceipt.ProductCode = receiptEntry.ProductCode;
                 existingReceipt.SalesExecutive = receiptEntry.SalesExecutive;
                 existingReceipt.MobileNo = receiptEntry.MobileNo;
-                existingReceipt.ReceiptType = receiptEntry.ReceiptType;
                 existingReceipt.RefNo = receiptEntry.RefNo;
                 existingReceipt.Narration = receiptEntry.Narration;
                 existingReceipt.TotalAmount = receiptEntry.TotalAmount;
                 existingReceipt.BusinessType = receiptEntry.BusinessType;
-
-                // Optional: update date if needed
                 existingReceipt.ReceiptDate = receiptEntry.BillDate;
 
-                // Audit
                 existingReceipt.UpdatedBy = userId;
                 existingReceipt.UpdatedDate = DateTime.Now;
 
+                // =========================
+                // EXISTING DETAILS
+                // =========================
+                var existingDetails = await _bapldmsvadContext.ReceiptEntryDetails
+                    .Where(x => x.ReceiptId == id)
+                    .ToListAsync();
+
+                var incomingDetails = receiptEntry.ReceiptEntryDetail?
+                    .ToList() ?? new List<ReceiptEntryDetailViewModel>();
+
+                // =========================
+                // DELETE REMOVED ROWS
+                // =========================
+                var incomingLineNos = incomingDetails
+                    .Where(x => x.LineItemNo > 0)
+                    .Select(x => x.LineItemNo)
+                    .ToList();
+
+                var toDelete = existingDetails
+                    .Where(x => !incomingLineNos.Contains(x.LineItemNo))
+                    .ToList();
+
+                if (toDelete.Any())
+                {
+                    _bapldmsvadContext.ReceiptEntryDetails.RemoveRange(toDelete);
+                }
+
+                // =========================
+                // INSERT / UPDATE
+                // =========================
+                foreach (var item in incomingDetails)
+                {
+                    var existing = existingDetails
+                        .FirstOrDefault(x => x.LineItemNo == item.LineItemNo);
+
+                    if (existing != null)
+                    {
+                        // UPDATE EXISTING ROW
+                        existing.ReceiptType = item.ReceiptType;
+                        existing.Amount = item.Amount;
+                        existing.LineDate = item.LineDate;
+
+                        existing.UpdatedBy = userId;
+                        existing.UpdatedDate = DateTime.Now;
+                    }
+                    else
+                    {
+                        // INSERT NEW ROW
+                        var newDetail = new ReceiptEntryDetail
+                        {
+                            ReceiptId = id,
+                            LineItemNo = item.LineItemNo,
+                            ReceiptType = item.ReceiptType,
+                            Amount = item.Amount,
+                            LineDate = item.LineDate,
+
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        };
+
+                        _bapldmsvadContext.ReceiptEntryDetails.Add(newDetail);
+                    }
+                }
+
+                // =========================
+                // SAVE
+                // =========================
                 await _bapldmsvadContext.SaveChangesAsync();
 
                 return existingReceipt;
@@ -287,98 +452,129 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 throw;
             }
         }
+        //public async Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId, string? recType, string? dealerCode)
+        //{
+        //    try { 
+        //    if (string.IsNullOrWhiteSpace(mobileNo) && string.IsNullOrWhiteSpace(bookingId))
+        //        throw new Exception("Please provide Mobile No or Booking Id");
 
-        public async Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId)
+        //    var query = _bapldmsvadContext.ReceiptEntries.AsQueryable();
+
+        //    if (!string.IsNullOrWhiteSpace(mobileNo))
+        //    {
+        //        var normalizedMobile = mobileNo.Trim();
+
+        //        return await query.AnyAsync(x =>
+        //            x.MobileNo != null &&
+        //            x.MobileNo.Trim() == normalizedMobile && x.DealerCode == dealerCode && x.ReceiptType == recType
+        //        );
+        //    }
+
+        //    if (!string.IsNullOrWhiteSpace(bookingId))
+        //    {
+        //        return await query.AnyAsync(x =>
+        //            x.BookingId != null &&
+        //            x.BookingId == bookingId && x.DealerCode == dealerCode && x.ReceiptType == recType
+        //        );
+        //    }
+
+        //    return false;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        public async Task<bool> CheckReceiptExist(string? mobileNo, string? bookingId, string? recType, string? dealerCode)
         {
-            try { 
             if (string.IsNullOrWhiteSpace(mobileNo) && string.IsNullOrWhiteSpace(bookingId))
+            {
                 throw new Exception("Please provide Mobile No or Booking Id");
+            }
 
-            var query = _bapldmsvadContext.ReceiptEntries.AsQueryable();
+            var query = _bapldmsvadContext.ReceiptEntries.Where(x => x.DealerCode == dealerCode);
 
             if (!string.IsNullOrWhiteSpace(mobileNo))
             {
                 var normalizedMobile = mobileNo.Trim();
-
-                return await query.AnyAsync(x =>
-                    x.MobileNo != null &&
-                    x.MobileNo.Trim() == normalizedMobile
-                );
+                query = query.Where(x => x.MobileNo != null && x.MobileNo.Trim() == normalizedMobile);
+            }
+            else
+            {
+                query = query.Where(x => x.BookingId != null && x.BookingId == bookingId);
             }
 
-            if (!string.IsNullOrWhiteSpace(bookingId))
+            if (string.Equals(recType, "Receipt", StringComparison.OrdinalIgnoreCase))
             {
-                return await query.AnyAsync(x =>
-                    x.BookingId != null &&
-                    x.BookingId == bookingId
-                );
+                return await query.AnyAsync(x => x.SaleType == "Receipt" || x.SaleType == "Against Lead");
+            }
+
+            if (string.Equals(recType, "Against Lead", StringComparison.OrdinalIgnoreCase))
+            {
+                return await query.AnyAsync(x => x.SaleType == "Against Lead");
             }
 
             return false;
-            }
-            catch
-            {
-                throw;
-            }
         }
 
-        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode,string? search,DateOnly? fromDate,DateOnly? toDate)
+        public async Task<List<ReceiptEntryEditViewModel>> GetReceiptEntryListAsyncWithSearch(string? dealerCode, string? search, DateOnly? fromDate, DateOnly? toDate)
         {
             try
             {
-                var query =
-                    from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
+                var query = from r in _bapldmsvadContext.ReceiptEntries.AsNoTracking()
+                            join i in _bapldmsvadContext.ItemMasters
+                            on r.ProductCode equals i.Itemcode into itemGroup
+                            from i in itemGroup.DefaultIfEmpty()
 
-                    join i in _bapldmsvadContext.ItemMasters
-                        on r.ProductCode equals i.Itemcode into itemGroup
-                    from i in itemGroup.DefaultIfEmpty()
+                            join c in _bapldmsvadContext.ColorMasters
+                            on i.Colorcode equals c.Colorcode into colorGroup
+                            from c in colorGroup.DefaultIfEmpty()
 
-                    join c in _bapldmsvadContext.ColorMasters
-                        on i.Colorcode equals c.Colorcode into colorGroup
-                    from c in colorGroup.DefaultIfEmpty()
+                            select new ReceiptEntryEditViewModel
+                            {
+                                Id = r.Id,
+                                Location = r.Location,
+                                ReceiptNo = r.ReceiptNo,
+                                MobileNo = r.MobileNo,
+                                ReceiptDate = r.ReceiptDate,
+                                SaleType = r.SaleType,
+                                BookingId = r.BookingId,
+                                PartyName = r.PartyName,
+                                Financier = r.Financier,
+                                ProductCode = r.ProductCode,
+                                BusinessType = r.BusinessType,
+                                DealerCode = r.DealerCode,
+                                ProductName = i.Itemname,
+                                ProductDescription = i.Itemdesc,
+                                ProductColor = c.Colorname,
+                                SalesExecutive = r.SalesExecutive,
+                                RefNo = r.RefNo,
+                                Narration = r.Narration,
+                                TotalAmount = r.TotalAmount,
+                                CreatedBy = r.CreatedBy,
+                                CreatedDate = r.CreatedDate,
+                                UpdatedBy = r.UpdatedBy,
+                                UpdatedDate = r.UpdatedDate,
+                                ReceiptEntryDetail = r.ReceiptEntryDetails
 
-                    select new ReceiptEntryEditViewModel
-                    {
-                        Id = r.Id,
-                        Location = r.Location,
-                        ReceiptNo = r.ReceiptNo,
-                        MobileNo = r.MobileNo,
-                        ReceiptDate = r.ReceiptDate,
-                        SaleType = r.SaleType,
-                        BookingId = r.BookingId,
-                        PartyName = r.PartyName,
-                        Financier = r.Financier,
-                        ProductCode = r.ProductCode,
-                        BusinessType = r.BusinessType,
-                        DealerCode =r.DealerCode,
-
-                        // ✅ Product Details
-                        ProductName = i.Itemname,
-                        ProductDescription = i.Itemdesc,
-                        ProductColor = c.Colorname,
-
-                        SalesExecutive = r.SalesExecutive,
-                        ReceiptType = r.ReceiptType,
-                        RefNo = r.RefNo,
-                        Narration = r.Narration,
-                        TotalAmount = r.TotalAmount,
-                        CreatedBy = r.CreatedBy,
-                        CreatedDate = r.CreatedDate,
-                        UpdatedBy = r.UpdatedBy,
-                        UpdatedDate = r.UpdatedDate
-                    };
-               
+                                .OrderBy(x => x.LineItemNo).Select(x => new ReceiptEntryDetailViewModel
+                                {
+                                    LineItemNo = x.LineItemNo,
+                                    ReceiptType = x.ReceiptType,
+                                    Amount = x.Amount
+                                }).ToList()
+                            };
 
                 if (toDate.HasValue)
                 {
                     query = query.Where(x => x.ReceiptDate <= toDate.Value);
                 }
-                if(!string.IsNullOrWhiteSpace(dealerCode))
+                if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    
-                    query= query.Where(x=>x.DealerCode == dealerCode);
+
+                    query = query.Where(x => x.DealerCode == dealerCode);
                 }
-                // APPLY SEARCH
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     search = search.Trim().ToLower();
@@ -389,16 +585,12 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                         (x.MobileNo != null && x.MobileNo.ToLower().Contains(search)) ||
                         (x.BookingId != null && x.BookingId.ToLower().Contains(search)) ||
                         (x.Location != null && x.Location.ToLower().Contains(search)) ||
-                        (x.Financier != null && x.Financier.ToLower().Contains(search))||
-
-                        // ✅ PRODUCT SEARCH INCLUDED
+                        (x.Financier != null && x.Financier.ToLower().Contains(search)) ||
                         (x.ProductCode != null && x.ProductCode.ToLower().Contains(search)) ||
                         (x.ProductName != null && x.ProductName.ToLower().Contains(search)) ||
                         (x.ProductDescription != null && x.ProductDescription.ToLower().Contains(search)) ||
                         (x.ProductColor != null && x.ProductColor.ToLower().Contains(search)) ||
-
                         (x.SalesExecutive != null && x.SalesExecutive.ToLower().Contains(search)) ||
-                        (x.ReceiptType != null && x.ReceiptType.ToLower().Contains(search)) ||
                         (x.RefNo != null && x.RefNo.ToLower().Contains(search)) ||
                         (x.Narration != null && x.Narration.ToLower().Contains(search))
                     );
@@ -411,7 +603,6 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                             x.ReceiptDate.Year == number
                         );
                     }
-                    //Smart filters
                     if (search == "cash")
                         query = query.Where(x => string.IsNullOrWhiteSpace(x.Financier));
 
@@ -428,7 +619,7 @@ namespace DMS_BAPL_Data.Repositories.ReceiptEntryRepo
                 throw;
             }
         }
-       
-       
+
+
     }
 }
