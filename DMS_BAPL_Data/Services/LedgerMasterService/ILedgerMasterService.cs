@@ -22,5 +22,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);
         Task<string> GetNextLedId(string dealerCode);
         Task<byte[]> DownloadExcel(string? dealerCode);
+        Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin);
     }
 }
