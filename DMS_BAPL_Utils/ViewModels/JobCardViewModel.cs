@@ -32,6 +32,7 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string InvoiceNo { get; set; }
         public string ChassisNumber { get; set; }
+        public int? CustomerLedgerId { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerAltMobile { get; set; }
@@ -325,6 +326,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string PartyMobileNo { get; set; }
         public string PartyState { get; set; }
         public bool? IsMaterialTransfer { get; set; }
+        public int? DealerLedgerId  { get; set; }
         public int? CustomerLedgerId { get; set; }
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
