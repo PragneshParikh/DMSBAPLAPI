@@ -105,6 +105,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         where h.IsLotInspected == true
                               && h.DealerCode == dealerCode
                               && v.SaleDate == null
+                              && dealerLg.LedgerType == "Dealer"
 
                         select new LotInspectionChassisVM
                         {
@@ -166,7 +167,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         from o in oGroup.DefaultIfEmpty()
 
                         where h.IsLotInspected == true
-                              && h.DealerCode == dealerCode && v.SaleDate != null
+                              && h.DealerCode == dealerCode && v.SaleDate != null 
 
                         select new LotInspectionChassisVM
                         {
