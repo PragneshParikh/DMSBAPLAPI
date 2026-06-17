@@ -240,51 +240,26 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         }
 
         // Get dealer dropdown list
-        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown()
+        public async Task<List<DealerDropdownViewModel>> GetDealerDropdown(string? dealerCode)
         {
-            try
-            {
-                var dealerCodes = await _context.LocationMasters
-                    .Select(x => x.Dealercode)
-                    .Distinct()
-                    .ToListAsync();
+            var dealerCodes = await _context.LocationMasters
+                .Select(x => x.Dealercode)
+                .Distinct()
+                .ToListAsync();
 
-                var result = await _context.DealerMasters
-                    .Where(x => dealerCodes.Contains(x.Dealercode))
-                    .Select(x => new DealerDropdownViewModel
-                    {
-                        DealerCode = x.Dealercode,
-                        DealerName = x.Compname
-                    })
-                    .OrderBy(x => x.DealerName)
-                    .ToListAsync();
-
-                return result;
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-        // Parse registration date safely
-        private DateTime ParseRegDate(string regDate)
-        {
-            try
-            {
-                var culture = new CultureInfo("en-IN");
-
-                if (DateTime.TryParse(regDate, culture, DateTimeStyles.None, out DateTime parsedDate))
+            var result = await _context.DealerMasters
+                .Where(x =>
+                    dealerCodes.Contains(x.Dealercode) &&
+                    (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
+                .Select(x => new DealerDropdownViewModel
                 {
-                    return parsedDate;
-                }
+                    DealerCode = x.Dealercode,
+                    DealerName = x.Compname
+                })
+                .OrderBy(x => x.DealerName)
+                .ToListAsync();
 
-                throw new Exception($"Invalid registration date format: {regDate}");
-            }
-            catch
-            {
-                throw;
-            }
+            return result;
         }
 
         public async Task BeginTransactionAsync()
@@ -309,12 +284,12 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             await _context.SaveChangesAsync();
         }
 
-        public async Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate)
+        public async Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate)
         {
             try
             {
                 var dealer = await _context.DealerMasters
-                    .FirstOrDefaultAsync(d => d.Id == dealerId);
+                    .FirstOrDefaultAsync(d => d.Dealercode == dealerCode);
 
                 if (dealer == null)
                     throw new KeyNotFoundException(StringConstants.DealerNotFound);
@@ -434,6 +409,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 CeditLimit = item.CeditLimit,
                 RegAddress = item.RegAddress,
                 B2b = item.B2b,
+                IsActive = item.IsActive,
                 CreatedBy = item.CreatedBy,
                 CreatedDate = item.CreatedDate,
                 UpdatedBy = item.UpdatedBy,
