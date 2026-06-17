@@ -330,10 +330,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             JobStatus =
                                    x.rb != null && x.rb.RepairbillStatus == "Billed"
                                         ? "Closed"
-                                  
+
                                    : x.rb != null && x.rb.TotalNetAmount > 0
                                         ? "Complete"
-                                  
+
                                    : x.jh.IsMaterialTransfer == true
                                         ? "Material Transfer"
                                    : x.fr != null
@@ -342,9 +342,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                      DateTime.Now >= x.fr.CreatedDate.AddHours(24)
                                         ? "Work In Progress"
                                    : x.fr != null && x.fr.Ffirstatus == "Closed"
-                                        ? "FFIR Closed"                                                                                                  
+                                        ? "FFIR Closed"
                                    : "Open",
-                           },
+                        },
 
                         JobCardBattery = _context.JobCardBatteryDetails
                             .Where(b => b.JobCardHeaderId == x.jh.Id)
@@ -418,7 +418,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                             .Select(cc => cc.Complaint)
                             .FirstOrDefault(),
-                        
+
                     })
                     //.GroupBy(x => x.JobCardHeader.Id)
                     //.Select(g => g.First())
@@ -1171,6 +1171,25 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode)
+        {
+            var result = await (
+                from h in _context.LotinspectionHeaders
+                join d in _context.LotinspectionDetails
+                    on h.Id equals d.LotHeaderId
+                where h.IsLotInspected == true
+                      && h.DealerCode == dealerCode
+                select d.ChassisNo
+            )
+            .Distinct()
+            .ToListAsync();
+
+            return new InspectedChassisListVM
+            {
+                ChassisNo = result
+            };
         }
     }
 }

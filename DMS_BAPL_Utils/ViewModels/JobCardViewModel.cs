@@ -333,4 +333,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
     }
 
+    public class InspectedChassisListVM
+    {
+        public List<string>? ChassisNo { get; set; } = new();
+    }
+
 }
