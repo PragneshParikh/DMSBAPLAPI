@@ -918,7 +918,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         PDIStatus = item.PDIStatus,
                         FameIIAmnt = item.FameIIAmnt,
                         ProformaCreated = item.ProformaCreated,
-
+                        LocationCode =item.LocationCode,
 
 
                     };

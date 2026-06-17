@@ -122,5 +122,17 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
+
+        public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetLedgerForSale(dealerCode, isSuperAdmin);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
