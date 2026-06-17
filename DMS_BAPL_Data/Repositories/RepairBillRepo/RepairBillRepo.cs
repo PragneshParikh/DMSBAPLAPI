@@ -138,7 +138,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         on jh.Id equals jc.JobCardHeaderId into jcJoin
                     from jc in jcJoin.DefaultIfEmpty()
                     join lg in _context.LedgerMasters
-                        on rb.CustomerLedgerId equals lg.Id into lgJoin
+                        on rb.CustomerLedgerId equals lg.Id  into lgJoin
                     from lg in lgJoin.DefaultIfEmpty()
                     select new
                     {
@@ -240,6 +240,14 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 var billedResult = await (
                from rbh in _context.RepairBillHeaders
 
+               join jh in _context.JobCardHeaders
+               on rbh.JobId equals jh.Id into jobJoin
+               from jh in jobJoin.DefaultIfEmpty()
+
+               join jc in _context.JobCardCustomers
+                   on jh.Id equals jc.JobCardHeaderId into custJoin
+               from jc in custJoin.DefaultIfEmpty()
+
                join st in _context.States
                    on rbh.CustomerLedger.State equals st.StateId into stJoin
                from st in stJoin.DefaultIfEmpty()
@@ -263,13 +271,19 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            ? null
                            : rbh.CustomerLedgerId,
 
-                       PartyName = rbh.CustomerLedger != null
-                           ? rbh.CustomerLedger.LedgerName
-                           : null,
+                       PartyName =
+                           jh != null && jh.Jobtype == 1
+                               ? jc.CustomerName
+                               : rbh.CustomerLedger != null
+                                   ? rbh.CustomerLedger.LedgerName
+                                   : null,
 
-                       MobileNumber = rbh.CustomerLedger != null
-                           ? rbh.CustomerLedger.MobileNumber
-                           : null,
+                       MobileNumber =
+                          jh != null && jh.Jobtype == 1
+                              ? jc.CustomerMobile
+                              : rbh.CustomerLedger != null
+                                  ? rbh.CustomerLedger.MobileNumber
+                                  : null,
 
                        PartyState = st != null
                            ? st.StateName

@@ -31,5 +31,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<int> GetNextJobNumber(string dealerCode);
         Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId);
         Task<bool> UpdateMaterialTransferStatus(int jobId, bool status);
+
+        Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode);
+
+        Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search);
     }
 }

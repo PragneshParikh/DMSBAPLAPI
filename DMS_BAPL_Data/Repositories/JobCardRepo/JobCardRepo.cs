@@ -4,6 +4,7 @@ using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -74,83 +75,125 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
-                var data = await (from h in _context.LotinspectionHeaders
-                                  join d in _context.LotinspectionDetails
-                                      on h.Id equals d.LotHeaderId
-                                  join v in _context.ChassisDetails
-                                      on d.ChassisNo equals v.ChassisNo
-                                  join i in _context.ItemMasters
-                                      on v.ItemCode equals i.Itemcode
-                                  join dm in _context.DealerMasters
-                                      on h.DealerCode equals dm.Dealercode
-                                  join vc in _context.VehicleInwards
-                                  on v.ChassisNo equals vc.ChasisNo
-                                  //join jc in _context.JobCardCustomers
-                                  //on d.ChassisNo equals jc.ChassisNo
-                                  //  into jcGroup
-                                  //from jc in jcGroup.DefaultIfEmpty()
+                if (jobTypeId == 1)
+                {
+                    // ===================== PDI =====================
+                    var data = await (
+                        from h in _context.LotinspectionHeaders
 
-                                  // OEM Model (LEFT JOIN)
-                                  join o in _context.OemmodelMasters
-                                      on i.Oemmodelname.Trim().ToLower()
-                                      equals o.ModelName.Trim().ToLower()
-                                      into oGroup
-                                  from o in oGroup.DefaultIfEmpty()
+                        join dealerLg in _context.LedgerMasters
+                            on h.DealerCode equals dealerLg.DealerCode
 
-                                  where h.IsLotInspected == true
-                                        && h.DealerCode == dealerCode
-                                          &&
-                                            (jobTypeId == 1 ? (v == null || v.SaleDate == null) : true)   // 👈 ONLY unsold
-                                  select new { h, d, v, vc, i, dm, o })
-                                  .ToListAsync();
+                        join d in _context.LotinspectionDetails
+                           on h.Id equals d.LotHeaderId
 
-                // Latest Warranty List
-                var warranties = await _context.OemmodelWarranties
-                    .GroupBy(x => x.OemmodelId)
-                    .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
-                    .ToListAsync();
+                        join v in _context.ChassisDetails
+                            on d.ChassisNo equals v.ChassisNo
 
-                var result = (from x in data
-                                  // LEFT JOIN WARRANTY
-                              join ow in warranties
-                                  on x.o != null ? x.o.Id : 0 equals ow.OemmodelId
-                                  into wGroup
-                              from ow in wGroup.DefaultIfEmpty()
+                        join i in _context.ItemMasters
+                            on v.ItemCode equals i.Itemcode
 
-                              select new LotInspectionChassisVM
-                              {
-                                  InvoiceNo = x.h.InvoiceNo,
-                                  ChassisNumber = x.d.ChassisNo,
-                                  CustomerName = x.dm.Compname,
-                                  CustomerMobile = x.dm.Mobile,
-                                  CustomerAltMobile = x.dm.PhoneOff,
-                                  ModelName = x.i.Itemname,
-                                  RegisterNo = x.vc.Regnumber,
-                                  BatteryNumber = x.vc.BatteryNo,
-                                  ChargerNumber = x.vc.ChargerNo,
-                                  ControllerNo = x.vc.ControllerNo,
-                                  BatteryMake = x.vc.BatteryMake,
-                                  BatteryCapacity = x.vc.BatteryCapacity,
-                                  BatteryChemestry = x.vc.BatteryChemistry,
-                                  ConverterNo = x.vc.Converter,
-                                  MotorNo = x.vc.MotorNo,
-                                  oemModelId = x.o.Id,
+                        join vc in _context.VehicleInwards
+                            on v.ChassisNo equals vc.ChasisNo
 
-                                  //  Warranty (optional)
-                                  OdoReading = ow?.Odoreading,
-                                  Duration = ow?.Duration,
-                                  DurationType = ow?.DurationType,
-                                  EffectiveDate = ow?.EffectiveDate,
+                        join o in _context.OemmodelMasters
+                            on i.Oemmodelname.Trim().ToLower()
+                            equals o.ModelName.Trim().ToLower()
+                            into oGroup
+                        from o in oGroup.DefaultIfEmpty()
 
-                                  ExpireWarrentyDate = ow?.EffectiveDate == null ? null :
-                                      ow.DurationType == "MONTH"
-                                          ? ow.EffectiveDate.Value.AddMonths((int)(ow.Duration ?? 0))
-                                          : ow.DurationType == "YEAR"
-                                              ? ow.EffectiveDate.Value.AddYears((int)(ow.Duration ?? 0))
-                                              : ow.EffectiveDate
-                              }).ToList();
+                        where h.IsLotInspected == true
+                              && h.DealerCode == dealerCode
+                              && v.SaleDate == null
+                              && dealerLg.LedgerType == "Dealer"
 
-                return result;
+                        select new LotInspectionChassisVM
+                        {
+                            InvoiceNo = h.InvoiceNo,
+                            ChassisNumber = d.ChassisNo,
+
+                            CustomerLedgerId = dealerLg.Id,
+                            CustomerName = dealerLg.LedgerName,
+                            CustomerMobile = dealerLg.MobileNumber,
+
+                            ModelName = i.Itemname,
+                            RegisterNo = vc.Regnumber,
+                            BatteryNumber = vc.BatteryNo,
+                            ChargerNumber = vc.ChargerNo,
+                            ControllerNo = vc.ControllerNo,
+                            BatteryMake = vc.BatteryMake,
+                            BatteryCapacity = vc.BatteryCapacity,
+                            BatteryChemestry = vc.BatteryChemistry,
+                            ConverterNo = vc.Converter,
+                            MotorNo = vc.MotorNo,
+
+                            oemModelId = o != null ? o.Id : 0
+                        }
+                    ).Distinct().ToListAsync();
+
+                    return data;
+                }
+                else
+                {
+                    // ===================== SALE / SERVICE =====================
+                    var data = await (
+                        from h in _context.LotinspectionHeaders
+
+                        join d in _context.LotinspectionDetails
+                            on h.Id equals d.LotHeaderId
+
+                        join v in _context.ChassisDetails
+                            on d.ChassisNo equals v.ChassisNo
+
+                        join i in _context.ItemMasters
+                            on v.ItemCode equals i.Itemcode
+
+                        join vc in _context.VehicleInwards
+                            on v.ChassisNo equals vc.ChasisNo
+
+                        join vsd in _context.VehicleSaleBillDetails
+                            on d.ChassisNo equals vsd.ChassisNo
+
+                        join vsh in _context.VehicleSaleBillHeaders
+                            on vsd.VehicleSaleBillId equals vsh.Id
+
+                        join custLg in _context.LedgerMasters
+                            on vsh.LedgerId equals custLg.Id
+
+                        join o in _context.OemmodelMasters
+                            on i.Oemmodelname.Trim().ToLower()
+                            equals o.ModelName.Trim().ToLower()
+                            into oGroup
+                        from o in oGroup.DefaultIfEmpty()
+
+                        where h.IsLotInspected == true
+                              && h.DealerCode == dealerCode && v.SaleDate != null 
+
+                        select new LotInspectionChassisVM
+                        {
+                            InvoiceNo = h.InvoiceNo,
+                            ChassisNumber = d.ChassisNo,
+                            CustomerLedgerId = custLg.Id,
+                            CustomerName = custLg.LedgerName,
+                            CustomerMobile = custLg.MobileNumber,
+
+                            ModelName = i.Itemname,
+                            RegisterNo = vc.Regnumber,
+                            BatteryNumber = vc.BatteryNo,
+                            ChargerNumber = vc.ChargerNo,
+                            ControllerNo = vc.ControllerNo,
+                            BatteryMake = vc.BatteryMake,
+                            BatteryCapacity = vc.BatteryCapacity,
+                            BatteryChemestry = vc.BatteryChemistry,
+                            ConverterNo = vc.Converter,
+                            MotorNo = vc.MotorNo,
+
+                            oemModelId = o != null ? o.Id : 0
+                        }
+                    ).Distinct().ToListAsync();
+
+                    return data;
+                }
             }
             catch (Exception ex)
             {
@@ -209,6 +252,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join lg in _context.LedgerMasters
                         on c.CustomerLedgerId equals lg.Id into lgJoin
                     from lg in lgJoin.DefaultIfEmpty()
+
 
                     join sta in _context.States
                         on lg.State equals sta.StateId into staJoin
@@ -297,6 +341,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
                         PartyState = x.sta != null ? x.sta.StateName : null,
                         CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
+                        
                         IsMaterialTransfer = x.jh.IsMaterialTransfer,
 
                         JobCardHeader = new JobCardHeaderVM
@@ -330,10 +375,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             JobStatus =
                                    x.rb != null && x.rb.RepairbillStatus == "Billed"
                                         ? "Closed"
-                                  
+
                                    : x.rb != null && x.rb.TotalNetAmount > 0
                                         ? "Complete"
-                                  
+
                                    : x.jh.IsMaterialTransfer == true
                                         ? "Material Transfer"
                                    : x.fr != null
@@ -342,9 +387,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                      DateTime.Now >= x.fr.CreatedDate.AddHours(24)
                                         ? "Work In Progress"
                                    : x.fr != null && x.fr.Ffirstatus == "Closed"
-                                        ? "FFIR Closed"                                                                                                  
+                                        ? "FFIR Closed"
                                    : "Open",
-                           },
+                        },
 
                         JobCardBattery = _context.JobCardBatteryDetails
                             .Where(b => b.JobCardHeaderId == x.jh.Id)
@@ -418,7 +463,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             .Where(cc => cc.JobCardHeaderId == x.jh.Id)
                             .Select(cc => cc.Complaint)
                             .FirstOrDefault(),
-                        
+
                     })
                     //.GroupBy(x => x.JobCardHeader.Id)
                     //.Select(g => g.First())
@@ -514,6 +559,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     var customer = new JobCardCustomer
                     {
                         JobCardHeaderId = headerId,
+                        CustomerLedgerId = jobCardDetails.JobCardCustomer.CustomerLedgerId,
                         CustomerName = jobCardDetails.JobCardCustomer.CustomerName,
                         CustomerMobile = jobCardDetails.JobCardCustomer.CustomerMobile,
                         CustomerAltMobile = jobCardDetails.JobCardCustomer.CustomerAltMobile,
@@ -1172,5 +1218,246 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode)
+        {
+            var result = await (
+                from h in _context.LotinspectionHeaders
+                join d in _context.LotinspectionDetails
+                    on h.Id equals d.LotHeaderId
+                where h.IsLotInspected == true
+                      && h.DealerCode == dealerCode
+                select d.ChassisNo
+            )
+            .Distinct()
+            .ToListAsync();
+
+            return new InspectedChassisListVM
+            {
+                ChassisNo = result
+            };
+        }
+
+
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search)
+        {
+            try
+            {
+                var query =
+                    from jh in _context.JobCardHeaders
+
+                    join c in _context.JobCardCustomers
+                        on jh.Id equals c.JobCardHeaderId into custJoin
+                    from c in custJoin.DefaultIfEmpty()
+
+                    join job in _context.JobTypes
+                        on jh.Jobtype equals job.Id into jobJoin
+                    from job in jobJoin.DefaultIfEmpty()
+
+                    join sh in _context.ServiceHeads
+                        on jh.Servicehead equals sh.Id into shJoin
+                    from sh in shJoin.DefaultIfEmpty()
+
+                    join st in _context.ServiceTypes
+                        on jh.Servicetype equals st.Id into stJoin
+                    from st in stJoin.DefaultIfEmpty()
+
+                    join js in _context.JobSources
+                        on jh.JobSource equals js.Id into jsJoin
+                    from js in jsJoin.DefaultIfEmpty()
+
+                    join loc in _context.LocationMasters
+                        on jh.Serviceloc equals loc.Loccode into locJoin
+                    from loc in locJoin.DefaultIfEmpty()
+
+                    join lg in _context.LedgerMasters
+                        on c.CustomerLedgerId equals lg.Id into lgJoin
+                    from lg in lgJoin.DefaultIfEmpty()
+                    join sta in _context.States
+                        on lg.State equals sta.StateId into staJoin
+                    from sta in staJoin.DefaultIfEmpty()
+
+                    join rb in _context.RepairBillHeaders
+                    on jh.Id equals rb.JobId into repairBillJoin
+                    from rb in repairBillJoin.DefaultIfEmpty()
+
+                    join fr in _context.Ffirheaders
+                    on jh.Chassisno equals fr.FfirchassisNo into ffirJoin
+                    from fr in ffirJoin.DefaultIfEmpty()
+
+
+                    select new
+                    {
+                        jh,
+                        c,
+                        job,
+                        sh,
+                        st,
+                        js,
+                        loc,
+                        lg,
+                        sta,
+                        rb,
+                        fr
+                    };
+                query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
+
+                // Dealer Filter
+                if (!string.IsNullOrWhiteSpace(search.DealerCode))
+                {
+                    query = query.Where(x =>
+                        x.jh.DealerCode == search.DealerCode);
+                }
+
+                // Date From
+                if (search.DateFrom.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobinDate >= search.DateFrom.Value);
+                }
+
+                // Date To
+                if (search.DateTo.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobinDate <= search.DateTo.Value);
+                }
+
+                // Job No
+                if (search.JobNo.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.jh.JobNo == search.JobNo.Value);
+                }
+
+                // Register No
+                if (!string.IsNullOrWhiteSpace(search.RegisterNo))
+                {
+                    query = query.Where(x =>
+                        x.c != null &&
+                        x.c.RegisterNo.Contains(search.RegisterNo));
+                }
+
+                // Chassis No
+                if (!string.IsNullOrWhiteSpace(search.ChassisNo))
+                {
+                    query = query.Where(x =>
+                        x.c != null &&
+                        x.c.ChassisNo.Contains(search.ChassisNo));
+                }
+
+
+                var jobCardsResult = await query
+                        .Select(x => new JobCardlistDetailsViewModel
+                        {
+                            Jobtype = x.job != null ? x.job.JobTypeName : null,
+                            Jobsource = x.js != null ? x.js.JobSourceName : null,
+                            serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
+                            serviceType = x.st != null ? x.st.ServiceTypeName : null,
+                            Location = x.loc != null ? x.loc.Locname : null,
+                    
+                            PartyName = x.lg != null ? x.lg.LedgerName : null,
+                            PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
+                            PartyState = x.sta != null ? x.sta.StateName : null,
+                            CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
+                            IsMaterialTransfer = x.jh.IsMaterialTransfer,
+                    
+                            JobCardHeader = new JobCardHeaderVM
+                            {
+                                Id = x.jh.Id,
+                                DealerCode = x.jh.DealerCode,
+                                Jobtype = x.jh.Jobtype,
+                                Servicehead = x.jh.Servicehead,
+                                Servicetype = x.jh.Servicetype,
+                                JobSource = x.jh.JobSource,
+                                Chassisno = x.jh.Chassisno,
+                                Couponno = x.jh.Couponno,
+                                Jobprefix = x.jh.Jobprefix,
+                                JobNo = x.jh.JobNo,
+                                Vehiclekms = x.jh.Vehiclekms,
+                                JobinDate = x.jh.JobinDate,
+                                JobinTime = x.jh.JobinTime,
+                                EstdelDate = x.jh.EstdelDate,
+                                EstdelTime = x.jh.EstdelTime,
+                                InvoiceNo = x.jh.InvoiceNo,
+                                ManualjobNo = x.jh.ManualjobNo,
+                                Serviceloc = x.jh.Serviceloc,
+                                Supervisor = x.jh.Supervisor,
+                                Technician = x.jh.Technician,
+                                Jobestmate = x.jh.Jobestmate,
+                                AirpressureRearTyre = x.jh.AirpressureRearTyre,
+                                AirpressurefrontTyre = x.jh.AirpressurefrontTyre,
+                                IsPdiSuccess = x.jh.IsPdiSuccess,
+                                Observation = x.jh.Observation,
+                                SupervisorComment = x.jh.SupervisorComment,
+                    
+                                JobStatus =
+                                    x.rb != null && x.rb.RepairbillStatus == "Billed"
+                                        ? "Closed"
+                                    : x.rb != null && x.rb.TotalNetAmount > 0
+                                        ? "Complete"
+                                    : x.jh.IsMaterialTransfer == true
+                                        ? "Material Transfer"
+                                    : x.fr != null && x.fr.Ffirstatus == "Closed"
+                                        ? "FFIR Closed"
+                                    : x.fr != null
+                                        ? "FFIR Created"
+                                    : "Open"
+                            },
+                    
+                            JobCardCustomer = x.c == null ? null : new JobCardCustomerVM
+                            {
+                                Id = x.c.Id,
+                                JobCardHeaderId = x.c.JobCardHeaderId,
+                                SaleDate = x.c.SaleDate,
+                                RegisterNo = x.c.RegisterNo,
+                                ChassisNo = x.c.ChassisNo,
+                                ModelName = x.c.ModelName,
+                    
+                                // If SaleDate not available then use LedgerMaster Customer
+                                CustomerLedgerId =
+                                    x.c.SaleDate == null
+                                        ? x.lg != null ? x.lg.Id : x.c.CustomerLedgerId
+                                        : x.c.CustomerLedgerId,
+                    
+                                CustomerName =
+                                    x.c.SaleDate == null
+                                        ? (x.lg != null ? x.lg.LedgerName : x.c.CustomerName)
+                                        : x.c.CustomerName,
+                    
+                                CustomerMobile =
+                                    x.c.SaleDate == null
+                                        ? (x.lg != null ? x.lg.MobileNumber : x.c.CustomerMobile)
+                                        : x.c.CustomerMobile,
+                    
+                                CustomerAltMobile = x.c.CustomerAltMobile,
+                                MotorNo = x.c.MotorNo,
+                                BatteryNo = x.c.BatteryNo,
+                                InsuranceExpDate = x.c.InsuranceExpDate,
+                                NextserviceDueDate = x.c.NextserviceDueDate,
+                                RsarenewalDate = x.c.RsarenewalDate,
+                                Remarks = x.c.Remarks
+                            }
+                    })
+    .OrderByDescending(x => x.JobCardHeader.Id)
+    .ToListAsync();
+
+
+                return jobCardsResult;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+            $"GetJobCardListViewAsync Error : {ex.Message} | Inner : {ex.InnerException?.Message}",
+            ex);
+            }
+        }
+
+
+
+
+
+
+
     }
 }
