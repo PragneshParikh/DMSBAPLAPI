@@ -538,7 +538,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Item = im,
                         Color = cm,
                         Sale = vsd,
-                        SaleHdr = vsh
+                        SaleHdr = vsh,
+                        LocationMaster = lm
                     };
 
                 // Filters

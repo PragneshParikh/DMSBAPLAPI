@@ -36,7 +36,7 @@ namespace DMS_BAPL_Data.Services.DepartmentService
             var entity = new DepartmentMaster
             {
                 DepartmentId = departmentViewModel.DepartmentId,
-                DepartmentCode = departmentViewModel.DepartmentCode,
+                Abbreviation = departmentViewModel.Abbreviation,
                 DepartmentName = departmentViewModel.DepartmentName,
                 IsActive = departmentViewModel.IsActive,
                 CreatedBy = departmentViewModel.CreatedBy,
