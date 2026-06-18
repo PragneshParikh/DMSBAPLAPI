@@ -103,12 +103,37 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        // GET DEALER INFO BY CODE
+        //[HttpGet("GetDealerByCode/{dealerCode}")]
+        //public async Task<ActionResult> GetDealerByCode(string dealerCode)
+        //{
+        //    try
+        //    {
+        //        var dealer = await _employeeService.GetDealerByCode(dealerCode);
+        //        if (dealer == null) return NotFound("Dealer Not Found");
+        //        return Ok(dealer);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex.Message);
+        //        return BadRequest(ex.Message);
+        //    }
+        //}
+
+        // GET DEALER LOCATIONS
+        //[HttpGet("GetLocationsByDealer/{dealerCode}")]
+        //public async Task<ActionResult> GetLocationsByDealer(string dealerCode)
+        //{
+        //    try
+        //    {
+        //        var locations = await _employeeService.GetLocationsByDealer(dealerCode);
+        //        return Ok(locations);
         [HttpGet("employeeByDesignation")]
         public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get(string? dealerCode, string designation)
         {
             try
             {
-                var employeeList = await _employeeService.GetEmployeesByDesignation(dealerCode,designation);
+                var employeeList = await _employeeService.GetEmployeesByDesignation(dealerCode, designation);
 
                 return Ok(employeeList);
             }

@@ -418,5 +418,23 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
         }
 
+        public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode,bool isSuperAdmin)
+        {
+            try
+            {
+                var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "institutional" || i.LedgerType.ToLower() == "party" || i.LedgerType.ToLower() == "dealer").ToListAsync();
+                if(!isSuperAdmin)
+                {
+                    result = result.Where(i=>i.DealerCode ==dealerCode).ToList();
+                }
+                return result;
+
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

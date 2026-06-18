@@ -16,6 +16,10 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<int> CreateNewUser(EmployeeMaster employeeMaster);
 
         Task<int> UpdateEmployee(EmployeeMaster employeeMaster);
+
+        //Task<object?> GetDealerByCode(string dealerCode);
+        //Task<List<object>> GetLocationsByDealer(string dealerCode);
+
         Task<List<EmployeeDesignationWiseViewModel>> GetEmployeesByDesignation(string? dealerCode, string designation);
     }
 }

@@ -225,6 +225,7 @@ namespace DMS_BAPL_Api.Controllers
 
             var claims = new List<Claim>
                 {
+                    new Claim("DealerCode", user.UserName ?? ""),
                     new Claim(ClaimTypes.NameIdentifier, user.Id),
                     new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
                     new Claim(ClaimTypes.Email, user.Email ?? string.Empty),

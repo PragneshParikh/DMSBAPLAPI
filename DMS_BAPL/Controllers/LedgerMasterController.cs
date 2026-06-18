@@ -264,5 +264,22 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+
+
+        [HttpGet("getLedgerForSale")]
+        public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin)
+        {
+            try
+            {
+                return await _ledgerMasterService.GetLedgerForSale(dealerCode, isSuperAdmin);
+            }
+            catch
+            {
+                throw;
+
+
+            }
+        }
+
     }
 }

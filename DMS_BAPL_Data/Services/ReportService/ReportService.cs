@@ -21,13 +21,13 @@ namespace DMS_BAPL_Data.Services.ReportService
             _logger = logger;
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // STOCK REPORT  (unchanged from StockReportService)
-        // ═════════════════════════════════════════════════════════════════════
+        // =================================================================
+        // STOCK REPORT
+        // =================================================================
 
-        public async Task<List<StockReportViewModel>> GetColourWiseStockReportAsync()
+        public async Task<List<StockReportViewModel>>GetDealerWiseStockReportAsync(string? dealerCode)
         {
-            return await _reportRepo.GetColourWiseStockReportAsync();
+            return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
         }
 
         public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
@@ -35,10 +35,9 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
         }
 
-
-        // ═════════════════════════════════════════════════════════════════════
-        // JOB REPORT  (unchanged from JobReportService)
-        // ═════════════════════════════════════════════════════════════════════
+        // =================================================================
+        // JOB REPORT
+        // =================================================================
 
         public async Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(
             JobReportFilterModel filter)
@@ -157,9 +156,9 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // VEHICLE SALE REPORT  (unchanged from VehicleSaleReportService)
-        // ═════════════════════════════════════════════════════════════════════
+        // =================================================================
+        // VEHICLE SALE REPORT
+        // =================================================================
 
         public async Task<List<VehicleSaleReportViewModel>> GetVehicleSaleReportAsync(
             DateTime? fromDate,
@@ -169,13 +168,12 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo.GetVehicleSaleReportAsync(fromDate, toDate, dealerCode);
         }
 
-        public async Task<PagedResponse<CurrentStockReportViewModel>>
-         GetCurrentStockReportAsync(CurrentStockFilterModel filter)
+        public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(
+            CurrentStockFilterModel filter)
         {
             try
             {
                 _logger.LogInformation("Fetching current stock report");
-
                 return await _reportRepo.GetCurrentStockReportAsync(filter);
             }
             catch (Exception ex)
@@ -185,22 +183,17 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
-        public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
+        public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(
+            POTrackingFilterModel filter)
         {
             try
             {
-                _logger.LogInformation(
-                    "Fetching PO Tracking Report");
-
-                return await _reportRepo
-                    .GetPOTrackingReportAsync(filter);
+                _logger.LogInformation("Fetching PO Tracking Report");
+                return await _reportRepo.GetPOTrackingReportAsync(filter);
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Error fetching PO Tracking Report");
-
+                _logger.LogError(ex, "Error fetching PO Tracking Report");
                 throw;
             }
         }
@@ -231,14 +224,14 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
-        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate,DateTime? toDate,string? dealerCode)
+        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? dealerCode)
         {
             try
             {
-                return await _reportRepo.GetPartsDispatchReportAsync(
-                    fromDate,
-                    toDate,
-                    dealerCode);
+                return await _reportRepo.GetPartsDispatchReportAsync(fromDate, toDate, dealerCode);
             }
             catch (Exception ex)
             {
@@ -249,8 +242,7 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         public async Task<List<object>> GetDealerListAsync()
         {
-            return await _reportRepo
-                .GetDealerListAsync();
+            return await _reportRepo.GetDealerListAsync();
         }
 
         public async Task<List<object>> GetModelListAsync()
@@ -260,7 +252,7 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         public async Task<List<object>> GetModelListByDealerAsync(string dealerCode)
         {
-            return await _reportRepo .GetModelListByDealerAsync(dealerCode);
+            return await _reportRepo.GetModelListByDealerAsync(dealerCode);
         }
 
         public async Task<List<string>> GetChassisListAsync()
@@ -268,24 +260,20 @@ namespace DMS_BAPL_Data.Services.ReportService
             return await _reportRepo.GetChassisListAsync();
         }
 
-
-        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        public async Task<List<PartDispatchKitReportViewModel>> GetPartDispatchKitReportAsync(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? dealerCode)
         {
-            return await _reportRepo
-                .GetPartDispatchKitReportAsync(
-                    fromDate,
-                    toDate,
-                    dealerCode
-                );
+            return await _reportRepo.GetPartDispatchKitReportAsync(fromDate, toDate, dealerCode);
         }
 
         public async Task<List<string>> GetPartDispatchKitPOTypeDropdownAsync()
         {
-            return await _reportRepo
-                .GetPartDispatchKitPOTypeDropdownAsync();
+            return await _reportRepo.GetPartDispatchKitPOTypeDropdownAsync();
         }
-        
-        //FORM22 REPORT FOR SALEBILL
+
+        // FORM 22 REPORT FOR SALEBILL
         public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
         {
             try
@@ -298,5 +286,68 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
+        // =================================================================
+        // VEHICLE SALE BILL REPORT
+        // =================================================================
+
+        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                filter ??= new VehicleSaleBillReportFilterModel();
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                return await _reportRepo.GetVehicleSaleBillReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale bill report");
+                throw;
+            }
+        }
+
+        public async Task<List<VehicleSaleBillReportViewModel>> GetVehicleSaleBillReportForExportAsync(
+            string? dealerCode,
+            DateTime? fromDate,
+            DateTime? toDate)
+        {
+            try
+            {
+                return await _reportRepo.GetVehicleSaleBillReportForExportAsync(
+                    dealerCode, fromDate, toDate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting vehicle sale bill report");
+                throw;
+            }
+        }
+
+        public async Task<List<string>> GetSaleTypeDropdownAsync()
+        {
+            try
+            {
+                return await _reportRepo.GetSaleTypeDropdownAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching sale type dropdown");
+                throw;
+            }
+        }
+
+        public async Task<List<string>> GetSaleBillStatusDropdownAsync()
+        {
+            try
+            {
+                return await _reportRepo.GetSaleBillStatusDropdownAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching sale bill status dropdown");
+                throw;
+            }
+        }
     }
 }

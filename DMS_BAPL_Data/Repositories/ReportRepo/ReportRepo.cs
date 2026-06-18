@@ -29,9 +29,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 var vehicleInwards = await _context.VehicleInwards
-                 .AsNoTracking()
-                 .Where(vi => vi.DealerCode != null && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)) // ✅ filter here
-                 .ToListAsync();
+                    .AsNoTracking()
+                    .Where(vi =>
+                        vi.DealerCode != null &&
+                        (string.IsNullOrEmpty(dealerCode)
+                            || vi.DealerCode == dealerCode))
+                    .ToListAsync();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -427,7 +430,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 join fnr in _context.LedgerMasters
                  on h.Financier equals fnr.Id into fnrJoin
-                 from fnr in fnrJoin.DefaultIfEmpty()
+                from fnr in fnrJoin.DefaultIfEmpty()
 
                 where
                     (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
@@ -496,6 +499,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
+                // Local rule: how a finalized bill is distinguished from a proforma.
+                // ── Adjust this to match your data (Status / BillType / SaleBillNo) ──
+                static bool IsBilled(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Billed";
+
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
 
@@ -511,9 +519,17 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vi.ColrCode equals cm.Colorcode into cmJoin
                     from cm in cmJoin.DefaultIfEmpty()
 
+                    join lm in _context.LocationMasters.AsNoTracking()
+                        on vi.LocCode equals lm.Loccode into lmJoin
+                    from lm in lmJoin.DefaultIfEmpty()
+
                     join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                        on vi.ChasisNo equals vsd.ChassisNo into saleJoin
-                    from vsd in saleJoin.DefaultIfEmpty()
+                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
+                    from vsd in saleDetailJoin.DefaultIfEmpty()
+
+                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
+                    from vsh in saleHeaderJoin.DefaultIfEmpty()
 
                     select new
                     {
@@ -521,7 +537,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Dealer = dm,
                         Item = im,
                         Color = cm,
-                        Sale = vsd
+                        Sale = vsd,
+                        SaleHdr = vsh
                     };
 
                 // Filters
@@ -551,25 +568,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
                 }
 
-                if (!string.IsNullOrWhiteSpace(filter.StockStatus))
-                {
-                    if (filter.StockStatus == "Billed")
-                    {
-                        query = query.Where(x => x.Sale != null);
-                    }
-                    else if (filter.StockStatus == "In Stock")
-                    {
-                        query = query.Where(x => x.Sale == null);
-                    }
-                }
-
-                if (filter.IsBilled.HasValue)
-                {
-                    query = query.Where(x =>
-                        (x.Sale != null) == filter.IsBilled.Value);
-                }
-
                 var rawData = await query.ToListAsync();
+
+                // ── Condition 3: vehicle billed against chassis → exclude from report ──
+                rawData = rawData
+                    .Where(x => !IsBilled(x.SaleHdr))
+                    .ToList();
 
                 var result = rawData.Select((x, index) =>
                 {
@@ -581,6 +585,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             x.Vehicle.InvoiceDate.Value
                                 .ToDateTime(TimeOnly.MinValue);
                     }
+
+                    // ── Conditions 1 & 2 ──
+                    // A non-billed sale header against the chassis = proforma (Allocated).
+                    // No sale header at all = not yet allocated (Available).
+                    string vehicleStatus =
+                        x.SaleHdr != null ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
@@ -633,27 +643,39 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                         ReceiveDate = invoiceDate,
 
-                        VehicleStatus = "Available",
+                        VehicleStatus = vehicleStatus,
 
-                        StockStatus = x.Sale != null
-                            ? "Billed"
+                        StockStatus = x.SaleHdr != null
+                            ? "Allocated"
                             : "In Stock",
 
-                        Location = x.Vehicle.LocCode,
+                        LocationCode = x.Vehicle.LocCode,
 
-                        CurrentLocation = x.Vehicle.LocCode,
+                        LocationName = x.LocationMaster != null
+                                  ? x.LocationMaster.Locname
+                                  : "",
+
+                        CurrentLocation = x.LocationMaster != null
+                                ? x.LocationMaster.Locname
+                                : x.Vehicle.LocCode,
 
                         PurchaseRate = 0,
 
                         EstimatedSaleRate = 0,
 
-                        IsBilled = x.Sale != null,
+                        IsBilled = false,
 
                         DaysInStock = invoiceDate.HasValue
                             ? (DateTime.Now - invoiceDate.Value).Days
                             : 0
                     };
                 });
+
+                // ── Vehicle Status filter (Available / Allocated) ──
+                if (!string.IsNullOrWhiteSpace(filter.StockStatus))
+                {
+                    result = result.Where(x => x.VehicleStatus == filter.StockStatus);
+                }
 
                 // Date Filters after memory conversion
 
@@ -696,6 +718,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ex);
             }
         }
+
 
         public async Task<PagedResponse<POTrackingReportViewModel>> GetPOTrackingReportAsync(POTrackingFilterModel filter)
         {
@@ -985,10 +1008,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             // PO Status is derived from bool Status field
             // Active / Inactive — return fixed meaningful labels
             return await Task.FromResult(new List<string>
-            {
-                "Active",
-                "Inactive"
-            });
+                {
+                    "Active",
+                    "Inactive"
+                });
         }
 
 
@@ -1055,7 +1078,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return result.AsQueryable();
         }
 
-        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync( DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
             try
             {
@@ -1562,6 +1585,518 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
-    }
 
+        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                var query =
+                    from vd in _context.VehicleSaleBillDetails
+
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vd.VehicleSaleBillId equals vh.Id
+
+                    join vi in _context.VehicleInwards
+                        on vd.ChassisNo equals vi.ChasisNo into viJoin
+                    from vi in viJoin.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters
+                        on vd.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join clr in _context.ColorMasters
+                        on vi.ColrCode equals clr.Colorcode into clrJoin
+                    from clr in clrJoin.DefaultIfEmpty()
+
+                    join dm in _context.DealerMasters
+                        on vh.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    join cust in _context.LedgerMasters
+                        on vh.LedgerId equals cust.Id into custJoin
+                    from cust in custJoin.DefaultIfEmpty()
+
+                    join fin in _context.LedgerMasters
+                        on vh.Financier equals fin.Id into finJoin
+                    from fin in finJoin.DefaultIfEmpty()
+
+                    join city in _context.Cities
+                        on cust.City equals city.CityId into cityJoin
+                    from city in cityJoin.DefaultIfEmpty()
+
+                    join state in _context.States
+                        on cust.State equals state.StateId into stateJoin
+                    from state in stateJoin.DefaultIfEmpty()
+
+                    join inv in _context.InvoiceHeaders
+                        on vd.VehicleSaleBillId equals inv.ReferenceId into invJoin
+                    from inv in invJoin.DefaultIfEmpty()
+
+                    select new VehicleSaleBillReportViewModel
+                    {
+                        SaleBillId = vh.Id,
+                        SaleBillNo = vh.SaleBillNo,
+                        SaleDate = vh.SaleDate,
+                        Status = vh.Status,
+                        Location = vh.Location,
+                        DealerCode = vh.DealerCode,
+                        DealerName = dm.Compname,
+                        CustomerName = vh.CustomerName ?? cust.LedgerName,
+                        BillingName = vh.BillingName,
+                        CustomerType = vh.CustomerType,
+                        SaleType = vh.SaleType,
+                        BillType = vh.BillType,
+                        Financier = fin.LedgerName,
+                        SalesExecutive = vh.SalesExecutive,
+                        CustomerMobile = cust.MobileNumber,
+                        CustomerCity = city.CityName,
+                        CustomerState = state.StateName,
+                        InvoiceNo = inv.InvoiceNo,
+
+                        ChassisNo = vd.ChassisNo,
+                        MotorNo = vi.MotorNo,
+                        ItemCode = vd.ItemCode,
+                        ModelName = im.Itemname ?? vd.ModelName,
+                        OemModelName = im.Oemmodelname,
+                        Colour = clr.Colorname ?? vd.Colour,
+                        Hsn = im.Hsncode,
+                        MfgYear = vd.MfgYear ?? vi.MfgYear,
+                        RegNo = vd.RegNo,
+                        InsNo = vd.InsNo,
+
+                        ItemRate = vd.ItemRate,
+                        PreGstDiscount = vd.PreGstDiscount ?? 0,
+                        TaxableAmount = vd.ItemRate - (vd.PreGstDiscount ?? 0),
+                        SgstPer = vd.Sgstper ?? 0,
+                        SgstAmount = vd.Sgstamnt ?? 0,
+                        CgstPer = vd.Cgstper ?? 0,
+                        CgstAmount = vd.Cgstamnt ?? 0,
+                        IgstPer = vd.Igstper ?? 0,
+                        IgstAmount = vd.Igstamnt ?? 0,
+                        FameIIDiscount = vd.FameIi ?? 0,
+                        RegAmount = vd.RegAmount ?? 0,
+                        InsuranceAmount = vd.InsuranceAmount ?? 0,
+                        PostGstDiscount = vd.PostGstDisc ?? 0,
+                        FinalAmount = vd.FinalAmount,
+
+                        Battery = vd.Battery,
+                        ChargerNo = vd.ChargerNo,
+                        ControllerNo = vd.ControllerNo,
+                        Vcu = vd.Vcu
+                    };
+
+                // ── DB-side filters (map to direct columns) ──
+                if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                    query = query.Where(x => x.DealerCode == filter.DealerCode);
+
+                if (filter.FromDate.HasValue)
+                    query = query.Where(x => x.SaleDate.Date >= filter.FromDate.Value.Date);
+
+                if (filter.ToDate.HasValue)
+                    query = query.Where(x => x.SaleDate.Date <= filter.ToDate.Value.Date);
+
+                if (!string.IsNullOrWhiteSpace(filter.SaleType))
+                    query = query.Where(x => x.SaleType == filter.SaleType);
+
+                if (!string.IsNullOrWhiteSpace(filter.CustomerType))
+                    query = query.Where(x => x.CustomerType == filter.CustomerType);
+
+                if (filter.BillType.HasValue)
+                    query = query.Where(x => x.BillType == filter.BillType.Value);
+
+                if (!string.IsNullOrWhiteSpace(filter.Status))
+                    query = query.Where(x => x.Status == filter.Status);
+
+                if (!string.IsNullOrWhiteSpace(filter.SaleBillNo))
+                    query = query.Where(x => x.SaleBillNo != null && x.SaleBillNo.Contains(filter.SaleBillNo));
+
+                if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                    query = query.Where(x => x.ChassisNo != null && x.ChassisNo.Contains(filter.ChassisNo));
+
+                var rows = await query.ToListAsync();
+
+                // ── Free-text search (in memory) ──
+                if (!string.IsNullOrWhiteSpace(filter.Search))
+                {
+                    var s = filter.Search.Trim().ToLower();
+                    rows = rows.Where(x =>
+                        (x.SaleBillNo ?? "").ToLower().Contains(s) ||
+                        (x.CustomerName ?? "").ToLower().Contains(s) ||
+                        (x.BillingName ?? "").ToLower().Contains(s) ||
+                        (x.ChassisNo ?? "").ToLower().Contains(s) ||
+                        (x.ModelName ?? "").ToLower().Contains(s) ||
+                        (x.RegNo ?? "").ToLower().Contains(s)
+                    ).ToList();
+                }
+
+                rows = rows
+                    .OrderByDescending(x => x.SaleDate)
+                    .ThenByDescending(x => x.SaleBillNo)
+                    .ToList();
+
+                var response = new VehicleSaleBillReportResponse
+                {
+                    TotalRecords = rows.Count,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+
+                    TotalItemRate = rows.Sum(x => x.ItemRate),
+                    TotalTaxable = rows.Sum(x => x.TaxableAmount),
+                    TotalSgst = rows.Sum(x => x.SgstAmount),
+                    TotalCgst = rows.Sum(x => x.CgstAmount),
+                    TotalIgst = rows.Sum(x => x.IgstAmount),
+                    TotalFameII = rows.Sum(x => x.FameIIDiscount),
+                    TotalRegistration = rows.Sum(x => x.RegAmount),
+                    TotalInsurance = rows.Sum(x => x.InsuranceAmount),
+                    GrandTotal = rows.Sum(x => x.FinalAmount)
+                };
+
+                var paged = rows
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                int srNo = ((filter.PageIndex - 1) * filter.PageSize) + 1;
+                foreach (var r in paged)
+                    r.SrNo = srNo++;
+
+                response.Data = paged;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching vehicle sale bill report: " + ex.Message, ex);
+            }
+        }
+
+
+        // ═════════════════════════════════════════════════════════════════════
+        // VEHICLE SALE BILL REPORT  ← NEW  (43 columns matching Excel exactly)
+        // ═════════════════════════════════════════════════════════════════════
+
+
+        //public async Task<VehicleSaleBillReportPagedResponse> GetVehicleSaleBillReportAsync(
+        //    VehicleSaleBillReportFilterModel filter)
+        //{
+        //    try
+        //    {
+        //        var query =
+        //            from h in _context.VehicleSaleBillHeaders.AsNoTracking()
+
+        //            join d in _context.VehicleSaleBillDetails.AsNoTracking()
+        //                on h.Id equals d.VehicleSaleBillId
+
+        //            // Customer ledger (PartyName, Address, Mobile, Email, GSTN)
+        //            join cust in _context.LedgerMasters.AsNoTracking()
+        //                on h.LedgerId equals cust.Id into custJoin
+        //            from cust in custJoin.DefaultIfEmpty()
+
+        //                // Financier ledger (Col 43 — Financer Name)
+        //            join fin in _context.LedgerMasters.AsNoTracking()
+        //                on h.Financier equals fin.Id into finJoin
+        //            from fin in finJoin.DefaultIfEmpty()
+
+        //                // ItemMaster (Description, OEM Model Name, HSNSAC Code)
+        //            join im in _context.ItemMasters.AsNoTracking()
+        //                on d.ItemCode equals im.Itemcode into imJoin
+        //            from im in imJoin.DefaultIfEmpty()
+
+        //                // VehicleInward (Color via ColrCode, MotorNo for internal use)
+        //            join vi in _context.VehicleInwards.AsNoTracking()
+        //                on d.ChassisNo equals vi.ChasisNo into viJoin
+        //            from vi in viJoin.DefaultIfEmpty()
+
+        //                // ColorMaster (Col 42 — Color)
+        //            join clr in _context.ColorMasters.AsNoTracking()
+        //                on vi.ColrCode equals clr.Colorcode into clrJoin
+        //            from clr in clrJoin.DefaultIfEmpty()
+
+        //                // LocationMaster (Col 8 — Location name)
+        //            join loc in _context.LocationMasters.AsNoTracking()
+        //                on h.Location equals loc.Loccode into locJoin
+        //            from loc in locJoin.DefaultIfEmpty()
+
+        //                // InvoiceHeader (InvoiceNo for internal tracking)
+        //            join inv in _context.InvoiceHeaders.AsNoTracking()
+        //                on h.Id equals inv.ReferenceId into invJoin
+        //            from inv in invJoin.DefaultIfEmpty()
+
+        //            select new { h, d, cust, fin, im, vi, clr, loc, inv };
+
+        //        // ── Filters — all in SQL before paging ────────────────────────
+        //        if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+        //            query = query.Where(x => x.h.DealerCode == filter.DealerCode);
+
+        //        if (filter.FromDate.HasValue)
+        //            query = query.Where(x => x.h.SaleDate.Date >= filter.FromDate.Value.Date);
+
+        //        if (filter.ToDate.HasValue)
+        //            query = query.Where(x => x.h.SaleDate.Date <= filter.ToDate.Value.Date);
+
+        //        if (!string.IsNullOrWhiteSpace(filter.SaleType))
+        //            query = query.Where(x => x.h.SaleType == filter.SaleType);
+
+        //        if (!string.IsNullOrWhiteSpace(filter.Status))
+        //            query = query.Where(x => x.h.Status == filter.Status);
+
+        //        if (!string.IsNullOrWhiteSpace(filter.ItemCode))
+        //            query = query.Where(x => x.d.ItemCode == filter.ItemCode);
+
+        //        if (!string.IsNullOrWhiteSpace(filter.Location))
+        //            query = query.Where(x => x.h.Location == filter.Location);
+
+        //        if (!string.IsNullOrWhiteSpace(filter.Search))
+        //        {
+        //            var s = filter.Search.Trim().ToLower();
+        //            query = query.Where(x =>
+        //                (x.h.SaleBillNo != null && x.h.SaleBillNo.ToLower().Contains(s)) ||
+        //                (x.h.CustomerName != null && x.h.CustomerName.ToLower().Contains(s)) ||
+        //                (x.h.BillingName != null && x.h.BillingName.ToLower().Contains(s)) ||
+        //                (x.d.ChassisNo != null && x.d.ChassisNo.ToLower().Contains(s)) ||
+        //                (x.d.RegNo != null && x.d.RegNo.ToLower().Contains(s)) ||
+        //                (x.d.ModelName != null && x.d.ModelName.ToLower().Contains(s)));
+        //        }
+
+        //        // ── Aggregates over full filtered set (before paging) ─────────
+        //        var totalRecords = await query.CountAsync();
+        //        var totalSaleAmount = await query.SumAsync(x => (decimal?)x.d.FinalAmount) ?? 0;
+        //        var totalSubsidyAmount = await query.SumAsync(x => (decimal?)x.d.FameIi) ?? 0;
+        //        var totalGstAmount = await query.SumAsync(x =>
+        //            ((decimal?)x.d.Sgstamnt ?? 0) +
+        //            ((decimal?)x.d.Cgstamnt ?? 0) +
+        //            ((decimal?)x.d.Igstamnt ?? 0));
+        //        var totalNetAmount = await query.SumAsync(x => (decimal?)x.d.FinalAmount) ?? 0;
+
+        //        // ── Page + project to 43 Excel columns ────────────────────────
+        //        var rawData = await query
+        //            .OrderByDescending(x => x.h.SaleDate)
+        //            .ThenByDescending(x => x.h.Id)
+        //            .Skip((filter.PageIndex - 1) * filter.PageSize)
+        //            .Take(filter.PageSize)
+        //            .Select(x => new
+        //            {
+        //                // header
+        //                x.h.Id,
+        //                x.h.SaleBillNo,
+        //                x.h.SaleDate,
+        //                x.h.BookingId,
+        //                x.h.CustomerName,
+        //                x.h.BillingName,
+        //                x.h.Location,
+        //                x.h.SalesExecutive,
+        //                x.h.SaleType,
+        //                x.h.DealerCode,
+        //                x.h.Status,
+        //                // customer ledger
+        //                CustAddress = x.cust != null ? x.cust.Address : null,
+        //                CustMobile = x.cust != null ? x.cust.MobileNumber : null,
+        //                CustEmail = x.cust != null ? x.cust.EMail : null,
+        //                CustGstn = x.cust != null ? x.cust.Gstno : null,
+        //                // financier
+        //                FinancerName = x.fin != null ? x.fin.LedgerName : null,
+        //                // item master
+        //                ItemModel = x.im != null ? x.im.Itemname : null,
+        //                Description = x.im != null ? x.im.Itemdesc : null,
+        //                OemModelName = x.im != null ? x.im.Oemmodelname : null,
+        //                HsnCode = x.im != null ? x.im.Hsncode : null,
+        //                SubsidyAmnt = x.im != null ? x.im.Fame2amount : 0,
+        //                // location
+        //                LocationName = x.loc != null ? x.loc.Locname : null,
+        //                // color
+        //                ColorName = x.clr != null ? x.clr.Colorname : null,
+        //                // invoice
+        //                InvoiceNo = x.inv != null ? x.inv.InvoiceNo : null,
+        //                // detail
+        //                x.d.ChassisNo,
+        //                x.d.RegNo,
+        //                x.d.ItemRate,
+        //                x.d.InsuranceAmount,
+        //                x.d.RegAmount,
+        //                x.d.PostGstDisc,
+        //                x.d.PreGstDiscount,
+        //                x.d.Sgstper,
+        //                x.d.Sgstamnt,
+        //                x.d.Cgstper,
+        //                x.d.Cgstamnt,
+        //                x.d.Igstper,
+        //                x.d.Igstamnt,
+        //                x.d.FameIi,
+        //                x.d.FinalAmount
+        //            })
+        //            .ToListAsync();
+
+        //        int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
+
+        //        var data = rawData.Select(x => new VehicleSaleBillReportViewModel
+        //        {
+        //            // Col 1
+        //            SrNo = srNo++,
+        //            // Col 2 — Bill No
+        //            BillNo = x.SaleBillNo,
+        //            // Col 3 — Bill Date
+        //            BillDate = x.SaleDate,
+        //            // Col 4 — Booking Id
+        //            BookingId = x.BookingId,
+        //            // Col 5 — Party Name
+        //            PartyName = x.CustomerName,
+        //            // Col 6 — Contact Person
+        //            ContactPerson = x.BillingName,
+        //            // Col 7 — Party Address
+        //            PartyAddress = x.CustAddress,
+        //            // Col 8 — Location (LocationMaster.Locname)
+        //            Location = x.LocationName ?? x.Location,
+        //            // Col 9 — Party Mobile
+        //            PartyMobile = x.CustMobile,
+        //            // Col 10 — Party Email
+        //            PartyEmail = x.CustEmail,
+        //            // Col 11 — Executive Name
+        //            ExecutiveName = x.SalesExecutive,
+        //            // Col 12 — GSTN No
+        //            GstnNo = x.CustGstn,
+        //            // Col 13 — Item Model
+        //            ItemModel = x.ItemModel,
+        //            // Col 14 — Description
+        //            Description = x.Description,
+        //            // Col 15 — OEM Model Name
+        //            OemModelName = x.OemModelName,
+        //            // Col 16 — HSNSAC Code
+        //            HsnSacCode = x.HsnCode,
+        //            // Col 17 — Sales Type
+        //            SalesType = x.SaleType,
+        //            // Col 18 — Item Rate
+        //            ItemRate = x.ItemRate,
+        //            // Col 19 — Insu. Amnt
+        //            InsuAmnt = x.InsuranceAmount ?? 0,
+        //            // Col 20 — REGN. AMNT
+        //            RegnAmnt = x.RegAmount ?? 0,
+        //            // Col 21 — ACSRY AMNT (no DB field — 0)
+        //            AcsryAmnt = 0,
+        //            // Col 22 — Fin. Amnt (no DB field — 0)
+        //            FinAmnt = 0,
+        //            // Col 23 — Processing Fee (no DB field — 0)
+        //            ProcessingFee = 0,
+        //            // Col 24 — Hyp Amnt (no DB field — 0)
+        //            HypAmnt = 0,
+        //            // Col 25 — Other Charge (no DB field — 0)
+        //            OtherCharge = 0,
+        //            // Col 26 — SmartCard Amnt (no DB field — 0)
+        //            SmartCardAmnt = 0,
+        //            // Col 27 — PostGST Disc Amnt
+        //            PostGstDiscAmnt = x.PostGstDisc ?? 0,
+        //            // Col 28 — PreGST Disc Amnt
+        //            PreGstDiscAmnt = x.PreGstDiscount ?? 0,
+        //            // Col 29 — SGST%
+        //            Sgstper = x.Sgstper ?? 0,
+        //            // Col 30 — SGST Amnt
+        //            Sgstamnt = x.Sgstamnt ?? 0,
+        //            // Col 31 — CGST%
+        //            Cgstper = x.Cgstper ?? 0,
+        //            // Col 32 — CGST Amnt
+        //            Cgstamnt = x.Cgstamnt ?? 0,
+        //            // Col 33 — IGST%
+        //            Igstper = x.Igstper ?? 0,
+        //            // Col 34 — IGST Amnt
+        //            Igstamnt = x.Igstamnt ?? 0,
+        //            // Col 35 — Subsidy Amnt (FameIi from detail; fallback to ItemMaster.Fame2amount)
+        //            SubsidyAmnt = x.FameIi ?? x.SubsidyAmnt,
+        //            // Col 36 — StateSubSidy Amnt (no DB field — 0)
+        //            StateSubsidyAmnt = 0,
+        //            // Col 37 — NumPlate Amnt (no DB field — 0)
+        //            NumPlateAmnt = 0,
+        //            // Col 38 — Handling Charges (no DB field — 0)
+        //            HandlingCharges = 0,
+        //            // Col 39 — Net Amnt
+        //            NetAmnt = x.FinalAmount,
+        //            // Col 40 — Reg No.
+        //            RegNo = x.RegNo,
+        //            // Col 41 — Chasis No.
+        //            ChasisNo = x.ChassisNo,
+        //            // Col 42 — Color
+        //            Color = x.ColorName,
+        //            // Col 43 — Financer Name
+        //            FinancerName = x.FinancerName,
+
+        //            // Internal / extra
+        //            DealerCode = x.DealerCode,
+        //            Status = x.Status,
+        //            InvoiceNo = x.InvoiceNo
+        //        }).ToList();
+
+        //        return new VehicleSaleBillReportPagedResponse
+        //        {
+        //            Success = true,
+        //            PageIndex = filter.PageIndex,
+        //            PageSize = filter.PageSize,
+        //            TotalRecords = totalRecords,
+        //            TotalPages = (int)Math.Ceiling(totalRecords / (double)filter.PageSize),
+        //            TotalVehicles = totalRecords,
+        //            TotalSaleAmount = totalSaleAmount,
+        //            TotalGstAmount = totalGstAmount,
+        //            TotalSubsidyAmount = totalSubsidyAmount,
+        //            TotalNetAmount = totalNetAmount,
+        //            Data = data
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception("Error fetching vehicle sale bill report: " + ex.Message, ex);
+        //    }
+        //}
+
+        public async Task<List<VehicleSaleBillReportViewModel>> GetVehicleSaleBillReportForExportAsync(
+            string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                var filter = new VehicleSaleBillReportFilterModel
+                {
+                    DealerCode = dealerCode,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    PageIndex = 1,
+                    PageSize = int.MaxValue
+                };
+
+                var result = await GetVehicleSaleBillReportAsync(filter);
+                return result.Data;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting vehicle sale bill report: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<string>> GetSaleTypeDropdownAsync()
+        {
+            try
+            {
+                return await _context.VehicleSaleBillHeaders
+                    .AsNoTracking()
+                    .Where(x => x.SaleType != null && x.SaleType != "")
+                    .Select(x => x.SaleType!)
+                    .Distinct().OrderBy(x => x).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching sale type dropdown: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<string>> GetSaleBillStatusDropdownAsync()
+        {
+            try
+            {
+                return await _context.VehicleSaleBillHeaders
+                    .AsNoTracking()
+                    .Where(x => x.Status != null && x.Status != "")
+                    .Select(x => x.Status!)
+                    .Distinct().OrderBy(x => x).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching status dropdown: " + ex.Message, ex);
+            }
+        }
+
+    }
 }

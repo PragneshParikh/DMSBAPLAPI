@@ -17,14 +17,14 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task<DealerMaster> GetDealerById(int id);
         //Task<DealerMaster?> UpdateDealerAsync(int id, DealerMaster dealer);
         Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto, string userId);
-        Task<List<DealerDropdownViewModel>> GetDealerDropdown();
-        Task<DealerMaster> GetDealerByCode(string dealerCode);
+        Task<List<DealerDropdownViewModel>> GetDealerDropdown(string? dealerCode);
+        Task<DealerMaster> GetDealerByCode(string? dealerCode);
         Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId);
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
         Task SaveAsync();
-        Task<DealerMaster> EditTradeCertificate(int dealerId, string tradeCertificate);
+        Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate);
         Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
         Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
     }

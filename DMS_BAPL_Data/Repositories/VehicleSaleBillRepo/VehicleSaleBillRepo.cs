@@ -849,7 +849,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         DealerCode = ch.DealerId,
                         CustomerSaleDate = ch.SaleDate,
                         ProformaCreated = vd == null ? null : vh.SaleBillNo,
-                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done"
+                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done",
+                        LocationCode=ch.LocationCode
                     }
                 })
                 .GroupBy(x => x.ChassisNo)
@@ -1056,5 +1057,308 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 throw;
             }
         }
+
+        public async Task<Form22PdfModel?> GetForm22DataAsync(int id)
+        {
+            try
+            {
+                var rows = await (
+                    from vd in _context.VehicleSaleBillDetails
+
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vd.VehicleSaleBillId equals vh.Id
+
+                    join vi in _context.VehicleInwards
+                        on vd.ChassisNo equals vi.ChasisNo into viJoin
+                    from vi in viJoin.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters
+                        on vd.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join clr in _context.ColorMasters
+                        on vi.ColrCode equals clr.Colorcode into clrJoin
+                    from clr in clrJoin.DefaultIfEmpty()
+
+                    join dm in _context.DealerMasters
+                        on vh.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    join cust in _context.LedgerMasters
+                        on vh.LedgerId equals cust.Id into custJoin
+                    from cust in custJoin.DefaultIfEmpty()
+
+                    where vh.Id == id
+
+                    select new
+                    {
+                        vd,
+                        vh,
+                        vi,
+                        ItemName = im != null ? im.Itemname : null,
+                        OemModel = im != null ? im.Oemmodelname : null,
+                        ColorName = clr != null ? clr.Colorname : null,
+                        Dealer = dm,
+                        Customer = cust
+                    }
+                ).ToListAsync();
+
+                if (rows.Count == 0)
+                    return null;
+
+                // Resolve Form22Master per OEM model (normalized) in memory.
+                var formMasters = await _context.Form22Masters.ToListAsync();
+                var formLookup = formMasters
+                    .GroupBy(f => (f.OemModelName ?? "").Trim().ToLower())
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                var first = rows.First();
+                var h = first.vh;
+                var dealer = first.Dealer;
+                var customer = first.Customer;
+
+                var model = new Form22PdfModel
+                {
+                    DealerName = dealer?.Compname,
+                    DealerAddress = dealer != null
+                        ? $"{dealer.Adress1} {dealer.Adress2}, {dealer.City}, {dealer.State} - {dealer.Pin}".Trim()
+                        : null,
+                    DealerPhone = string.IsNullOrWhiteSpace(dealer?.PhoneOff) ? dealer?.Mobile : dealer?.PhoneOff,
+                    DealerGstin = dealer?.CompgstinNo,
+                    DealerTradeCertNo = dealer?.TradCert,
+
+                    SaleBillNo = h.SaleBillNo,
+                    SaleDate = h.SaleDate,
+
+                    OwnerName = h.CustomerName ?? customer?.LedgerName,
+                    OwnerAddress = customer?.Address,
+                    OwnerMobile = customer?.MobileNumber
+                };
+
+                int sr = 1;
+                foreach (var r in rows)
+                {
+                    var key = (r.OemModel ?? "").Trim().ToLower();
+                    formLookup.TryGetValue(key, out var f2);
+
+                    model.Vehicles.Add(new Form22VehicleLine
+                    {
+                        SrNo = sr++,
+                        MakeModel = r.ItemName ?? r.vd.ModelName,
+                        OemModelName = r.OemModel,
+                        ChassisNo = r.vd.ChassisNo,
+                        MotorNo = r.vi?.MotorNo,
+                        MfgYear = r.vd.MfgYear ?? r.vi?.MfgYear,
+                        Colour = r.ColorName ?? r.vd.Colour,
+
+                        // Form22Master fields (ToString keeps it safe whether the
+                        // master columns are string or numeric)
+                        TypeApprovalCertNo = f2?.ApprovalCertificateNo,
+                        Emission = "",
+                        SoundLevelHorn = f2?.SoundLevelHorn?.ToString(),
+                        NoiseLevel = f2?.PassbyNoiseLevel?.ToString(),
+
+                        BatteryNo = r.vi?.BatteryNo ?? r.vd.Battery,
+                        BatteryMake = r.vi?.BatteryMake ?? r.vd.BatteryMake,
+                        BatteryCapacity = r.vi?.BatteryCapacity ?? r.vd.BatteryCapacity,
+                        ChargerNo = r.vi?.ChargerNo ?? r.vd.ChargerNo,
+                        ControllerNo = r.vi?.ControllerNo ?? r.vd.ControllerNo
+                    });
+                }
+
+                return model;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<ProformaInvoicePdfModel?> GetProformaInvoiceDataAsync(int id)
+        {
+            try
+            {
+                var rows = await (
+                    from vd in _context.VehicleSaleBillDetails
+
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vd.VehicleSaleBillId equals vh.Id
+
+                    join vi in _context.VehicleInwards
+                        on vd.ChassisNo equals vi.ChasisNo into viJoin
+                    from vi in viJoin.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters
+                        on vd.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join dm in _context.DealerMasters
+                        on vh.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    join cust in _context.LedgerMasters
+                        on vh.LedgerId equals cust.Id into custJoin
+                    from cust in custJoin.DefaultIfEmpty()
+
+                    join fin in _context.LedgerMasters
+                        on vh.Financier equals fin.Id into finJoin
+                    from fin in finJoin.DefaultIfEmpty()
+
+                    join city in _context.Cities
+                        on cust.City equals city.CityId into cityJoin
+                    from city in cityJoin.DefaultIfEmpty()
+
+                    join state in _context.States
+                        on cust.State equals state.StateId into stateJoin
+                    from state in stateJoin.DefaultIfEmpty()
+
+                    where vh.Id == id
+
+                    select new
+                    {
+                        vd,
+                        vh,
+                        vi,
+                        ItemName = im != null ? im.Itemname : null,
+                        Hsn = im != null ? im.Hsncode : null,
+                        Dealer = dm,
+                        Customer = cust,
+                        Financier = fin,
+                        CityName = city != null ? city.CityName : null,
+                        StateName = state != null ? state.StateName : null
+                    }
+                ).ToListAsync();
+
+                if (rows.Count == 0)
+                    return null;
+
+                var inv = await _context.InvoiceHeaders
+                    .Where(i => i.ReferenceId == id)
+                    .OrderBy(i => i.Id)
+                    .FirstOrDefaultAsync();
+
+                var first = rows.First();
+                var h = first.vh;
+                var dealer = first.Dealer;
+                var customer = first.Customer;
+                var financier = first.Financier;
+
+                var model = new ProformaInvoicePdfModel
+                {
+                    DealerName = dealer?.Compname,
+                    DealerAddress = dealer != null
+                        ? $"{dealer.Adress1} {dealer.Adress2}, {dealer.City}, {dealer.State} - {dealer.Pin}".Trim()
+                        : null,
+                    DealerPhone = string.IsNullOrWhiteSpace(dealer?.PhoneOff) ? dealer?.Mobile : dealer?.PhoneOff,
+                    DealerEmail = dealer?.Email,
+                    DealerGstin = dealer?.CompgstinNo,
+                    DealerPan = dealer?.Pan,
+                    DealerTradeCertNo = dealer?.TradCert,
+
+                    ProformaNo = inv?.InvoiceNo ?? h.SaleBillNo,
+                    SaleBillNo = h.SaleBillNo,
+                    InvoiceDate = inv?.CreatedDate ?? h.SaleDate,
+                    SaleType = h.SaleType,
+                    BillTypeText = BuildBillTypeText(h.BillType),
+                    CustomerType = h.CustomerType,
+
+                    CustomerName = h.CustomerName ?? customer?.LedgerName,
+                    BillingName = h.BillingName,
+                    CustomerAddress = customer?.Address,
+                    CustomerCity = first.CityName,
+                    CustomerState = first.StateName,
+                    CustomerCountry = "India",
+                    CustomerMobile = customer?.MobileNumber,
+                    CustomerEmail = customer?.EMail,
+                    CustomerGstin = customer?.Gstno,
+                    FinancedBy = financier?.LedgerName
+                };
+
+                int sr = 1;
+                foreach (var r in rows)
+                {
+                    var vd = r.vd;
+
+                    var preGst = vd.PreGstDiscount ?? 0;
+                    var taxable = vd.ItemRate - preGst;
+
+                    var line = new ProformaInvoiceLine
+                    {
+                        SrNo = sr++,
+                        Description = r.ItemName ?? vd.ModelName,
+                        ProductCode = vd.ItemCode,
+                        Hsn = r.Hsn,
+                        ChassisNo = vd.ChassisNo,
+                        MotorNo = r.vi?.MotorNo,
+                        Colour = vd.Colour,
+                        Qty = 1,
+
+                        ItemRate = vd.ItemRate,
+                        PreGstDiscount = preGst,
+                        TaxableValue = taxable,
+
+                        IgstPer = vd.Igstper ?? 0,
+                        IgstAmt = vd.Igstamnt ?? 0,
+                        CgstPer = vd.Cgstper ?? 0,
+                        CgstAmt = vd.Cgstamnt ?? 0,
+                        SgstPer = vd.Sgstper ?? 0,
+                        SgstAmt = vd.Sgstamnt ?? 0,
+
+                        FameII = vd.FameIi ?? 0,
+                        RegAmount = vd.RegAmount ?? 0,
+                        InsuranceAmount = vd.InsuranceAmount ?? 0,
+                        FinalAmount = vd.FinalAmount,
+
+                        BatteryNo = r.vi?.BatteryNo ?? vd.Battery,
+                        Chemistry = r.vi?.BatteryChemistry ?? vd.BatteryChemical,
+                        BatteryMake = r.vi?.BatteryMake ?? vd.BatteryMake,
+                        BatteryCapacity = r.vi?.BatteryCapacity ?? vd.BatteryCapacity,
+                        CouponNo = null,
+                        ChargerNo = r.vi?.ChargerNo ?? vd.ChargerNo,
+                        ControllerNo = r.vi?.ControllerNo ?? vd.ControllerNo,
+                        Vcu = r.vi?.Vcu ?? vd.Vcu,
+                        MfgYear = vd.MfgYear ?? r.vi?.MfgYear
+                    };
+
+                    model.Lines.Add(line);
+
+                    model.TaxableTotal += line.TaxableValue;
+                    model.IgstTotal += line.IgstAmt;
+                    model.CgstTotal += line.CgstAmt;
+                    model.SgstTotal += line.SgstAmt;
+                    model.SubsidyTotal += line.FameII;
+                    model.RegTotal += line.RegAmount;
+                    model.InsuranceTotal += line.InsuranceAmount;
+                }
+
+                
+                var firstLine = model.Lines[0];
+                model.IgstPer = firstLine.IgstPer;
+                model.CgstPer = firstLine.CgstPer;
+                model.SgstPer = firstLine.SgstPer;
+
+                model.IsIgst = model.IgstTotal > 0;
+
+                var taxTotal = model.IsIgst ? model.IgstTotal : (model.CgstTotal + model.SgstTotal);
+                model.GrandTotal = model.TaxableTotal + taxTotal - model.SubsidyTotal
+                                   + model.RegTotal + model.InsuranceTotal;
+                model.AmountInWords = ProformaInvoicePdfModel.IndianCurrencyWords(model.GrandTotal);
+
+                return model;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        // Maps VehicleSaleBillHeader.BillType (int?) to a label.
+        // NOTE: confirm this id->text mapping against your BillType master.
+        private static string BuildBillTypeText(int? billType) => billType switch
+        {
+            1 => "Tax Invoice",
+            2 => "Counter Sale",
+            _ => "Proforma Invoice"
+        };
     }
 }

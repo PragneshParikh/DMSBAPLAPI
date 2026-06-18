@@ -13,9 +13,7 @@ namespace DMS_BAPL_Api.Controllers
         private readonly IReportService _reportService;
         private readonly ILogger<ReportController> _logger;
 
-        public ReportController(
-            IReportService reportService,
-            ILogger<ReportController> logger)
+        public ReportController(IReportService reportService,ILogger<ReportController> logger)
         {
             _reportService = reportService;
             _logger = logger;
@@ -34,7 +32,9 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string userId =
+                    GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
@@ -49,12 +49,31 @@ namespace DMS_BAPL_Api.Controllers
                 // ─────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
+                string? dealerCode = null;
+
+                // Dealer users see only their stock
+                if (!User.IsInRole("SuperAdmin"))
+                {
+                    dealerCode =
+                        User.FindFirst("DealerCode")?.Value;
+                }
+
+                var result =
+                    await _reportService
+                        .GetDealerWiseStockReportAsync(dealerCode);
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching dealer wise stock report");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                _logger.LogError(ex,
+                    "Error fetching dealer wise stock report");
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -120,9 +139,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardDealerWiseReport(
-            [FromQuery] string? dealerCode,
-            [FromQuery] DateTime? fromDate,
-            [FromQuery] DateTime? toDate)
+            [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate,[FromQuery] DateTime? toDate)
         {
             try
             {
@@ -151,12 +168,9 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(JobReportPagedResponse<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetJobCardReportByDealer(
-            string dealerCode,
-            [FromQuery] int pageIndex = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> GetJobCardReportByDealer
+            (string dealerCode, [FromQuery] int pageIndex = 1,[FromQuery] int pageSize = 20,
+            [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -203,10 +217,8 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(List<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportJobCardReport(
-            [FromQuery] string dealerCode,
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> ExportJobCardReport( [FromQuery] string dealerCode,
+        [FromQuery] DateTime? fromDate = null,[FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -236,9 +248,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobReportSummaryStats(
-            [FromQuery] string dealerCode,
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null)
+            [FromQuery] string dealerCode,[FromQuery] DateTime? fromDate = null,[FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -271,9 +281,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(List<VehicleSaleReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetVehicleSaleReport(
-            [FromQuery] string? dealerCode,
-            [FromQuery] DateTime? fromDate,
-            [FromQuery] DateTime? toDate)
+        [FromQuery] string? dealerCode,[FromQuery] DateTime? fromDate,[FromQuery] DateTime? toDate)
         {
             try
             {
@@ -516,6 +524,129 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // VEHICLE SALE BILL REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("sale-bill")]
+        [ProducesResponseType(typeof(VehicleSaleBillReportPagedResponse), StatusCodes.Status200OK)]
+        /// <summary>Get Vehicle Sale Bill Report (paged, with totals)</summary>
+        [HttpPost("vehicle-sale-bill")]
+        [ProducesResponseType(typeof(VehicleSaleBillReportResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetVehicleSaleBillReport([FromBody] VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                // ── Dealer restriction: admins/superadmins see all dealers ────
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                // Dealer restriction: non-admins are forced to their own dealer
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("Vehicle Sale Bill Report API called");
+
+                var result = await _reportService.GetVehicleSaleBillReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale bill report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+   
+        [HttpGet("sale-bill/export")]
+        [ProducesResponseType(typeof(List<VehicleSaleBillReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportVehicleSaleBillReport( [FromQuery] string? dealerCode,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: admins/superadmins see all dealers ────
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────
+
+                var result = await _reportService.GetVehicleSaleBillReportForExportAsync(
+                    dealerCode, fromDate, toDate);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting vehicle sale bill report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Sale Type dropdown for the Sale Bill Report filter</summary>
+        [HttpGet("sale-bill/dropdown/sale-type")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetSaleTypeDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetSaleTypeDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching sale type dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Status dropdown for the Sale Bill Report filter</summary>
+        [HttpGet("sale-bill/dropdown/status")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetSaleBillStatusDropdown()
+        {
+            try
+            {
+                var result = await _reportService.GetSaleBillStatusDropdownAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching sale bill status dropdown");
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
     }
