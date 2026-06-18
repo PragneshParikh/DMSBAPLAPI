@@ -1,7 +1,10 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
+using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,10 +15,14 @@ namespace DMS_BAPL_Api.Controllers
     public class FFIRController : ControllerBase
     {
         private readonly IFFIRRepo _ffirRepo;
+        private readonly IPrefixService _prefixService;
+        private readonly ILogger<FFIRController> _logger;
 
-        public FFIRController(IFFIRRepo ffirRepo)
+        public FFIRController(IFFIRRepo ffirRepo, IPrefixService prefixService, ILogger<FFIRController> logger)
         {
             _ffirRepo = ffirRepo;
+            _prefixService = prefixService;
+            _logger = logger;
         }
 
         [HttpGet("GetPartDropdownlist")]
@@ -43,8 +50,15 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardHistory(string chassisNo)
         {
-            var jobCardHistory = await _ffirRepo.GetJobCardHistory(chassisNo);
-            return Ok(jobCardHistory);
+            try
+            {
+                var jobCardHistory = await _ffirRepo.GetJobCardHistory(chassisNo);
+                return Ok(jobCardHistory);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.ToString());
+            }
         }
 
         [HttpPost("InsertFFIR")]
@@ -55,14 +69,28 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var result = await _ffirRepo.InsertFFIRAsync(model);
-
-                return Ok(new
+                
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _ffirRepo.InsertFFIRAsync(model,userId);
+                if (result > 0)
                 {
-                    success = true,
-                    message = StringConstants.FFIRInsert,
-                    id = result
-                });
+                    await _prefixService.UpdateNextNumberByDealerByModule(model.DealerCode, "ffir_prefix");
+                    return Ok(new
+                    {
+                        success = true,
+                        message = StringConstants.FFIRInsert,
+                        id = result
+                    });
+                }
+                else
+                {
+                    _logger.LogError("Failed to insert JobCard.");
+                    return StatusCode(500, "An error occurred while saving job card details.");
+                }
+
+                
             }
             catch (Exception ex)
             {

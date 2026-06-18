@@ -10,7 +10,7 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public int DesignationId { get; set; }
 
-        public string DesignationCode { get; set; } = null!;
+        public string Abbreviation { get; set; } = null!;
 
         public string DesignationName { get; set; } = null!;
 

@@ -7,7 +7,7 @@ public partial class DepartmentMaster
 {
     public int DepartmentId { get; set; }
 
-    public string DepartmentCode { get; set; } = null!;
+    public string Abbreviation { get; set; } = null!;
 
     public string DepartmentName { get; set; } = null!;
 

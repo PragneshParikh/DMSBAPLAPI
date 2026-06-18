@@ -42,55 +42,66 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
 
         public async Task<List<JobCardHistoryViewModel>> GetJobCardHistory(string chassisNo)
         {
-            if (string.IsNullOrEmpty(chassisNo))
+            try
             {
-                return new List<JobCardHistoryViewModel>();
-            }
-
-            var jobCardHistory = await (
-                from jh in _context.JobCardHeaders
-
-                join jc in _context.JobCardCustomers
-                    on jh.Id equals jc.JobCardHeaderId
-
-                join sh in _context.ServiceHeads
-                    on jh.Servicehead equals sh.Id into shGroup
-                from sh in shGroup.DefaultIfEmpty()
-
-                join st in _context.ServiceTypes
-                    on jh.Servicetype equals st.Id into stGroup
-                from st in stGroup.DefaultIfEmpty()
-
-                where jc.ChassisNo == chassisNo
-
-                orderby jh.JobinDate descending
-
-                select new JobCardHistoryViewModel
+                if (string.IsNullOrWhiteSpace(chassisNo))
                 {
-                    JobCardId = jh.Id,
-                    JobCardNo = jh.JobNo,
-                    JobCardDate = jh.JobinDate,
-                    VehicleJourney = jh.Vehiclekms,
-                    Observation = jh.Observation,
-
-                    ServiceHead = sh != null ? sh.ServiceHeadName : null,
-                    ServiceType = st != null ? st.ServiceTypeName : null,
-
-                    Remarks = jc.Remarks
+                    return new List<JobCardHistoryViewModel>();
                 }
 
-            ).ToListAsync();
+                var jobCardHistory = await (
+                    from jh in _context.JobCardHeaders
 
-            return jobCardHistory;
+                    join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId
+
+                    join sh in _context.ServiceHeads
+                        on jh.Servicehead equals sh.Id into shGroup
+                    from sh in shGroup.DefaultIfEmpty()
+
+                    join st in _context.ServiceTypes
+                        on jh.Servicetype equals st.Id into stGroup
+                    from st in stGroup.DefaultIfEmpty()
+
+                    where jc.ChassisNo == chassisNo
+
+                    orderby jh.JobinDate descending
+
+                    select new JobCardHistoryViewModel
+                    {
+                        JobCardId = jh.Id,
+                        JobCardNo = jh.JobNo,
+                        JobCardDate = jh.JobinDate,
+                        VehicleJourney = jh.Vehiclekms,
+                        Observation = jh.Observation,
+
+                        ServiceHead = sh != null ? sh.ServiceHeadName : null,
+                        ServiceType = st != null ? st.ServiceTypeName : null,
+
+                        Remarks = jc.Remarks
+                    }
+
+                ).ToListAsync();
+
+                return jobCardHistory;
+            }
+            catch (Exception ex)
+            {
+                // Temporary debugging
+                Console.WriteLine("GetJobCardHistory Error");
+                Console.WriteLine(ex.ToString());
+
+                throw; // actual exception controller tak pahunch jayegi
+            }
         }
-        public async Task<int> InsertFFIRAsync(FFIRViewModel model)
+        public async Task<int> InsertFFIRAsync(FFIRViewModel model,string userId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
-            var maxCirNo = await _context.Ffirheaders
-                                .MaxAsync(x => (int?)x.Cirno) ?? 0;
+            //var maxCirNo = await _context.Ffirheaders
+            //                    .MaxAsync(x => (int?)x.Cirno) ?? 0;
 
-            var nextCirNo = maxCirNo + 1;
+            //var nextCirNo = maxCirNo + 1;
 
             try
             {
@@ -98,7 +109,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                 {
                     Ffirprefix = model.FFIRPrefix,
                     DealerCode = model.DealerCode,
-                    Cirno = nextCirNo,
+                    Cirno = model.CIRNo,
                     Cirdate = model.CIRDate,
                     JobCardCustomerId = model.JobCardCustomerId,
                     JobCardHeaderId = model.JobCardHeaderId,
@@ -112,7 +123,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                     RepeatFailure = model.RepeatFailure,
                     ChassisModified = model.ChassisModified,
                     Ffirremarks = model.FFIRRemarks,
-                    CreatedBy = model.CreatedBy,
+                    CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
 
@@ -128,7 +139,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                         Ffirid = ffirHeader.Id,
                         PartAffectedName = x.PartAffectedName,
                         PartAffectedDescription = x.PartAffectedDescription,
-                        CreatedBy = model.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now
                     }).ToList();
 
@@ -147,7 +158,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                         ResolutionComplaint = model.DetailObservation.ResolutionComplaint,
                         PresentStatusofVehicle = model.DetailObservation.PresentStatusofVehicle,
                         VehicleOffRoadReason = model.DetailObservation.VehicleOffRoadReason,
-                        CreatedBy = model.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now
                     };
 
