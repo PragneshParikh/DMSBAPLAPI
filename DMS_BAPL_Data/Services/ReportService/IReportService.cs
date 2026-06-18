@@ -10,8 +10,8 @@ namespace DMS_BAPL_Data.Services.ReportService
     {
         // ─── Stock ────────────────────────────────────────────────────────────
         Task<List<StockReportViewModel>>GetDealerWiseStockReportAsync(string? dealerCode);
-        Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
+        //Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
+        //Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
 
         // ─── Job Report ───────────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(

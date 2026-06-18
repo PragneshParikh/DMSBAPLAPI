@@ -7,7 +7,7 @@ public partial class DesignationMaster
 {
     public int DesignationId { get; set; }
 
-    public string DesignationCode { get; set; } = null!;
+    public string Abbreviation { get; set; } = null!;
 
     public string DesignationName { get; set; } = null!;
 

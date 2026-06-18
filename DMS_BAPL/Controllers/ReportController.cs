@@ -13,7 +13,7 @@ namespace DMS_BAPL_Api.Controllers
         private readonly IReportService _reportService;
         private readonly ILogger<ReportController> _logger;
 
-        public ReportController(IReportService reportService,ILogger<ReportController> logger)
+        public ReportController(IReportService reportService, ILogger<ReportController> logger)
         {
             _reportService = reportService;
             _logger = logger;
@@ -28,7 +28,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetDealerWiseReport([FromQuery] string? dealerCode)
+        public async Task<IActionResult> GetDealerWiseReport([FromQuery] string? dealerCode = null)
         {
             try
             {
@@ -38,18 +38,19 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
+                //string? dealerCode = null;
                 // ── Dealer restriction: skip for admin/superadmin ─────────────
-                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
-                if (!isAdmin)
-                {
-                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                    if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
-                }
+                //bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                //if (!isAdmin)
+                //{
+                //    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                //    if (!string.IsNullOrEmpty(tokenDealerCode))
+                //        dealerCode = tokenDealerCode;
+                //}
                 // ─────────────────────────────────────────────────────────────
 
-                var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
-                string? dealerCode = null;
+                //var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
+
 
                 // Dealer users see only their stock
                 if (!User.IsInRole("SuperAdmin"))
@@ -139,7 +140,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardDealerWiseReport(
-            [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate,[FromQuery] DateTime? toDate)
+            [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             try
             {
@@ -169,7 +170,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobCardReportByDealer
-            (string dealerCode, [FromQuery] int pageIndex = 1,[FromQuery] int pageSize = 20,
+            (string dealerCode, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20,
             [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
@@ -217,8 +218,8 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(List<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportJobCardReport( [FromQuery] string dealerCode,
-        [FromQuery] DateTime? fromDate = null,[FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> ExportJobCardReport([FromQuery] string dealerCode,
+        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -248,7 +249,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobReportSummaryStats(
-            [FromQuery] string dealerCode,[FromQuery] DateTime? fromDate = null,[FromQuery] DateTime? toDate = null)
+            [FromQuery] string dealerCode, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -281,7 +282,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(List<VehicleSaleReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetVehicleSaleReport(
-        [FromQuery] string? dealerCode,[FromQuery] DateTime? fromDate,[FromQuery] DateTime? toDate)
+        [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             try
             {
@@ -296,7 +297,7 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPost("current-stock")]
-        [ProducesResponseType(typeof(PagedResponse<CurrentStockReportViewModel>),StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<CurrentStockReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCurrentStockReport([FromBody] CurrentStockFilterModel filter)
         {
@@ -335,8 +336,8 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpPost("po-tracking")]
-        [ProducesResponseType(typeof(PagedResponse<POTrackingReportViewModel>),StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetPOTrackingReport([FromBody]POTrackingFilterModel filter)
+        [ProducesResponseType(typeof(PagedResponse<POTrackingReportViewModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPOTrackingReport([FromBody] POTrackingFilterModel filter)
         {
             try
             {
@@ -578,12 +579,12 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-   
+
         [HttpGet("sale-bill/export")]
         [ProducesResponseType(typeof(List<VehicleSaleBillReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportVehicleSaleBillReport( [FromQuery] string? dealerCode,
+        public async Task<IActionResult> ExportVehicleSaleBillReport([FromQuery] string? dealerCode,
             [FromQuery] DateTime? fromDate = null,
             [FromQuery] DateTime? toDate = null)
         {

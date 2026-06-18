@@ -663,13 +663,13 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("DepartmentMaster");
 
-            entity.HasIndex(e => e.DepartmentCode, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
+            entity.HasIndex(e => e.Abbreviation, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
 
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.DepartmentCode).HasMaxLength(50);
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.DepartmentName).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
@@ -682,13 +682,13 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("DesignationMaster");
 
-            entity.HasIndex(e => e.DesignationCode, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
+            entity.HasIndex(e => e.Abbreviation, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
 
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.DesignationCode).HasMaxLength(50);
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.DesignationName).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
