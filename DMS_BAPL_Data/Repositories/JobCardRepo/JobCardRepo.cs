@@ -480,7 +480,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             ex);
             }
         }
-        public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails)
+        public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails,string userId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -516,7 +516,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Observation = jobCardDetails.JobCardHeader.Observation,
                     SupervisorComment = jobCardDetails.JobCardHeader.SupervisorComment,
                     IsPdiSuccess = jobCardDetails.JobCardHeader.IsPdiSuccess,
-                    CreatedBy = jobCardDetails.JobCardHeader.CreatedBy,
+                    CreatedBy = userId,
                     CreatedDate = DateTime.Now,
                 };
 
@@ -546,7 +546,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         ControllerNo = jobCardDetails.JobCardBattery.ControllerNo,
                         BatteryChemical = jobCardDetails.JobCardBattery.BatteryChemical,
                         BatteryCapacity = jobCardDetails.JobCardBattery.BatteryCapacity,
-                        CreatedBy = jobCardDetails.JobCardBattery.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now,
                     };
 
@@ -573,7 +573,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         NextserviceDueDate = jobCardDetails.JobCardCustomer.NextserviceDueDate,
                         RsarenewalDate = jobCardDetails.JobCardCustomer.RsarenewalDate,
                         Remarks = jobCardDetails.JobCardCustomer.Remarks,
-                        CreatedBy = jobCardDetails.JobCardCustomer.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now,
                     };
 
@@ -590,7 +590,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         CustomerVoice = c.CustomerVoice,
                         ComplaintCode = c.ComplaintCode,
                         Complaint = c.Complaint,
-                        CreatedBy = c.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now,
                     }).ToList();
 
@@ -607,7 +607,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         OemmodelId = p.OemModelId,
                         IsStatus = p.IsStatus,
                         Remarks = p.Remarks,
-                        CreatedBy = p.CreatedBy,
+                        CreatedBy = userId,
                         CreatedDate = DateTime.Now
                     }).ToList();
 
@@ -1104,6 +1104,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                     JobNo = jh.JobNo,
                                                     ChassisNo = jh.Chassisno,
                                                     CustomerName = jc.CustomerName,
+                                                    JobCardCustomerId = jc.Id,
                                                     ModelName = jc.ModelName,
                                                     Vehiclekms = jh.Vehiclekms,
                                                     RegisterNo = jc.RegisterNo,
@@ -1111,19 +1112,17 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                     Serviceloc = jh.Serviceloc,
                                                     LocationName = loc.Locname,
                                                     VehicleSaleDate = jc.SaleDate,
-                                                    CustomerVoice = _context.JobCardComplaints
-                                                                .Where(c => c.JobCardHeaderId == jh.Id)
-                                                                .Select(c => c.CustomerVoice)
-                                                                .FirstOrDefault(),
-                                                    ComplaintCode = _context.JobCardComplaints
-                                                                .Where(c => c.JobCardHeaderId == jh.Id)
-                                                                .Select(c => c.ComplaintCode)
-                                                                .FirstOrDefault(),
-                                                    Complaint = _context.JobCardComplaints
-                                                                .Where(c => c.JobCardHeaderId == jh.Id)
-                                                                .Select(c => c.Complaint)
-                                                                .FirstOrDefault(),
-                                                }).FirstOrDefaultAsync();
+                                                    Complaints = _context.JobCardComplaints
+                                                       .Where(c => c.JobCardHeaderId == jh.Id)
+                                                       .Select(c => new ComplaintVM
+                                                       {
+                                                           Id = c.Id,
+                                                           CustomerVoice = c.CustomerVoice,
+                                                           ComplaintCode = c.ComplaintCode,
+                                                           Complaint = c.Complaint
+                                                       })
+                                                       .ToList()
+                                                  }).FirstOrDefaultAsync();
 
             return ObjCIRJobcardViewModel;
         }
