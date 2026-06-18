@@ -665,6 +665,7 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasIndex(e => e.Abbreviation, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
 
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
@@ -684,6 +685,7 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasIndex(e => e.Abbreviation, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
 
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
@@ -1700,6 +1702,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.LedgerType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.LedgerVisibility)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.MobileNumber)

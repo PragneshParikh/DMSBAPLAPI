@@ -123,6 +123,23 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetLocationDropdownByDealerCode")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLocationDropdownByDealerCode([FromQuery] string? dealerCode = null)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetLocationDropdownByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
         [HttpGet("GetLocationTypeWiseNameByDealerCode")]
         [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

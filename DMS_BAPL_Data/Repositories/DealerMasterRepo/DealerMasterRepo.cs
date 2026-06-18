@@ -94,6 +94,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             {
                 LedgerCode = dealer.Dealercode,
                 LedgerName = dealer.Compname,
+                DealerCode=dealer.Dealercode,
                 LedgerType = "Dealer",
                 Gstno = dealer.CompgstinNo,
                 Pan = dealer.Pan,
@@ -104,6 +105,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 State = state.StateId,
                 Pin = dealer.Pin,
                 EMail = dealer.Email,
+                LedgerVisibility ="All",
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
