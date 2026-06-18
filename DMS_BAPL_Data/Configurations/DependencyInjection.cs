@@ -219,8 +219,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IChassisDetailService, ChassisDetailService>();
             services.AddScoped<IChassisBatteryDetailService, ChassisBatteryDetailService>();
             services.AddScoped<ICircularDealerAssignmentService, CircularDealerAssignmentService>();
-            services.AddScoped<IVehicleStockTransferService,VehicleStockTransferService>();
-            services.AddScoped<IOccupationMasterService,OccupationMasterService>();
+            services.AddScoped<IVehicleStockTransferService, VehicleStockTransferService>();
+            services.AddScoped<IOccupationMasterService, OccupationMasterService>();
 
 
             // Email SErvice
