@@ -50,6 +50,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal PurchaseRate { get; set; }
         public decimal EstimatedSaleRate { get; set; }
 
+        public string? LocationCode { get; set; }
+
+        public string? LocationName { get; set; }
         public bool IsBilled { get; set; }
 
         public int DaysInStock { get; set; }

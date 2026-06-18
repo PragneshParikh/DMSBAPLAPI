@@ -32,7 +32,9 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                string userId =
+                    GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
@@ -47,12 +49,31 @@ namespace DMS_BAPL_Api.Controllers
                 // ─────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
+                string? dealerCode = null;
+
+                // Dealer users see only their stock
+                if (!User.IsInRole("SuperAdmin"))
+                {
+                    dealerCode =
+                        User.FindFirst("DealerCode")?.Value;
+                }
+
+                var result =
+                    await _reportService
+                        .GetDealerWiseStockReportAsync(dealerCode);
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching dealer wise stock report");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                _logger.LogError(ex,
+                    "Error fetching dealer wise stock report");
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 

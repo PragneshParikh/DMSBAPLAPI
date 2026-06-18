@@ -29,9 +29,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 var vehicleInwards = await _context.VehicleInwards
-                 .AsNoTracking()
-                 .Where(vi => vi.DealerCode != null && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)) // ✅ filter here
-                 .ToListAsync();
+                    .AsNoTracking()
+                    .Where(vi =>
+                        vi.DealerCode != null &&
+                        (string.IsNullOrEmpty(dealerCode)
+                            || vi.DealerCode == dealerCode))
+                    .ToListAsync();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -516,6 +519,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vi.ColrCode equals cm.Colorcode into cmJoin
                     from cm in cmJoin.DefaultIfEmpty()
 
+                    join lm in _context.LocationMasters.AsNoTracking()
+                        on vi.LocCode equals lm.Loccode into lmJoin
+                    from lm in lmJoin.DefaultIfEmpty()
+
                     join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
                         on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
                     from vsd in saleDetailJoin.DefaultIfEmpty()
@@ -642,9 +649,15 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             ? "Allocated"
                             : "In Stock",
 
-                        Location = x.Vehicle.LocCode,
+                        LocationCode = x.Vehicle.LocCode,
 
-                        CurrentLocation = x.Vehicle.LocCode,
+                        LocationName = x.LocationMaster != null
+                                  ? x.LocationMaster.Locname
+                                  : "",
+
+                        CurrentLocation = x.LocationMaster != null
+                                ? x.LocationMaster.Locname
+                                : x.Vehicle.LocCode,
 
                         PurchaseRate = 0,
 
