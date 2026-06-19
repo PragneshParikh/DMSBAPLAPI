@@ -388,5 +388,26 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             });
         }
 
+        public async Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode)
+        {
+            var query = _context.LocationMasters.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+            {
+                query = query.Where(x => x.Dealercode == dealerCode);
+            }
+
+            return await query
+                .Select(x => new LocationMasterViewModel
+                {
+                    Id = x.Id,
+                    Locname = x.Locname,
+                    Dealercode = x.Dealercode,
+                    Locareaidno=x.Locareaidno,
+                    Loccode =x.Loccode
+                })
+                .ToListAsync();
+        }
+
     }
 }

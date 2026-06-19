@@ -24,7 +24,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         }
 
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetAll() => _ledgerMasterRepo.GetAll();
-        Task<PagedResponse<object>> ILedgerMasterService.GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize) => _ledgerMasterRepo.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize);
+        Task<PagedResponse<object>> ILedgerMasterService.GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize, string dealerCode,string filter) => _ledgerMasterRepo.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize,dealerCode,filter);
         Task<LedgerDetailViewModel?> ILedgerMasterService.GetLedgerByIdAsync(int id) => _ledgerMasterRepo.GetLedgerById(id);
         Task<int> ILedgerMasterService.InsertLedgerDetail(LedgerMaster ledgerMaster, string userId)
         {
