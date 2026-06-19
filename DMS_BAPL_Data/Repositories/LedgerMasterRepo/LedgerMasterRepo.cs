@@ -97,11 +97,19 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
         }
 
-        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize)
+        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize,string dealerCode, string filter)
         {
             try
             {
                 var query = _context.LedgerMasters.AsNoTracking();
+                if( dealerCode != null)
+                {
+                    query = query.Where(i =>i.LedgerVisibility == dealerCode || i.LedgerVisibility.ToLower() =="all");
+                }
+                if( filter != null )
+                {
+                    query =query.Where(i=>i.DealerCode == filter);
+                }
                 if (!string.IsNullOrWhiteSpace(searchTerms))
                 {
                     query = query.Where(c => c.LedgerType.Contains(searchTerms)
@@ -123,6 +131,10 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                     join S in _context.States
                         on LM.State equals S.StateId into stateGroup
                     from state in stateGroup.DefaultIfEmpty()
+
+                    join D in _context.DealerMasters
+                        on LM.DealerCode equals D.Dealercode into DealerInfo
+                    from dealer in DealerInfo.DefaultIfEmpty()
 
                     orderby LM.CreatedDate descending
 
@@ -147,15 +159,17 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         CreatedDate = LM.CreatedDate,
                         UpdatedBy = LM.UpdatedBy,
                         UpdatedDate = LM.UpdatedDate,
-
+                        LedgerVisibility=LM.LedgerVisibility,
                         cityName = city.CityName,
-                        stateName = state.StateName
+                        stateName = state.StateName,
+                        DealerCode = dealer.Dealercode,
+                        DealerName = dealer.Compname,   
                     }
                 )
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-
+               
                 return new PagedResponse<object>
                 {
                     Data = result.Cast<object>().ToList(),

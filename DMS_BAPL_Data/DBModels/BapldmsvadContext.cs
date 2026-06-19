@@ -665,11 +665,11 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasIndex(e => e.Abbreviation, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
 
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.DepartmentName).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
@@ -684,11 +684,11 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasIndex(e => e.Abbreviation, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
 
+            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.Abbreviation).HasMaxLength(50);
             entity.Property(e => e.DesignationName).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
@@ -967,16 +967,12 @@ public partial class BapldmsvadContext : DbContext
 
         modelBuilder.Entity<FreeServiceRate>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("FreeServiceRate");
+            entity.ToTable("FreeServiceRate");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
             entity.Property(e => e.MetroGst)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("MetroGST");
@@ -986,11 +982,13 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnName("NonMetroGST");
             entity.Property(e => e.NonMetroRate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
-            entity.Property(e => e.ServiceName)
-                .HasMaxLength(100)
-                .IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Oemmodel).WithMany(p => p.FreeServiceRates)
+                .HasForeignKey(d => d.OemmodelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FreeServiceRate_OEMModelMaster");
         });
 
         modelBuilder.Entity<GroupMaster>(entity =>
@@ -1700,6 +1698,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.LedgerType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.LedgerVisibility)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.MobileNumber)
