@@ -25,6 +25,8 @@ using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Repositories.JobSourceMasterRepo;
+using DMS_BAPL_Data.Repositories.JobTypeMasterRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LabourMasterRepo;
@@ -50,6 +52,8 @@ using DMS_BAPL_Data.Repositories.RepairBillRepo;
 using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
+using DMS_BAPL_Data.Repositories.ServiceHeadRepo;
+using DMS_BAPL_Data.Repositories.ServiceTypeRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
@@ -175,6 +179,10 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentRepo, DepartmentRepo>();
             services.AddScoped<IDesignationRepo, DesignationRepo>();
             services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
+            services.AddScoped<IJobTypeMasterRepo, JobTypeRepo>();
+            services.AddScoped<IJobSourceMasterRepo,JobSourceMasterRepo>();
+            services.AddScoped<IServiceHeadRepo, ServiceHeadMasterRepo>();
+            services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
 
             #endregion
 
