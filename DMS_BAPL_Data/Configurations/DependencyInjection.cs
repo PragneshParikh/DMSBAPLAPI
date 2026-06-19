@@ -25,6 +25,8 @@ using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Repositories.JobSourceMasterRepo;
+using DMS_BAPL_Data.Repositories.JobTypeMasterRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LabourMasterRepo;
@@ -175,6 +177,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentRepo, DepartmentRepo>();
             services.AddScoped<IDesignationRepo, DesignationRepo>();
             services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
+            services.AddScoped<IJobTypeMasterRepo, JobTypeRepo>();
+            services.AddScoped<IJobSourceMasterRepo,JobSourceMasterRepo>();
 
             #endregion
 
