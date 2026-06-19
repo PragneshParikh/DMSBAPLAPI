@@ -25,15 +25,15 @@ namespace DMS_BAPL_Data.Services.ReportService
         // STOCK REPORT
         // =================================================================
 
-        public async Task<List<StockReportViewModel>> GetColourWiseStockReportAsync()
-        {
-            return await _reportRepo.GetColourWiseStockReportAsync();
-        }
-
-        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
+        public async Task<List<StockReportViewModel>>GetDealerWiseStockReportAsync(string? dealerCode)
         {
             return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
         }
+
+        //public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
+        //{
+        //    return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
+        //}
 
         // =================================================================
         // JOB REPORT

@@ -13,7 +13,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
         Task<List<FFirCompalintCodeListViewModel>> GetComplaintCodeList();
 
         Task<List<JobCardHistoryViewModel>> GetJobCardHistory(string chassisNo);
-        Task<int> InsertFFIRAsync(FFIRViewModel model);
+        Task<int> InsertFFIRAsync(FFIRViewModel model,string userId);
 
         Task<List<FFIRViewModelList>> GetFFIRDetailListing(string dealerCode, string? search);
 

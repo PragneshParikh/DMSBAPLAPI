@@ -9,8 +9,9 @@ namespace DMS_BAPL_Data.Services.ReportService
     public interface IReportService
     {
         // ─── Stock ────────────────────────────────────────────────────────────
-        Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
+        Task<List<StockReportViewModel>>GetDealerWiseStockReportAsync(string? dealerCode);
+        //Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
+        //Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
 
         // ─── Job Report ───────────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(

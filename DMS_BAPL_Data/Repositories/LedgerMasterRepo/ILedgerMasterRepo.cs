@@ -12,7 +12,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
     public interface ILedgerMasterRepo
     {
         Task<IEnumerable<LedgerMaster>> GetAll();
-        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize,string dealerCode,string filter);
         Task<LedgerDetailViewModel?> GetLedgerById(int id);
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster);
