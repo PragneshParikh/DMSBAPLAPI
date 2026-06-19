@@ -9,7 +9,9 @@ public partial class FreeServiceRate
 
     public int OemmodelId { get; set; }
 
-    public string? ServiceName { get; set; }
+    public DateTime? EffectiveDate { get; set; }
+
+    public int? ServiceId { get; set; }
 
     public decimal? MetroRate { get; set; }
 
@@ -19,8 +21,6 @@ public partial class FreeServiceRate
 
     public decimal? NonMetroGst { get; set; }
 
-    public DateTime? EffectiveDate { get; set; }
-
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }
@@ -28,4 +28,6 @@ public partial class FreeServiceRate
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual OemmodelMaster Oemmodel { get; set; } = null!;
 }

@@ -23,7 +23,7 @@ namespace DMS_BAPL_Data.Services.DesignationService
         {
             var entity = new DesignationMaster
             {
-                Abbreviation = designationViewModel.Abbreviation,
+                Abbreviation = designationViewModel.DesignationCode,
                 DesignationName = designationViewModel.DesignationName,
                 DepartmentId = designationViewModel.DepartmentId,
                 IsActive = designationViewModel.IsActive,
@@ -37,7 +37,7 @@ namespace DMS_BAPL_Data.Services.DesignationService
             var entity = new DesignationMaster
             {
                 DesignationId = designationViewModel.DesignationId,
-                Abbreviation = designationViewModel.Abbreviation,
+                Abbreviation = designationViewModel.DesignationCode,
                 DesignationName = designationViewModel.DesignationName,
                 DepartmentId = designationViewModel.DepartmentId,
                 IsActive = designationViewModel.IsActive,
