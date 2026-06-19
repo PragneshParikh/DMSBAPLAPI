@@ -61,6 +61,8 @@ public partial class DealerMaster
 
     public bool B2b { get; set; }
 
+    public bool IsActive { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -69,8 +71,5 @@ public partial class DealerMaster
 
     public DateTime? UpdatedDate { get; set; }
 
-    public bool IsActive { get; set; }
-
     public virtual ICollection<LmsleadMaster> LmsleadMasters { get; set; } = new List<LmsleadMaster>();
-
 }

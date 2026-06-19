@@ -19,6 +19,7 @@ using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
+using DMS_BAPL_Data.Repositories.FreeServiceRateRepo;
 using DMS_BAPL_Data.Repositories.GroupMasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
@@ -75,6 +76,7 @@ using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.FileService;
 using DMS_BAPL_Data.Services.Form22Services;
+using DMS_BAPL_Data.Services.FreeServiceRateService;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.HSRPService;
@@ -175,6 +177,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentRepo, DepartmentRepo>();
             services.AddScoped<IDesignationRepo, DesignationRepo>();
             services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
+            services.AddScoped<IFreeServiceRateRepo, FreeServiceRateRepo>();
 
             #endregion
 
@@ -229,6 +232,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IDesignationService, DesignationService>();
             services.AddScoped<IOccupationMasterService, OccupationMasterService>();
+            services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
 
 
             // Email SErvice

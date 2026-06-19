@@ -25,6 +25,8 @@ public partial class OemmodelMaster
 
     public virtual ICollection<Form22Master> Form22Masters { get; set; } = new List<Form22Master>();
 
+    public virtual ICollection<FreeServiceRate> FreeServiceRates { get; set; } = new List<FreeServiceRate>();
+
     public virtual ICollection<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; } = new List<ModelwiseServiceSchedule>();
 
     public virtual ICollection<OemmodelWarranty> OemmodelWarranties { get; set; } = new List<OemmodelWarranty>();
