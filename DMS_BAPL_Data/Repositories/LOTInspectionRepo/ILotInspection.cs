@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
         Task<int> InsertLotInspectionHeaderAsync(string invoiceNo, string userId);
         Task<bool> UpdateLotInspectionAsync(LotInspectionViewModel model, string userId, string dealerCode);
         Task<List<LotInspectionHeaderList>> GetAllLotInspectionHeaderDetailsAsync(string? dealerCode,string? search);
+        Task<byte[]> DownloadLotInspecteddetailsExcel(string? invoiceNo, DateOnly? fromDate, DateOnly? toDate);
     }
 }
