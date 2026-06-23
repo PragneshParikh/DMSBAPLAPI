@@ -335,6 +335,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.BatteryCapacity)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.BatteryChemical)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.BatteryMake)
                 .HasMaxLength(200)
                 .IsUnicode(false);
@@ -349,6 +352,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ControllerNo)
                 .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ConverterNo)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
@@ -386,6 +392,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.LocationCode)
                 .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.RegNo)
+                .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.SaleDate).HasColumnType("datetime");
             entity.Property(e => e.UpdatedBy)
@@ -1672,6 +1681,12 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Address)
                 .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Address2)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.AlternateMobileNo)
+                .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)

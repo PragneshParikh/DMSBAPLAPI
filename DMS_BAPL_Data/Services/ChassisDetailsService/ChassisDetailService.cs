@@ -35,5 +35,17 @@ namespace DMS_BAPL_Data.Services.ChassisDetailsService
         }
 
         Task<List<VehicleStockTransferChassisListViewModel>> IChassisDetailService.GetChassisList(string? locationCode) => _chassisDetailRepo.GetChassisList(locationCode);
+
+        async Task<List<ChassisWithRegisterNoViewModel>> IChassisDetailService.GetSoldChassisDetailsList()
+        {
+            try
+            {
+                return await _chassisDetailRepo.GetSoldChassisDetailsList();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
