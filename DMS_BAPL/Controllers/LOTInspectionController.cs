@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.Repositories.ServiceHeadRepo;
 using DMS_BAPL_Data.Services.LOTInspectionService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -107,6 +108,27 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error occurred while retrieving all accepted invoice list");
                 throw; // Rethrow the exception to be handled by global exception handler
+            }
+        }
+
+        [HttpGet("GetLotinspectedExcel")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLotinspectedExcel(string? invoiceNo,DateOnly? fromDate,DateOnly?toDate)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var result = await _invoiceService.DownloadLotInspecteddetailsExcel(invoiceNo,fromDate,toDate);
+                return File(result, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "LotInspectedExcel.xlsx");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetServiceHeadMasterExcel");
+                return StatusCode(500, "An error occurred while downloading ServiceHead master Excel.");
             }
         }
     }

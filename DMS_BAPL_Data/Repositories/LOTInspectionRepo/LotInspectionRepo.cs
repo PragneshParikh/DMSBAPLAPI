@@ -1,5 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.InventoryService;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
@@ -21,10 +23,14 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
     {
         private readonly BapldmsvadContext _context;
         private readonly IPartInventoryService _partInventoryService;
-        public LotInspectionRepo(BapldmsvadContext context, IPartInventoryService partInventoryService)
+        private readonly ILotInspectionDetails _details;
+        private readonly IExcelService _excelService;
+        public LotInspectionRepo(BapldmsvadContext context, IPartInventoryService partInventoryService, IExcelService excelService, ILotInspectionDetails lotInspectionDetails)
         {
             _context = context;
             _partInventoryService = partInventoryService;
+            _excelService = excelService;
+            _details = lotInspectionDetails;
         }
         // create insert api for lot inspection header based on invoice no saved
         // in LOTinspectionHeader Table 
@@ -326,6 +332,55 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
             catch (Exception ex)
             {
                 throw new Exception("Error while fetching lot inspection header details", ex);
+            }
+        }
+
+
+        public async Task<byte[]> DownloadLotInspecteddetailsExcel(string? invoiceNo,DateOnly? fromDate,DateOnly?toDate)
+        {
+            try
+            {
+
+                var data = await _details.GetAllDetailsByInvoiceAsync(invoiceNo,fromDate,toDate);
+                if (data == null)
+                {
+                    throw new Exception("data is NULL");
+                }
+
+                var properties = typeof(LotInspectionHeaderDetailsViewModel)
+                    .GetProperties()
+                    .ToList();
+
+                var columns = properties.Select(x => x.Name).ToList();
+
+
+                var rows = data.Select(item =>
+                {
+                    var dict = new Dictionary<string, object>();
+
+                    foreach (var prop in properties)
+                    {
+                        dict[prop.Name] = prop.GetValue(item);
+                    }
+
+                    return dict;
+                }).ToList();
+
+                var model = new ExcelExportViewModel
+                {
+                    SheetName = "Lot Inspection Details",
+                    Columns = columns,
+                    Rows = rows
+                };
+
+                return await _excelService.GenerateExcel(model);
+            }
+            catch(Exception ex)
+            {
+                throw new Exception(
+        $"Message: {ex.Message} \n Inner: {ex.InnerException?.Message} \n Stack: {ex.StackTrace}",
+        ex);
+
             }
         }
     }

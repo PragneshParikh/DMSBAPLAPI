@@ -98,24 +98,21 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
         }
 
         // Get all Lot inspection details based on invoice no
-        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(string? invoiceNo)
+        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(
+            string? invoiceNo,
+            DateOnly? fromDate,
+            DateOnly? toDate)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(invoiceNo))
-                    return new List<LotInspectionHeaderDetailsViewModel>();
-
-                var details = await (
+                var query =
                     from lotHeader in _context.LotinspectionHeaders
                     join lotDetail in _context.LotinspectionDetails
                         on lotHeader.Id equals lotDetail.LotHeaderId
                     join itemMaster in _context.ItemMasters
                         on lotDetail.Itemcode equals itemMaster.Itemcode
-                    where lotHeader.InvoiceNo != null &&
-                          lotHeader.InvoiceNo.Trim().ToLower() == invoiceNo.Trim().ToLower()
                     select new LotInspectionHeaderDetailsViewModel
                     {
-
                         invoiceNo = lotHeader.InvoiceNo,
                         invoiceDate = lotHeader.InvoiceDate,
                         lotNo = lotHeader.LotNo,
@@ -135,7 +132,6 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,
-                        //modelName = lotDetail.ModelName,
                         modelName = itemMaster.Itemname,
                         noofVehicle = lotDetail.NoofVehicle,
                         chassisNo = lotDetail.ChassisNo,
@@ -156,22 +152,32 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         damageDetails = lotDetail.DamageDetails,
                         chassisWiseRemarks = lotDetail.ChassisWiseRemarks,
                         lotVehicleDamageImage = lotDetail.LotVehicleDamageImage
-                    }).ToListAsync();
+                    };
 
-                return details;
+                // Invoice Filter
+                if (!string.IsNullOrWhiteSpace(invoiceNo))
+                {
+                    query = query.Where(x =>
+                        x.invoiceNo != null &&
+                        x.invoiceNo.Trim().ToLower() == invoiceNo.Trim().ToLower());
+                }
+                // Date Range Filter
+                else if (fromDate.HasValue && toDate.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.invoiceDate.HasValue &&
+                        x.invoiceDate.Value >= fromDate.Value &&
+                        x.invoiceDate.Value <= toDate.Value);
+                }
+
+                return await query.ToListAsync();
             }
             catch (Exception ex)
             {
-                //  log error (recommended)
                 Console.WriteLine($"Error in GetAllDetailsByInvoiceAsync: {ex.Message}");
-
-                // Option 1: return empty list (safe for UI)
                 return new List<LotInspectionHeaderDetailsViewModel>();
-
-                throw;
             }
         }
-
         public async Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId)
         {
             try

@@ -27,11 +27,14 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
                 throw new Exception($"Error inserting details by invoice: {ex.Message}", ex);
             }
         }
-        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(string? invoiceNo)
+        public async Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(
+            string? invoiceNo,
+            DateOnly? fromDate,
+            DateOnly? toDate)
         {
             try
             {
-                return await _lotInspectionDetails.GetAllDetailsByInvoiceAsync(invoiceNo);
+                return await _lotInspectionDetails.GetAllDetailsByInvoiceAsync(invoiceNo,fromDate,toDate);
             }
             catch (Exception ex)
             {
