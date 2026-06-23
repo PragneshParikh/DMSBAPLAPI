@@ -828,7 +828,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     Data = new ChassisListWithPDIStatus
                     {
                         ChassisNo = ch.ChassisNo,
-                        ItemCode = vi.ItemCode,
+                        ItemCode = ch.ItemCode,
                         ItemColor = clr.Colorname,
                         MfgYear = vi.MfgYear,
                         ItemName = im.Itemname,
