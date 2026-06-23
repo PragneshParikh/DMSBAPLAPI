@@ -30,4 +30,6 @@ public partial class ChassisDetail
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public string? RegNo { get; set; }
 }

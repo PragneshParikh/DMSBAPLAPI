@@ -13,5 +13,6 @@ namespace DMS_BAPL_Data.Services.ChassisDetailsService
     {
         Task<bool> InsertChassis(VehicleInwardViewModel vehicleInward, string userId);
         Task<List<VehicleStockTransferChassisListViewModel>> GetChassisList(string? locationCode);
+        Task<List<ChassisWithRegisterNoViewModel>> GetSoldChassisDetailsList();
     }
 }

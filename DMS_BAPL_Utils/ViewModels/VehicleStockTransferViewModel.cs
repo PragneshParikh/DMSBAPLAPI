@@ -118,4 +118,11 @@ namespace DMS_BAPL_Utils.ViewModels
 
     }
 
+    public class ChassisWithRegisterNoViewModel
+    {
+        public string? Id { get; set; }
+        public string? RegNo { get; set; }
+        public string? ChassisNo { get; set; }
+    }
+
 }
