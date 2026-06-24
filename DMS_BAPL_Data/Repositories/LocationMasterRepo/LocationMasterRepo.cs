@@ -346,24 +346,25 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 .FirstOrDefaultAsync(x => x.Loccode == loccode);
         }
 
-        public async Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string dealerCode, int areaId)
+        public async Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string? dealerCode, int areaId)
         {
             try
             {
                 var data = await _context.LocationMasters
-                            .Where(x => x.Dealercode == dealerCode && x.Locareaidno == areaId)
-                            .ToListAsync();
+                    .Where(x => (dealerCode == null || x.Dealercode == dealerCode)
+                             && x.Locareaidno == areaId)
+                    .ToListAsync();
 
-                List<LocationNameViewModel> list = new List<LocationNameViewModel>();
+                List<LocationNameViewModel> list = new();
 
                 foreach (var item in data)
                 {
-                    LocationNameViewModel locationName = new LocationNameViewModel();
-
-                    locationName.Loccode = item.Loccode;
-                    locationName.Locname = item.Locname;
-
-                    list.Add(locationName);
+                    list.Add(new LocationNameViewModel
+                    {
+                        Loccode = item.Loccode,
+                        Locname = item.Locname,
+                        DealerCode = item.Dealercode
+                    });
                 }
 
                 return list;
@@ -414,8 +415,8 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                     Id = x.Id,
                     Locname = x.Locname,
                     Dealercode = x.Dealercode,
-                    Locareaidno=x.Locareaidno,
-                    Loccode =x.Loccode
+                    Locareaidno = x.Locareaidno,
+                    Loccode = x.Loccode
                 })
                 .ToListAsync();
         }

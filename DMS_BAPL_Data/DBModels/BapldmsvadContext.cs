@@ -51,6 +51,10 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ComplaintMaster> ComplaintMasters { get; set; }
 
+    public virtual DbSet<CounterBillDetail> CounterBillDetails { get; set; }
+
+    public virtual DbSet<CounterBillHeader> CounterBillHeaders { get; set; }
+
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
 
     public virtual DbSet<DepartmentMaster> DepartmentMasters { get; set; }
@@ -58,6 +62,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<DesignationMaster> DesignationMasters { get; set; }
 
     public virtual DbSet<EmployeeMaster> EmployeeMasters { get; set; }
+
+    public virtual DbSet<EmployeeRoleMapping> EmployeeRoleMappings { get; set; }
 
     public virtual DbSet<ExceptionLog> ExceptionLogs { get; set; }
 
@@ -68,6 +74,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<Ffirheader> Ffirheaders { get; set; }
 
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
+
+    public virtual DbSet<FreeServiceClaimDetail> FreeServiceClaimDetails { get; set; }
+
+    public virtual DbSet<FreeServiceClaimHeader> FreeServiceClaimHeaders { get; set; }
 
     public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
 
@@ -156,6 +166,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<RepairBillDetail> RepairBillDetails { get; set; }
 
     public virtual DbSet<RepairBillHeader> RepairBillHeaders { get; set; }
+
+    public virtual DbSet<RoleCategoryMapping> RoleCategoryMappings { get; set; }
+
+    public virtual DbSet<RoleMenuMapping> RoleMenuMappings { get; set; }
 
     public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
 
@@ -558,6 +572,103 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_ComplaintMaster_GroupMaster");
         });
 
+        modelBuilder.Entity<CounterBillDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC0732BF9CF7");
+
+            entity.Property(e => e.Cgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTAmnt");
+            entity.Property(e => e.Cgstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("CGSTPer");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DiscType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTAmnt");
+            entity.Property(e => e.Igstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("IGSTPer");
+            entity.Property(e => e.Mrp)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("MRP");
+            entity.Property(e => e.PartCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 3)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SaleType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Sgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTAmnt");
+            entity.Property(e => e.Sgstper)
+                .HasColumnType("decimal(5, 2)")
+                .HasColumnName("SGSTPer");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.CounterBill).WithMany(p => p.CounterBillDetails)
+                .HasForeignKey(d => d.CounterBillId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CounterBillDetails_CounterBill");
+        });
+
+        modelBuilder.Entity<CounterBillHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC070A322689");
+
+            entity.ToTable("CounterBillHeader");
+
+            entity.HasIndex(e => e.BillNo, "UQ__CounterB__11F284187E180751").IsUnique();
+
+            entity.Property(e => e.BillAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.BillDate).HasColumnType("datetime");
+            entity.Property(e => e.BillNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BillType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CashCreditAcc)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.LocCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.PartyName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<DealerMaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__DealerMa__3213E83FE6BF4BFD");
@@ -771,6 +882,17 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<EmployeeRoleMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Employee__3214EC072155A37E");
+
+            entity.ToTable("EmployeeRoleMapping");
+
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.RoleName).HasMaxLength(256);
+        });
+
         modelBuilder.Entity<ExceptionLog>(entity =>
         {
             entity.ToTable("ExceptionLog");
@@ -976,6 +1098,64 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.Oemmodel).WithMany(p => p.Form22Masters)
                 .HasForeignKey(d => d.OemmodelId)
                 .HasConstraintName("FK_Form22Master_OEMModelMaster");
+        });
+
+        modelBuilder.Entity<FreeServiceClaimDetail>(entity =>
+        {
+            entity.Property(e => e.ApprovedRejectBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ApprovedRejectDate).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.RejectReason)
+                .HasMaxLength(2000)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.HeaderClaim).WithMany(p => p.FreeServiceClaimDetails)
+                .HasForeignKey(d => d.HeaderClaimId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FreeServiceClaimDetails_FreeServiceClaimHeader");
+        });
+
+        modelBuilder.Entity<FreeServiceClaimHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_FreeServiceClaim");
+
+            entity.ToTable("FreeServiceClaimHeader");
+
+            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+            entity.Property(e => e.ClaimNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ClaimPrefix)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(2000)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate)
+                .HasMaxLength(50)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<FreeServiceRate>(entity =>
@@ -2956,6 +3136,41 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(d => d.JobId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RepairBillHeader_JobCardHeader");
+        });
+
+        modelBuilder.Entity<RoleCategoryMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RoleCate__3214EC07ABD432C5");
+
+            entity.ToTable("RoleCategoryMapping");
+
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.RoleId).HasMaxLength(450);
+            entity.Property(e => e.RoleName).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<RoleMenuMapping>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("RoleMenuMapping");
+
+            entity.Property(e => e.CanView).HasDefaultValue(true);
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.MenuName).HasMaxLength(200);
+            entity.Property(e => e.ModuleName).HasMaxLength(100);
+            entity.Property(e => e.PathName).HasMaxLength(300);
+            entity.Property(e => e.RoleName).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<RoleWiseMenuRight>(entity =>

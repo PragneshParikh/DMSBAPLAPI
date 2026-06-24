@@ -10,5 +10,6 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string Loccode { get; set; }
         public string Locname { get; set; }
+        public string DealerCode { get; set; }
     }
 }
