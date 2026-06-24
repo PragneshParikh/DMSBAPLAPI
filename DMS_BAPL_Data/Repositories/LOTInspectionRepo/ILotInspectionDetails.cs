@@ -10,7 +10,10 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
     public interface ILotInspectionDetails
     {
         Task<bool> InsertDetailsByInvoiceAsync(InsertDetailsByInvoiceViewModel model, string userId);
-        Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(string? invoiceNo);
+        Task<List<LotInspectionHeaderDetailsViewModel>> GetAllDetailsByInvoiceAsync(
+            string? invoiceNo,
+            DateOnly? fromDate,
+            DateOnly? toDate);
         Task<int> InsertLotDetailsByInvoiceNo(string invoiceNo, int id, string userId);
     }
 }

@@ -47,6 +47,12 @@ public partial class LedgerMaster
 
     public int? OccupationId { get; set; }
 
+    public string? LedgerVisibility { get; set; }
+
+    public string? AlternateMobileNo { get; set; }
+
+    public string? Address2 { get; set; }
+
     public virtual City? CityNavigation { get; set; }
 
     public virtual ICollection<Hsrporder> Hsrporders { get; set; } = new List<Hsrporder>();

@@ -23,5 +23,6 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode);
 
 
+        Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode);
     }
 }

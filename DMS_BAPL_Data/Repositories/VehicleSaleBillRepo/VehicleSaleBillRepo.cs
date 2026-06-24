@@ -191,14 +191,14 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 {
                     return null;
                 }
-                result.TermsAndConditions = await _context.SalesServicesConditions
-                    .Where(i => i.ConditionType.ToLower() == "sales" && i.Status.ToLower() == "active")
-                    .OrderBy(i => i.SrNo)
+                result.TermsAndConditions = await _context.TermandConditionMasters
+                    .Where(i => i.ConditionModule ==6 && i.ConditionEffectiveDate <= result.SaleDate )
+                    
                     .Select(i => new SalesConditionViewModel
                     {
                         Id = i.Id,
-                        SrNo = i.SrNo,
-                        ConditionText = i.ConditionText,
+                        SrNo = null,
+                        ConditionText = i.TermCondition,
                     }).ToListAsync();
                 return result;
             }
@@ -673,9 +673,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
 
                 }
-
-                // CREATE INVOICE HEADER
-                // CHECK IF INVOICE ALREADY EXISTS
                 var existingInvoice = _context.InvoiceHeaders
                     .FirstOrDefault(x => x.DocumentNo == saleBill.SaleBillNo);
 
@@ -831,7 +828,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     Data = new ChassisListWithPDIStatus
                     {
                         ChassisNo = ch.ChassisNo,
-                        ItemCode = vi.ItemCode,
+                        ItemCode = ch.ItemCode,
                         ItemColor = clr.Colorname,
                         MfgYear = vi.MfgYear,
                         ItemName = im.Itemname,

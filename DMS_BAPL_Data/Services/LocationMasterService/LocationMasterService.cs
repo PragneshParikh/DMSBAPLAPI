@@ -130,5 +130,16 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<IEnumerable<object>> ILocationMasterService.GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode) => _locationMasterRepo.GetDealerPrimaryLocationByAreaId(areaId, locCode, dealerCode);
 
         public async Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode)=> await _locationMasterRepo.GetAllLocationByDealerCode(dealerCode);
+        public async Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode)
+        {
+            try
+            {
+                return await _locationMasterRepo.GetLocationDropdownByDealerCode(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

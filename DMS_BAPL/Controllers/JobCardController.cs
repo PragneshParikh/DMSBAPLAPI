@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -17,11 +18,13 @@ namespace DMS_BAPL_Api.Controllers
     public class JobCardController : ControllerBase
     {
         private readonly IJobCardRepo _jobCardRepo;
-        private readonly ILogger<LOTInspectionController> _logger;
-        public JobCardController(IJobCardRepo jobCardRepo, ILogger<LOTInspectionController> logger)
+        private readonly ILogger<JobCardController> _logger;
+        private readonly IPrefixService _prefixService;
+        public JobCardController(IJobCardRepo jobCardRepo, ILogger<JobCardController> logger, IPrefixService prefixService)
         {
             _jobCardRepo = jobCardRepo;
             _logger = logger;
+            _prefixService = prefixService;
         }
 
         [HttpGet("GetJobType")]
@@ -219,10 +222,13 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+                
+                
 
-                var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView);
+                var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView,userId);
                 if (result > 0)
                 {
+                    await _prefixService.UpdateNextNumberByDealerByModule(jobCardDetailsView.JobCardHeader.DealerCode, "job_card");
                     return Ok(new
                     {
                         message = StringConstants.JobCardDetailsSaved
@@ -230,6 +236,7 @@ namespace DMS_BAPL_Api.Controllers
                 }
                 else
                 {
+                    _logger.LogError("Failed to insert JobCard.");
                     return StatusCode(500, "An error occurred while saving job card details.");
                 }
             }

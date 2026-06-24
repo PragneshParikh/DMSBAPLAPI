@@ -28,5 +28,11 @@ namespace DMS_BAPL_Data.Services.LOTInspectionService
         {
             return await _lotInspection.GetAllLotInspectionHeaderDetailsAsync(dealerCode,search);
         }
+
+        public async Task<byte[]> DownloadLotInspecteddetailsExcel(string? invoiceNo, DateOnly? fromDate, DateOnly? toDate)
+        {
+            return await _lotInspection.DownloadLotInspecteddetailsExcel(invoiceNo,fromDate,toDate);
+        }
+
     }
 }

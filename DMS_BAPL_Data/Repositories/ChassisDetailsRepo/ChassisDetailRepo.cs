@@ -90,5 +90,27 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                 throw;
             }
         }
+
+        public async Task<List<ChassisWithRegisterNoViewModel>> GetSoldChassisDetailsList()
+        {
+            try
+            {
+                var result = await _context.ChassisDetails
+                    .Where(x => x.SaleDate.HasValue)
+                    .Select(x => new ChassisWithRegisterNoViewModel
+                    {
+                        RegNo = x.RegNo,
+                        ChassisNo = x.ChassisNo
+                    })
+                    .ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
+

@@ -47,10 +47,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<object>>> GetLedgerByPagedAsync(
-            [FromQuery] string? searchTerm = null,
-            [FromQuery] int pageIndex = 1,
-            [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<object>>> GetLedgerByPagedAsync([FromQuery] string? searchTerm = null, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? dealerCode = null, [FromQuery] string? filter =null)
         {
             try
             {
@@ -59,7 +56,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var ledger = await _ledgerMasterService.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize);
+                var ledger = await _ledgerMasterService.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize,dealerCode,filter);
 
                 return Ok(ledger);
             }

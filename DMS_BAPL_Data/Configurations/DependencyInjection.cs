@@ -19,12 +19,15 @@ using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
+using DMS_BAPL_Data.Repositories.FreeServiceRateRepo;
 using DMS_BAPL_Data.Repositories.GroupMasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Repositories.JobSourceMasterRepo;
+using DMS_BAPL_Data.Repositories.JobTypeMasterRepo;
 using DMS_BAPL_Data.Repositories.KitDetailsRepo;
 using DMS_BAPL_Data.Repositories.KitHeaderRepo;
 using DMS_BAPL_Data.Repositories.LabourMasterRepo;
@@ -50,10 +53,13 @@ using DMS_BAPL_Data.Repositories.RepairBillRepo;
 using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
+using DMS_BAPL_Data.Repositories.ServiceHeadRepo;
+using DMS_BAPL_Data.Repositories.ServiceTypeRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
+using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
@@ -75,6 +81,7 @@ using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
 using DMS_BAPL_Data.Services.FileService;
 using DMS_BAPL_Data.Services.Form22Services;
+using DMS_BAPL_Data.Services.FreeServiceRateService;
 using DMS_BAPL_Data.Services.HSNCodeMaterService;
 using DMS_BAPL_Data.Services.HSNWiseTaxcodeService;
 using DMS_BAPL_Data.Services.HSRPService;
@@ -105,6 +112,7 @@ using DMS_BAPL_Data.Services.StateService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
+using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using Microsoft.Extensions.DependencyInjection;
@@ -175,6 +183,12 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentRepo, DepartmentRepo>();
             services.AddScoped<IDesignationRepo, DesignationRepo>();
             services.AddScoped<IOccupationMasterRepo, OccupationMasterRepo>();
+            services.AddScoped<IFreeServiceRateRepo, FreeServiceRateRepo>();
+            services.AddScoped<IJobTypeMasterRepo, JobTypeRepo>();
+            services.AddScoped<IJobSourceMasterRepo,JobSourceMasterRepo>();
+            services.AddScoped<IServiceHeadRepo, ServiceHeadMasterRepo>();
+            services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
+            services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
 
             #endregion
 
@@ -229,6 +243,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IDesignationService, DesignationService>();
             services.AddScoped<IOccupationMasterService, OccupationMasterService>();
+            services.AddScoped<IVehicleInfoService, VehicleInfoService>();
+            services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
 
 
             // Email SErvice
