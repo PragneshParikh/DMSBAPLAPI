@@ -161,10 +161,15 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string dealerCode, [FromQuery] int areaId)
+        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string? dealerCode, [FromQuery] int areaId)
         {
             try
             {
+                if (dealerCode == "null")
+                {
+                    dealerCode = null;
+                }
+
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))

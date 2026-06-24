@@ -9,13 +9,27 @@ public partial class ChassisBatteryDetail
 
     public string ChassisNo { get; set; } = null!;
 
+    public int? MotorOrderNo { get; set; }
+
     public string? MotorNo { get; set; }
+
+    public int? BatteryOrderNo { get; set; }
 
     public string? BatteryNo { get; set; }
 
+    public int? ChargerOrderNo { get; set; }
+
     public string? ChargerNo { get; set; }
 
+    public int? ControllerOrderNo { get; set; }
+
     public string? ControllerNo { get; set; }
+
+    public int? ConverterOrderNo { get; set; }
+
+    public string? ConverterNo { get; set; }
+
+    public string? BatteryChemical { get; set; }
 
     public string? BatteryCapacity { get; set; }
 
