@@ -129,6 +129,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         plasticCover = lotHeader.PlasticCover,
                         nameSupervisor = lotHeader.SupervisorName,
                         locationName = lotHeader.LocationName,
+                        islotinspected = lotHeader.IsLotInspected,
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,
