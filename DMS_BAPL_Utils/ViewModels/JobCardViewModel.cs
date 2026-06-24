@@ -339,7 +339,51 @@ namespace DMS_BAPL_Utils.ViewModels
         public List<JobCardComplaintVM> JobCardComplaint { get; set; }
         public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
     }
+    public class JobCardPrintVM
+    {
+        // header
+        public string? DealerCode { get; set; }
+        public string? Location { get; set; }
+        public string? InvoiceNo { get; set; }
+        public int? JobNo { get; set; }
+        public DateOnly? JobinDate { get; set; }
+        public DateOnly? EstdelDate { get; set; }
+        public string? EstdelTime { get; set; }
+        public int? Vehiclekms { get; set; }
+        public int? ManualjobNo { get; set; }
+        public string? Supervisor { get; set; }
+        public string? Technician { get; set; }
+        public string? Observation { get; set; }
+        public string? SupervisorComment { get; set; }
+        public string? Remarks { get; set; }
+        public string? Jobtype { get; set; }
+        public string? Jobsource { get; set; }
+        public string? ServiceHead { get; set; }
+        public string? ServiceType { get; set; }
 
+        // customer (ledger party)
+        public string? CustomerName { get; set; }
+        public string? CustomerMobile { get; set; }
+        public string? CustomerAltMobile { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? Pincode { get; set; }
+        public string? State { get; set; }
+        public string? GstNo { get; set; }
+
+        // vehicle
+        public string? ChassisNo { get; set; }
+        public string? RegisterNo { get; set; }
+        public string? ModelName { get; set; }
+        public string? OemModelName { get; set; }
+        public string? Colour { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public DateTime? InsuranceExpDate { get; set; }
+
+        // battery
+        public JobCardBatteryVM? Battery { get; set; }
+        public List<JobCardComplaintVM> Complaints { get; set; } = new();
+    }
     public class InspectedChassisListVM
     {
         public List<string>? ChassisNo { get; set; } = new();

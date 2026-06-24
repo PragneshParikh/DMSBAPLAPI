@@ -35,5 +35,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode);
 
         Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search);
+
+        Task<JobCardPrintVM?> GetJobCardForPrint(int jobId);
     }
 }
