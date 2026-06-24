@@ -375,18 +375,18 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while searching job cards.");
             }
         }
-        [HttpGet("GetServiceHistory/{chassisNo}")]
+        [HttpGet("GetServiceHistory/{chassisNo}/{jobCardId}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetServiceHistory(string chassisNo)
+        public async Task<IActionResult> GetServiceHistory(string chassisNo, int? jobCardId)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-                var result = await _jobCardRepo.GetServiceHistoryViewModellist(chassisNo);
+                var result = await _jobCardRepo.GetServiceHistoryViewModellist(chassisNo,jobCardId);
                 return Ok(result);
             }
             catch (Exception ex)

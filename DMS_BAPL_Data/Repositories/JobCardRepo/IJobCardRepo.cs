@@ -26,7 +26,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<int> DeleteJobCard(int jobId);
         Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
         Task<JobCardHeader> GetJobCardById(int Id);
-        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo);
+        Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId);
         Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id);
         Task<int> GetNextJobNumber(string dealerCode);
         Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId);
