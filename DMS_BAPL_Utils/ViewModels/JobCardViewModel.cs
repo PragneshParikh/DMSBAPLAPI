@@ -38,9 +38,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerAltMobile { get; set; }
         public string? ModelName { get; set; }
         public string? RegisterNo { get; set; }
-        public DateOnly? SaleDate { get; set; }
+        public DateTime? SaleDate { get; set; }
         public DateOnly? InsuranceExpDate { get; set; }
-        public DateOnly? NextserviceDueDate { get; set; }
+        public DateTime? NextserviceDueDate { get; set; }
         public DateOnly? RsarenewalDate { get; set; }
         public string BatteryNumber { get; set; }
         public string ControllerNo { get; set; }
@@ -253,7 +253,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerName { get; set; }
         public DateTime? DueDate { get; set; }
         public DateTime? GraceDate { get; set; }
-        public DateTime? ClaimDate { get; set; }
+        public DateOnly? ClaimDate { get; set; }
         public string? ServiceStatus { get; set; }
     }
     public class ComplaintVM

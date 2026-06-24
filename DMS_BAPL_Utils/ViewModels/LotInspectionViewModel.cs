@@ -187,6 +187,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? plasticCover { get; set; }
         public string? nameSupervisor { get; set; }
         public string? locationName { get; set; }
+        public bool? islotinspected { get; set; }
         public int id { get; set; }
         public int lotHeaderID { get; set; }
         public string? modelName { get; set; }

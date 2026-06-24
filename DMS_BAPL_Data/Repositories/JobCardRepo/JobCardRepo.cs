@@ -96,11 +96,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         join vc in _context.VehicleInwards
                             on v.ChassisNo equals vc.ChasisNo
 
+
                         join o in _context.OemmodelMasters
                             on i.Oemmodelname.Trim().ToLower()
                             equals o.ModelName.Trim().ToLower()
                             into oGroup
                         from o in oGroup.DefaultIfEmpty()
+
 
                         where h.IsLotInspected == true
                               && h.DealerCode == dealerCode
@@ -115,6 +117,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             CustomerLedgerId = dealerLg.Id,
                             CustomerName = dealerLg.LedgerName,
                             CustomerMobile = dealerLg.MobileNumber,
+
 
                             ModelName = i.Itemname,
                             RegisterNo = vc.Regnumber,
@@ -166,8 +169,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             into oGroup
                         from o in oGroup.DefaultIfEmpty()
 
+                            //join sch in _context.ModelwiseServiceSchedules
+                            // on o.Id equals sch.OemmodelId
+                            // into schgroup
+                            //from sch in schgroup.DefaultIfEmpty()
+
                         where h.IsLotInspected == true
-                              && h.DealerCode == dealerCode && v.SaleDate != null 
+                              && h.DealerCode == dealerCode && v.SaleDate != null
 
                         select new LotInspectionChassisVM
                         {
@@ -176,7 +184,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             CustomerLedgerId = custLg.Id,
                             CustomerName = custLg.LedgerName,
                             CustomerMobile = custLg.MobileNumber,
-
+                            SaleDate = v.SaleDate,
+                            //NextserviceDueDate = v.SaleDate.Value.Date.AddDays(sch.DaysFrom),
                             ModelName = i.Itemname,
                             RegisterNo = vc.Regnumber,
                             BatteryNumber = vc.BatteryNo,
@@ -191,6 +200,62 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             oemModelId = o != null ? o.Id : 0
                         }
                     ).Distinct().ToListAsync();
+
+                    foreach (var item in data)
+                    {
+                        if (!item.SaleDate.HasValue)
+                            continue;
+
+                        // Is chassis ke kitne service jobcards ban chuke hain
+                        var completedServiceCount = await (
+                            from jh in _context.JobCardHeaders
+                            join jc in _context.JobCardCustomers
+                                on jh.Id equals jc.JobCardHeaderId
+                            where jc.ChassisNo == item.ChassisNumber
+                                  && jh.Jobtype != 1   // PDI ignore
+                            select jh.Id
+                        ).CountAsync();
+
+                        // Next pending schedule
+                        var nextSchedule = await _context.ModelwiseServiceSchedules
+                            .Where(x => x.OemmodelId == item.oemModelId)
+                            .OrderBy(x => x.Seqno)
+                            .Skip(completedServiceCount)
+                            .FirstOrDefaultAsync();
+
+                        if (nextSchedule != null)
+                        {
+                            item.NextserviceDueDate =
+                                item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
+                        }
+                    }
+                    var warranties = await _context.OemmodelWarranties
+                    .GroupBy(x => x.OemmodelId)
+                    .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
+                    .ToListAsync();
+
+                    foreach (var item in data)
+                    {
+                        var warranty = warranties
+                            .FirstOrDefault(x => x.OemmodelId == item.oemModelId);
+
+                        if (warranty != null)
+                        {
+                            item.OdoReading = warranty.Odoreading;
+                            item.Duration = warranty.Duration;
+                            item.DurationType = warranty.DurationType;
+                            item.EffectiveDate = warranty.EffectiveDate;
+
+                            item.ExpireWarrentyDate =
+                                warranty.EffectiveDate == null
+                                    ? null
+                                    : warranty.DurationType == "MONTH"
+                                        ? warranty.EffectiveDate.Value.AddMonths((int)(warranty.Duration ?? 0))
+                                        : warranty.DurationType == "YEAR"
+                                            ? warranty.EffectiveDate.Value.AddYears((int)(warranty.Duration ?? 0))
+                                            : warranty.EffectiveDate;
+                        }
+                    }
 
                     return data;
                 }
@@ -341,7 +406,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
                         PartyState = x.sta != null ? x.sta.StateName : null,
                         CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
-                        
+
                         IsMaterialTransfer = x.jh.IsMaterialTransfer,
 
                         JobCardHeader = new JobCardHeaderVM
@@ -480,7 +545,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             ex);
             }
         }
-        public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails,string userId)
+        public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -1027,64 +1092,124 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo)
+        public async Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId)
         {
             try
             {
-                var rawData = await (from o in _context.OemmodelMasters
-                                     join i in _context.ItemMasters on o.ModelName equals i.Oemmodelname
-                                     join m in _context.ModelwiseServiceSchedules on o.Id equals m.OemmodelId
-                                     join j in _context.JobCardCustomers on i.Itemname equals j.ModelName
-                                     join sh in _context.ServiceHeads on m.ServiceHead equals sh.Id
-                                     join st in _context.ServiceTypes on m.ServiceType equals st.Id
-                                     where j.ChassisNo == chassisNo && m.EffectiveDate == _context.ModelwiseServiceSchedules
-                                     .Where(x => x.OemmodelId == o.Id).Max(x => x.EffectiveDate)
-                                     orderby m.Seqno
-                                     select new { m, j, sh, st }).ToListAsync();
-                // Memory filter (DateOnly issue fix) 
+                // All completed services for this chassis
+                var completedServices = await (
+                    from jh in _context.JobCardHeaders
+                    join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId
+                    where jc.ChassisNo == chassisNo
+                    select new
+                    {
+                        jh.Servicehead,
+                        jh.Servicetype,
+                        jh.JobinDate
+                    }
+                ).ToListAsync();
 
-                // Final mapping
+                var rawData = await (
+                    from jh in _context.JobCardHeaders
+
+                    join loc in _context.LocationMasters
+                        on jh.Serviceloc equals loc.Loccode
+
+                    join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId
+
+                    join ch in _context.ChassisDetails
+                        on jc.ChassisNo equals ch.ChassisNo
+
+                    join i in _context.ItemMasters
+                        on jc.ModelName equals i.Itemname
+
+                    join oem in _context.OemmodelMasters
+                        on i.Oemmodelname equals oem.ModelName
+
+                    join sch in _context.ModelwiseServiceSchedules
+                        on oem.Id equals sch.OemmodelId
+
+                    join sh in _context.ServiceHeads
+                        on sch.ServiceHead equals sh.Id
+
+                    join st in _context.ServiceTypes
+                        on sch.ServiceType equals st.Id
+
+                    where jc.ChassisNo == chassisNo
+                          && (!jobCardId.HasValue || jh.Id == jobCardId)
+                          && sch.EffectiveDate ==
+                                _context.ModelwiseServiceSchedules
+                                    .Where(x => x.OemmodelId == oem.Id)
+                                    .Max(x => x.EffectiveDate)
+
+                    orderby sch.Seqno
+
+                    select new
+                    {
+                        jh,
+                        loc,
+                        jc,
+                        ch,
+                        i,
+                        oem,
+                        sch,
+                        sh,
+                        st
+                    }
+                ).ToListAsync();
+
                 var finalResult = rawData.Select(x =>
                 {
-                    DateTime? dueDate = null; DateTime? graceDate = null;
-                    string status = "Pending";
-                    if (x.j.SaleDate.HasValue)
-                    {
-                        dueDate = x.j.SaleDate.Value.AddDays(x.m.DaysTo);
-                        graceDate = dueDate.Value.AddDays(15);
-                        var today = DateTime.Today;
+                    DateTime? dueDate = null;
+                    DateTime? graceDate = null;
+                    DateOnly? claimDate = null;
 
-                        //pending when clain service table create i uncommet it
-                        //if (x.j.ClaimDate != null)
-                        //{
-                        //    status = "Availed";
-                        //}
-                        //else if (today < dueDate)
-                        //{
-                        //    status = "Upcoming";
-                        //}
-                        //else if (today >= dueDate && today <= graceDate)
-                        //{
-                        //    status = "Due";
-                        //}
-                        //else if (today > graceDate)
-                        //{
-                        //    status = "Overdue";
-                        //}
+                    string status = "Upcoming";
+
+                    if (x.ch.SaleDate.HasValue)
+                    {
+                        var saleDate = x.ch.SaleDate.Value.Date;
+
+                        dueDate = saleDate.AddDays(x.sch.DaysFrom);
+                        graceDate = dueDate.Value.AddDays(15);
+
+                        // Check if this service already availed
+                        var availedService = completedServices
+                            .FirstOrDefault(s =>
+                                s.Servicehead == x.sch.ServiceHead &&
+                                s.Servicetype == x.sch.ServiceType);
+
+                        if (availedService != null)
+                        {
+                            status = "Availed";
+                            claimDate = availedService.JobinDate;
+                        }
+                        else if (graceDate.HasValue && DateTime.Today > graceDate.Value)
+                        {
+                            status = "Lapsed";
+                        }
+                        else
+                        {
+                            status = "Upcoming";
+                        }
                     }
+
                     return new ServiceHistoryViewModel
                     {
-                        srno = x.m.Id,
-                        serviceseq = x.m.Seqno,
+                        srno = x.sch.Id,
+                        serviceseq = x.sch.Seqno,
                         serviceHead = x.sh.ServiceHeadName,
                         serviceType = x.st.ServiceTypeName,
-                        DealerName = x.j.CustomerName,
+                        DealerName = x.loc.Locname,
                         DueDate = dueDate,
                         GraceDate = graceDate,
                         ServiceStatus = status,
-                        ClaimDate = DateTime.Now
+                        ClaimDate = claimDate
                     };
                 }).ToList();
+
                 return finalResult;
             }
             catch (Exception ex)
@@ -1092,7 +1217,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw new Exception("Error while fetching service history", ex);
             }
         }
-
         public async Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id)
         {
             var ObjCIRJobcardViewModel = await (from jh in _context.JobCardHeaders
@@ -1122,7 +1246,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                            Complaint = c.Complaint
                                                        })
                                                        .ToList()
-                                                  }).FirstOrDefaultAsync();
+                                                }).FirstOrDefaultAsync();
 
             return ObjCIRJobcardViewModel;
         }
@@ -1354,13 +1478,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
                             serviceType = x.st != null ? x.st.ServiceTypeName : null,
                             Location = x.loc != null ? x.loc.Locname : null,
-                    
+
                             PartyName = x.lg != null ? x.lg.LedgerName : null,
                             PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
                             PartyState = x.sta != null ? x.sta.StateName : null,
                             CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
                             IsMaterialTransfer = x.jh.IsMaterialTransfer,
-                    
+
                             JobCardHeader = new JobCardHeaderVM
                             {
                                 Id = x.jh.Id,
@@ -1389,7 +1513,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 IsPdiSuccess = x.jh.IsPdiSuccess,
                                 Observation = x.jh.Observation,
                                 SupervisorComment = x.jh.SupervisorComment,
-                    
+
                                 JobStatus =
                                     x.rb != null && x.rb.RepairbillStatus == "Billed"
                                         ? "Closed"
@@ -1403,7 +1527,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                         ? "FFIR Created"
                                     : "Open"
                             },
-                    
+
                             JobCardCustomer = x.c == null ? null : new JobCardCustomerVM
                             {
                                 Id = x.c.Id,
@@ -1412,23 +1536,23 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 RegisterNo = x.c.RegisterNo,
                                 ChassisNo = x.c.ChassisNo,
                                 ModelName = x.c.ModelName,
-                    
+
                                 // If SaleDate not available then use LedgerMaster Customer
                                 CustomerLedgerId =
                                     x.c.SaleDate == null
                                         ? x.lg != null ? x.lg.Id : x.c.CustomerLedgerId
                                         : x.c.CustomerLedgerId,
-                    
+
                                 CustomerName =
                                     x.c.SaleDate == null
                                         ? (x.lg != null ? x.lg.LedgerName : x.c.CustomerName)
                                         : x.c.CustomerName,
-                    
+
                                 CustomerMobile =
                                     x.c.SaleDate == null
                                         ? (x.lg != null ? x.lg.MobileNumber : x.c.CustomerMobile)
                                         : x.c.CustomerMobile,
-                    
+
                                 CustomerAltMobile = x.c.CustomerAltMobile,
                                 MotorNo = x.c.MotorNo,
                                 BatteryNo = x.c.BatteryNo,
@@ -1437,7 +1561,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 RsarenewalDate = x.c.RsarenewalDate,
                                 Remarks = x.c.Remarks
                             }
-                    })
+                        })
     .OrderByDescending(x => x.JobCardHeader.Id)
     .ToListAsync();
 
@@ -1452,122 +1576,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             }
         }
 
-        public async Task<JobCardPrintVM?> GetJobCardForPrint(int jobId)
-        {
-            var data = await (
-                from jh in _context.JobCardHeaders
-                where jh.Id == jobId
-
-                join c in _context.JobCardCustomers
-                    on jh.Id equals c.JobCardHeaderId into cJoin
-                from c in cJoin.DefaultIfEmpty()
-
-                join job in _context.JobTypes on jh.Jobtype equals job.Id into jobJoin
-                from job in jobJoin.DefaultIfEmpty()
-                join js in _context.JobSources on jh.JobSource equals js.Id into jsJoin
-                from js in jsJoin.DefaultIfEmpty()
-                join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id into shJoin
-                from sh in shJoin.DefaultIfEmpty()
-                join st in _context.ServiceTypes on jh.Servicetype equals st.Id into stJoin
-                from st in stJoin.DefaultIfEmpty()
-                join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode into locJoin
-                from loc in locJoin.DefaultIfEmpty()
-
-                    // ledger party (real customer / dealer ledger)
-                join lg in _context.LedgerMasters on c.CustomerLedgerId equals lg.Id into lgJoin
-                from lg in lgJoin.DefaultIfEmpty()
-                join sta in _context.States on lg.State equals sta.StateId into staJoin
-                from sta in staJoin.DefaultIfEmpty()
-                join cty in _context.Cities on lg.City equals cty.CityId into ctyJoin
-                from cty in ctyJoin.DefaultIfEmpty()
-
-                    // OEM model + colour via the item that matches the saved model name
-                join i in _context.ItemMasters on c.ModelName equals i.Itemname into iJoin
-                from i in iJoin.DefaultIfEmpty()
-                join o in _context.OemmodelMasters
-                    on i.Oemmodelname.Trim().ToLower() equals o.ModelName.Trim().ToLower() into oJoin
-                from o in oJoin.DefaultIfEmpty()
-                join clr in _context.ColorMasters on i.Colorcode equals clr.Colorcode into clrJoin
-                from clr in clrJoin.DefaultIfEmpty()
-
-                select new JobCardPrintVM
-                {
-                    DealerCode = jh.DealerCode,
-                    Location = loc != null ? loc.Locname : null,
-                    InvoiceNo = jh.InvoiceNo,
-                    JobNo = jh.JobNo,
-                    JobinDate = jh.JobinDate,
-                    EstdelDate = jh.EstdelDate,
-                    EstdelTime = jh.EstdelTime,
-                    Vehiclekms = jh.Vehiclekms,
-                    ManualjobNo = jh.ManualjobNo,
-                    Supervisor = jh.Supervisor,
-                    Remarks = c != null ? c.Remarks : null,
-                    Technician = jh.Technician,
-                    Observation = jh.Observation,
-                    SupervisorComment = jh.SupervisorComment,
-                    Jobtype = job != null ? job.JobTypeName : null,
-                    Jobsource = js != null ? js.JobSourceName : null,
-                    ServiceHead = sh != null ? sh.ServiceHeadName : null,
-                    ServiceType = st != null ? st.ServiceTypeName : null,
-
-                    CustomerName = lg != null ? lg.LedgerName : (c != null ? c.CustomerName : null),
-                    CustomerMobile = lg != null ? lg.MobileNumber : (c != null ? c.CustomerMobile : null),
-                    CustomerAltMobile = c != null ? c.CustomerAltMobile : null,
-                    Address = lg != null ? lg.Address : null,     // adjust to your LedgerMaster column
-                    City = cty != null ? cty.CityName : null,
-                    Pincode = lg != null ? lg.Pin : null,     // adjust to your LedgerMaster column
-                    State = sta != null ? sta.StateName : null,
-                    GstNo = lg != null ? lg.Gstno : null,          // adjust to your LedgerMaster column
-
-                    ChassisNo = c != null ? c.ChassisNo : jh.Chassisno,
-                    RegisterNo = c != null ? c.RegisterNo : null,
-                    ModelName = c != null ? c.ModelName : null,
-                    OemModelName = o != null ? o.ModelName : null,
-                    Colour = clr != null ? clr.Colorname : null,
-                    SaleDate = c != null ? c.SaleDate : null,
-                    InsuranceExpDate = c != null ? c.InsuranceExpDate : null,
-                }
-            ).FirstOrDefaultAsync();
-
-            if (data == null) return null;
-
-            data.Battery = await _context.JobCardBatteryDetails
-                .Where(b => b.JobCardHeaderId == jobId)
-                .Select(b => new JobCardBatteryVM
-                {
-                    BatteryMake = b.BatteryMake,
-                    BatterySerialNo = b.BatterySerialNo,
-                    BatteryOcv = b.BatteryOcv,
-                    BatteryCcv = b.BatteryCcv,
-                    BatteryDischarge = b.BatteryDischarge,
-                    BatteryCapacityAh = b.BatteryCapacityAh,
-                    BatteryVoltage = b.BatteryVoltage,
-                    MotorDrawing = b.MotorDrawing,
-                    ChargerMake = b.ChargerMake,
-                    ChargerNo = b.ChargerNo,
-                    ConverterNo = b.ConverterNo,
-                    ControllerNo = b.ControllerNo,
-                    BatteryChemical = b.BatteryChemical,
-                    BatteryCapacity = b.BatteryCapacity
-                })
-                .FirstOrDefaultAsync();
-
-            data.Complaints = await _context.JobCardComplaints
-                .Where(cc => cc.JobCardHeaderId == jobId)
-                .Select(cc => new JobCardComplaintVM
-                {
-                    Id = cc.Id,
-                    CustomerVoice = cc.CustomerVoice,
-                    ComplaintCode = cc.ComplaintCode,
-                    Complaint = cc.Complaint
-                })
-                .ToListAsync();
-
-            return data;
-        }
-
-
+        // public async Task<>GetIssueTypebasedJobDetails
 
 
 

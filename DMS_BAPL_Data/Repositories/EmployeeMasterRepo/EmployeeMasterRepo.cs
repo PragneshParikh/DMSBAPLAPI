@@ -31,18 +31,36 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         {
             try
             {
-                return await _context.EmployeeMasters
+                var employee = await _context.EmployeeMasters
                     .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (employee != null)
+                {
+                    var maps = await _context.EmployeeRoleMappings
+                          .Where(m => m.EmployeeId == employee.Id).ToListAsync();
+
+                    employee.SelectedDepartments = maps.Select(m => m.Category).Distinct().ToList();
+                    employee.Roles = maps.Select(m => m.RoleName).Distinct().ToList();
+                    employee.RoleMappings = maps
+                        .Select(m => new EmployeeRoleMappingItem { Category = m.Category, RoleName = m.RoleName })
+                        .ToList();
+                }
+
+                return employee;
             }
             catch { throw; }
         }
-
         async Task<int> IEmployeeMasterRepo.CreateNewUser(EmployeeMaster employeeMaster)
         {
             try
             {
                 _context.EmployeeMasters.Add(employeeMaster);
-                return await _context.SaveChangesAsync();
+                var result = await _context.SaveChangesAsync();   // employeeMaster.Id is now populated
+
+                // save category/role selections
+                await SaveEmployeeRoleMappings(employeeMaster);
+
+                return result;
             }
             catch { throw; }
         }
@@ -78,14 +96,41 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 existingEmployee.UpdatedBy = "admin";
                 existingEmployee.UpdatedDate = DateTime.Now;
 
-                return await _context.SaveChangesAsync();
+                var result = await _context.SaveChangesAsync();
+
+                // refresh category/role selections (use the incoming payload's lists)
+                employeeMaster.Id = existingEmployee.Id;
+                await SaveEmployeeRoleMappings(employeeMaster);
+
+                return result;
             }
-            catch
-            {
-                throw;
-            }
+            catch { throw; }
         }
 
+        private async Task SaveEmployeeRoleMappings(EmployeeMaster employeeMaster)
+        {
+            // remove existing mappings for this employee
+            var old = _context.EmployeeRoleMappings
+                .Where(m => m.EmployeeId == employeeMaster.Id);
+            _context.EmployeeRoleMappings.RemoveRange(old);
+
+            // insert exactly the pairs that were checked
+            if (employeeMaster.RoleMappings != null)
+            {
+                foreach (var pair in employeeMaster.RoleMappings)
+                {
+                    _context.EmployeeRoleMappings.Add(new EmployeeRoleMapping
+                    {
+                        EmployeeId = employeeMaster.Id,
+                        Category = pair.Category,
+                        RoleName = pair.RoleName,
+                        CreatedDate = DateTime.Now
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+        }
         //async Task<object?> IEmployeeMasterRepo.GetDealerByCode(string dealerCode)
         //{
         //    try
@@ -135,6 +180,16 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                     })
                     .ToListAsync();
                 return result;
+            }
+            catch { throw; }
+        }
+
+        async Task<EmployeeMaster?> IEmployeeMasterRepo.GetEmployeeByEmail(string email)
+        {
+            try
+            {
+                return await _context.EmployeeMasters
+                    .FirstOrDefaultAsync(x => x.EmailId == email);
             }
             catch { throw; }
         }
