@@ -510,6 +510,25 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetJobCardForPrint/{jobId}")]
+        public async Task<IActionResult> GetJobCardForPrint(int jobId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _jobCardRepo.GetJobCardForPrint(jobId);
+                if (result == null) return NotFound("Job card not found");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetJobCardForPrint");
+                return StatusCode(500, "An error occurred while fetching job card for print.");
+            }
+        }
 
 
     }
