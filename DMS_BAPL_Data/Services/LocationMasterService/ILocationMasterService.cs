@@ -19,6 +19,7 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel);
         Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string dealerCode, int areaId);
         Task<IEnumerable<object>> GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode);
+        Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode);
         Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode);
     }
 }
