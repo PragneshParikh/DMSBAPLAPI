@@ -161,10 +161,15 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string dealerCode, [FromQuery] int areaId)
+        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string? dealerCode, [FromQuery] int areaId)
         {
             try
             {
+                if (dealerCode == "null")
+                {
+                    dealerCode = null;
+                }
+
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
                 if (string.IsNullOrEmpty(userId))
@@ -233,5 +238,20 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+        [HttpGet("GetAllLocationByDealerCode/{dealerCode}")]
+        public async Task<IActionResult> GetAllLocationByDealerCode(string dealerCode)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetAllLocationByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+
     }
 }
