@@ -1549,36 +1549,87 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         }
 
         //FORM22 REPORT FOR VEHICLE SALE BILL
+        //public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
+        //{
+        //    try
+        //    {
+        //        var data = await (
+        //             from vi in _context.VehicleInwards
+        //             join im in _context.ItemMasters
+        //             on vi.ItemCode equals im.Itemcode
+
+        //             join f2 in _context.Form22Masters
+        //             on (im.Oemmodelname ?? "").Trim().ToLower()
+        //             equals (f2.OemModelName ?? "").Trim().ToLower()
+        //             into formGroup
+
+        //             from f2 in formGroup.DefaultIfEmpty()
+
+        //             where vi.ChasisNo == chassisNo
+
+        //             select new Form22SlipViewModel
+        //             {
+        //                 ChassisNo = chassisNo,
+        //                 TypeApprovalCertNo = f2.ApprovalCertificateNo,
+        //                 BrandName = im.Itemname,
+        //                 MotorNo = vi.MotorNo,
+        //                 Emission = "",
+        //                 SoundLevelHorn = f2.SoundLevelHorn,
+        //                 NoiseLevel = f2.PassbyNoiseLevel
+
+        //             }
+        //             ).FirstOrDefaultAsync();
+        //        return data;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
         public async Task<Form22SlipViewModel> GenerateForm22Report(string chassisNo)
         {
             try
             {
                 var data = await (
-                     from vi in _context.VehicleInwards
-                     join im in _context.ItemMasters
-                     on vi.ItemCode equals im.Itemcode
+                    from vi in _context.VehicleInwards
 
-                     join f2 in _context.Form22Masters
-                     on (im.Oemmodelname ?? "").Trim().ToLower()
-                     equals (f2.OemModelName ?? "").Trim().ToLower()
-                     into formGroup
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
 
-                     from f2 in formGroup.DefaultIfEmpty()
+                    join f2 in _context.Form22Masters
+                        on (im.Oemmodelname ?? "").Trim().ToLower()
+                        equals (f2.OemModelName ?? "").Trim().ToLower()
+                        into formGroup
 
-                     where vi.ChasisNo == chassisNo
+                    from f2 in formGroup.DefaultIfEmpty()
 
-                     select new Form22SlipViewModel
-                     {
-                         ChassisNo = chassisNo,
-                         TypeApprovalCertNo = f2.ApprovalCertificateNo,
-                         BrandName = im.Itemname,
-                         MotorNo = vi.MotorNo,
-                         Emission = "",
-                         SoundLevelHorn = f2.SoundLevelHorn,
-                         NoiseLevel = f2.PassbyNoiseLevel
+                    where vi.ChasisNo == chassisNo
 
-                     }
-                     ).FirstOrDefaultAsync();
+                    select new Form22SlipViewModel
+                    {
+                        ChassisNo = chassisNo,
+
+                        TypeApprovalCertNo = f2.ApprovalCertificateNo,
+
+                        BrandName = im.Itemname,
+
+                        MotorNo = _context.ChassisBatteryDetails
+                            .Where(x =>
+                                x.ChassisNo == vi.ChasisNo &&
+                                x.MotorOrderNo == 1)
+                            .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                            .Select(x => x.MotorNo)
+                            .FirstOrDefault(),
+
+                        Emission = "",
+
+                        SoundLevelHorn = f2.SoundLevelHorn,
+
+                        NoiseLevel = f2.PassbyNoiseLevel
+                    }
+                ).FirstOrDefaultAsync();
+
                 return data;
             }
             catch

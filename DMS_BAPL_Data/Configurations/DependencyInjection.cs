@@ -60,6 +60,7 @@ using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
+using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
@@ -113,6 +114,7 @@ using DMS_BAPL_Data.Services.StateService;
 using DMS_BAPL_Data.Services.TaxCodeMasterService;
 using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
+using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using Microsoft.Extensions.DependencyInjection;
@@ -189,6 +191,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IServiceHeadRepo, ServiceHeadMasterRepo>();
             services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
             services.AddScoped<IFreeServiceClaimRepo, FreeServiceClaimRepo>();
+            services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
 
             #endregion
 
@@ -243,6 +246,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IDesignationService, DesignationService>();
             services.AddScoped<IOccupationMasterService, OccupationMasterService>();
+            services.AddScoped<IVehicleInfoService, VehicleInfoService>();
             services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
             services.AddScoped<IFreeServiceClaimService, FreeServiceClaimService>();
 

@@ -238,5 +238,20 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+        [HttpGet("GetAllLocationByDealerCode/{dealerCode}")]
+        public async Task<IActionResult> GetAllLocationByDealerCode(string dealerCode)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetAllLocationByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+
     }
 }

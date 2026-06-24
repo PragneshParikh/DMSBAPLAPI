@@ -17,5 +17,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         //Task<object?> GetDealerByCode(string dealerCode);
         //Task<List<object>> GetLocationsByDealer(string dealerCode);
         Task<List<EmployeeDesignationWiseViewModel>> GetEmployeesByDesignation(string? dealerCode, string designation);
+
+        Task<EmployeeMaster?> GetEmployeeByEmail(string email);
     }
 }

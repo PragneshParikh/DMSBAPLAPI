@@ -389,6 +389,17 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             });
         }
 
+        public async Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode)
+        {
+            var data = await _context.LocationMasters
+                        .Where(x => x.Dealercode == dealerCode)
+                        .ToListAsync();
+
+            return data.Select(item => new LocationNameViewModel
+            {
+                Loccode = item.Loccode,
+                Locname = item.Locname
+            }).ToList();
         public async Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode)
         {
             var query = _context.LocationMasters.AsQueryable();

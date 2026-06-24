@@ -51,11 +51,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAllDetailsByInvoice([FromQuery] string invoiceNo)
+        public async Task<IActionResult> GetAllDetailsByInvoice([FromQuery] string invoiceNo,DateOnly? fromDate,DateOnly?toDate)
         {
             try
             {
-                var result = await _lotInspectionDetailsService.GetAllDetailsByInvoiceAsync(invoiceNo);
+                var result = await _lotInspectionDetailsService.GetAllDetailsByInvoiceAsync(invoiceNo,fromDate,toDate);
                 return Ok(new
                 {
                     Message = "Invoice based model Details retrieved successfully",
