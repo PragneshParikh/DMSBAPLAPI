@@ -104,4 +104,14 @@ public partial class VehicleInward
     public decimal? Custprice { get; set; }
 
     public string? PoType { get; set; }
+
+    public string? Ponumber { get; set; }
+
+    public string? CreatedBy { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
 }

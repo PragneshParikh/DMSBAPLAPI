@@ -174,7 +174,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
         public int PdichecklistMasterId { get; set; }
         public int? JobCardMasterId { get; set; }
-        public int? OemModelId { get;set; }
+        public int? OemModelId { get; set; }
         public bool? IsStatus { get; set; }
         public string? Remarks { get; set; }
         public string CreatedBy { get; set; } = null!;
@@ -300,7 +300,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
-        public string? IssueType { get; set; }
+        public int? IssueType { get; set; }
 
         public List<LabourCodeDetails> LabourCodeDetailslist { get; set; }
 
@@ -331,7 +331,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string PartyMobileNo { get; set; }
         public string PartyState { get; set; }
         public bool? IsMaterialTransfer { get; set; }
-        public int? DealerLedgerId  { get; set; }
+        public int? DealerLedgerId { get; set; }
         public int? CustomerLedgerId { get; set; }
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }

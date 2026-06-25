@@ -4,6 +4,7 @@ using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Crypto.Engines;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -997,7 +998,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return await _context.SaveChangesAsync();
         }
-
         public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
         {
             var query = from jc in _context.JobCardHeaders
@@ -1085,13 +1085,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return result;
         }
-
         public async Task<JobCardHeader?> GetJobCardById(int id)
         {
             return await _context.JobCardHeaders
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
-
         public async Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId)
         {
             try
@@ -1250,7 +1248,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return ObjCIRJobcardViewModel;
         }
-
         public async Task<int> GetNextJobNumber(string dealerCode)
         {
             int maxId = await _context.JobCardHeaders
@@ -1327,7 +1324,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return data;
         }
-
         public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
         {
             var jobCard = await _context.JobCardHeaders
@@ -1341,7 +1337,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             await _context.SaveChangesAsync();
             return true;
         }
-
         public async Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode)
         {
             var result = await (
@@ -1360,8 +1355,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 ChassisNo = result
             };
         }
-
-
         public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search)
         {
             try
@@ -1575,11 +1568,288 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             ex);
             }
         }
+        public async Task<PagedResponse<object>> GetJobCardByStatus(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, bool isClosed, int pageIndex, int pageSize)
+        {
+            try
+            {
+                var query = from jh in _context.JobCardHeaders
+                            join st in _context.ServiceTypes
+                                on jh.Servicetype equals st.Id
+                            join jt in _context.JobTypes
+                                on jh.Jobtype equals jt.Id
+                            join sh in _context.ServiceHeads
+                                on jh.Servicehead equals sh.Id
+                            join lotDetail in _context.LotinspectionDetails
+                                on jh.Chassisno equals lotDetail.ChassisNo
+                            join item in _context.ItemMasters
+                                on lotDetail.Itemcode equals item.Itemcode
 
-        // public async Task<>GetIssueTypebasedJobDetails
+                            join rb in _context.RepairBillHeaders
+                                on jh.Id equals rb.JobId into repairBillGroup
 
+                            from rb in repairBillGroup.DefaultIfEmpty()
 
+                            join jc in _context.JobCardCustomers
+                                on jh.Id equals jc.JobCardHeaderId into customerGroup
 
+                            from jc in customerGroup.DefaultIfEmpty()
+
+                            select new
+                            {
+                                Id = jh.Id,
+                                DealerCode = jh.DealerCode,
+                                JobType = sh.ServiceHeadName,
+                                ChasisNo = jh.Chassisno,
+                                ServiceLoc = jh.Serviceloc,
+                                JobDate = jh.JobinDate,
+                                JobNo = jh.JobNo,
+                                ManualJobNo = jh.ManualjobNo,
+                                CreatedDate = jh.CreatedDate,
+                                ServiceType = st.ServiceTypeName,
+                                CustomerName = jc.CustomerName,
+                                RegistorNo = jc.RegisterNo,
+                                ModelName = item.Itemdesc,
+                                Status = rb.RepairbillStatus
+                            };
+
+                if (fromDate.HasValue)
+                    query = query.Where(x => x.CreatedDate.Date >= fromDate.Value.Date);
+
+                if (toDate.HasValue)
+                    query = query.Where(x => x.CreatedDate.Date <= toDate.Value.Date);
+
+                if (jobNo.HasValue && jobNo > 0)
+                    query = query.Where(x => x.JobNo == jobNo.Value);
+
+                if (manualJobNo.HasValue && manualJobNo > 0)
+                    query = query.Where(x => x.ManualJobNo == manualJobNo.Value);
+
+                if (!isClosed)
+                    query = query.Where(x => x.Status == null || x.Status == "Performa created");
+
+                var totalRecords = await query.CountAsync();
+
+                var data = await query
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .Cast<object>()
+                    .ToListAsync();
+
+                return new PagedResponse<object>
+                {
+                    Data = data,
+                    TotalRecords = totalRecords,
+                };
+
+            }
+            catch { throw; }
+        }
+        public async Task<JobCardPrintVM?> GetJobCardForPrint(int jobId)
+
+        {
+
+            var data = await (
+
+                from jh in _context.JobCardHeaders
+
+                where jh.Id == jobId
+
+                join c in _context.JobCardCustomers
+
+                    on jh.Id equals c.JobCardHeaderId into cJoin
+
+                from c in cJoin.DefaultIfEmpty()
+
+                join job in _context.JobTypes on jh.Jobtype equals job.Id into jobJoin
+
+                from job in jobJoin.DefaultIfEmpty()
+
+                join js in _context.JobSources on jh.JobSource equals js.Id into jsJoin
+
+                from js in jsJoin.DefaultIfEmpty()
+
+                join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id into shJoin
+
+                from sh in shJoin.DefaultIfEmpty()
+
+                join st in _context.ServiceTypes on jh.Servicetype equals st.Id into stJoin
+
+                from st in stJoin.DefaultIfEmpty()
+
+                join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode into locJoin
+
+                from loc in locJoin.DefaultIfEmpty()
+
+                    // ledger party (real customer / dealer ledger)
+
+                join lg in _context.LedgerMasters on c.CustomerLedgerId equals lg.Id into lgJoin
+
+                from lg in lgJoin.DefaultIfEmpty()
+
+                join sta in _context.States on lg.State equals sta.StateId into staJoin
+
+                from sta in staJoin.DefaultIfEmpty()
+
+                join cty in _context.Cities on lg.City equals cty.CityId into ctyJoin
+
+                from cty in ctyJoin.DefaultIfEmpty()
+
+                    // OEM model + colour via the item that matches the saved model name
+
+                join i in _context.ItemMasters on c.ModelName equals i.Itemname into iJoin
+
+                from i in iJoin.DefaultIfEmpty()
+
+                join o in _context.OemmodelMasters
+
+                    on i.Oemmodelname.Trim().ToLower() equals o.ModelName.Trim().ToLower() into oJoin
+
+                from o in oJoin.DefaultIfEmpty()
+
+                join clr in _context.ColorMasters on i.Colorcode equals clr.Colorcode into clrJoin
+
+                from clr in clrJoin.DefaultIfEmpty()
+
+                select new JobCardPrintVM
+
+                {
+
+                    DealerCode = jh.DealerCode,
+
+                    Location = loc != null ? loc.Locname : null,
+
+                    InvoiceNo = jh.InvoiceNo,
+
+                    JobNo = jh.JobNo,
+
+                    JobinDate = jh.JobinDate,
+
+                    EstdelDate = jh.EstdelDate,
+
+                    EstdelTime = jh.EstdelTime,
+
+                    Vehiclekms = jh.Vehiclekms,
+
+                    ManualjobNo = jh.ManualjobNo,
+
+                    Supervisor = jh.Supervisor,
+
+                    Remarks = c != null ? c.Remarks : null,
+
+                    Technician = jh.Technician,
+
+                    Observation = jh.Observation,
+
+                    SupervisorComment = jh.SupervisorComment,
+
+                    Jobtype = job != null ? job.JobTypeName : null,
+
+                    Jobsource = js != null ? js.JobSourceName : null,
+
+                    ServiceHead = sh != null ? sh.ServiceHeadName : null,
+
+                    ServiceType = st != null ? st.ServiceTypeName : null,
+
+                    CustomerName = lg != null ? lg.LedgerName : (c != null ? c.CustomerName : null),
+
+                    CustomerMobile = lg != null ? lg.MobileNumber : (c != null ? c.CustomerMobile : null),
+
+                    CustomerAltMobile = c != null ? c.CustomerAltMobile : null,
+
+                    Address = lg != null ? lg.Address : null,     // adjust to your LedgerMaster column
+
+                    City = cty != null ? cty.CityName : null,
+
+                    Pincode = lg != null ? lg.Pin : null,     // adjust to your LedgerMaster column
+
+                    State = sta != null ? sta.StateName : null,
+
+                    GstNo = lg != null ? lg.Gstno : null,          // adjust to your LedgerMaster column
+
+                    ChassisNo = c != null ? c.ChassisNo : jh.Chassisno,
+
+                    RegisterNo = c != null ? c.RegisterNo : null,
+
+                    ModelName = c != null ? c.ModelName : null,
+
+                    OemModelName = o != null ? o.ModelName : null,
+
+                    Colour = clr != null ? clr.Colorname : null,
+
+                    SaleDate = c != null ? c.SaleDate : null,
+
+                    InsuranceExpDate = c != null ? c.InsuranceExpDate : null,
+
+                }
+
+            ).FirstOrDefaultAsync();
+
+            if (data == null) return null;
+
+            data.Battery = await _context.JobCardBatteryDetails
+
+                .Where(b => b.JobCardHeaderId == jobId)
+
+                .Select(b => new JobCardBatteryVM
+
+                {
+
+                    BatteryMake = b.BatteryMake,
+
+                    BatterySerialNo = b.BatterySerialNo,
+
+                    BatteryOcv = b.BatteryOcv,
+
+                    BatteryCcv = b.BatteryCcv,
+
+                    BatteryDischarge = b.BatteryDischarge,
+
+                    BatteryCapacityAh = b.BatteryCapacityAh,
+
+                    BatteryVoltage = b.BatteryVoltage,
+
+                    MotorDrawing = b.MotorDrawing,
+
+                    ChargerMake = b.ChargerMake,
+
+                    ChargerNo = b.ChargerNo,
+
+                    ConverterNo = b.ConverterNo,
+
+                    ControllerNo = b.ControllerNo,
+
+                    BatteryChemical = b.BatteryChemical,
+
+                    BatteryCapacity = b.BatteryCapacity
+
+                })
+
+                .FirstOrDefaultAsync();
+
+            data.Complaints = await _context.JobCardComplaints
+
+                .Where(cc => cc.JobCardHeaderId == jobId)
+
+                .Select(cc => new JobCardComplaintVM
+
+                {
+
+                    Id = cc.Id,
+
+                    CustomerVoice = cc.CustomerVoice,
+
+                    ComplaintCode = cc.ComplaintCode,
+
+                    Complaint = cc.Complaint
+
+                })
+
+                .ToListAsync();
+
+            return data;
+
+        }
 
 
     }

@@ -31,7 +31,7 @@ public partial class MaterialTransfer
 
     public int? ValidDays { get; set; }
 
-    public string IssueType { get; set; } = null!;
+    public int IssueType { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 
