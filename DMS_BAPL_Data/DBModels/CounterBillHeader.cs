@@ -35,5 +35,11 @@ public partial class CounterBillHeader
 
     public DateTime? UpdatedDate { get; set; }
 
+    public int? CustomerLedgerId { get; set; }
+
+    public string? DealerCode { get; set; }
+
+    public string? MobileNo { get; set; }
+
     public virtual ICollection<CounterBillDetail> CounterBillDetails { get; set; } = new List<CounterBillDetail>();
 }

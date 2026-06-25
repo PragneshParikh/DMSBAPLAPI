@@ -302,7 +302,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
-        public string? IssueType { get; set; }
+        public int? IssueType { get; set; }
 
         public List<LabourCodeDetails> LabourCodeDetailslist { get; set; }
 
