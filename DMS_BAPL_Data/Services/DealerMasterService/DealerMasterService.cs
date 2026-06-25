@@ -89,15 +89,16 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
                 await _dealerMasterRepo.SaveAsync();
 
-                var existingUser = await _userManager.FindByNameAsync(dealer.Dealercode);
+                var existingUser = await _userManager.FindByNameAsync(dealer.Email);
 
                 if (existingUser == null)
                 {
                     var newUser = new ApplicationUser
                     {
-                        UserName = result.Dealercode,
+                        UserName = result.Email,
                         Email = result.Email,
-                        EmailConfirmed = true
+                        EmailConfirmed = true,
+                        DealerCode = result.Dealercode
                     };
 
                     var userResult = await _userManager.CreateAsync(
