@@ -37,6 +37,8 @@ public partial class AspNetUser
 
     public DateTime? LastLoginDate { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public virtual ICollection<AspNetUserClaim> AspNetUserClaims { get; set; } = new List<AspNetUserClaim>();
 
     public virtual ICollection<AspNetUserLogin> AspNetUserLogins { get; set; } = new List<AspNetUserLogin>();

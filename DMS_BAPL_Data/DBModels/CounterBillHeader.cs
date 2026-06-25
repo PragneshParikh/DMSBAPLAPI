@@ -41,5 +41,7 @@ public partial class CounterBillHeader
 
     public string? MobileNo { get; set; }
 
+    public bool IsDeleted { get; set; }
+
     public virtual ICollection<CounterBillDetail> CounterBillDetails { get; set; } = new List<CounterBillDetail>();
 }
