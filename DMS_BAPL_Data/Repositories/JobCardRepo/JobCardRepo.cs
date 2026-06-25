@@ -1576,11 +1576,138 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             }
         }
 
-        // public async Task<>GetIssueTypebasedJobDetails
+        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetails(
+            string? dealerCode,
+            int? jobNo,
+            string? serviceloc,
+            DateTime? fromDate,
+            DateTime? toDate)
+        {
+            try
+            {
+                var query =
+                    from rbh in _context.RepairBillHeaders
 
+                    join rbd in _context.RepairBillDetails
+                        on rbh.Id equals rbd.RepairBillId
 
+                    join jh in _context.JobCardHeaders
+                        on rbh.JobId equals jh.Id
 
+                    join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId
 
+                    join jt in _context.JobTypes
+                        on jh.Jobtype equals jt.Id
 
+                    join sh in _context.ServiceHeads
+                        on jh.Servicehead equals sh.Id
+
+                    join st in _context.ServiceTypes
+                        on jh.Servicetype equals st.Id
+
+                    join lg in _context.LedgerMasters
+                        on jc.CustomerLedgerId equals lg.Id
+
+                    join vs in _context.VehicleSaleBillDetails
+                        on jc.ChassisNo equals vs.ChassisNo
+
+                    join ch in _context.ChassisDetails
+                        on jc.ChassisNo equals ch.ChassisNo
+
+                    join chb in _context.ChassisBatteryDetails
+                        on jc.ChassisNo equals chb.ChassisNo
+                        into chbGroup
+                    from chb in chbGroup.DefaultIfEmpty()
+
+                    join ffir in _context.Ffirheaders
+                        on jh.Id equals ffir.JobCardHeaderId
+                        into ffirGroup
+                    from ffir in ffirGroup.DefaultIfEmpty()
+                    where rbd.IssutypeId == 2
+
+                    select new
+                    {
+                        rbh,
+                        rbd,
+                        jh,
+                        jc,
+                        jt,
+                        sh,
+                        st,
+                        lg,
+                        vs,
+                        ch,
+                        chb,
+                        ffir
+                    };
+
+                // Dynamic Filters
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(x => x.rbh.DealerCode == dealerCode);
+                }
+
+                if (jobNo.HasValue)
+                {
+                    query = query.Where(x => x.jh.JobNo == jobNo.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(serviceloc))
+                {
+                    query = query.Where(x => x.jh.Serviceloc == serviceloc);
+                }
+
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
+                }
+
+                if (toDate.HasValue)
+                {
+                    query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
+                }
+
+                var result = await query
+                    .Select(x => new IssueTypebasedJobDetails
+                    {
+                        JobcardId = x.jh.Id,
+                        JobNo = x.jh.JobNo,
+                        JobType = x.jt.JobTypeName,
+                        JobInDate = x.jh.JobinDate,
+                        JobLocation = x.jh.Serviceloc,
+
+                        serviceHead = x.sh.ServiceHeadName,
+                        serviceType = x.st.ServiceTypeName,
+
+                        CustomerName = x.lg.LedgerName,
+                        ChassisNo = x.jc.ChassisNo,
+                        ModelName = x.jc.ModelName,
+
+                        MotorNo = x.chb != null ? x.chb.MotorNo : null,
+
+                        Vehiclekms = x.jh.Vehiclekms,
+                        RegistrationNo = x.vs.RegNo,
+
+                        SaleDate = x.ch.SaleDate,
+
+                        FailureDate = x.ffir != null
+                            ? x.ffir.FailureDate
+                            : null,
+
+                        RepairBillNo = x.rbh.BillNo,
+                        RepairBillDate = x.rbh.CreatedDate,
+
+                        issueTypeId = x.rbd.IssutypeId
+                    })
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error while fetching issue type based job details", ex);
+            }
+        }
     }
 }
