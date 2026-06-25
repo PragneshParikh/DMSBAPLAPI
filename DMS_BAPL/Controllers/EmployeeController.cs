@@ -68,8 +68,8 @@ namespace DMS_BAPL_Api.Controllers
             {
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
-                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
-                    await EnsureEmployeeLogin(employeeMaster);   // <-- this is the missing call
+                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                //    await EnsureEmployeeLogin(employeeMaster);   // <-- this is the missing call
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
             }

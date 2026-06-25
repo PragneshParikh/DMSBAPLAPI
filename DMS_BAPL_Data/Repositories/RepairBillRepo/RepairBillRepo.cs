@@ -73,7 +73,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         LabourMasterId = item.LabourId == 0 ? null : item.LabourId,
                         PartWiseLabourId = item.PartWiseLabourId == 0 ? null : item.PartWiseLabourId,
 
-                        PartItemId = item.PartItemId,
+                        PartItemId = item.PartItemId == 0 ? null : item.PartItemId,
 
                         LabourQty = item.Qty,
                         LabourRate = item.Rate,
@@ -138,7 +138,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         on jh.Id equals jc.JobCardHeaderId into jcJoin
                     from jc in jcJoin.DefaultIfEmpty()
                     join lg in _context.LedgerMasters
-                        on rb.CustomerLedgerId equals lg.Id  into lgJoin
+                        on rb.CustomerLedgerId equals lg.Id into lgJoin
                     from lg in lgJoin.DefaultIfEmpty()
                     select new
                     {

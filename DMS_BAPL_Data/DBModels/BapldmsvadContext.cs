@@ -650,8 +650,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.LocCode)
                 .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.MobileNo)
+                .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.PartyName)
                 .HasMaxLength(200)
@@ -2294,9 +2300,6 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.Ffi).HasColumnName("FFI");
-            entity.Property(e => e.IssueType)
-                .HasMaxLength(50)
-                .IsUnicode(false);
             entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ItemReceived)
                 .HasMaxLength(100)
@@ -3395,6 +3398,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Converter)
                 .HasMaxLength(50)
                 .HasColumnName("converter");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.Custprice)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("custprice");
@@ -3451,6 +3458,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("po_type");
+            entity.Property(e => e.Ponumber)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("PONumber");
             entity.Property(e => e.Regnumber)
                 .HasMaxLength(20)
                 .HasColumnName("regnumber");
@@ -3473,6 +3484,10 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.TyreNo2)
                 .HasMaxLength(50)
                 .HasColumnName("tyre_no2");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
             entity.Property(e => e.Validity)
                 .HasMaxLength(20)
                 .HasColumnName("validity");
@@ -3685,33 +3700,8 @@ public partial class BapldmsvadContext : DbContext
         });
         modelBuilder.HasSequence("cir_no_seq");
         modelBuilder.HasSequence("LotNo_Seq");
-        modelBuilder.Entity<RoleCategoryMapping>(entity =>
-        {
-            entity.ToTable("RoleCategoryMapping");
 
-            entity.HasKey(e => e.Id);
-
-            entity.Property(e => e.Category)
-                .HasMaxLength(100);
-            entity.Property(e => e.RoleId)
-                .HasMaxLength(450);
-            entity.Property(e => e.RoleName)
-                .HasMaxLength(256);
-            entity.Property(e => e.CreatedBy)
-                .HasMaxLength(100);
-            entity.Property(e => e.CreatedDate)
-                .HasColumnType("datetime");
-        });
         OnModelCreatingPartial(modelBuilder);
-
-        modelBuilder.Entity<EmployeeRoleMapping>(entity =>
-        {
-            entity.ToTable("EmployeeRoleMapping");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Category).HasMaxLength(100);
-            entity.Property(e => e.RoleName).HasMaxLength(256);
-            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-        });
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

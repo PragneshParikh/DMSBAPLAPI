@@ -6,6 +6,7 @@ using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Office2021.DocumentTasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -222,10 +223,10 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-                
-                
 
-                var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView,userId);
+
+
+                var result = await _jobCardRepo.InsertJobCardinfoDetails(jobCardDetailsView, userId);
                 if (result > 0)
                 {
                     await _prefixService.UpdateNextNumberByDealerByModule(jobCardDetailsView.JobCardHeader.DealerCode, "job_card");
@@ -386,7 +387,7 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-                var result = await _jobCardRepo.GetServiceHistoryViewModellist(chassisNo,jobCardId);
+                var result = await _jobCardRepo.GetServiceHistoryViewModellist(chassisNo, jobCardId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -474,7 +475,7 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> GetInspectedChassisListDropDown(string dealerCode)
         {
             try
-            {           
+            {
 
                 var result = await _jobCardRepo.GetInspectedChassisListDropdown(dealerCode);
 
@@ -500,7 +501,7 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
 
                 var jobCardList = await _jobCardRepo.GetJobCardListRepairBill(search);
-                
+
                 return Ok(jobCardList);
             }
             catch (Exception ex)
@@ -510,6 +511,78 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetJobCardByStatus")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> GetJobCardByStatus(
+            [FromQuery] int pageSize,
+            [FromQuery] int pageIndex,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int? jobNo,
+            [FromQuery] int? manualJobNo,
+            [FromQuery] bool isClosed)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobCards = await _jobCardRepo.GetJobCardByStatus(fromDate, toDate, jobNo, manualJobNo, isClosed, pageIndex, pageSize);
+
+                return Ok(jobCards);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        [HttpGet("GetIssueTypebasedJobDetails/{dealerCode}/{jobNo}/{serviceloc}/{fromDate}/{toDate}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetIssueTypebasedJobDetails(string? dealerCode,
+             int? jobNo,
+             string? serviceloc,
+             DateTime? fromDate,
+             DateTime? toDate)
+        {
+            try
+            {
+                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetails(dealerCode, jobNo, serviceloc, fromDate, toDate);
+
+                return Ok(jobCardList);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetIssueTypebasedJobDetails");
+                return StatusCode(500, "An error occurred while fetching job details.");
+            }
+
+        }
+        [HttpGet("GetJobCardForPrint/{jobId}")]
+        public async Task<IActionResult> GetJobCardForPrint(int jobId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _jobCardRepo.GetJobCardForPrint(jobId);
+                if (result == null) return NotFound("Job card not found");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetJobCardForPrint");
+                return StatusCode(500, "An error occurred while fetching job card for print.");
+            }
+        }
 
 
     }

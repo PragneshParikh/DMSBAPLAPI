@@ -39,11 +39,11 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                     var maps = await _context.EmployeeRoleMappings
                           .Where(m => m.EmployeeId == employee.Id).ToListAsync();
 
-                    employee.SelectedDepartments = maps.Select(m => m.Category).Distinct().ToList();
-                    employee.Roles = maps.Select(m => m.RoleName).Distinct().ToList();
-                    employee.RoleMappings = maps
-                        .Select(m => new EmployeeRoleMappingItem { Category = m.Category, RoleName = m.RoleName })
-                        .ToList();
+                    //employee.SelectedDepartments = maps.Select(m => m.Category).Distinct().ToList();
+                    //employee.Roles = maps.Select(m => m.RoleName).Distinct().ToList();
+                    //employee.RoleMappings = maps
+                    //    .Select(m => new EmployeeRoleMappingItem { Category = m.Category, RoleName = m.RoleName })
+                    //    .ToList();
                 }
 
                 return employee;
@@ -115,19 +115,19 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             _context.EmployeeRoleMappings.RemoveRange(old);
 
             // insert exactly the pairs that were checked
-            if (employeeMaster.RoleMappings != null)
-            {
-                foreach (var pair in employeeMaster.RoleMappings)
-                {
-                    _context.EmployeeRoleMappings.Add(new EmployeeRoleMapping
-                    {
-                        EmployeeId = employeeMaster.Id,
-                        Category = pair.Category,
-                        RoleName = pair.RoleName,
-                        CreatedDate = DateTime.Now
-                    });
-                }
-            }
+            //if (employeeMaster.RoleMappings != null)
+            //{
+            //    foreach (var pair in employeeMaster.RoleMappings)
+            //    {
+            //        _context.EmployeeRoleMappings.Add(new EmployeeRoleMapping
+            //        {
+            //            EmployeeId = employeeMaster.Id,
+            //            Category = pair.Category,
+            //            RoleName = pair.RoleName,
+            //            CreatedDate = DateTime.Now
+            //        });
+            //    }
+            //}
 
             await _context.SaveChangesAsync();
         }

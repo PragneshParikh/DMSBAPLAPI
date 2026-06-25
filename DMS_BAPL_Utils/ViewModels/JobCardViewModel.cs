@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static DMS_BAPL_Utils.ViewModels.RepairBillViewModel;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
@@ -174,7 +176,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
         public int PdichecklistMasterId { get; set; }
         public int? JobCardMasterId { get; set; }
-        public int? OemModelId { get;set; }
+        public int? OemModelId { get; set; }
         public bool? IsStatus { get; set; }
         public string? Remarks { get; set; }
         public string CreatedBy { get; set; } = null!;
@@ -300,7 +302,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
-        public string? IssueType { get; set; }
+        public int? IssueType { get; set; }
 
         public List<LabourCodeDetails> LabourCodeDetailslist { get; set; }
 
@@ -331,7 +333,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string PartyMobileNo { get; set; }
         public string PartyState { get; set; }
         public bool? IsMaterialTransfer { get; set; }
-        public int? DealerLedgerId  { get; set; }
+        public int? DealerLedgerId { get; set; }
         public int? CustomerLedgerId { get; set; }
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
@@ -339,10 +341,78 @@ namespace DMS_BAPL_Utils.ViewModels
         public List<JobCardComplaintVM> JobCardComplaint { get; set; }
         public List<PdiChecklistChassiWiseVM> PdiChecklistChassiWise { get; set; }
     }
+    public class JobCardPrintVM
+    {
+        // header
+        public string? DealerCode { get; set; }
+        public string? Location { get; set; }
+        public string? InvoiceNo { get; set; }
+        public int? JobNo { get; set; }
+        public DateOnly? JobinDate { get; set; }
+        public DateOnly? EstdelDate { get; set; }
+        public string? EstdelTime { get; set; }
+        public int? Vehiclekms { get; set; }
+        public int? ManualjobNo { get; set; }
+        public string? Supervisor { get; set; }
+        public string? Technician { get; set; }
+        public string? Observation { get; set; }
+        public string? SupervisorComment { get; set; }
+        public string? Remarks { get; set; }
+        public string? Jobtype { get; set; }
+        public string? Jobsource { get; set; }
+        public string? ServiceHead { get; set; }
+        public string? ServiceType { get; set; }
 
+        // customer (ledger party)
+        public string? CustomerName { get; set; }
+        public string? CustomerMobile { get; set; }
+        public string? CustomerAltMobile { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? Pincode { get; set; }
+        public string? State { get; set; }
+        public string? GstNo { get; set; }
+
+        // vehicle
+        public string? ChassisNo { get; set; }
+        public string? RegisterNo { get; set; }
+        public string? ModelName { get; set; }
+        public string? OemModelName { get; set; }
+        public string? Colour { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public DateTime? InsuranceExpDate { get; set; }
+
+        // battery
+        public JobCardBatteryVM? Battery { get; set; }
+        public List<JobCardComplaintVM> Complaints { get; set; } = new();
+    }
     public class InspectedChassisListVM
     {
         public List<string>? ChassisNo { get; set; } = new();
+    }
+
+    public class IssueTypebasedJobDetails
+    {
+        public int JobcardId { get; set; }
+        public int? JobNo { get; set; }
+        public string JobType { get; set; }
+        public DateOnly? JobInDate { get; set; }
+        public string JobLocation { get; set; }
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+        public string CustomerName { get; set; }
+        public string ChassisNo { get; set; }
+        public string ModelName { get; set; }
+        public string MotorNo { get; set; }
+        public int? Vehiclekms { get; set; }
+        public string RegistrationNo { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public DateTime? FailureDate { get; set; }
+        public int RepairBillNo { get; set; }
+        public DateTime? RepairBillDate { get; set; }
+        public int? issueTypeId { get; set; }
+
+        public List<RepairBillDetailVM> RepairBillDetails { get; set; }
     }
 
 }
