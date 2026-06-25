@@ -41,7 +41,7 @@ namespace DMS_BAPL_Api.Controllers
             _dealerMasterService = dealerMasterService;
             _logger = logger;
             _employeeService = employeeService;
-            
+
         }
 
         [HttpGet]
@@ -193,7 +193,7 @@ namespace DMS_BAPL_Api.Controllers
                 }
                 else
                 {
-                    dealerCode = user.UserName;   // dealer logs in as themselves
+                    dealerCode = user.DealerCode;   // dealer logs in as themselves
                 }
 
                 var dealerInfo = await _dealerMasterService.GetDealerByCode(dealerCode);
@@ -207,7 +207,8 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     userId = user.Id,
                     email = user.Email,
-                    userName = dealerCode,                 
+                    userName = user.Email,
+                    dealerCode = dealerCode,
                     lastLoginDate = user.LastLoginDate,
                     token = token,
                     role = roles.FirstOrDefault(),
@@ -222,56 +223,56 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
-        
 
-                /// <summary>
-                /// Initiates the password reset process for a user.
-                /// If the provided email exists, generates a password reset token,
-                /// creates a reset link, and sends it to the user's email.
-                /// </summary>
-                /// <param name="model">ForgotPassword model containing the user's email.</param>
-                /// <returns>
-                /// 200 OK if the reset link is sent successfully or if the email does not exist (to avoid exposing user info),
-                /// 500 Internal Server Error if an exception occurs while processing.
-                /// </returns>
-                [HttpPost("forgot-password")]
-                [AllowAnonymous]
-                [ProducesResponseType(StatusCodes.Status200OK)]
-                [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-                public async Task<IActionResult> ForgotPassword(ForgotPassword model)
-                {
-                    try
-                    {
-                        var user = await _userManager.FindByEmailAsync(model.Email);
 
-                        if (user == null)
-                            return Ok();
+        /// <summary>
+        /// Initiates the password reset process for a user.
+        /// If the provided email exists, generates a password reset token,
+        /// creates a reset link, and sends it to the user's email.
+        /// </summary>
+        /// <param name="model">ForgotPassword model containing the user's email.</param>
+        /// <returns>
+        /// 200 OK if the reset link is sent successfully or if the email does not exist (to avoid exposing user info),
+        /// 500 Internal Server Error if an exception occurs while processing.
+        /// </returns>
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ForgotPassword(ForgotPassword model)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
 
-                        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                if (user == null)
+                    return Ok();
 
-                        var encodedToken = HttpUtility.UrlEncode(token);
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-                        string baseUrl = _env.IsDevelopment() ? "http://localhost:4200" : "https://yourdomain.com";
+                var encodedToken = HttpUtility.UrlEncode(token);
 
-                        var resetLink = $"{baseUrl}/reset-password?email={model.Email}&token={encodedToken}";
+                string baseUrl = _env.IsDevelopment() ? "http://localhost:4200" : "https://yourdomain.com";
 
-                        var body = $@"
+                var resetLink = $"{baseUrl}/reset-password?email={model.Email}&token={encodedToken}";
+
+                var body = $@"
                                 <p>Click the link below to reset your password:</p>
                                 <p><a href='{resetLink}'>Reset Password</a></p>
                             ";
 
-                        await _emailService.SendEmailAsync(model.Email,
-                                "Reset Password",
-                            body);
+                await _emailService.SendEmailAsync(model.Email,
+                        "Reset Password",
+                    body);
 
-                        return Ok(new { success = true, message = "Password reset link sent." });
-                    }
-                    catch (Exception)
-                    {
-                        _logger.LogError("An error occurred while sending the reset email.");
-                        throw;
-                    }
-                }
+                return Ok(new { success = true, message = "Password reset link sent." });
+            }
+            catch (Exception)
+            {
+                _logger.LogError("An error occurred while sending the reset email.");
+                throw;
+            }
+        }
 
         /// <summary>
         /// Resets the password for a user using the provided reset token.

@@ -289,6 +289,9 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnique()
                 .HasFilter("([NormalizedUserName] IS NOT NULL)");
 
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
             entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
@@ -653,6 +656,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.LocCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
