@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static DMS_BAPL_Utils.ViewModels.RepairBillViewModel;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
@@ -387,6 +389,30 @@ namespace DMS_BAPL_Utils.ViewModels
     public class InspectedChassisListVM
     {
         public List<string>? ChassisNo { get; set; } = new();
+    }
+
+    public class IssueTypebasedJobDetails
+    {
+        public int JobcardId { get; set; }
+        public int? JobNo { get; set; }
+        public string JobType { get; set; }
+        public DateOnly? JobInDate { get; set; }
+        public string JobLocation { get; set; }
+        public string serviceHead { get; set; }
+        public string serviceType { get; set; }
+        public string CustomerName { get; set; }
+        public string ChassisNo { get; set; }
+        public string ModelName { get; set; }
+        public string MotorNo { get; set; }
+        public int? Vehiclekms { get; set; }
+        public string RegistrationNo { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public DateTime? FailureDate { get; set; }
+        public int RepairBillNo { get; set; }
+        public DateTime? RepairBillDate { get; set; }
+        public int? issueTypeId { get; set; }
+
+        public List<RepairBillDetailVM> RepairBillDetails { get; set; }
     }
 
 }
