@@ -1,0 +1,425 @@
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
+{
+    public class VehicleInfoRepo : IVehicleInfoRepo
+    {
+        private readonly BapldmsvadContext _context;
+        public VehicleInfoRepo(BapldmsvadContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo)
+        {
+            var vehicleInfo = await (
+                from cd in _context.ChassisDetails
+
+                join vd in _context.VehicleSaleBillDetails
+                    on cd.ChassisNo equals vd.ChassisNo into vdJoin
+                from vd in vdJoin.DefaultIfEmpty()
+
+                join ld in _context.LedgerMasters
+                    on cd.LedgerId equals ld.Id into ldJoin
+                from ld in ldJoin.DefaultIfEmpty()
+
+                join ic in _context.LedgerMasters
+                    on vd.InsuranceLedgerId equals ic.Id into icJoin
+                from ic in icJoin.DefaultIfEmpty()
+
+                join im in _context.ItemMasters
+                    on vd.ItemCode equals im.Itemcode into ItemInfo
+                from im in ItemInfo.DefaultIfEmpty()
+
+                where
+                    (!string.IsNullOrWhiteSpace(chassisNo) &&
+                     cd.ChassisNo == chassisNo)
+                    ||
+                    (!string.IsNullOrWhiteSpace(regNo) &&
+                     cd.RegNo != null && cd.RegNo == regNo)
+                     && cd.SaleDate.HasValue
+
+                select new VehicleInfoViewModel
+                {
+                    PartyDetails = new PartyDetailsViewModel
+                    {
+                        PartyName = ld != null ? ld.LedgerName : string.Empty,
+                        PartyMobile = ld != null ? ld.MobileNumber : string.Empty,
+                        PartyAltMobile = ld != null ? ld.AlternateMobileNo : string.Empty,
+                        Address1 = ld != null ? ld.Address : string.Empty,
+                        Address2 = ld != null ? ld.Address2 : string.Empty,
+                        City = ld != null && ld.CityNavigation != null ? ld.CityNavigation.CityName : null,
+                        State = ld != null && ld.StateNavigation != null ? ld.StateNavigation.StateName : null,
+                        Pin = ld != null ? ld.Pin : null,
+                        Email = ld != null ? ld.EMail : null,
+                    },
+
+                    VehicleDetails = new VehicleDetailsViewModel
+                    {
+                        ChassisNo = cd.ChassisNo,
+                        RegNo = vd != null ? vd.RegNo : string.Empty,
+                        SaleDate = cd.SaleDate,
+                        ItemCode = cd.ItemCode,
+                        ModelName = vd != null ? vd.ModelName : string.Empty,
+                        ColorName = vd != null ? vd.Colour : string.Empty,
+                        InsuranceDate = vd != null ? vd.InsStartDate : null,
+                        PolicyNo = vd != null ? vd.InsNo : string.Empty,
+                        PolicyExpiryDate = vd != null ? vd.InsExpDate : null,
+                        InsuranceCompanyId = vd != null ? vd.InsuranceLedgerId : null,
+                        InsuranceCompany = ic != null ? ic.LedgerName : string.Empty
+                    }
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (vehicleInfo == null)
+                return null;
+
+            var batteryDetails = await _context.ChassisBatteryDetails
+                .AsNoTracking()
+                .Where(x => x.ChassisNo == vehicleInfo.VehicleDetails.ChassisNo)
+                .ToListAsync();
+
+            // Batteries
+            vehicleInfo.VehicleDetails.Batteries = batteryDetails
+                .Where(x => !string.IsNullOrWhiteSpace(x.BatteryNo))
+                .GroupBy(x => x.BatteryOrderNo)
+                .Select(g => g
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .First())
+                .Select(x => new BatteryViewModel
+                {
+                    SerialNo = x.BatteryOrderNo ?? 0,
+                    BatteryNo = x.BatteryNo,
+                    Capacity = x.BatteryCapacity,
+                    BatteryMake = x.BatteryMake,
+                    ChemicalType = x.BatteryChemical
+                })
+                .OrderBy(x => x.SerialNo)
+                .ToList();
+
+            // Chargers
+            vehicleInfo.VehicleDetails.Chargers = batteryDetails
+                .Where(x => !string.IsNullOrWhiteSpace(x.ChargerNo))
+                .GroupBy(x => x.ChargerOrderNo)
+                .Select(g => g
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .First())
+                .Select(x => new ComponentViewModel
+                {
+                    SerialNo = x.ChargerOrderNo ?? 0,
+                    ComponentNo = x.ChargerNo
+                })
+                .OrderBy(x => x.SerialNo)
+                .ToList();
+
+            // Controllers
+            vehicleInfo.VehicleDetails.Controllers = batteryDetails
+                .Where(x => !string.IsNullOrWhiteSpace(x.ControllerNo))
+                .GroupBy(x => x.ControllerOrderNo)
+                .Select(g => g
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .First())
+                .Select(x => new ComponentViewModel
+                {
+                    SerialNo = x.ControllerOrderNo ?? 0,
+                    ComponentNo = x.ControllerNo
+                })
+                .OrderBy(x => x.SerialNo)
+                .ToList();
+
+            // Motors
+            vehicleInfo.VehicleDetails.Motors = batteryDetails
+                .Where(x => !string.IsNullOrWhiteSpace(x.MotorNo))
+                .GroupBy(x => x.MotorOrderNo)
+                .Select(g => g
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .First())
+                .Select(x => new ComponentViewModel
+                {
+                    SerialNo = x.MotorOrderNo ?? 0,
+                    ComponentNo = x.MotorNo
+                })
+                .OrderBy(x => x.SerialNo)
+                .ToList();
+
+            // Converters
+            vehicleInfo.VehicleDetails.Converters = batteryDetails
+                .Where(x => !string.IsNullOrWhiteSpace(x.ConverterNo))
+                .GroupBy(x => x.ConverterOrderNo)
+                .Select(g => g
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .First())
+                .Select(x => new ComponentViewModel
+                {
+                    SerialNo = x.ConverterOrderNo ?? 0,
+                    ComponentNo = x.ConverterNo
+                })
+                .OrderBy(x => x.SerialNo)
+                .ToList();
+
+            return vehicleInfo;
+        }
+
+        public async Task UpdateVehicleInfo(UpdateVehicleInfoViewModel model)
+        {
+            var chassis = await _context.ChassisDetails.FirstOrDefaultAsync(x => x.ChassisNo == model.ChassisNo);
+            var saleBill = await _context.VehicleSaleBillDetails.FirstOrDefaultAsync(x => x.ChassisNo == model.ChassisNo);
+            bool saleBillUpdated = false;
+            // Batteries
+            foreach (var battery in model.Batteries)
+            {
+                var existing = await _context.ChassisBatteryDetails
+                    .Where(x =>
+                        x.ChassisNo == model.ChassisNo &&
+                        x.BatteryOrderNo == battery.OrderNo)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+
+                if (existing != null)
+                {
+                    existing.BatteryNo = battery.BatteryNo;
+                    existing.BatteryCapacity = battery.BatteryCapacity;
+                    existing.BatteryChemical = battery.BatteryChemical;
+                    existing.BatteryMake = battery.BatteryMake;
+                    existing.UpdatedDate = DateTime.Now;
+                    existing.UpdatedBy = "Admin";
+                    if (battery.OrderNo == 1 && saleBill != null)
+                    {
+                        saleBill.Battery = battery.BatteryNo;
+                        saleBillUpdated = true;
+                        saleBill.BatteryCapacity = battery.BatteryCapacity;
+                        saleBill.BatteryChemical = battery.BatteryChemical;
+                        saleBill.BatteryMake = battery.BatteryMake;
+                    }
+                }
+                else
+                {
+                    _context.ChassisBatteryDetails.Add(new ChassisBatteryDetail
+                    {
+                        ChassisNo = model.ChassisNo,
+                        BatteryOrderNo = battery.OrderNo,
+                        BatteryNo = battery.BatteryNo,
+                        BatteryCapacity = battery.BatteryCapacity,
+                        BatteryChemical = battery.BatteryChemical,
+                        BatteryMake = battery.BatteryMake,
+                        CreatedDate = DateTime.Now,
+                        CreatedBy = "Admin"
+                    });
+                }
+            }
+
+            // Motors
+            foreach (var motor in model.Motors)
+            {
+                var existing = await _context.ChassisBatteryDetails
+                    .Where(x =>
+                        x.ChassisNo == model.ChassisNo &&
+                        x.MotorOrderNo == motor.OrderNo)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+                if (existing != null)
+                {
+                    existing.MotorNo = motor.ComponentNo;
+                    existing.UpdatedDate = DateTime.Now;
+                    existing.UpdatedBy = "Admin";
+                    //if (motor.OrderNo == 1 && saleBill != null)
+                    //{
+                    //    saleBill.M = battery.BatteryNo;
+                    //    saleBillUpdated = true;
+                    //}
+                }
+                else
+                {
+                    _context.ChassisBatteryDetails.Add(new ChassisBatteryDetail
+                    {
+                        ChassisNo = model.ChassisNo,
+                        MotorOrderNo = motor.OrderNo,
+                        MotorNo = motor.ComponentNo,
+                        CreatedDate = DateTime.Now,
+                        CreatedBy = "Admin"
+                    });
+                }
+            }
+
+            // Chargers
+            foreach (var charger in model.Chargers)
+            {
+                var existing = await _context.ChassisBatteryDetails
+                    .Where(x =>
+                        x.ChassisNo == model.ChassisNo &&
+                        x.ChargerOrderNo == charger.OrderNo)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+                if (existing != null)
+                {
+                    existing.ChargerNo = charger.ComponentNo;
+                    existing.UpdatedDate = DateTime.Now;
+                    existing.UpdatedBy = "Admin";
+                    if (charger.OrderNo == 1 && saleBill != null)
+                    {
+                        saleBill.ChargerNo = charger.ComponentNo;
+                        saleBillUpdated = true;
+                    }
+                }
+                else
+                {
+                    _context.ChassisBatteryDetails.Add(new ChassisBatteryDetail
+                    {
+                        ChassisNo = model.ChassisNo,
+                        ChargerOrderNo = charger.OrderNo,
+                        ChargerNo = charger.ComponentNo,
+                        CreatedDate = DateTime.Now,
+                        CreatedBy = "Admin"
+                    });
+                }
+            }
+
+            // Controllers
+            foreach (var controller in model.Controllers)
+            {
+                var existing = await _context.ChassisBatteryDetails
+                    .Where(x =>
+                        x.ChassisNo == model.ChassisNo &&
+                        x.ControllerOrderNo == controller.OrderNo)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+                if (existing != null)
+                {
+                    existing.ControllerNo = controller.ComponentNo;
+                    existing.UpdatedDate = DateTime.Now;
+                    existing.UpdatedBy = "Admin";
+                    if (controller.OrderNo == 1 && saleBill != null)
+                    {
+                        saleBill.ControllerNo = controller.ComponentNo;
+                        saleBillUpdated = true;
+                    }
+                }
+                else
+                {
+                    _context.ChassisBatteryDetails.Add(new ChassisBatteryDetail
+                    {
+                        ChassisNo = model.ChassisNo,
+                        ControllerOrderNo = controller.OrderNo,
+                        ControllerNo = controller.ComponentNo,
+                        CreatedDate = DateTime.Now,
+                        CreatedBy = "Admin"
+                    });
+                }
+            }
+
+            // Converters
+            foreach (var converter in model.Converters)
+            {
+                var existing = await _context.ChassisBatteryDetails
+                    .Where(x =>
+                        x.ChassisNo == model.ChassisNo &&
+                        x.ConverterOrderNo == converter.OrderNo)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+                if (existing != null)
+                {
+                    existing.ConverterNo = converter.ComponentNo;
+                    existing.UpdatedDate = DateTime.Now;
+                    existing.UpdatedBy = "Admin";
+                    if (converter.OrderNo == 1 && saleBill != null)
+                    {
+                        saleBill.ConvertorNo = converter.ComponentNo;
+                        saleBillUpdated = true;
+                    }
+                }
+                else
+                {
+                    _context.ChassisBatteryDetails.Add(new ChassisBatteryDetail
+                    {
+                        ChassisNo = model.ChassisNo,
+                        ConverterOrderNo = converter.OrderNo,
+                        ConverterNo = converter.ComponentNo,
+                        CreatedDate = DateTime.Now,
+                        CreatedBy = "Admin"
+                    });
+                }
+            }
+
+
+            if (chassis != null && chassis.RegNo != model.RegNo)
+            {
+                chassis.RegNo = model.RegNo;
+                chassis.UpdatedDate = DateTime.Now;
+                chassis.UpdatedBy = "Admin";
+            }
+            if (saleBill != null)
+            {
+                bool isUpdated = false;
+
+                if (saleBill.RegNo != model.RegNo)
+                {
+                    saleBill.RegNo = model.RegNo;
+                    isUpdated = true;
+                }
+
+                if (saleBill.InsNo != model.InsuranceNo)
+                {
+                    saleBill.InsNo = model.InsuranceNo;
+                    isUpdated = true;
+                }
+
+                if (saleBill.InsStartDate != model.InsuranceStartDate)
+                {
+                    saleBill.InsStartDate = model.InsuranceStartDate;
+                    isUpdated = true;
+                }
+
+                if (saleBill.InsExpDate != model.InsuranceExpiryDate)
+                {
+                    saleBill.InsExpDate = model.InsuranceExpiryDate;
+                    isUpdated = true;
+                }
+
+                if (saleBill.InsuranceLedgerId != model.InsuranceCompany)
+                {
+                    saleBill.InsuranceLedgerId = model.InsuranceCompany;
+                    isUpdated = true;
+                }
+
+                if (isUpdated)
+                {
+                    saleBill.UpdatedDate = DateTime.Now;
+                    saleBill.UpdatedBy = "Admin";
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.CustomerAltMobile))
+            {
+                int? ledgerId = chassis?.LedgerId;
+
+                if (ledgerId.HasValue)
+                {
+                    var ledger = await _context.LedgerMasters
+                        .FirstOrDefaultAsync(x => x.Id == ledgerId.Value);
+
+                    if (ledger != null)
+                    {
+                        ledger.AlternateMobileNo = model.CustomerAltMobile;
+
+                        ledger.UpdatedDate = DateTime.Now;
+                        ledger.UpdatedBy = "Admin";
+                    }
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
+    }
+}

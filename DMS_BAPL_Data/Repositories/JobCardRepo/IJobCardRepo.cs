@@ -42,5 +42,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
              string? serviceloc,
              DateTime? fromDate,
              DateTime? toDate);
+        Task<JobCardPrintVM?> GetJobCardForPrint(int jobId);
     }
 }
