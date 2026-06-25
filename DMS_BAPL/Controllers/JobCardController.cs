@@ -549,6 +549,21 @@ namespace DMS_BAPL_Api.Controllers
              string? serviceloc,
              DateTime? fromDate,
              DateTime? toDate)
+        {
+            try
+            {
+                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetails(dealerCode, jobNo, serviceloc, fromDate, toDate);
+
+                return Ok(jobCardList);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetIssueTypebasedJobDetails");
+                return StatusCode(500, "An error occurred while fetching job details.");
+            }
+
+        }
         [HttpGet("GetJobCardForPrint/{jobId}")]
         public async Task<IActionResult> GetJobCardForPrint(int jobId)
         {
@@ -558,7 +573,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetails(dealerCode, jobNo,serviceloc,fromDate,toDate);
                 var result = await _jobCardRepo.GetJobCardForPrint(jobId);
                 if (result == null) return NotFound("Job card not found");
                 return Ok(result);
@@ -570,14 +584,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-                return Ok(jobCardList);
 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in GetIssueTypebasedJobDetails");
-                return StatusCode(500, "An error occurred while fetching job details.");
-            }
-        }
     }
 }
