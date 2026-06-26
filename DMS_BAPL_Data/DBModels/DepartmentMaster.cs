@@ -21,5 +21,7 @@ public partial class DepartmentMaster
 
     public DateTime? ModifiedDate { get; set; }
 
+    public virtual ICollection<BgEmployeeMaster> BgEmployeeMasters { get; set; } = new List<BgEmployeeMaster>();
+
     public virtual ICollection<DesignationMaster> DesignationMasters { get; set; } = new List<DesignationMaster>();
 }
