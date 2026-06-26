@@ -393,6 +393,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class IssueTypebasedJobDetails
     {
+        public int RepairBillHeaderId { get; set; }
         public int JobcardId { get; set; }
         public int? JobNo { get; set; }
         public string JobType { get; set; }
@@ -411,6 +412,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public int RepairBillNo { get; set; }
         public DateTime? RepairBillDate { get; set; }
         public int? issueTypeId { get; set; }
+
+        public string? LabourName { get; set; }
+        public string? PartLabourName { get; set; }
+        public string? PartitemName { get; set; }
+        public string? LabourDesc { get; set; }
+        public string? PartLabourDesc { get; set; }
+        public string? PartitemDesc { get; set; }
+        public int? PartItemQty { get; set; }
+        public int? PartLabourQty { get; set; }
+        public int? LabourQty { get; set; }
 
         public List<RepairBillDetailVM> RepairBillDetails { get; set; }
     }
