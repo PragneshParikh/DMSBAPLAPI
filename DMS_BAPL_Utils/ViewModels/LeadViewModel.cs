@@ -42,17 +42,17 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Dealercode { get; set; } = null!;
 
-        public string Productcode { get; set; }
+        //public string? Productcode { get; set; } = null;
 
         public string Sourceapp { get; set; } = null!;
 
-        public int? ColorId { get; set; } = null!;
+        //public int? ColorId { get; set; } = null!;
 
         public string? Color { get; set; } = null!;
 
         public string createdby { get; set; }
         public DateTime createddatetime { get; set; }
-        public string  updatedby { get; set; }
+        public string updatedby { get; set; }
         public DateTime? updateddatetime { get; set; }
     }
 }
