@@ -505,12 +505,26 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         }
 
-        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName)
+        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId)
         {
-            var modelName = (oemmodelName ?? "").Trim();
+            var itemName = oemmodelName;
+            var oemmodel = await _context.ItemMasters
+                .Where(x => x.Itemname == itemName)
+                .Select(x => x.Oemmodelname)
+                .FirstOrDefaultAsync();
+            var modelName = (oemmodel ?? "").Trim();
+
+            var city = await _context.LedgerMasters
+                .Where(y => y.Id == customerLedgerId)
+                .Select(y => y.City)
+                .FirstOrDefaultAsync();
+            var cityTier = await _context.Cities
+                .Where(ct => ct.CityId == city)
+                .Select(ct => ct.TierLevel)
+                .FirstOrDefaultAsync();
 
             //Model Wise Labour
-            var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true)
+            var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true && cityTier == x.CityTier)
                 .Select(x => new LabourRateDropDown
                 {
                     LabourId = x.Id,
@@ -535,7 +549,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
          )
          .ToList();
             // Part Wise Labour
-            var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters.Where(x => x.IsActive == true)
+            var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters.Where(x => x.IsActive == true && cityTier == x.CityTier)
                 .Select(x => new LabourRateDropDown
                 {
                     LabourCode = x.LabourCode,

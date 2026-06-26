@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
+using static DMS_BAPL_Utils.ViewModels.RepairBillViewModel;
 
 namespace DMS_BAPL_Data.Repositories.JobCardRepo
 {
@@ -1862,14 +1863,17 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 var query =
                     from rbh in _context.RepairBillHeaders
 
-                    join rbd in _context.RepairBillDetails
-                        on rbh.Id equals rbd.RepairBillId
-
                     join jh in _context.JobCardHeaders
                         on rbh.JobId equals jh.Id
 
                     join jc in _context.JobCardCustomers
                         on jh.Id equals jc.JobCardHeaderId
+
+                    join loc in _context.LocationMasters
+                        on jh.Serviceloc equals loc.Loccode
+
+                    join lg in _context.LedgerMasters
+                        on jc.CustomerLedgerId equals lg.Id
 
                     join jt in _context.JobTypes
                         on jh.Jobtype equals jt.Id
@@ -1880,17 +1884,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join st in _context.ServiceTypes
                         on jh.Servicetype equals st.Id
 
-                    join lg in _context.LedgerMasters
-                        on jc.CustomerLedgerId equals lg.Id
-
                     join vs in _context.VehicleSaleBillDetails
-                        on jc.ChassisNo equals vs.ChassisNo
+                        on jh.Chassisno equals vs.ChassisNo
 
                     join ch in _context.ChassisDetails
-                        on jc.ChassisNo equals ch.ChassisNo
+                        on jh.Chassisno equals ch.ChassisNo
 
                     join chb in _context.ChassisBatteryDetails
-                        on jc.ChassisNo equals chb.ChassisNo
+                        on jh.Chassisno equals chb.ChassisNo
                         into chbGroup
                     from chb in chbGroup.DefaultIfEmpty()
 
@@ -1898,18 +1899,23 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         on jh.Id equals ffir.JobCardHeaderId
                         into ffirGroup
                     from ffir in ffirGroup.DefaultIfEmpty()
-                    where rbd.IssutypeId == 2
+
+                    where rbh.RepairbillStatus == "Billed"
+                          && jh.Jobtype != 2
+                          && _context.RepairBillDetails.Any(d =>
+                                d.RepairBillId == rbh.Id &&
+                                d.IssutypeId == 2)
 
                     select new
                     {
                         rbh,
-                        rbd,
                         jh,
                         jc,
+                        loc,
+                        lg,
                         jt,
                         sh,
                         st,
-                        lg,
                         vs,
                         ch,
                         chb,
@@ -1917,17 +1923,19 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     };
 
                 // Dynamic Filters
+
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
                     query = query.Where(x => x.rbh.DealerCode == dealerCode);
                 }
 
-                if (jobNo.HasValue)
+                if (jobNo.HasValue && jobNo.Value > 0)
                 {
                     query = query.Where(x => x.jh.JobNo == jobNo.Value);
                 }
 
-                if (!string.IsNullOrWhiteSpace(serviceloc))
+                if (!string.IsNullOrWhiteSpace(serviceloc)
+                    && serviceloc.Trim().ToLower() != "null")
                 {
                     query = query.Where(x => x.jh.Serviceloc == serviceloc);
                 }
@@ -1945,22 +1953,29 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 var result = await query
                     .Select(x => new IssueTypebasedJobDetails
                     {
+                        RepairBillHeaderId = x.rbh.Id,
+
                         JobcardId = x.jh.Id,
                         JobNo = x.jh.JobNo,
                         JobType = x.jt.JobTypeName,
                         JobInDate = x.jh.JobinDate,
-                        JobLocation = x.jh.Serviceloc,
+
+                        JobLocation = x.loc.Locname,
 
                         serviceHead = x.sh.ServiceHeadName,
                         serviceType = x.st.ServiceTypeName,
 
                         CustomerName = x.lg.LedgerName,
-                        ChassisNo = x.jc.ChassisNo,
+
+                        ChassisNo = x.jh.Chassisno,
                         ModelName = x.jc.ModelName,
 
-                        MotorNo = x.chb != null ? x.chb.MotorNo : null,
+                        MotorNo = x.chb != null
+                            ? x.chb.MotorNo
+                            : null,
 
                         Vehiclekms = x.jh.Vehiclekms,
+
                         RegistrationNo = x.vs.RegNo,
 
                         SaleDate = x.ch.SaleDate,
@@ -1972,9 +1987,85 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RepairBillNo = x.rbh.BillNo,
                         RepairBillDate = x.rbh.CreatedDate,
 
-                        issueTypeId = x.rbd.IssutypeId
+                        issueTypeId = 2
                     })
                     .ToListAsync();
+
+                // Load all Repair Bill Details for each Header
+
+                //foreach (var item in result)
+                //{
+                //    item.RepairBillDetails = await
+                //    (
+                //        from rbd in _context.RepairBillDetails
+
+                //        join lm in _context.LabourMasters
+                //            on rbd.LabourMasterId equals lm.Id
+                //            into labourGroup
+                //        from lm in labourGroup.DefaultIfEmpty()
+
+                //        join pwm in _context.PartWiseLabourMasters
+                //            on rbd.PartWiseLabourId equals pwm.Id
+                //            into partWiseGroup
+                //        from pwm in partWiseGroup.DefaultIfEmpty()
+
+                //        join im in _context.MaterialTransfers
+                //            on rbd.PartItemId equals im.Id
+                //            into itemGroup
+                //        from im in itemGroup.DefaultIfEmpty()
+
+                //        where rbd.RepairBillId == item.RepairBillHeaderId
+
+                //        select new IssueTypebasedJobDetails
+                //        {
+                //            //Id = rbd.Id,
+
+                //            //ItemType = rbd.ItemType,
+
+                //            //MaterialId = rbd.MaterialId,
+                //            //LabourId = rbd.LabourMasterId,
+                //            //PartWiseLabourId = rbd.PartWiseLabourId,
+                //            //PartItemId = rbd.PartItemId,
+
+                //           // LabourQty = rbd.LabourQty,
+                //            //Rate = rbd.LabourRate,
+
+                //            //PartItemQty = rbd.PartQty,
+                //            //PartRate = rbd.PartRate,
+
+                //            //Discount = rbd.LabourDiscount,
+                //            //PartDiscount = rbd.PartDiscount,
+
+                //            //TaxableAmount = rbd.LabourTaxblAmount,
+                //            //NetAmount = rbd.LabourNetAmount,
+
+                //            //PartTaxbleAmount = rbd.PartTaxblAmount,
+                //            //PartNetAmount = rbd.PartNetAmount,
+
+                //            issueTypeId = rbd.IssutypeId,
+
+                //            // Labour Details
+                          
+                //            //LabourName = rbd.ItemType == "Labour"
+                //            //                ? lm.LabourName
+                //            //                : pwm.ServiceHeadName,
+
+                //            //LabourDesc = rbd.ItemType == "Labour"
+                //            //                ? lm.LabourCode
+                //            //                : pwm.ServiceHeadCode,
+
+                //            //// Part Details
+                //            //PartitemName = rbd.ItemType == "Part"
+                //            //                ? im.Itemname
+                //            //                : null,
+
+                //            //PartitemDesc = rbd.ItemType == "Part"
+                //            //                ? im.Itemcode
+                //            //                : null
+                //        }
+
+                //    ).ToListAsync();
+                //}
 
                 return result;
             }
