@@ -505,7 +505,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         }
 
-        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId)
+        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId, string dealerCode)
         {
             var itemName = oemmodelName;
             var oemmodel = await _context.ItemMasters
@@ -514,10 +514,25 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                 .FirstOrDefaultAsync();
             var modelName = (oemmodel ?? "").Trim();
 
+            var CustomerStateId = await _context.LedgerMasters
+                .Where(cs => cs.Id == customerLedgerId)
+                .Select(cs => cs.State)
+                .FirstOrDefaultAsync();
+            var custState = await _context.States
+                .Where(custst => custst.StateId == CustomerStateId)
+                .Select(custst  => custst.StateName)
+                .FirstOrDefaultAsync();
+            var DealerState = await _context.DealerMasters
+                .Where(ds => ds.Dealercode == dealerCode)
+                .Select(ds => ds.State)
+                .FirstOrDefaultAsync();
+
+
             var city = await _context.LedgerMasters
                 .Where(y => y.Id == customerLedgerId)
                 .Select(y => y.City)
                 .FirstOrDefaultAsync();
+            
             var cityTier = await _context.Cities
                 .Where(ct => ct.CityId == city)
                 .Select(ct => ct.TierLevel)
@@ -534,7 +549,10 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Cgst = x.Cgst,
                     Sgst = x.Sgst,
                     Igst = x.Igst,
-                    OemModelName = x.Oemmodelname
+                    OemModelName = x.Oemmodelname,
+                    custState = custState,
+                    DealerState = DealerState,
+
 
                 }).ToListAsync();
 
@@ -558,7 +576,9 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Cgst = x.Cgst,
                     Sgst = x.Sgst,
                     Igst = x.Igst,
-                    OemModelName = x.ModelName
+                    OemModelName = x.ModelName,
+                    custState = custState,
+                    DealerState = DealerState,
                 }).ToListAsync();
             
             partWiseLabourRateDropDowns = partWiseLabourRateDropDowns
