@@ -35,6 +35,12 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
 
+    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
+
+    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+
+    public virtual DbSet<BgEmployeeZoneMapping> BgEmployeeZoneMappings { get; set; }
+
     public virtual DbSet<ChassisBatteryDetail> ChassisBatteryDetails { get; set; }
 
     public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
@@ -197,6 +203,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
 
+    public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -345,6 +353,137 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<BgEmployeeMaster>(entity =>
+        {
+            entity.ToTable("BgEmployeeMaster");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
+            entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+            entity.Property(e => e.EmailId)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.EmployeeCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.LastName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.MappedEmployeeIds)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.MappedEmployees).IsUnicode(false);
+            entity.Property(e => e.MappedZoneIds)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.MappedZones).IsUnicode(false);
+            entity.Property(e => e.Mobile)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Password)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Pincode)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.ProfileImage).IsUnicode(false);
+            entity.Property(e => e.ReportingTo)
+                .HasMaxLength(150)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Zones).IsUnicode(false);
+
+            entity.HasOne(d => d.CityNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.City)
+                .HasConstraintName("FK_BgEmployeeMaster_Cities");
+
+            entity.HasOne(d => d.DepartmentNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.Department)
+                .HasConstraintName("FK_BgEmployeeMaster_Department");
+
+            entity.HasOne(d => d.StateNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.State)
+                .HasConstraintName("FK_BgEmployeeMaster_States");
+        });
+
+        modelBuilder.Entity<BgEmployeeProfileMapping>(entity =>
+        {
+            entity.ToTable("BgEmployeeProfileMapping");
+
+            entity.HasIndex(e => new { e.BgEmployeeId, e.EmployeeId }, "UQ_BgEmployeeProfileMapping_Pair").IsUnique();
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeProfileMappings)
+                .HasForeignKey(d => d.BgEmployeeId)
+                .HasConstraintName("FK_BgEmployeeProfileMapping_BgEmployee");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.BgEmployeeProfileMappings)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BgEmployeeProfileMapping_Employee");
+        });
+
+        modelBuilder.Entity<BgEmployeeZoneMapping>(entity =>
+        {
+            entity.ToTable("BgEmployeeZoneMapping");
+
+            entity.HasIndex(e => new { e.BgEmployeeId, e.ZoneId }, "UQ_BgEmployeeZoneMapping_Pair").IsUnique();
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeZoneMappings)
+                .HasForeignKey(d => d.BgEmployeeId)
+                .HasConstraintName("FK_BgEmployeeZoneMapping_BgEmployee");
+
+            entity.HasOne(d => d.Zone).WithMany(p => p.BgEmployeeZoneMappings)
+                .HasForeignKey(d => d.ZoneId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BgEmployeeZoneMapping_Zone");
         });
 
         modelBuilder.Entity<ChassisBatteryDetail>(entity =>
@@ -2308,6 +2447,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ItemReceived)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.MaterialPrefix)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Remarks)
                 .HasMaxLength(5000)
                 .IsUnicode(false);
@@ -3701,6 +3843,28 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ZoneMaster>(entity =>
+        {
+            entity.ToTable("ZoneMaster");
+
+            entity.HasIndex(e => e.ZoneName, "UQ_ZoneMaster_ZoneName").IsUnique();
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.ZoneName)
+                .HasMaxLength(150)
+                .IsUnicode(false);
         });
         modelBuilder.HasSequence("cir_no_seq");
         modelBuilder.HasSequence("LotNo_Seq");

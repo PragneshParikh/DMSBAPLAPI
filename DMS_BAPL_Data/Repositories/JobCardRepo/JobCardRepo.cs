@@ -1983,5 +1983,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw new Exception("Error while fetching issue type based job details", ex);
             }
         }
+
+        public async Task<bool> GetJobCardStatusById(int id)
+        {
+            return await _context.RepairBillHeaders
+                .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
+        }
     }
 }

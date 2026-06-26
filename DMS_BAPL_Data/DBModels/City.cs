@@ -27,6 +27,8 @@ public partial class City
 
     public DateTime? UpdatedDate { get; set; }
 
+    public virtual ICollection<BgEmployeeMaster> BgEmployeeMasters { get; set; } = new List<BgEmployeeMaster>();
+
     public virtual ICollection<LedgerMaster> LedgerMasters { get; set; } = new List<LedgerMaster>();
 
     public virtual State State { get; set; } = null!;
