@@ -70,4 +70,6 @@ public partial class RepairBillHeader
     public virtual JobCardHeader Job { get; set; } = null!;
 
     public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
+
+    public virtual ICollection<WarrantyJcclaim> WarrantyJcclaims { get; set; } = new List<WarrantyJcclaim>();
 }

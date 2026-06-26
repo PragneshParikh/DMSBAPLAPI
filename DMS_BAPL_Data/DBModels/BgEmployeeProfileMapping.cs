@@ -11,6 +11,8 @@ public partial class BgEmployeeProfileMapping
 
     public int EmployeeId { get; set; }
 
+    public int ProfileId { get; set; }
+
     public bool IsActive { get; set; }
 
     public string? CreatedBy { get; set; }
@@ -24,4 +26,6 @@ public partial class BgEmployeeProfileMapping
     public virtual BgEmployeeMaster BgEmployee { get; set; } = null!;
 
     public virtual EmployeeMaster Employee { get; set; } = null!;
+
+    public virtual EmployeeProfileMaster Profile { get; set; } = null!;
 }

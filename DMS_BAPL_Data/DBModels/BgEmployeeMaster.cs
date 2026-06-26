@@ -39,11 +39,9 @@ public partial class BgEmployeeMaster
 
     public string? Password { get; set; }
 
-    public string? MappedZones { get; set; }
-
     public string? MappedZoneIds { get; set; }
 
-    public string? Zones { get; set; }
+    public string? MappedZones { get; set; }
 
     public string? MappedEmployeeIds { get; set; }
 
@@ -63,9 +61,9 @@ public partial class BgEmployeeMaster
 
     public DateTime? UpdatedDate { get; set; }
 
-    public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
+    public int? ProfileId { get; set; }
 
-    public virtual ICollection<BgEmployeeZoneMapping> BgEmployeeZoneMappings { get; set; } = new List<BgEmployeeZoneMapping>();
+    public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
 
     public virtual City? CityNavigation { get; set; }
 
