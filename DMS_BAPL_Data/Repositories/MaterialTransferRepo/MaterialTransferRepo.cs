@@ -109,7 +109,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     Remarks = k.Remarks,
                     ItemReceived = k.ItemReceived,
                     ValidDays = k.ValidDays,
-                    IssueType = k.IssueType,
+                    //IssueType = k.IssueType,
                     CreatedBy = k.CreatedBy,
                     CreatedDate = k.CreatedDate,
                     UpdatedBy = k.UpdatedBy,

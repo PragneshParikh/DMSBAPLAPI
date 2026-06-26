@@ -120,9 +120,12 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class ChassisWithRegisterNoViewModel
     {
-        public string? Id { get; set; }
+        public int? CustId { get; set; }
         public string? RegNo { get; set; }
         public string? ChassisNo { get; set; }
+        public string? MobileNo { get; set; }
+        public string? PartyName { get; set; }
+        public int? PartyState { get; set; }
     }
 
 }

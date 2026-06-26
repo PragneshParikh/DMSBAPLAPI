@@ -1,13 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
-using DocumentFormat.OpenXml.Spreadsheet;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Repositories.ReportRepo
 {
@@ -2149,6 +2143,130 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error fetching status dropdown: " + ex.Message, ex);
             }
         }
+
+        public async Task<CounterBillPrintViewModel?> GetCounterBillPrintById(int id)
+        {
+            try
+            {
+                var header = await _context.CounterBillHeaders
+                    .Include(x => x.CounterBillDetails)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+                string? cityName = null;
+
+                if (header == null)
+                    return null;
+
+                var dealer = await _context.DealerMasters
+                    .FirstOrDefaultAsync(x => x.Dealercode == header.DealerCode);
+
+                LedgerMaster? customer = null;
+
+                if (header.CustomerLedgerId.HasValue)
+                {
+                    customer = await _context.LedgerMasters
+                        .FirstOrDefaultAsync(x => x.Id == header.CustomerLedgerId.Value);
+                    if (customer != null)
+                    {
+                        cityName = await _context.Cities
+                            .Where(i => i.CityId == customer.City)
+                            .Select(i => i.CityName)
+                            .FirstOrDefaultAsync();
+                    }
+                }
+
+                var stateName = await _context.States
+                    .Where(x => x.StateId == header.PartyState)
+                    .Select(x => x.StateName)
+                    .FirstOrDefaultAsync();
+
+                var partCodes = header.CounterBillDetails
+                    .Select(x => x.PartCode)
+                    .Distinct()
+                    .ToList();
+
+                var itemLookup = await _context.ItemMasters
+                            .ToDictionaryAsync(
+                                x => x.Itemcode,
+                                x => new
+                                {
+                                    x.Itemname,
+                                    x.Hsncode,
+                                });
+
+                return new CounterBillPrintViewModel
+                {
+                    DealerCode = header.DealerCode,
+
+                    // Dealer Details
+                    DealerName = dealer?.Compname,
+                    DealerAddress1 = dealer?.Adress1,
+                    DealerAddress2 = dealer?.Adress2,
+                    Pin = dealer?.Pin,
+                    PhoneNo1 = dealer?.Mobile,
+                    PhoneNo2 = dealer?.PhoneOff,
+                   
+                    PanNo = dealer?.Pan,
+                    GSTNo = dealer?.CompgstinNo,
+                    ChassisNo = header?.ChassisNo,
+                    BillType = header?.BillType,
+                    City= cityName,
+                    Remarks =header.Remarks,
+                    // Invoice Details
+                    InvoiceNo = header.BillNo,
+                    InvoiceDate = header.BillDate,
+
+                    // Customer Details
+                    CustomerName = header.PartyName,
+                    CustomerMobile = header.MobileNo,
+                    CustomerAddress = customer?.Address,
+                    CustomerGST = customer?.Gstno,
+                    State = stateName,
+                    TermsAndConditions = await _context.TermandConditionMasters
+        .Where(i => i.ConditionModule == 7 &&
+                    i.ConditionEffectiveDate <= header.BillDate)
+        .OrderBy(i => i.Id)
+        .Select(i => new SalesConditionViewModel
+        {
+            Id = i.Id,
+            SrNo = null,
+            ConditionText = i.TermCondition
+        })
+        .ToListAsync(),
+
+                    // Items
+                    Details = header.CounterBillDetails
+                            .Select(d =>
+                            {
+                                itemLookup.TryGetValue(d.PartCode, out var item);
+
+                                return new CounterBillDetailsViewModel
+                                {
+                                    PartCode = d.PartCode,
+                                    PartName = item?.Itemname,
+                                    HSNCode = item?.Hsncode,
+                                    SaleType = d.SaleType,
+                                    Qty = d.Qty,
+                                    Rate = d.Rate,
+                                    DiscType = d.DiscType,
+                                    Discount = d.Discount,
+                                    Mrp = d.Mrp,
+                                    Igstper = d.Igstper,
+                                    Igstamnt = d.Igstamnt,
+                                    Cgstper = d.Cgstper,
+                                    Cgstamnt = d.Cgstamnt,
+                                    Sgstper = d.Sgstper,
+                                    Sgstamnt = d.Sgstamnt
+                                };
+                            })
+                            .ToList()
+                };
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
 
     }
 }
