@@ -12,6 +12,7 @@ using DMS_BAPL_Data.Repositories.CircularRepo;
 using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.ComplaintMasterRepo;
+using DMS_BAPL_Data.Repositories.CounterBillRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.DepartmentRepo;
 using DMS_BAPL_Data.Repositories.DesignationRepo;
@@ -73,6 +74,7 @@ using DMS_BAPL_Data.Services.CircularAttachmentService;
 using DMS_BAPL_Data.Services.CircularDealerAssignmentService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
+using DMS_BAPL_Data.Services.CounterBillService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.DepartmentService;
 using DMS_BAPL_Data.Services.DesignationService;
@@ -192,6 +194,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
             services.AddScoped<IFreeServiceClaimRepo, FreeServiceClaimRepo>();
             services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
+            services.AddScoped<ICounterBillRepo,CounterBillRepo>();
 
             #endregion
 
@@ -248,6 +251,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOccupationMasterService, OccupationMasterService>();
             services.AddScoped<IVehicleInfoService, VehicleInfoService>();
             services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
+            services.AddScoped<ICounterBillService,CounterBillService>();
             services.AddScoped<IFreeServiceClaimService, FreeServiceClaimService>();
 
 

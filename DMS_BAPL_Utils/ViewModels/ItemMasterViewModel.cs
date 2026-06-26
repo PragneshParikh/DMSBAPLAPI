@@ -96,7 +96,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? ItemCode { get; set; }
         public string? ItemName { get; set; }
         public decimal? ItemStock { get; set; }
-        public decimal? ItemRate { get; set; }
+        public decimal? ItemMrp { get; set; }
         public decimal? IGSTPer {  get; set; }
         public decimal? IGSTAmount { get; set; }
         public decimal? CGSTPer { get; set; }

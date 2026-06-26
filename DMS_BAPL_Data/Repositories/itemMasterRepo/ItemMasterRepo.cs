@@ -595,73 +595,85 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         }
 
         public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(
-    string dealerLocation,
-    string customerLocation)
+      string dealerLocation,
+      string customerLocation)
         {
             try
             {
-                // Get all Group 6 items with stock for the specified location
-                var items = await (
-                    from im in _context.ItemMasters
-
-                    join pi in _context.PartsInventories
-                        .Where(x => x.DealerLocation == dealerLocation &&
-                                    x.FinalStockFlag == "Y")
-                    on im.Itemcode equals pi.ItemCode into stockGroup
-
-                    where im.Grpidno == 1
-
-                    select new
+                var items = await _context.ItemMasters
+                    .Where(im => im.Grpidno == 1)
+                    .Select(im => new
                     {
                         ItemCode = im.Itemcode,
                         ItemName = im.Itemname,
-                        ItemRate = im.Custprice,
-                        ItemStock = stockGroup
-                            .Select(x => (decimal?)x.BatchClosingQty)
-                            .FirstOrDefault() ?? 0
-                    }
-                ).ToListAsync();
 
-                // Cache tax details by item code
+                        // Latest MRP
+                        ItemMrp = _context.PartsInwards
+                            .Where(p => p.PartNo == im.Itemcode && p.IsAccepted == true)
+                            .OrderByDescending(p => p.Id)
+                            .Select(p => (decimal?)p.ItemMrp)
+                            .FirstOrDefault() ?? 0,
+
+                        // Latest Stock
+                        ItemStock = _context.PartsInventories
+                            .Where(p =>
+                                p.ItemCode == im.Itemcode &&
+                                p.DealerLocation == dealerLocation &&
+                                p.FinalStockFlag == "Y")
+                            .OrderByDescending(p => p.Id)
+                            .Select(p => (decimal?)p.BatchClosingQty)
+                            .FirstOrDefault() ?? 0
+                    })
+                    .ToListAsync();
+
+                var dealerState = await _context.LocationMasters
+                    .Where(x => x.Loccode == dealerLocation)
+                    .Select(x => x.State)
+                    .FirstOrDefaultAsync();
+
                 List<TaxDetailViewModel> taxes = new();
 
                 if (items.Any())
                 {
                     taxes = await _taxService.GetTaxDetailsAsync(
                         items.First().ItemCode,
-                        dealerLocation,
+                        dealerState,
                         customerLocation);
                 }
 
                 var sgstPer = taxes
-                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("sgst", StringComparison.OrdinalIgnoreCase) == true)
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("SGST", StringComparison.OrdinalIgnoreCase))
                     ?.TaxRate ?? 0;
 
                 var cgstPer = taxes
-                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("cgst", StringComparison.OrdinalIgnoreCase) == true)
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("CGST", StringComparison.OrdinalIgnoreCase))
                     ?.TaxRate ?? 0;
 
                 var igstPer = taxes
-                    .FirstOrDefault(x => x.TaxCode?.ToLower().Contains("igst", StringComparison.OrdinalIgnoreCase) == true)
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("IGST", StringComparison.OrdinalIgnoreCase))
                     ?.TaxRate ?? 0;
 
-                var result = items.Select(item => new ItemPartsByLocationViewModel
+                return items.Select(item => new ItemPartsByLocationViewModel
                 {
                     ItemCode = item.ItemCode,
                     ItemName = item.ItemName,
-                    ItemRate = item.ItemRate,
+                    ItemMrp = item.ItemMrp,
                     ItemStock = item.ItemStock,
 
                     SGSTPer = sgstPer,
                     CGSTPer = cgstPer,
                     IGSTPer = igstPer,
 
-                    SGSTAmount = (sgstPer * item.ItemRate)/100,
-                    CGSTAmount = (cgstPer * item.ItemRate)/100,
-                    IGSTAmount = (igstPer * item.ItemRate) / 100
+                    SGSTAmount = (item.ItemMrp * sgstPer) / 100,
+                    CGSTAmount = (item.ItemMrp * cgstPer) / 100,
+                    IGSTAmount = (item.ItemMrp * igstPer) / 100
                 }).ToList();
-
-                return result;
             }
             catch
             {
