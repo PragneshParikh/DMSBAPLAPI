@@ -70,4 +70,8 @@ public partial class LedgerMaster
     public virtual State? StateNavigation { get; set; }
 
     public virtual ICollection<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; } = new List<VehicleSaleBillDetail>();
+
+    public virtual ICollection<WarrantyJcclaim> WarrantyJcclaimCustomerLedgers { get; set; } = new List<WarrantyJcclaim>();
+
+    public virtual ICollection<WarrantyJcclaim> WarrantyJcclaimSuppliers { get; set; } = new List<WarrantyJcclaim>();
 }

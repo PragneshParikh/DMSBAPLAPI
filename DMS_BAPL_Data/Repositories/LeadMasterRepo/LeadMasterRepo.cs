@@ -30,10 +30,10 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
                 var color = await _context.ColorMasters
                     .FirstOrDefaultAsync(c => c.Colorcode == leadViewModel.Color);
 
-                if (color == null)
-                {
-                    throw new Exception("Invalid Color Id");
-                }
+                //if (color == null)
+                //{
+                //    throw new Exception("Invalid Color Id");
+                //}
 
                 // Get Dealer from DealerMaster
                 //var dealer = await _context.DealerMasters

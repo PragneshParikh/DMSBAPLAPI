@@ -56,4 +56,6 @@ public partial class Ffirheader
     public virtual JobCardHeader JobCardHeader { get; set; } = null!;
 
     public virtual ICollection<MainPartAffectedFfir> MainPartAffectedFfirs { get; set; } = new List<MainPartAffectedFfir>();
+
+    public virtual ICollection<WarrantyJcclaim> WarrantyJcclaims { get; set; } = new List<WarrantyJcclaim>();
 }

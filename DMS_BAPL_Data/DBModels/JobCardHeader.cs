@@ -88,4 +88,6 @@ public partial class JobCardHeader
     public virtual ServiceHead? ServiceheadNavigation { get; set; }
 
     public virtual ServiceType? ServicetypeNavigation { get; set; }
+
+    public virtual ICollection<WarrantyJcclaim> WarrantyJcclaims { get; set; } = new List<WarrantyJcclaim>();
 }
