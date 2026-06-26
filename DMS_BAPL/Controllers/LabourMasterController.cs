@@ -161,15 +161,15 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("GetLabourRateDropDown/{oemmodelName}")]
+        [HttpGet("GetLabourRateDropDown/{oemmodelName}/{customerLedgerId}")]
         [ProducesResponseType(typeof(PagedResponse<List<PartWiseLabourMasterRateViewModel>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLabourRateDropDown(string oemmodelName)
+        public async Task<IActionResult> GetLabourRateDropDown(string oemmodelName,int customerLedgerId)
         {
             try
             {
-                var result = await _labourMasterRepo.GetLabourRateDropDowns(oemmodelName);
+                var result = await _labourMasterRepo.GetLabourRateDropDowns(oemmodelName, customerLedgerId);
                 return Ok(result);
             }
             catch (Exception ex)

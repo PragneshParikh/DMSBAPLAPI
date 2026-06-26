@@ -59,7 +59,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
             public int? MaterialId { get; set; }
 
-            public int LabourId { get; set; }
+            public int? LabourId { get; set; }
             public int? PartWiseLabourId { get; set; }
 
             public int? PartItemId { get; set; }

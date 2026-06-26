@@ -301,6 +301,29 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetJobCardStatusById/{Id}")]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> GetJobCardStatusById(int Id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var jobCardStatus = await _jobCardRepo.GetJobCardStatusById(Id);
+
+                return Ok(jobCardStatus);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         [HttpGet("GetFilteredJobCard")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
