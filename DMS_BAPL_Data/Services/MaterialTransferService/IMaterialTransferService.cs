@@ -13,6 +13,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
     {
         Task<object> Get();
         Task<string> GetIssueIdAsync();
+        Task<IEnumerable<MaterialTransferViewModel>> GetMeterialTransferByJobId(int JobId);
         Task<IEnumerable<object>> GetMeterialByJobId(int jobId);
         Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(string searchTerm, string dealerCode, int pageIndex, int pageSize);
         Task<int> InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels);

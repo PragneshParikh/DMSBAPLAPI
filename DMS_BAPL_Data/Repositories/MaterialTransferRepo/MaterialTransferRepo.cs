@@ -529,5 +529,29 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             }
         }
 
+        async Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferRepo.GetMeterialTransferByJobId(int jobId)
+        {
+            var result = await (
+                from mt in _context.MaterialTransfers
+
+                join im in _context.ItemMasters
+                    on mt.ItemId equals im.Id
+
+                join jch in _context.JobCardHeaders
+                    on mt.JobId equals jch.Id
+
+                where mt.JobId == jobId
+
+                select new MaterialTransferViewModel
+                {
+                    JobId = mt.JobId,
+                    ItemId = mt.ItemId,
+                    ItemCode = im.Itemcode,
+                    Quantity = mt.Quantity
+                }
+            ).ToListAsync();
+
+            return result;
+        }
     }
 }

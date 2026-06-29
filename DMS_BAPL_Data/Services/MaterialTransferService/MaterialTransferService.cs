@@ -30,6 +30,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         Task<object> IMaterialTransferService.Get() => _materialTransferRepo.Get();
         async Task<string> IMaterialTransferService.GetIssueIdAsync() => await _materialTransferRepo.GetIssueIdAsync();
         async Task<IEnumerable<object>> IMaterialTransferService.GetMeterialByJobId(int jobId) => await _materialTransferRepo.GetMeterialByJobId(jobId);
+        Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferService.GetMeterialTransferByJobId(int JobId) => _materialTransferRepo.GetMeterialTransferByJobId(JobId);
         async Task<PagedResponse<object>> IMaterialTransferService.GetMaterialTransferDetailsByDealer(string? searchTerm, string dealerCode, int pageIndex, int pageSize) => await _materialTransferRepo.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize);
         async Task<int> IMaterialTransferService.InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels
             )
@@ -77,7 +78,97 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         }
 
         async Task<int> IMaterialTransferService.DeleteMaterials(List<int> ids) => await _materialTransferRepo.DeleteMaterials(ids);
-        async Task<int> IMaterialTransferService.UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels) => await _materialTransferRepo.UpdateMaterialDetails(materialTransferViewModels);
+        async Task<int> IMaterialTransferService.UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels)
+        {
+            var existingItems = await _materialTransferRepo.GetMeterialTransferByJobId(materialTransferViewModels[0].JobId);
+
+            var groupedItems = materialTransferViewModels
+                .GroupBy(x => x.ItemCode)
+                .Select(g => new
+                {
+                    ItemCode = g.Key,
+                    Qty = g.Sum(x => x.Quantity),
+                    Location = g.First().Location,
+                    DealerCode = g.First().DealerCode,
+                    CreatedBy = g.First().CreatedBy,
+                    CreatedDate = g.First().CreatedDate
+                })
+                .ToList();
+
+            // Handle added/updated items
+            foreach (var item in groupedItems)
+            {
+                var existing = existingItems.FirstOrDefault(x => x.ItemCode == item.ItemCode);
+
+                int oldQty = existing?.Quantity ?? 0;
+                int newQty = item.Qty;
+
+                int difference = newQty - oldQty;
+
+                if (difference == 0)
+                    continue;
+
+                var stockTransaction = new PartsInventory
+                {
+                    TransId = Guid.NewGuid().ToString(),
+                    ItemCode = item.ItemCode,
+                    VoucherNo = null!,
+                    BatchNo = "Batch 1",
+                    BatchOpeningQty = 0,
+                    BatchClosingQty = 0,
+                    TransDate = DateOnly.FromDateTime(DateTime.Now),
+                    DealerLocation = item.Location,
+                    VendorCode = item.DealerCode,
+                    TotalRate = 100.00M,
+                    PurchaseRate = 110.00M,
+                    Potype = "B2C",
+                    PostTransaction = 0,
+                    CreatedBy = item.CreatedBy,
+                    CreatedDate = item.CreatedDate
+                };
+
+                if (difference > 0)
+                {
+                    // Consume additional stock
+                    stockTransaction.TransType = "PI";
+                    stockTransaction.BatchTransQty = difference;
+
+                    await _partInventoryService.UpdateOutgoing(stockTransaction);
+                }
+                else
+                {
+                    // Return stock
+                    stockTransaction.TransType = "PO";
+                    stockTransaction.BatchTransQty = Math.Abs(difference);
+
+                    await _partInventoryService.UpdateIncoming(stockTransaction);
+                }
+            }
+
+            // Handle deleted items
+            foreach (var existing in existingItems)
+            {
+                if (!groupedItems.Any(x => x.ItemCode == existing.ItemCode))
+                {
+                    var stockTransaction = new PartsInventory
+                    {
+                        TransId = Guid.NewGuid().ToString(),
+                        ItemCode = existing.ItemCode,
+                        VoucherNo = null!,
+                        TransType = "PO",
+                        BatchNo = "Batch 1",
+                        BatchTransQty = existing.Quantity,
+                        BatchOpeningQty = 0,
+                        BatchClosingQty = 0,
+                        TransDate = DateOnly.FromDateTime(DateTime.Now)
+                    };
+
+                    await _partInventoryService.UpdateIncoming(stockTransaction);
+                }
+            }
+
+            return await _materialTransferRepo.UpdateMaterialDetails(materialTransferViewModels);
+        }
 
         public async Task<byte[]> downloadMaterialExcel(string? dealerCode)
         {
