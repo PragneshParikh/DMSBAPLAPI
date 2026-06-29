@@ -83,5 +83,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Sgst { get; set; }
         public decimal? Igst { get; set; }
 
+        public string? custState { get; set; }
+        public string? DealerState { get; set; }
+
     }
 }

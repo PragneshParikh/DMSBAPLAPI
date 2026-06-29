@@ -11,6 +11,10 @@ public partial class MaterialTransfer
 
     public int JobId { get; set; }
 
+    public string? MaterialPrefix { get; set; }
+
+    public int? MaterialIssueNumber { get; set; }
+
     public int? RackNo { get; set; }
 
     public int? Bin { get; set; }

@@ -1,4 +1,5 @@
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -15,10 +16,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
     public class ItemMasterRepo : IitemMasterRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly ITaxServices _taxService;
 
-        public ItemMasterRepo(BapldmsvadContext context)
+        public ItemMasterRepo(BapldmsvadContext context, ITaxServices taxService)
         {
             _context = context;
+            _taxService = taxService;
         }
 
         // add new item to the database
@@ -591,5 +594,91 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             catch { throw; }
         }
 
+        public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(
+      string dealerLocation,
+      string customerLocation)
+        {
+            try
+            {
+                var items = await _context.ItemMasters
+                    .Where(im => im.Grpidno == 1)
+                    .Select(im => new
+                    {
+                        ItemCode = im.Itemcode,
+                        ItemName = im.Itemname,
+
+                        // Latest MRP
+                        ItemMrp = _context.PartsInwards
+                            .Where(p => p.PartNo == im.Itemcode && p.IsAccepted == true)
+                            .OrderByDescending(p => p.Id)
+                            .Select(p => (decimal?)p.ItemMrp)
+                            .FirstOrDefault() ?? 0,
+
+                        // Latest Stock
+                        ItemStock = _context.PartsInventories
+                            .Where(p =>
+                                p.ItemCode == im.Itemcode &&
+                                p.DealerLocation == dealerLocation &&
+                                p.FinalStockFlag == "Y")
+                            .OrderByDescending(p => p.Id)
+                            .Select(p => (decimal?)p.BatchClosingQty)
+                            .FirstOrDefault() ?? 0
+                    })
+                    .ToListAsync();
+
+                var dealerState = await _context.LocationMasters
+                    .Where(x => x.Loccode == dealerLocation)
+                    .Select(x => x.State)
+                    .FirstOrDefaultAsync();
+
+                List<TaxDetailViewModel> taxes = new();
+
+                if (items.Any())
+                {
+                    taxes = await _taxService.GetTaxDetailsAsync(
+                        items.First().ItemCode,
+                        dealerState,
+                        customerLocation);
+                }
+
+                var sgstPer = taxes
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("SGST", StringComparison.OrdinalIgnoreCase))
+                    ?.TaxRate ?? 0;
+
+                var cgstPer = taxes
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("CGST", StringComparison.OrdinalIgnoreCase))
+                    ?.TaxRate ?? 0;
+
+                var igstPer = taxes
+                    .FirstOrDefault(x =>
+                        x.TaxCode != null &&
+                        x.TaxCode.Contains("IGST", StringComparison.OrdinalIgnoreCase))
+                    ?.TaxRate ?? 0;
+
+                return items.Select(item => new ItemPartsByLocationViewModel
+                {
+                    ItemCode = item.ItemCode,
+                    ItemName = item.ItemName,
+                    ItemMrp = item.ItemMrp,
+                    ItemStock = item.ItemStock,
+
+                    SGSTPer = sgstPer,
+                    CGSTPer = cgstPer,
+                    IGSTPer = igstPer,
+
+                    SGSTAmount = (item.ItemMrp * sgstPer) / 100,
+                    CGSTAmount = (item.ItemMrp * cgstPer) / 100,
+                    IGSTAmount = (item.ItemMrp * igstPer) / 100
+                }).ToList();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

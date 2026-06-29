@@ -81,7 +81,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<List<string>> GetSaleBillStatusDropdownAsync();
 
         Task<VehicleSaleBillReportResponse> GetVehicleSaleBillReportAsync(VehicleSaleBillReportFilterModel filter);
-
+        Task<CounterBillPrintViewModel?> GetCounterBillPrintById(int id);
 
 
     }

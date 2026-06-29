@@ -650,5 +650,23 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        [HttpGet("print/{id}")]
+        public async Task<IActionResult> GetCounterBillPrint(int id)
+        {
+            try
+            {
+                var result = await _reportService.GetCounterBillPrintById(id);
+
+                if (result == null)
+                    return NotFound("Counter Bill not found.");
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
