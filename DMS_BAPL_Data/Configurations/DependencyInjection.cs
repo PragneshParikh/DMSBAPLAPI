@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
+using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.ChassisBatteryDetailRepo;
 using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
 using DMS_BAPL_Data.Repositories.ChassisDetailsRepo;
@@ -17,6 +18,7 @@ using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.DepartmentRepo;
 using DMS_BAPL_Data.Repositories.DesignationRepo;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
+using DMS_BAPL_Data.Repositories.EmployeeProfileMasterRepo;
 using DMS_BAPL_Data.Repositories.ExtendedBatteryWarrantyRepo;
 using DMS_BAPL_Data.Repositories.FFIRRepo;
 using DMS_BAPL_Data.Repositories.Form22MasterRepo;
@@ -67,6 +69,7 @@ using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
+using DMS_BAPL_Data.Services.BgEmployeeMasterService;
 using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
 using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.ChassisService;
@@ -119,6 +122,7 @@ using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
+using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -194,6 +198,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
             services.AddScoped<IFreeServiceClaimRepo, FreeServiceClaimRepo>();
             services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
+            services.AddScoped<IBgEmployeeMasterRepo, BgEmployeeMasterRepo>();
+            services.AddScoped<IEmployeeProfileMasterRepo, EmployeeProfileMasterRepo>();
             services.AddScoped<ICounterBillRepo,CounterBillRepo>();
 
             #endregion
@@ -253,6 +259,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
             services.AddScoped<ICounterBillService,CounterBillService>();
             services.AddScoped<IFreeServiceClaimService, FreeServiceClaimService>();
+            services.AddScoped<IBgEmployeeMasterService, BgEmployeeMasterService>();
+            services.AddScoped<IEmployeeProfileMasterService, EmployeeProfileMasterService>();
+
 
 
             // Email SErvice
