@@ -204,12 +204,6 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
 
-    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
-    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
-    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
-
-
-
     public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -423,17 +417,6 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.CityNavigation).WithMany(p => p.BgEmployeeMasters)
-                .HasForeignKey(d => d.City)
-                .HasConstraintName("FK_BgEmployeeMaster_Cities");
-
-            entity.HasOne(d => d.DepartmentNavigation).WithMany(p => p.BgEmployeeMasters)
-                .HasForeignKey(d => d.Department)
-                .HasConstraintName("FK_BgEmployeeMaster_Department");
-
-            entity.HasOne(d => d.StateNavigation).WithMany(p => p.BgEmployeeMasters)
-                .HasForeignKey(d => d.State)
-                .HasConstraintName("FK_BgEmployeeMaster_States");
         });
 
         modelBuilder.Entity<BgEmployeeProfileMapping>(entity =>
@@ -454,19 +437,11 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeProfileMappings)
-                .HasForeignKey(d => d.BgEmployeeId)
-                .HasConstraintName("FK_BgEmpProfileMap_BgEmployee");
-
             entity.HasOne(d => d.Employee).WithMany(p => p.BgEmployeeProfileMappings)
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Employee");
 
-            entity.HasOne(d => d.Profile).WithMany(p => p.BgEmployeeProfileMappings)
-                .HasForeignKey(d => d.ProfileId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BgEmpProfileMap_Profile");
         });
 
         modelBuilder.Entity<ChassisBatteryDetail>(entity =>
