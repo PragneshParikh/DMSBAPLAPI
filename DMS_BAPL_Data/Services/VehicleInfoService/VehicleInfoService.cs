@@ -15,11 +15,11 @@ namespace DMS_BAPL_Data.Services.VehicleInfoService
         {
             _vehicleInfoRepo = vehicleInfoRepo;
         }
-        public async Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo)
+        public async Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo,string? dealerCode)
         {
             try 
             { 
-                return await _vehicleInfoRepo.GetVehicleInfoByRegNoChassis(regNo, chassisNo);
+                return await _vehicleInfoRepo.GetVehicleInfoByRegNoChassis(regNo, chassisNo,dealerCode);
             }
             catch
             {

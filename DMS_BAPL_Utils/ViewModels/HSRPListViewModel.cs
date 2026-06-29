@@ -37,6 +37,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? InwardStatus { get; set; }
         public string? InwardResponse { get; set; }
         public string? RegNo { get; set; }
+        public DateTime? RegDate { get; set; }
         public string? ModelName { get; set; }
         public string? Colour { get; set; }
         public string? CustomerName { get; set; }

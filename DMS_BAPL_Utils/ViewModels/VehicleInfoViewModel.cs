@@ -9,9 +9,20 @@ namespace DMS_BAPL_Utils.ViewModels
     public class VehicleInfoViewModel
     {
         public PartyDetailsViewModel PartyDetails { get; set; } = new();
+        public DealerInfoViewMode DealerDetails { get; set; } = new();
         public VehicleDetailsViewModel VehicleDetails { get; set; } = new();
     }
 
+    public class DealerInfoViewMode
+    {
+        public string DealerCode { get; set; }
+        public string DealerName { get; set; }
+        public string DealerLocation { get; set; }
+        public string DealerEmail { get; set; }
+        public string MobileNo { get; set; }
+        public string Email { get; set; }
+        public string Address { get; set; }
+    }
     public class PartyDetailsViewModel
     {
         public string PartyName { get; set; }
