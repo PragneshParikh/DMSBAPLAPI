@@ -213,7 +213,7 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 item.Id = id;
-               var _item = await _itemMasterService.UpdateItemAsync(item);
+                var _item = await _itemMasterService.UpdateItemAsync(item);
                 return Ok(_item);
             }
             catch (Exception ex)
@@ -248,6 +248,28 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetItemsByLocation")]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetItemsByLocation(string dealerLocation, string customerLocation)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var items = await _itemMasterService.GetItemsByLocation(dealerLocation,customerLocation);
+
+                return Ok(items);
+            }
+            catch (Exception ex)
+            {
+                throw;
             }
         }
     }

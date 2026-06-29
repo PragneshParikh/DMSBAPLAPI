@@ -349,5 +349,17 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        public async Task<CounterBillPrintViewModel?> GetCounterBillPrintById(int id)
+        {
+            try
+            {
+                return await _reportRepo.GetCounterBillPrintById(id);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

@@ -95,14 +95,23 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
         {
             try
             {
-                var result = await _context.ChassisDetails
-                    .Where(x => x.SaleDate.HasValue)
-                    .Select(x => new ChassisWithRegisterNoViewModel
+                var result = await (
+                    from chassis in _context.ChassisDetails
+                    join ledger in _context.LedgerMasters
+                        on chassis.LedgerId equals ledger.Id into ledgerGroup
+                    from ledger in ledgerGroup.DefaultIfEmpty()
+                    where chassis.SaleDate.HasValue
+                    select new ChassisWithRegisterNoViewModel
                     {
-                        RegNo = x.RegNo,
-                        ChassisNo = x.ChassisNo
-                    })
-                    .ToListAsync();
+                        CustId = chassis.LedgerId,
+                        RegNo = chassis.RegNo,
+                        ChassisNo = chassis.ChassisNo,
+
+                        MobileNo = ledger != null ? ledger.MobileNumber : null,
+                        PartyName = ledger != null ? ledger.LedgerName : null,
+                        PartyState = ledger != null ? ledger.State : null
+                    }
+                ).ToListAsync();
 
                 return result;
             }

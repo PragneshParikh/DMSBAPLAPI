@@ -439,7 +439,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "institutional" || i.LedgerType.ToLower() == "party" || i.LedgerType.ToLower() == "dealer").ToListAsync();
                 if(!isSuperAdmin)
                 {
-                    result = result.Where(i=>i.DealerCode ==dealerCode).ToList();
+                    result = result.Where(i=>i.DealerCode ==dealerCode || i.LedgerType.ToLower() =="dealer").ToList();
                 }
                 return result;
 
@@ -449,6 +449,22 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 throw;
             }
         }
+        //public async Task<List<LedgerMaster>> GetLedgerByVisibility(string? dealerCode)
+        //{
+        //    try
+        //    {
+        //        var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "institutional" || i.LedgerType.ToLower() == "party" || i.LedgerType.ToLower() == "dealer").ToListAsync();
+        //        if(dealerCode!=null)
+        //        {
+        //            result = result. Where(i=>i)
+        //        }
+
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
 
     }
 }
