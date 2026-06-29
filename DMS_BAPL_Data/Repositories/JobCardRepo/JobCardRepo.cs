@@ -1568,7 +1568,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             ex);
             }
         }
-        public async Task<PagedResponse<object>> GetJobCardByStatus(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, bool isClosed, int pageIndex, int pageSize)
+        public async Task<PagedResponse<object>> GetJobCardByStatus(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, bool isClosed, int pageIndex, int pageSize, string? dealerCode)
         {
             try
             {
@@ -1611,6 +1611,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 ModelName = item.Itemdesc,
                                 Status = rb.RepairbillStatus
                             };
+
+                if (!string.IsNullOrEmpty(dealerCode))
+                    query = query.Where(x => x.DealerCode == dealerCode);
 
                 if (fromDate.HasValue)
                     query = query.Where(x => x.CreatedDate.Date >= fromDate.Value.Date);

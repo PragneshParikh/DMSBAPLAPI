@@ -545,7 +545,8 @@ namespace DMS_BAPL_Api.Controllers
             [FromQuery] DateTime? toDate,
             [FromQuery] int? jobNo,
             [FromQuery] int? manualJobNo,
-            [FromQuery] bool isClosed)
+            [FromQuery] bool isClosed,
+            [FromQuery] string? dealerCode)
         {
             try
             {
@@ -554,7 +555,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobCards = await _jobCardRepo.GetJobCardByStatus(fromDate, toDate, jobNo, manualJobNo, isClosed, pageIndex, pageSize);
+                var jobCards = await _jobCardRepo.GetJobCardByStatus(fromDate, toDate, jobNo, manualJobNo, isClosed, pageIndex, pageSize, dealerCode);
 
                 return Ok(jobCards);
             }
