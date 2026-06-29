@@ -277,23 +277,27 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         .OrderByDescending(x => x.EffectiveDate)
                         .FirstOrDefault()
 
-                    let cgstRate = _context.AggregateTaxCodes
-                        .Where(x =>
-                            x.AtaxCode == taxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("CGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    let cgstRate = IM.Cgst
+                    let sgstRate = IM.Sgst
+                    let igstRate = IM.Igst
 
-                    let sgstRate = _context.AggregateTaxCodes
-                        .Where(x =>
-                            x.AtaxCode == taxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("SGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    //let cgstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("CGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
 
-                    let igstRate = _context.AggregateTaxCodes
-                        .Where(x =>
-                            x.AtaxCode == taxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("IGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    //let sgstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("SGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+                    //let igstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("IGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
 
                     select new
                     {
