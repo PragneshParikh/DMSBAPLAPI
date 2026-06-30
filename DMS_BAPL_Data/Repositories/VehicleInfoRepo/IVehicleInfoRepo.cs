@@ -9,7 +9,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 {
     public interface IVehicleInfoRepo
     {
-        Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo);
+        Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo,string? dealerCode);
         Task UpdateVehicleInfo(UpdateVehicleInfoViewModel model);
     }
 }
