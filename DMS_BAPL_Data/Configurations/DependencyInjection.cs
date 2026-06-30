@@ -65,6 +65,7 @@ using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
+using DMS_BAPL_Data.Repositories.ZoneMasterRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -120,6 +121,7 @@ using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
+using DMS_BAPL_Data.Services.ZoneMasterService;
 using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -198,6 +200,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
             services.AddScoped<IBgEmployeeMasterRepo, BgEmployeeMasterRepo>();
             services.AddScoped<IEmployeeProfileMasterRepo, EmployeeProfileMasterRepo>();
+            services.AddScoped<IZoneMasterRepo, ZoneMasterRepo>();
 
             #endregion
 
@@ -257,6 +260,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IFreeServiceClaimService, FreeServiceClaimService>();
             services.AddScoped<IBgEmployeeMasterService, BgEmployeeMasterService>();
             services.AddScoped<IEmployeeProfileMasterService, EmployeeProfileMasterService>();
+            services.AddScoped<IZoneMasterService, ZoneMasterService>();
 
 
 

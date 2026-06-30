@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DMS_BAPL_Data.DBModels;
 
@@ -54,4 +55,8 @@ public partial class EmployeeMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+
+    [NotMapped]
+    public bool CreateLogin { get; set; }
 }

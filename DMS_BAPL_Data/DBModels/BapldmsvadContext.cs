@@ -201,6 +201,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
     public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
     public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+    public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
 
 
 
@@ -3895,6 +3896,35 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(e => e.ProfileId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Profile");
+        });
+        modelBuilder.Entity<ZoneMasters>(entity =>
+        {
+                entity.ToTable("zone_master");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                      .HasColumnName("id")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Zone)
+                      .HasColumnName("zone")
+                      .HasMaxLength(20)
+                      .IsUnicode(false);
+
+                entity.Property(e => e.CityId)
+                      .HasColumnName("city_id");
+
+                entity.Property(e => e.StateId)
+                      .HasColumnName("state_id");
+
+                entity.Property(e => e.DealerId)
+                      .HasColumnName("dealer_id");
+
+                entity.Property(e => e.IsActive)
+                      .HasColumnName("is_active")
+                      .HasColumnType("bit")
+                      .IsRequired();
         });
     }
 
