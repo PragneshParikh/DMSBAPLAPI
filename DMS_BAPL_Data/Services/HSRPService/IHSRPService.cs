@@ -11,11 +11,12 @@ namespace DMS_BAPL_Data.Services.HSRPService
     public interface IHSRPService
     {
         Task<List<VehicleSaleBillResponseViewModel>> GetAllInvoicedVehicleForHSRPOrder(string? dealerCode);
-       // Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode);
+        Task<bool> ReceiveDispatchAsync(HSRPDispatchRequest request);
+        // Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode);
         Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> order);
-       // Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode);
+        // Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode);
         Task<HSRPOrderAddEditViewModel> GetAllHSRPOrderByIdAsync(int id);
-        Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders);
+       // Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders);
         //Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode);
         Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders);
 
