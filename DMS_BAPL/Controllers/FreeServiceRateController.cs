@@ -45,7 +45,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<FreeServiceRate>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GetByOEMModelId([FromBody] int? OEMModelId)
+        public async Task<ActionResult> GetByOEMModelId([FromQuery] int? OEMModelId)
         {
             try
             {

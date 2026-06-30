@@ -56,7 +56,8 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceRateRepo
                     MetroRate = fs.MetroRate,
                     MetroGst = fs.MetroGst,
                     NonMetroRate = fs.NonMetroRate,
-                    NonMetroGst = fs.NonMetroGst
+                    NonMetroGst = fs.NonMetroGst,
+                    CreatedDate = fs.CreatedDate
                 }
             )
             .AsNoTracking()

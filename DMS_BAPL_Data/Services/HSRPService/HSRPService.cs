@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Services.HSRPService
         private readonly IHSRPRepo _hsrpRepo;
         private readonly IPrefixRepo _prefixRepo;
         private readonly IExcelService _excelService;
-        public HSRPService(IHSRPRepo hsrpRepo,IPrefixRepo prefixRepo, IExcelService excelService)
+        public HSRPService(IHSRPRepo hsrpRepo, IPrefixRepo prefixRepo, IExcelService excelService)
         {
             _hsrpRepo = hsrpRepo;
             _prefixRepo = prefixRepo;
@@ -36,41 +36,48 @@ namespace DMS_BAPL_Data.Services.HSRPService
             }
         }
 
-        public async Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode,DateTime? fromdate,DateTime? toDate)
+        public async Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode, DateTime? fromdate, DateTime? toDate)
         {
             try
             {
-                return await _hsrpRepo.GetPendingHSRPListAsync(dealerCode,fromdate,toDate);
+                return await _hsrpRepo.GetPendingHSRPListAsync(dealerCode, fromdate, toDate);
             }
             catch
             {
                 throw;
             }
         }
-
-        public async Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> order)
+        public async Task<bool> ReceiveDispatchAsync(HSRPDispatchRequest request)
+        {
+            return await _hsrpRepo.ReceiveDispatchAsync(request);
+        }
+        public async Task<List<Hsrporder>> CreateBulkHSRPOrder(
+            List<HSRPOrderCreateViwModel> orders)
         {
             try
             {
-                var result= await _hsrpRepo.CreateBulkHSRPOrder(order);
-                if(result.Count != 0)
+                var token = await _hsrpRepo.GetHSRPLoginTokenAsync();
+
+                var result = await _hsrpRepo.CreateBulkHSRPOrder(orders, token);
+
+                if (result.Count > 0)
                 {
-                    await _prefixRepo.UpdateNextNumberByDealerByModule(order[0].DealerCode, "hsrp_order");
+                    await _prefixRepo.UpdateNextNumberByDealerByModule(orders[0].DealerCode, "hsrp_order");
                 }
+
                 return result;
             }
             catch
             {
                 throw;
             }
-
         }
 
-        public async Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode,DateTime? fromDate,DateTime? toDate)
+        public async Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
-                return await _hsrpRepo.GetAllHSRPOrderAsync(dealerCode,fromDate,toDate);
+                return await _hsrpRepo.GetAllHSRPOrderAsync(dealerCode, fromDate, toDate);
             }
             catch
             {
@@ -90,11 +97,23 @@ namespace DMS_BAPL_Data.Services.HSRPService
             }
         }
 
-        public async Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //public async Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //{
+        //    try
+        //    {
+        //        return await _hsrpRepo.UpdateBulkHSRPOrder(orders);
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        public async Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
-                return await _hsrpRepo.UpdateBulkHSRPOrder(orders);
+                return await _hsrpRepo.GetAllHSRPInward(dealerCode, fromDate, toDate);
             }
             catch
             {
@@ -102,35 +121,28 @@ namespace DMS_BAPL_Data.Services.HSRPService
             }
         }
 
-        public async Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode,DateTime? fromDate, DateTime? toDate)
-        {
-            try
-            {
-                return await _hsrpRepo.GetAllHSRPInward(dealerCode,fromDate, toDate);
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
+        //public async Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders)
+        //{
+        //    try
+        //    {
+        //        return await _hsrpRepo.UpdateInwardStatus(orders);
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
         public async Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders)
         {
-            try
-            {
-                return await _hsrpRepo.UpdateInwardStatus(orders);
-            }
-            catch
-            {
-                throw;
-            }
-        }
+            var token = await _hsrpRepo.GetHSRPLoginTokenAsync();
 
-        public async Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin,string? dealerCode,DateTime? fromDate,DateTime? toDate)
+            return await _hsrpRepo.UpdateInwardStatus(orders, token);
+        }
+        public async Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin, string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
-                var data = await _hsrpRepo.GetHSRPOrderForExcel(isSuperAdmin,dealerCode,fromDate,toDate);
+                var data = await _hsrpRepo.GetHSRPOrderForExcel(isSuperAdmin, dealerCode, fromDate, toDate);
 
                 var properties = typeof(HSRPExcelViewModel)
                     .GetProperties()
@@ -164,7 +176,7 @@ namespace DMS_BAPL_Data.Services.HSRPService
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString()); 
+                Console.WriteLine(ex.ToString());
                 throw;
             }
         }

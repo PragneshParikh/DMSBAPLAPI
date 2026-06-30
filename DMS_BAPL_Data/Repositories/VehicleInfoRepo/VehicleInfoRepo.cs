@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
             _context = context;
         }
 
-        public async Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo)
+        public async Task<VehicleInfoViewModel?> GetVehicleInfoByRegNoChassis(string? regNo, string? chassisNo, string? dealerCode)
         {
             var vehicleInfo = await (
                 from cd in _context.ChassisDetails
@@ -25,6 +25,14 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                 join vd in _context.VehicleSaleBillDetails
                     on cd.ChassisNo equals vd.ChassisNo into vdJoin
                 from vd in vdJoin.DefaultIfEmpty()
+
+                join di in _context.DealerMasters
+                    on cd.DealerId equals di.Dealercode into DealerInfo
+                from di in DealerInfo.DefaultIfEmpty()
+
+                join locdealer in _context.LocationMasters
+                    on cd.LocationCode equals locdealer.Loccode into DlrLocInfo
+                from locdealer in DlrLocInfo.DefaultIfEmpty()
 
                 join ld in _context.LedgerMasters
                     on cd.LedgerId equals ld.Id into ldJoin
@@ -38,16 +46,23 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                     on vd.ItemCode equals im.Itemcode into ItemInfo
                 from im in ItemInfo.DefaultIfEmpty()
 
-                where
-                    (!string.IsNullOrWhiteSpace(chassisNo) &&
-                     cd.ChassisNo == chassisNo)
-                    ||
-                    (!string.IsNullOrWhiteSpace(regNo) &&
-                     cd.RegNo != null && cd.RegNo == regNo)
-                     && cd.SaleDate.HasValue
+                where ((!string.IsNullOrWhiteSpace(chassisNo) && cd.ChassisNo == chassisNo) ||
+                (!string.IsNullOrWhiteSpace(regNo) && cd.RegNo != null && cd.RegNo == regNo)) && 
+                (string.IsNullOrWhiteSpace(dealerCode) ? true : cd.SaleDate.HasValue || cd.DealerId == dealerCode
+  )
 
                 select new VehicleInfoViewModel
                 {
+                    DealerDetails = new DealerInfoViewMode
+                    {
+                        DealerCode = di.Dealercode,
+                        DealerName = di.Compname,
+                        DealerEmail = di.Email,
+                        DealerLocation = locdealer.Locname,
+                        MobileNo = di.Mobile,
+                        Address = di.Adress1,
+                        Email = di.Email
+                    },
                     PartyDetails = new PartyDetailsViewModel
                     {
                         PartyName = ld != null ? ld.LedgerName : string.Empty,

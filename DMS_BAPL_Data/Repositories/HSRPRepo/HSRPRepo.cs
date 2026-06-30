@@ -4,22 +4,30 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml.Drawing.Vml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Repositories.HSRPRepo
 {
     public class HSRPRepo : IHSRPRepo
     {
+        private readonly string username = "bgauss-dev-user";
+        private readonly string password = "cat2024@bgauss";
         private readonly BapldmsvadContext _context;
         private readonly IHttpContextAccessor _httpContext;
         public HSRPRepo(BapldmsvadContext context, IHttpContextAccessor httpContext)
+
         {
             _context = context;
             _httpContext = httpContext;
@@ -89,53 +97,57 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
-        public async Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode,DateTime? fromDate,DateTime? toDate)
+        public async Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
                 var result = await (from vd in _context.VehicleSaleBillDetails
-                             join vh in _context.VehicleSaleBillHeaders
-                             on vd.VehicleSaleBillId equals vh.Id into PendingHsrpList
-                             from vh in PendingHsrpList.DefaultIfEmpty()
-                             join lm in _context.LedgerMasters
-                             on vh.LedgerId equals lm.Id into CustomerDetails
-                             from lm in CustomerDetails.DefaultIfEmpty()
-                             join inv in _context.InvoiceHeaders
-                             on vh.SaleBillNo equals inv.DocumentNo into InvoiceDetails
-                             from inv in InvoiceDetails.DefaultIfEmpty()
-                             join ho in _context.Hsrporders
-                             on vd.Id equals ho.SaleBillDetailsId into HSRPDetails
-                             from ho in HSRPDetails.DefaultIfEmpty()
+                                    join vh in _context.VehicleSaleBillHeaders
+                                    on vd.VehicleSaleBillId equals vh.Id into PendingHsrpList
+                                    from vh in PendingHsrpList.DefaultIfEmpty()
+                                    join lm in _context.LedgerMasters
+                                    on vh.LedgerId equals lm.Id into CustomerDetails
+                                    from lm in CustomerDetails.DefaultIfEmpty()
+                                    join inv in _context.InvoiceHeaders
+                                    on vh.SaleBillNo equals inv.DocumentNo into InvoiceDetails
+                                    from inv in InvoiceDetails.DefaultIfEmpty()
+                                    join ho in _context.Hsrporders
+                                    on vd.Id equals ho.SaleBillDetailsId into HSRPDetails
+                                    from ho in HSRPDetails.DefaultIfEmpty()
+                                    join vbd in _context.ChassisBatteryDetails
+                                    on vd.ChassisNo equals vbd.ChassisNo into ChassisBatteryDetails
+                                    from vbd in ChassisBatteryDetails.DefaultIfEmpty()
+                                    where vh.Status.ToLower() == "invoiced" && vd.Hsrpstatus == null
 
-                             where vh.Status.ToLower() == "invoiced" && vd.Hsrpstatus == null
+                                    select new HSRPOrderAddEditViewModel
+                                    {
+                                        ChassisNo = vd.ChassisNo,
+                                        RegNo = vd.RegNo,
+                                        RegDate = vd.InsStartDate,
+                                        ModelName = vd.ModelName,
+                                        Colour = vd.Colour,
+                                        CustomerName = vh.CustomerName,
+                                        CustomerMobile = lm.MobileNumber,
+                                        InvoiceNo = inv.DocumentNo,
+                                        InvoiceDate = inv.CreatedDate,
+                                        SaleBillNo = vh.SaleBillNo,
+                                        SaleBillDeailsId = vd.Id,
+                                        CustomerLedgerId = vh.LedgerId,
+                                        DealerCode = vh.DealerCode,
+                                        //HsrpResponse =ho.Hsrpresponse,
+                                        //HsrpStatus=ho.Hsrpstatus
 
-                             select new HSRPOrderAddEditViewModel
-                             {
-                                 ChassisNo = vd.ChassisNo,
-                                 RegNo = vd.RegNo,
-                                 ModelName = vd.ModelName,
-                                 Colour = vd.Colour,
-                                 CustomerName = vh.CustomerName,
-                                 CustomerMobile = lm.MobileNumber,
-                                 InvoiceNo = inv.DocumentNo,
-                                 InvoiceDate = inv.CreatedDate,
-                                 SaleBillNo = vh.SaleBillNo,
-                                 SaleBillDeailsId = vd.Id,
-                                 CustomerLedgerId = vh.LedgerId,
-                                 //HsrpResponse =ho.Hsrpresponse,
-                                 //HsrpStatus=ho.Hsrpstatus
 
-
-                             }).ToListAsync();
+                                    }).ToListAsync();
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
                     result = result.Where(i => i.DealerCode == dealerCode).ToList();
 
                 }
-                if (fromDate.HasValue) 
+                if (fromDate.HasValue)
                 {
-                    result =result.Where(i=>i.InvoiceDate >= fromDate.Value).ToList();
+                    result = result.Where(i => i.InvoiceDate >= fromDate.Value).ToList();
                 }
                 if (toDate.HasValue)
                 {
@@ -155,91 +167,119 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
-        //public async Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> order)
-        //{
-        //    try
-        //    {
-        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
-        //        var orderList = new List<Hsrporder>();
-        //        foreach (var item in order)
-        //        {
-        //            var entity = new Hsrporder
-        //            {
-        //                ChassisNo = item.ChassisNo,
-        //                RegNo = item.RegNo,
-        //                InvoiceNo = item.InvoiceNo,
-        //                IsFrontPlate = item.IsFrontPlate,
-        //                IsRearPlate = item.IsRearPlate,
-        //                IsTlpsticker = item.IsTlpsticker,
-        //                CustomerLedgerId = item.CustomerLedgerId,
-        //                SaleBillDetailsId = item.SaleBillDetailsId,
-        //                SupplierLedgerId = item.SupplierLedgerId,
-        //                SaleBillNo = item.SaleBillNo,
-        //                OrderDate = item.OrderDate,
-        //                OrderNo = item.OrderNo,
-        //                CreatedBy=userId,
-        //                CreatedDate=DateTime.Now,
+        //   public async Task<List<Hsrporder>> CreateBulkHSRPOrder(
+        //List<HSRPOrderCreateViwModel> orders,
+        //string accessToken)
+        //   {
+        //       var userId = GetUserInfoFromToken.GetUserIdFromToken(
+        //           _httpContext.HttpContext);
 
-        //            };
+        //       var orderList = new List<Hsrporder>();
+        //       var apiRequests = new List<HsrpExternalRequestViewModel>();
 
-        //            orderList.Add(entity);
+        //       foreach (var item in orders)
+        //       {
+        //           var vehicle = await _context.VehicleInwards
+        //               .Where(x => x.ChasisNo == item.ChassisNo)
+        //               .Select(x => new
+        //               {
+        //                   x.Id,
+        //                   x.MotorNo
+        //               })
+        //               .FirstOrDefaultAsync();
 
-        //        }
-        //        await _context.AddRangeAsync(orderList);
-        //        await _context.SaveChangesAsync();
-        //        return orderList;
+        //           var entity = new Hsrporder
+        //           {
+        //               ChassisNo = item.ChassisNo,
+        //               RegNo = item.RegNo,
+        //               InvoiceNo = item.InvoiceNo,
+        //               IsFrontPlate = item.IsFrontPlate,
+        //               IsRearPlate = item.IsRearPlate,
+        //               IsTlpsticker = item.IsTlpsticker,
+        //               CustomerLedgerId = item.CustomerLedgerId,
+        //               SaleBillDetailsId = item.SaleBillDetailsId,
+        //               SupplierLedgerId = item.SupplierLedgerId,
+        //               SaleBillNo = item.SaleBillNo,
+        //               OrderDate = item.OrderDate,
+        //               OrderNo = item.OrderNo,
+        //               CreatedBy = userId,
+        //               CreatedDate = DateTime.Now
+        //           };
 
+        //           orderList.Add(entity);
 
-        //    }
-        //    catch
-        //    {
-        //        throw;
-        //    }
-        //}
+        //           apiRequests.Add(new HsrpExternalRequestViewModel
+        //           {
+        //               DealerCode = item.DealerCode,
+        //               vendorid = "14",
+        //               OrderNumber = vehicle?.Id.ToString(),
+        //               HSRPOrderType = "New",
+        //               OrderDate = item.OrderDate.ToString("yyyy-mm-dd"),
+        //               ChassisNumber = item.ChassisNo,
+        //               EngineNo = vehicle?.MotorNo,
+        //               RegistrationNo = item.RegNo,
+        //               CustomerName = "Test User",
+        //               VehicleClass = "2W-11",
+        //               VehicleType = "Private",
+        //               Fuel = "Electric",
+        //               RegDate = item.OrderDate.ToString("yyyy-mm-dd"),
+        //               FrontPlate = item.IsFrontPlate == true ? "1" : "0",
+        //               RearPlate = item.IsRearPlate == true ? "1 ": "0",
+        //               TLP = item.IsTlpsticker == true ? "1" : "0"
+        //           });
+        //       }
 
+        //       try
+        //       {
+        //           var apiResponse = await SendOrderPlacementAsync(
+        //               apiRequests,
+        //               accessToken);
 
-        public async Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //           foreach (var order in orderList)
+        //           {
+        //               order.Hsrpstatus = "Success";
+        //               order.Hsrpresponse = apiResponse;
+        //           }
+        //       }
+        //       catch (Exception ex)
+        //       {
+        //           foreach (var order in orderList)
+        //           {
+        //               order.Hsrpstatus = "Failed";
+        //               order.Hsrpresponse = ex.Message;
+        //           }
+        //       }
+
+        //       await _context.Hsrporders.AddRangeAsync(orderList);
+        //       await _context.SaveChangesAsync();
+
+        //       return orderList;
+        //   }
+
+        public async Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders, string accessToken)
         {
+            var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
+            var orderList = new List<Hsrporder>();
+
+            // Build API Payload Array
+            var apiRequests = await BuildHSRPPayloadAsync(orders);
+
             try
             {
-                var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
+                var apiResponse = await SendOrderPlacementAsync(apiRequests, accessToken);
 
-                // STEP 1: Convert to External API format
-                var externalPayload = orders.Select(x => new HsrpExternalRequestViewModel
+
+                var responses = JsonSerializer.Deserialize<List<HsrpApiResponse>>(
+                    apiResponse,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new List<HsrpApiResponse>();
+
+                foreach (var item in orders)
                 {
-                    VinNo = x.ChassisNo,
-                    EngineNo = "",
-                    VehicleRegNo = x.RegNo,
-                    VehicleClass = "",
-                    VehicleType = "",
-                    DateOfReg = DateTime.Now.ToString("yyyy-MM-dd"),
-                    FrontLaserCode = x.IsFrontPlate == true ? "YES" : "",
-                    RearLaserCode = x.IsRearPlate == true ? "YES" : ""
-                }).ToList();
-
-                // STEP 2: Call External API
-                //List<dynamic> apiResponse;
-
-                //using (var client = new HttpClient())
-                //{
-                //    var response = await client.PostAsJsonAsync("https://test-api-url", externalPayload);
-
-                //    if (!response.IsSuccessStatusCode)
-                //        throw new Exception("External API Failed");
-
-                //    apiResponse = await response.Content.ReadFromJsonAsync<List<dynamic>>();
-                //}
-
-                // STEP 3: Map & Save
-                var orderList = new List<Hsrporder>();
-
-                for (int i = 0; i < orders.Count; i++)
-                {
-                    var item = orders[i];
-                    //var apiRes = apiResponse?[i];
-                    var apiRes = "Success";
-
-                    var entity = new Hsrporder
+                    var responseItem = responses.FirstOrDefault(x => x.Value != null && x.Value.ChassisNumber == item.ChassisNo);
+                    orderList.Add(new Hsrporder
                     {
                         ChassisNo = item.ChassisNo,
                         RegNo = item.RegNo,
@@ -253,155 +293,225 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         SaleBillNo = item.SaleBillNo,
                         OrderDate = item.OrderDate,
                         OrderNo = item.OrderNo,
-                        DealerCode = item.DealerCode,
-
-
-                        //Hsrpstatus = apiRes?.status ?? "FAILED",
-                        Hsrpstatus = "Success",
-                        //Hsrpresponse = apiRes != null ? JsonSerializer.Serialize(apiRes) : "No Response",
-                        Hsrpresponse = "Success",
+                        Hsrpstatus = responseItem?.STATUS == "1" ? "Success" : "Failed",
+                        Hsrpresponse = responseItem?.MESSAGE ?? "No response received",
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now
-                    };
-
-                    orderList.Add(entity);
+                    });
                 }
-
-                await _context.Hsrporders.AddRangeAsync(orderList);
-
-                //update vehicleSaleBill Details Table
-                var detailIds = orderList.Where(i => i.SaleBillDetailsId.HasValue)
-                    .Select(i => i.SaleBillDetailsId.Value).ToList();
-
-                var vehicleDetails = await _context.VehicleSaleBillDetails
-                    .Where(v => detailIds.Contains(v.Id))
-                    .ToListAsync();
-
-                foreach (var detail in vehicleDetails)
-                {
-                    var relatedOrder = orderList.FirstOrDefault(o => o.SaleBillDetailsId == detail.Id);
-
-                    if (relatedOrder != null)
-                    {
-                        detail.Hsrpstatus = relatedOrder.Hsrpstatus;
-                        detail.UpdatedBy = userId;
-                        detail.UpdatedDate = DateTime.Now;
-                    }
-                }
-
-
-                return orderList;
             }
             catch (Exception ex)
             {
-                throw new Exception("HSRP Bulk Creation Failed: " + ex.Message);
+                foreach (var item in orders)
+                {
+                    orderList.Add(new Hsrporder
+                    {
+                        ChassisNo = item.ChassisNo,
+                        RegNo = item.RegNo,
+                        InvoiceNo = item.InvoiceNo,
+                        IsFrontPlate = item.IsFrontPlate,
+                        IsRearPlate = item.IsRearPlate,
+                        IsTlpsticker = item.IsTlpsticker,
+                        CustomerLedgerId = item.CustomerLedgerId,
+                        SaleBillDetailsId = item.SaleBillDetailsId,
+                        SupplierLedgerId = item.SupplierLedgerId,
+                        SaleBillNo = item.SaleBillNo,
+                        OrderDate = item.OrderDate,
+                        OrderNo = item.OrderNo,
+                        Hsrpstatus = "Failed",
+                        Hsrpresponse = ex.Message,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now
+                    });
+                }
             }
+
+            await _context.Hsrporders.AddRangeAsync(orderList);
+            await _context.SaveChangesAsync();
+
+            return orderList;
         }
 
-        public async Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        private async Task<List<HsrpExternalRequestViewModel>> BuildHSRPPayloadAsync(List<HSRPOrderCreateViwModel> orders)
         {
-            try
+            var payload = new List<HsrpExternalRequestViewModel>();
+
+            foreach (var item in orders)
             {
-                var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
+                var vehicle = await _context.ChassisBatteryDetails
+                    .Where(x => x.ChassisNo == item.ChassisNo && x.MotorOrderNo == 1)
+                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                    .Select(x => new { x.Id, x.MotorNo }).FirstOrDefaultAsync();
 
-                //   Step 1: Get valid IDs
-                var existingHSRPIDs = orders
-                    .Where(i => i.id.HasValue)
-                    .Select(i => i.id.Value)
-                    .ToList();
-
-                //   Step 2: Fetch existing records
-                var existingHSRPOrders = await _context.Hsrporders
-                    .Where(i => existingHSRPIDs.Contains(i.Id))
-                    .ToListAsync();
-
-                //   Step 3: Call API (optional - same as your logic)
-                var externalPayload = orders.Select(x => new HsrpExternalRequestViewModel
+                payload.Add(new HsrpExternalRequestViewModel
                 {
-                    VinNo = x.ChassisNo,
-                    EngineNo = "",
-                    VehicleRegNo = x.RegNo,
-                    VehicleClass = "",
-                    VehicleType = "",
-                    DateOfReg = DateTime.Now.ToString("yyyy-MM-dd"),
-                    FrontLaserCode = x.IsFrontPlate == true ? "YES" : "",
-                    RearLaserCode = x.IsRearPlate == true ? "YES" : ""
-                }).ToList();
-
-                //List<dynamic> apiResponse;
-
-                //using (var client = new HttpClient())
-                //{
-                //    var response = await client.PostAsJsonAsync("https://test-api-url", externalPayload);
-
-                //    if (!response.IsSuccessStatusCode)
-                //        throw new Exception("External API Failed");
-
-                //    apiResponse = await response.Content.ReadFromJsonAsync<List<dynamic>>();
-                //}
-
-
-                //   Step 4: Update existing records
-                foreach (var existing in existingHSRPOrders)
-                {
-                    var item = orders.FirstOrDefault(x => x.id == existing.Id);
-
-                    if (item == null) continue;
-
-                    existing.ChassisNo = item.ChassisNo;
-                    existing.RegNo = item.RegNo;
-                    existing.InvoiceNo = item.InvoiceNo;
-                    existing.IsFrontPlate = item.IsFrontPlate;
-                    existing.IsRearPlate = item.IsRearPlate;
-                    existing.IsTlpsticker = item.IsTlpsticker;
-                    existing.CustomerLedgerId = item.CustomerLedgerId;
-                    existing.SaleBillDetailsId = item.SaleBillDetailsId;
-                    existing.SupplierLedgerId = item.SupplierLedgerId;
-                    existing.SaleBillNo = item.SaleBillNo;
-                    existing.OrderDate = item.OrderDate;
-                    existing.OrderNo = item.OrderNo;
-
-                    // API response
-                    existing.Hsrpstatus = "Success";
-                    existing.Hsrpresponse = "Success";
-
-                    existing.UpdatedBy = userId;
-                    existing.UpdatedDate = DateTime.Now;
-                }
-
-                //   Step 5: Update VehicleSaleBillDetails
-                var detailIds = existingHSRPOrders
-                    .Where(i => i.SaleBillDetailsId.HasValue)
-                    .Select(i => i.SaleBillDetailsId.Value)
-                    .ToList();
-
-                var vehicleDetails = await _context.VehicleSaleBillDetails
-                    .Where(v => detailIds.Contains(v.Id))
-                    .ToListAsync();
-
-                foreach (var detail in vehicleDetails)
-                {
-                    var relatedOrder = existingHSRPOrders
-                        .FirstOrDefault(o => o.SaleBillDetailsId == detail.Id);
-
-                    if (relatedOrder != null)
-                    {
-                        detail.Hsrpstatus = relatedOrder.Hsrpstatus;
-                        detail.UpdatedBy = userId;
-                        detail.UpdatedDate = DateTime.Now;
-                    }
-                }
-
-                //   FINAL SAVE
-                await _context.SaveChangesAsync();
-
-                return existingHSRPOrders;
+                    DealerCode = item.DealerCode,
+                    vendorid = 14,
+                    OrderNumber = vehicle?.Id.ToString(),
+                    HSRPOrderType = "New",
+                    OrderDate = item.OrderDate.ToString("yyyy-MM-dd"),
+                    RegDate = item.OrderDate.ToString("yyyy-MM-dd"),
+                    ChassisNumber = item.ChassisNo,
+                    EngineNo = item.MotorNo,
+                    RegistrationNo = item.RegNo,
+                    CustomerName = item.CustomerName,
+                    VehicleClass = "2 WHEELER BOV-L2",
+                    VehicleType = "Private",
+                    Fuel = "PURE EV",
+                    FrontPlate = item.IsFrontPlate == true ? "1" : "0",
+                    RearPlate = item.IsRearPlate == true ? "1" : "0",
+                    TLP = item.IsTlpsticker == true ? "1" : "0"
+                });
             }
-            catch (Exception ex)
-            {
-                throw new Exception("HSRP Bulk Update Failed: " + ex.Message);
-            }
+
+            return payload;
         }
+        private async Task<string> SendOrderPlacementAsync(List<HsrpExternalRequestViewModel> requests, string accessToken)
+        {
+            using var httpClient = new HttpClient();
+            var json = JsonSerializer.Serialize(requests);
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://devbgaussapi.rosmertahsrp.com/api/pos/OrderPlacement");
+            httpRequest.Headers.Add("API-Key", $"{accessToken}");
+            httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.SendAsync(httpRequest);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
+            return responseBody;
+        }
+        //private async Task<string> SendOrderPlacementAsync(HsrpExternalRequestViewModel request, string accessToken)
+        //{
+        //    using var httpClient = new HttpClient();
+
+        //    httpClient.DefaultRequestHeaders.Authorization =
+        //        new AuthenticationHeaderValue("Bearer", accessToken);
+
+        //    var json = JsonSerializer.Serialize(request);
+
+        //    var content = new StringContent(
+        //        json,
+        //        Encoding.UTF8,
+        //        "application/json");
+
+        //    var response = await httpClient.PostAsync(
+        //        "https://devbgaussapi.rosmertahsrp.com/api/OrderPlacement",
+        //        content);
+
+        //    return await response.Content.ReadAsStringAsync();
+        //}
+        //public async Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //[HttpPost("bulk-order")]
+        //public async Task<ActionResult<int>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //{
+        //    GetHSRPLoginToken();
+
+        //    return StatusCodes.Status404NotFound;
+        //}
+
+
+        //public async Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders)
+        //{
+        //    try
+        //    {
+        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
+
+        //        //   Step 1: Get valid IDs
+        //        var existingHSRPIDs = orders
+        //            .Where(i => i.id.HasValue)
+        //            .Select(i => i.id.Value)
+        //            .ToList();
+
+        //        //   Step 2: Fetch existing records
+        //        var existingHSRPOrders = await _context.Hsrporders
+        //            .Where(i => existingHSRPIDs.Contains(i.Id))
+        //            .ToListAsync();
+
+        //        //   Step 3: Call API (optional - same as your logic)
+        //        var externalPayload = orders.Select(x => new HsrpExternalRequestViewModel
+        //        {
+        //            VinNo = x.ChassisNo,
+        //            EngineNo = "",
+        //            VehicleRegNo = x.RegNo,
+        //            VehicleClass = "",
+        //            VehicleType = "",
+        //            DateOfReg = DateTime.Now.ToString("yyyy-MM-dd"),
+        //            FrontLaserCode = x.IsFrontPlate == true ? "YES" : "",
+        //            RearLaserCode = x.IsRearPlate == true ? "YES" : ""
+        //        }).ToList();
+
+        //        //List<dynamic> apiResponse;
+
+        //        //using (var client = new HttpClient())
+        //        //{
+        //        //    var response = await client.PostAsJsonAsync("https://test-api-url", externalPayload);
+
+        //        //    if (!response.IsSuccessStatusCode)
+        //        //        throw new Exception("External API Failed");
+
+        //        //    apiResponse = await response.Content.ReadFromJsonAsync<List<dynamic>>();
+        //        //}
+
+
+        //        //   Step 4: Update existing records
+        //        foreach (var existing in existingHSRPOrders)
+        //        {
+        //            var item = orders.FirstOrDefault(x => x.id == existing.Id);
+
+        //            if (item == null) continue;
+
+        //            existing.ChassisNo = item.ChassisNo;
+        //            existing.RegNo = item.RegNo;
+        //            existing.InvoiceNo = item.InvoiceNo;
+        //            existing.IsFrontPlate = item.IsFrontPlate;
+        //            existing.IsRearPlate = item.IsRearPlate;
+        //            existing.IsTlpsticker = item.IsTlpsticker;
+        //            existing.CustomerLedgerId = item.CustomerLedgerId;
+        //            existing.SaleBillDetailsId = item.SaleBillDetailsId;
+        //            existing.SupplierLedgerId = item.SupplierLedgerId;
+        //            existing.SaleBillNo = item.SaleBillNo;
+        //            existing.OrderDate = item.OrderDate;
+        //            existing.OrderNo = item.OrderNo;
+
+        //            // API response
+        //            existing.Hsrpstatus = "Success";
+        //            existing.Hsrpresponse = "Success";
+
+        //            existing.UpdatedBy = userId;
+        //            existing.UpdatedDate = DateTime.Now;
+        //        }
+
+        //        //   Step 5: Update VehicleSaleBillDetails
+        //        var detailIds = existingHSRPOrders
+        //            .Where(i => i.SaleBillDetailsId.HasValue)
+        //            .Select(i => i.SaleBillDetailsId.Value)
+        //            .ToList();
+
+        //        var vehicleDetails = await _context.VehicleSaleBillDetails
+        //            .Where(v => detailIds.Contains(v.Id))
+        //            .ToListAsync();
+
+        //        foreach (var detail in vehicleDetails)
+        //        {
+        //            var relatedOrder = existingHSRPOrders
+        //                .FirstOrDefault(o => o.SaleBillDetailsId == detail.Id);
+
+        //            if (relatedOrder != null)
+        //            {
+        //                detail.Hsrpstatus = relatedOrder.Hsrpstatus;
+        //                detail.UpdatedBy = userId;
+        //                detail.UpdatedDate = DateTime.Now;
+        //            }
+        //        }
+
+        //        //   FINAL SAVE
+        //        await _context.SaveChangesAsync();
+
+        //        return existingHSRPOrders;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception("HSRP Bulk Update Failed: " + ex.Message);
+        //    }
+        //}
         public async Task<string> GetNextOrderNo()
         {
             string orderNo = "ORD1";
@@ -419,7 +529,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             return orderNo;
         }
 
-        public async Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode,DateTime? fromDate,DateTime? toDate)
+        public async Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -468,13 +578,13 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                 {
                     result = result.Where(i => i.DealerCode == dealerCode).ToList();
                 }
-                if(toDate.HasValue)
+                if (toDate.HasValue)
                 {
-                    result =result.Where(i=>i.OrderDate <= toDate).ToList();
+                    result = result.Where(i => i.OrderDate <= toDate).ToList();
                 }
                 if (fromDate.HasValue)
                 {
-                    result  =result.Where(i=>i.OrderDate >= fromDate).ToList();
+                    result = result.Where(i => i.OrderDate >= fromDate).ToList();
                 }
                 return result;
             }
@@ -541,8 +651,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
-
-        public async Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode,DateTime? fromDate, DateTime? toDate)
+        public async Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -581,17 +690,17 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
 
                                   }).ToListAsync();
 
-                                if (!string.IsNullOrEmpty(dealerCode))
-                                {
-                                    data = data.Where(i => i.DealerCode == dealerCode).ToList();
-                                }
+                if (!string.IsNullOrEmpty(dealerCode))
+                {
+                    data = data.Where(i => i.DealerCode == dealerCode).ToList();
+                }
                 if (fromDate.HasValue)
                 {
-                    data= data.Where(i=>i.OrderDate >= fromDate.Value).ToList();    
+                    data = data.Where(i => i.OrderDate >= fromDate.Value).ToList();
                 }
-                 if (toDate.HasValue)
+                if (toDate.HasValue)
                 {
-                    data= data.Where(i=>i.OrderDate <= toDate.Value).ToList();    
+                    data = data.Where(i => i.OrderDate <= toDate.Value).ToList();
                 }
                 return data;
             }
@@ -692,11 +801,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
-        public async Task<List<HSRPExcelViewModel>> GetHSRPOrderForExcel(
-            bool isSuperAdmin,
-            string? dealerCode,
-            DateTime? fromDate,
-            DateTime? toDate)
+        public async Task<List<HSRPExcelViewModel>> GetHSRPOrderForExcel(bool isSuperAdmin, string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -732,20 +837,20 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         dl
                     };
 
-               
+
                 if (!isSuperAdmin && !string.IsNullOrEmpty(dealerCode))
                 {
                     query = query.Where(x => x.hs.DealerCode == dealerCode);
                 }
 
-                
+
                 if (fromDate.HasValue)
                 {
                     query = query.Where(x =>
                         x.hs.OrderDate >= fromDate.Value);
                 }
 
-               
+
                 if (toDate.HasValue)
                 {
                     query = query.Where(x =>
@@ -785,5 +890,211 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                 throw;
             }
         }
+
+
+        public async Task<string> GetHSRPLoginTokenAsync()
+        {
+            using var httpClient = new HttpClient();
+
+            var payload = new
+            {
+                username = "bgauss-dev-user",
+                password = "cat2024@bgauss"
+            };
+
+            var response = await httpClient.PostAsJsonAsync(
+                "https://devbgaussapi.rosmertahsrp.com/api/pos/getApiKey",
+                payload);
+
+            var responseContent =
+                await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(responseContent);
+            }
+
+            var tokenResponse =
+                JsonSerializer.Deserialize<HSRPLoginResponseViewModel>(
+                    responseContent,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+            if (tokenResponse?.Value?.AccessToken == null)
+            {
+                throw new Exception("Access token not found.");
+            }
+
+            return tokenResponse.Value.AccessToken;
+        }
+
+        public async Task<bool> ReceiveDispatchAsync(HSRPDispatchRequest request)
+        {
+            var order = await _context.Hsrporders
+                .FirstOrDefaultAsync(x => x.Id == request.OrderId);
+
+            if (order == null)
+                throw new Exception("Order not found.");
+
+            order.DispatchNumber = request.DispatchNumber;
+            order.DispatchDate = DateTime.ParseExact(request.DispatchDate, "dd-MM-yyyy", null);
+
+            order.FrontLasercode = request.FrontLaserCode;
+            order.Rearlasercode = request.RearLaserCode;
+
+            order.InwardStatus = "Dispatched";
+            order.InwardResponse = "Dispatch Received";
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders, string accessToken)
+        {
+            var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
+
+            var ids = orders.Where(x => x.Id.HasValue).Select(x => x.Id.Value).ToList();
+
+            var dbOrders = await _context.Hsrporders.Where(x => ids.Contains(x.Id)).ToListAsync();
+
+            var inwardRequests = dbOrders.Select(x => new HSRPInwardRequestViewModel
+            {
+                Ver = "1.1",
+                VendorId = 14,
+                DealerCode = x.DealerCode,
+                DCNumber = x.OrderNo,
+                RegistrationNo = x.RegNo,
+                ChassisNumber = x.ChassisNo,
+                FrontPlate = x.IsFrontPlate == true ? 1 : 0,
+                RearPlate = x.IsRearPlate == true ? 1 : 0,
+                ReceivingDate = DateTime.Now.ToString("yyyy-MM-dd"),
+                ReceivingMessage = "RECEIVED",
+                OrderID = x.Id
+            })
+                .ToList();
+
+            try
+            {
+                var responseJson = await SendInwardAsync(inwardRequests, accessToken);
+
+                var apiResponse =
+                    JsonSerializer.Deserialize<List<HSRPInwardResponseViewModel>>(
+                        responseJson,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                var result = apiResponse?.FirstOrDefault();
+
+                foreach (var order in dbOrders)
+                {
+                    order.InwardStatus = result?.STATUS == "1" ? "Success" : "Failed";
+                    order.InwardResponse = result?.MESSAGE;
+                    order.UpdatedBy = userId;
+                    order.UpdatedDate = DateTime.Now;
+                }
+                await _context.SaveChangesAsync();
+                return dbOrders;
+            }
+            catch (Exception ex)
+            {
+                foreach (var order in dbOrders)
+                {
+                    order.InwardStatus = "Failed";
+                    order.InwardResponse = ex.Message;
+                    order.UpdatedBy = userId;
+                    order.UpdatedDate = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+                throw;
+            }
+        }
+
+        private async Task<string> SendInwardAsync(List<HSRPInwardRequestViewModel> requests, string accessToken)
+        {
+            using var httpClient = new HttpClient();
+            var json = JsonSerializer.Serialize(requests);
+
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://devbgaussapi.rosmertahsrp.com/api/pos/Inward");
+
+            httpRequest.Headers.Add("API-Key", $"{accessToken}");
+
+            httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await httpClient.SendAsync(httpRequest);
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine(responseBody);
+
+            return responseBody;
+        }
     }
 }
+
+//private async Task<string> SendOrderPlacementAsync(HsrpExternalRequestViewModel request, string accessToken)
+//{
+//    using var httpClient = new HttpClient();
+
+//    using var httpRequest = new HttpRequestMessage(
+//        HttpMethod.Post,
+//        "https://devbgaussapi.rosmertahsrp.com/api/pos/OrderPlacement");
+
+//    httpRequest.Headers.Authorization =
+//        new System.Net.Http.Headers.AuthenticationHeaderValue(
+//            "Bearer",
+//            accessToken);
+
+//    httpRequest.Content = new StringContent(
+//        JsonSerializer.Serialize(request),
+//        Encoding.UTF8,
+//        "application/json");
+
+//    var response =
+//        await httpClient.SendAsync(httpRequest);
+
+//    return await response.Content.ReadAsStringAsync();
+//}
+//       private async Task<string> SendOrderPlacementAsync(
+//   List<HsrpExternalRequestViewModel> requests,
+//   string accessToken)
+//       {
+//           using var httpClient = new HttpClient();
+
+//           using var httpRequest = new HttpRequestMessage(
+//               HttpMethod.Post,
+//               "https://devbgaussapi.rosmertahsrp.com/api/pos/OrderPlacement");
+
+//           // API documentation says:
+//           // Header: API-Key = Token generated while login
+//           httpRequest.Headers.Add(
+//    "API-Key",
+//    $"{accessToken}"
+//);
+
+//           var json = JsonSerializer.Serialize(requests);
+
+//           Console.WriteLine("Request JSON:");
+//           Console.WriteLine(json);
+
+//           httpRequest.Content = new StringContent(
+//               json,
+//               Encoding.UTF8,
+//               "application/json");
+
+//           var response = await httpClient.SendAsync(httpRequest);
+
+//           var responseBody = await response.Content.ReadAsStringAsync();
+
+//           Console.WriteLine($"Status: {response.StatusCode}");
+//           Console.WriteLine($"Response: {responseBody}");
+
+//           return responseBody;
+//       }
+//   }
+//}

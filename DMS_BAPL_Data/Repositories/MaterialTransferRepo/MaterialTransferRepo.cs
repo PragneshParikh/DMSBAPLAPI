@@ -371,10 +371,14 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             {
                 var materialTransferGroup = _context.MaterialTransfers
                     .GroupBy(x => x.JobId)
-                    .Select(x => new
+                    .Select(g => new
                     {
-                        JobId = x.Key,
-                        CreatedDate = x.Max(y => y.CreatedDate)
+                        JobId = g.Key,
+                        MaterialIssueNumber = g
+                        .OrderByDescending(x => x.CreatedDate)
+                        .Select(x => x.MaterialIssueNumber)
+                        .FirstOrDefault(),
+                        CreatedDate = g.Max(x => x.CreatedDate)
                     });
 
                 var query =
@@ -405,12 +409,13 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         JH.JobNo,
                         JH.Serviceloc,
 
-                        PreparedBy = U != null ? U.UserName : null,
-                        ModifiedBy = UM != null ? UM.UserName : null,
+                        PreparedBy = U != null ? U.DealerCode : null,
+                        ModifiedBy = UM != null ? UM.DealerCode : null,
 
                         JC.CustomerName,
                         JC.RegisterNo,
 
+                        MT.MaterialIssueNumber,
                         MT.CreatedDate
                     };
 
@@ -447,6 +452,8 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     x.PreparedBy,
                     x.ModifiedBy,
                     x.CustomerName,
+                    x.MaterialIssueNumber,
+                    x.CreatedDate,
                     x.RegisterNo
                 }).Cast<object>().ToList();
 

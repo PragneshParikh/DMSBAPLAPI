@@ -16,12 +16,12 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetVehicleInfo([FromQuery] string? regNo, [FromQuery] string? chassisNo)
+        public async Task<IActionResult> GetVehicleInfo([FromQuery] string? regNo, [FromQuery] string? chassisNo, [FromQuery] string? dealerCode)
         {
             try
             {
 
-                var result = await _vehicleInfoService.GetVehicleInfoByRegNoChassis(regNo, chassisNo);
+                var result = await _vehicleInfoService.GetVehicleInfoByRegNoChassis(regNo, chassisNo,dealerCode);
 
                 if (result == null)
                 {
