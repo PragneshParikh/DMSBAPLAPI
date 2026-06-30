@@ -70,16 +70,28 @@ namespace DMS_BAPL_Data.Services.FreeServiceRateService
                 var rates = await _freeServiceRateRepo.GetByOEMModelId(null);
 
                 return rates
-                    .GroupBy(x => x.OemmodelId)
-                    .Select((g, index) => new FreeServiceRateGroupViewModel
+                    .GroupBy(x => new
                     {
-                        SrNo = index + 1,
-                        EffectiveDate = g.First().EffectiveDate,
-                        OEMModelId = g.Key,
+                        x.OemmodelId,
+                        x.CreatedDate,
+                        x.EffectiveDate
+                    })
+                    .Select(g => new FreeServiceRateGroupViewModel
+                    {
+                        OEMModelId = g.Key.OemmodelId,
                         OEMModelName = g.First().OEMModelName,
+                        EffectiveDate = g.Key.EffectiveDate,
+                        CreatedDate = g.Key.CreatedDate,
                         Services = g.ToList()
                     })
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Select((g, index) =>
+                    {
+                        g.SrNo = index + 1;
+                        return g;
+                    })
                     .ToList();
+
             }
 
             var result = await _freeServiceRateRepo.GetByOEMModelId(id);
