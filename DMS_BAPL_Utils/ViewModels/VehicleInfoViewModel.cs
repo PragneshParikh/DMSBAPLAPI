@@ -22,6 +22,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string MobileNo { get; set; }
         public string Email { get; set; }
         public string Address { get; set; }
+        public string DealerCity { get; set; }
+        public string DealerState { get; set; }
     }
     public class PartyDetailsViewModel
     {
