@@ -22,11 +22,10 @@ public partial class BgEmployeeMaster
 
     public string? Mobile { get; set; }
 
-    public int? State { get; set; }
-
-    public int? City { get; set; }
-
-    public string? Pincode { get; set; }
+        // ---- Address ----------------------------------------
+        public int State { get; set; }
+        public int City { get; set; }
+        public string? Pincode { get; set; }
 
     public DateTime? DateOfBirth { get; set; }
 
@@ -42,30 +41,27 @@ public partial class BgEmployeeMaster
     // ---- Login ------------------------------------------
     public string? EmailId { get; set; }
 =======
+=======
         public string? EmailId { get; set; }
 
         public string? Email { get; set; }
         public string? Password { get; set; }
->>>>>>> Stashed changes
-
-    public string? Password { get; set; }
-
     public string? MappedZoneIds { get; set; }
 
     public string? MappedZones { get; set; }
-
+        public string? MappedZoneIds { get; set; }
     // ---- Employee mapping cache -------------------------
     public string? MappedEmployeeIds { get; set; }
 
     public string? MappedEmployees { get; set; }
-
+    public string? MappedEmployees { get; set; }
     // ---- Misc -------------------------------------------
     public string? ProfileImage { get; set; }
 
     public string? DealerCode { get; set; }
 
     public string? LocationCode { get; set; }
-
+    public string? LocationCode { get; set; }
     // ---- Audit ------------------------------------------
     public string? CreatedBy { get; set; }
 
@@ -84,4 +80,5 @@ public partial class BgEmployeeMaster
     public virtual DepartmentMaster? DepartmentNavigation { get; set; }
 
     public virtual State? StateNavigation { get; set; }
+}
 }
