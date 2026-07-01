@@ -47,7 +47,7 @@ namespace DMS_BAPL_Data.Services.HSRPService
                 throw;
             }
         }
-        public async Task<bool> ReceiveDispatchAsync(HSRPDispatchRequest request)
+        public async Task<bool> ReceiveDispatchAsync(List<HSRPDispatchItem> request)
         {
             return await _hsrpRepo.ReceiveDispatchAsync(request);
         }

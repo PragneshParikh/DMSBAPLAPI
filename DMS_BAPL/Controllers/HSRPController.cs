@@ -52,17 +52,17 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                await _hsrpService.ReceiveDispatchAsync(request);
+                await _hsrpService.ReceiveDispatchAsync(request.Data);
 
                 return Ok(new HSRPDispatchResponse
                 {
                     Valid = true,
-                    Description = "Dispatch detail saved successfully.",
+                    Description = "Dispatch details saved successfully.",
                     Value = new List<HSRPDispatchResponseValue>
             {
                 new HSRPDispatchResponseValue
                 {
-                    Msg = "Dispatch detail saved successfully.",
+                    Msg = "Dispatch details saved successfully.",
                     StatusCode = "200",
                     ResponseStatus = "true"
                 }

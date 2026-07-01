@@ -11,7 +11,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
     public interface IHSRPRepo
     {
         Task<string> GetHSRPLoginTokenAsync();
-        Task <bool> ReceiveDispatchAsync(HSRPDispatchRequest request);
+        Task <bool> ReceiveDispatchAsync(List<HSRPDispatchItem> request);
         Task<List<VehicleSaleBillResponseViewModel>> GetAllInvoicedVehicleForHSRPOrder(string? dealerCode);
         //Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode);
         Task<List<Hsrporder>> CreateBulkHSRPOrder(
