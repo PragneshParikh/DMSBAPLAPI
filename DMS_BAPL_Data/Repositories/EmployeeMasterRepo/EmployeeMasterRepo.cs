@@ -188,8 +188,10 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         {
             try
             {
+                var normalizedEmail = email?.Trim().ToLowerInvariant();
+
                 return await _context.EmployeeMasters
-                    .FirstOrDefaultAsync(x => x.EmailId == email);
+                    .FirstOrDefaultAsync(x => x.EmailId.ToLower() == normalizedEmail);
             }
             catch { throw; }
         }

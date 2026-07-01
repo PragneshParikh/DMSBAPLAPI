@@ -1,6 +1,8 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +14,13 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
     public class BgEmployeeMasterService : IBgEmployeeMasterService
     {
         private readonly IBgEmployeeMasterRepo _repo;
+        private readonly UserManager<ApplicationUser> _userManager;  // NEW
 
-        public BgEmployeeMasterService(IBgEmployeeMasterRepo repo)
+
+        public BgEmployeeMasterService(IBgEmployeeMasterRepo repo, UserManager<ApplicationUser> userManager)
         {
             _repo = repo;
+            _userManager = userManager;
         }
 
         // =====================================================
@@ -50,17 +55,64 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
         public async Task<BgEmployeeMaster> Create(BgEmployeeViewModel model)
         {
-            try
-            {
-                var entity = MapToEntity(model);
-                entity.CreatedBy = model.CreatedBy ?? "admin";
-                entity.CreatedDate = DateTime.Now;
-                entity.UpdatedBy = model.CreatedBy ?? "admin";
-                entity.UpdatedDate = DateTime.Now;
+            model.EmailId = model.EmailId?.Trim().ToLowerInvariant();
 
-                return await _repo.Create(entity);
+            var existingEmployee = await _repo.GetByEmail(model.EmailId);
+            if (existingEmployee != null)
+                throw new InvalidOperationException("An employee with this email already exists.");
+
+            var entity = MapToEntity(model);
+            entity.CreatedBy = model.CreatedBy ?? "admin";
+            entity.CreatedDate = DateTime.Now;
+            entity.UpdatedBy = model.CreatedBy ?? "admin";
+            entity.UpdatedDate = DateTime.Now;
+
+            var savedEmployee = await _repo.Create(entity);
+
+            // NEW — login-creation failures no longer 500 the whole request.
+            // The employee row is already saved at this point; treat login setup
+            // as best-effort and log instead of throwing.
+            if (!string.IsNullOrWhiteSpace(savedEmployee.EmailId))
+            {
+                try
+                {
+                    var existingUser = await _userManager.FindByNameAsync(savedEmployee.EmailId);
+
+                    if (existingUser == null)
+                    {
+                        var newUser = new ApplicationUser
+                        {
+                            UserName = savedEmployee.EmailId,
+                            Email = savedEmployee.EmailId,
+                            EmailConfirmed = true
+                        };
+
+                        var passwordToUse = !string.IsNullOrWhiteSpace(model.Password)
+                            ? model.Password
+                            : StringConstants.BgEmployeeDefaultPassword;
+
+                        var userResult = await _userManager.CreateAsync(newUser, passwordToUse);
+
+                        if (userResult.Succeeded)
+                        {
+                            await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
+                        }
+                        else
+                        {
+                            // log but don't throw — employee record is already saved successfully
+                            Console.WriteLine($"Login creation failed for {savedEmployee.EmailId}: " +
+                                string.Join(", ", userResult.Errors.Select(e => e.Description)));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // same — log, don't fail the whole save
+                    Console.WriteLine($"Login creation exception for {savedEmployee.EmailId}: {ex.Message}");
+                }
             }
-            catch { throw; }
+
+            return savedEmployee;
         }
 
         // =====================================================
@@ -97,14 +149,16 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         // GET BY EMAIL
         // =====================================================
 
-        public async Task<BgEmployeeMaster?> GetByEmail(string email)
-        {
-            try
-            {
-                return await _repo.GetByEmail(email);
-            }
-            catch { throw; }
-        }
+        //public async Task<BgEmployeeMaster?> GetByEmail(string email)
+        //{
+        //    try
+        //    {
+        //        return await _repo.GetByEmail(email);
+        //    }
+        //    catch { throw; }
+        //}
+
+        public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 
         // =====================================================
         // PRIVATE — ViewModel → Entity

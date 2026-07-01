@@ -11,5 +11,7 @@ namespace DMS_BAPL_Data.DBModels
     {
         public DateTime? LastLoginDate { get; set; }
         public string? DealerCode { get; set; }
+
+        //public string? EmployeeCode { get; set; }
     }
 }
