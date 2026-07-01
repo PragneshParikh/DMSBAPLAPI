@@ -40,7 +40,14 @@ public partial class BgEmployeeMaster
     public int? Department { get; set; }
 
         // ---- Login ------------------------------------------
+<<<<<<< Updated upstream
     public string? EmailId { get; set; }
+=======
+        public string? EmailId { get; set; }
+
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+>>>>>>> Stashed changes
 
     public string? Password { get; set; }
 

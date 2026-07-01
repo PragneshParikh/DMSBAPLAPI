@@ -16,5 +16,12 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         Task<int> Update(BgEmployeeViewModel model);
         Task<int> Delete(int id);
         Task<BgEmployeeMaster?> GetByEmail(string email);
+
+        Task<IEnumerable<AssignedDealerInfo>> GetAssignedDealerCodes(int excludeEmployeeId);
+
+        // interface
+        Task<IEnumerable<BgEmployeeRoleMapping>> GetRoleMappings(int employeeId);
+
+        Task<IEnumerable<BgEmployeeListItemViewModel>> GetEmployeeListView();
     }
 }

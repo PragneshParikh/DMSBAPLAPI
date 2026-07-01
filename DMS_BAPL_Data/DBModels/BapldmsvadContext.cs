@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
@@ -204,7 +205,16 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
 
+<<<<<<< Updated upstream
     public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
+=======
+    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
+    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
+    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+    public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
+    public virtual DbSet<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; }
+
+>>>>>>> Stashed changes
 
     public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
 
@@ -4051,6 +4061,11 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("EmailId");
 
+            entity.Property(e => e.Email)              // NEW
+                .HasMaxLength(150)
+                .IsUnicode(false);
+
+
             entity.Property(e => e.Password)
                 .HasMaxLength(200)
                 .IsUnicode(false);
@@ -4166,6 +4181,69 @@ public partial class BapldmsvadContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Profile");
         });
+<<<<<<< Updated upstream
+=======
+        modelBuilder.Entity<ZoneMasters>(entity =>
+        {
+            entity.ToTable("zone_master");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                  .HasColumnName("id")
+                  .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Zone)
+                  .HasColumnName("zone")
+                  .HasMaxLength(20)
+                  .IsUnicode(false);
+
+            entity.Property(e => e.CityId)
+                  .HasColumnName("city_id");
+
+            entity.Property(e => e.StateId)
+                  .HasColumnName("state_id");
+
+            entity.Property(e => e.DealerId)
+                  .HasColumnName("dealer_id");
+
+            entity.Property(e => e.IsActive)
+                  .HasColumnName("is_active")
+                  .HasColumnType("bit")
+                  .IsRequired();
+        });
+
+        modelBuilder.Entity<BgEmployeeRoleMapping>(entity =>
+        {
+            entity.ToTable("BgEmployeeRoleMappings");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false);
+
+            entity.Property(e => e.RoleName)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false);
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .ValueGeneratedOnAdd();
+
+            entity.HasOne(m => m.BgEmployee)
+                .WithMany()
+                .HasForeignKey(m => m.BgEmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+>>>>>>> Stashed changes
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
