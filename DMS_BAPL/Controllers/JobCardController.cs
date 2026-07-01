@@ -576,7 +576,7 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetails(dealerCode, jobNo, serviceloc, fromDate, toDate);
+                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetail(dealerCode, jobNo, serviceloc, fromDate, toDate);
 
                 return Ok(jobCardList);
 
