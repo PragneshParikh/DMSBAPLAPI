@@ -204,11 +204,7 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
 
-    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
-    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
-    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
     public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
-
 
     public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
 
