@@ -1,6 +1,8 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
+using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +14,13 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
     public class BgEmployeeMasterService : IBgEmployeeMasterService
     {
         private readonly IBgEmployeeMasterRepo _repo;
+        private readonly UserManager<ApplicationUser> _userManager;  // NEW
 
-        public BgEmployeeMasterService(IBgEmployeeMasterRepo repo)
+
+        public BgEmployeeMasterService(IBgEmployeeMasterRepo repo, UserManager<ApplicationUser> userManager)
         {
             _repo = repo;
+            _userManager = userManager;
         }
 
         // =====================================================
@@ -52,8 +57,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         {
             try
             {
-<<<<<<< Updated upstream
-=======
                 model.EmailId = model.EmailId?.Trim().ToLowerInvariant();
 
                 var existingEmployee = await _repo.GetByEmail(model.EmailId);
@@ -63,16 +66,12 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 // ── STEP 1: strip these dealer codes from any other BG employee ──
                 await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
 
->>>>>>> Stashed changes
                 var entity = MapToEntity(model);
                 entity.CreatedBy = model.CreatedBy ?? "admin";
                 entity.CreatedDate = DateTime.Now;
                 entity.UpdatedBy = model.CreatedBy ?? "admin";
                 entity.UpdatedDate = DateTime.Now;
 
-<<<<<<< Updated upstream
-                return await _repo.Create(entity);
-=======
                 var savedEmployee = await _repo.Create(entity);
 
                 // ── NEW: persist category/role mappings ──────────────────────
@@ -110,7 +109,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 }
 
                 return savedEmployee;
->>>>>>> Stashed changes
             }
             catch { throw; }
         }
@@ -160,14 +158,16 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         // GET BY EMAIL
         // =====================================================
 
-        public async Task<BgEmployeeMaster?> GetByEmail(string email)
-        {
-            try
-            {
-                return await _repo.GetByEmail(email);
-            }
-            catch { throw; }
-        }
+        //public async Task<BgEmployeeMaster?> GetByEmail(string email)
+        //{
+        //    try
+        //    {
+        //        return await _repo.GetByEmail(email);
+        //    }
+        //    catch { throw; }
+        //}
+
+        public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 
         // =====================================================
         // PRIVATE — ViewModel → Entity

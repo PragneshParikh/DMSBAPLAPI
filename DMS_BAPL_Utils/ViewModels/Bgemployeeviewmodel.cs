@@ -32,15 +32,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Email { get; set; }
         public string? Password { get; set; }
         // ---- Zones -------------------------------------------
-<<<<<<< Updated upstream
-        //public string? Zones { get; set; }
-        public string? MappedZones { get; set; }
-        public string? MappedZoneIds { get; set; }
-
-=======
         public string MappedZones { get; set; }
         public string MappedZoneIds { get; set; }
->>>>>>> Stashed changes
         // ---- Misc --------------------------------------------
         public string? ProfileImage { get; set; }
         public string? DealerCode { get; set; }

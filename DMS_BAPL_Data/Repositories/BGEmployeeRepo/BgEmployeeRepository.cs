@@ -45,7 +45,7 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
-        // CREATE
+        // CREATE — plain insert, no duplicate-check here
         // =====================================================
 
         async Task<BgEmployeeMaster> IBgEmployeeMasterRepo.Create(BgEmployeeMaster bgEmployee)
@@ -58,7 +58,6 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 _context.BgEmployeeMasters.Add(bgEmployee);
                 await _context.SaveChangesAsync();
 
-                // EF Core populates bgEmployee.Id after SaveChangesAsync
                 return bgEmployee;
             }
             catch { throw; }
@@ -93,7 +92,6 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 existing.Department = bgEmployee.Department;
                 existing.ProfileId = bgEmployee.ProfileId;
                 existing.EmailId = bgEmployee.EmailId;
-                //existing.Zones = bgEmployee.Zones;
                 existing.MappedZones = bgEmployee.MappedZones;
                 existing.MappedZoneIds = bgEmployee.MappedZoneIds;
                 existing.ProfileImage = bgEmployee.ProfileImage;
@@ -102,7 +100,6 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 existing.UpdatedBy = "admin";
                 existing.UpdatedDate = DateTime.Now;
 
-                // only overwrite password when a new one is supplied
                 if (!string.IsNullOrWhiteSpace(bgEmployee.Password))
                     existing.Password = bgEmployee.Password;
 
@@ -132,15 +129,17 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
-        // GET BY EMAIL
+        // GET BY EMAIL — string parameter, matches interface exactly
         // =====================================================
 
         async Task<BgEmployeeMaster?> IBgEmployeeMasterRepo.GetByEmail(string email)
         {
             try
             {
+                var normalizedEmail = email?.Trim().ToLowerInvariant();
+
                 return await _context.BgEmployeeMasters
-                    .FirstOrDefaultAsync(x => x.EmailId == email);
+                    .FirstOrDefaultAsync(x => x.EmailId.ToLower() == normalizedEmail);
             }
             catch { throw; }
         }
