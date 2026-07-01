@@ -59,4 +59,5 @@ public partial class EmployeeMaster
 
     [NotMapped]
     public bool CreateLogin { get; set; }
+    public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
 }

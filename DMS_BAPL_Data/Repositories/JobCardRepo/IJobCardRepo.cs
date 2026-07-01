@@ -34,14 +34,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<bool> UpdateMaterialTransferStatus(int jobId, bool status);
         Task<InspectedChassisListVM> GetInspectedChassisListDropdown(string dealerCode);
         Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search);
-        Task<PagedResponse<object>> GetJobCardByStatus(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, bool isClosed, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetJobCardByStatus(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, bool isClosed, int pageIndex, int pageSize, string? dealerCode);
 
-        Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetails(
-             string? dealerCode,
-             int? jobNo,
-             string? serviceloc,
-             DateTime? fromDate,
-             DateTime? toDate);
+        Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate);
         Task<JobCardPrintVM?> GetJobCardForPrint(int jobId);
+        Task<bool> GetJobCardStatusById(int Id);
     }
 }

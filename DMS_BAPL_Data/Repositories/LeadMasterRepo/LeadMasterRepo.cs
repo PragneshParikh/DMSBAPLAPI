@@ -27,13 +27,13 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
             try
             {
                 // Get Color from ColorMaster
-                var color = await _context.ColorMasters
-                    .FirstOrDefaultAsync(c => c.Colorcode == leadViewModel.Color);
+                //var color = await _context.ColorMasters
+                //    .FirstOrDefaultAsync(c => c.Colorcode == leadViewModel.Color);
 
-                if (color == null)
-                {
-                    throw new Exception("Invalid Color Id");
-                }
+                //if (color == null)
+                //{
+                //    throw new Exception("Invalid Color Id");
+                //}
 
                 // Get Dealer from DealerMaster
                 //var dealer = await _context.DealerMasters
@@ -62,15 +62,15 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
                     Branchpin = leadViewModel.LMSBranchpin,
                     Model = leadViewModel.LMSModel,
                     Variant = leadViewModel.LMSVariant,
-                    Productcode = leadViewModel.Productcode,
+                    //Productcode = leadViewModel.Productcode,
                     Sourceapp = leadViewModel.Sourceapp,
 
                     // Foreign Keys
-                    ColorId = color.Id,
+                    //ColorId = color.Id,
                     DealerId = dealer.Id,
 
                     // Master table values
-                    Color = color.Colorname,
+                    //Color = color.Colorname,
                     Dealercode = dealer.Dealercode,
 
                     CreatedBy = leadViewModel.createdby.ToString(),
@@ -83,7 +83,7 @@ namespace DMS_BAPL_Data.Repositories.LeadMasterRep
                 await _context.SaveChangesAsync();
 
                 // inserted data return
-                leadViewModel.Color = color.Colorname;
+                //leadViewModel.Color = color.Colorname;
                 leadViewModel.Dealercode = dealer.Dealercode;
 
                 return leadViewModel;

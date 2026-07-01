@@ -1,6 +1,7 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
+using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Packaging;
@@ -17,11 +18,13 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         private readonly IitemMasterRepo _itemMasterRepo;
         private readonly IExcelService _excelService;
+        private readonly ITaxServices _taxService;
 
-        public ItemMasterService(IitemMasterRepo itemMasterRepo, IExcelService excelService)
+        public ItemMasterService(IitemMasterRepo itemMasterRepo, IExcelService excelService, ITaxServices taxServices)
         {
             _itemMasterRepo = itemMasterRepo;
             _excelService = excelService;
+            _taxService = taxServices;
         }
 
         // add  itemserice to the database
@@ -109,6 +112,19 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         public Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(userId, insertItemMasterViewModel);
         public Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId) => _itemMasterRepo.GetItemsWithHSNTaxGroupId(groupId);
+
+        public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation)
+        {
+            try
+            {
+                
+                return await _itemMasterRepo.GetItemsByLocation(dealerLocation, customerLocation);
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
     }
 }

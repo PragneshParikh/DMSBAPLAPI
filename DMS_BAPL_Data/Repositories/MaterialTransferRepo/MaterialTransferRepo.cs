@@ -60,6 +60,8 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     ItemReceived = k.ItemReceived,
                     ValidDays = k.ValidDays,
                     IssueType = k.IssueType,
+                    MaterialPrefix = k.MaterialPrefix,
+                    MaterialIssueNumber = k.MaterialIssueNumber,
                     CreatedBy = k.CreatedBy,
                     CreatedDate = k.CreatedDate,
                     UpdatedBy = k.UpdatedBy,
@@ -107,7 +109,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     Remarks = k.Remarks,
                     ItemReceived = k.ItemReceived,
                     ValidDays = k.ValidDays,
-                    IssueType = k.IssueType,
+                    //IssueType = k.IssueType,
                     CreatedBy = k.CreatedBy,
                     CreatedDate = k.CreatedDate,
                     UpdatedBy = k.UpdatedBy,
@@ -120,46 +122,243 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             catch { throw; }
         }
 
-        async Task<IEnumerable<object>> IMaterialTransferRepo.GetMeterialByJobId(int jobId)
+        //async Task<IEnumerable<object>> IMaterialTransferRepo.GetMeterialByJobId(int jobId)
+        //{
+        //    try
+        //    {
+        //        var result = from MT in _context.MaterialTransfers
+
+        //                     join IM in _context.ItemMasters
+        //                        on MT.ItemId equals IM.Id
+
+        //                     join JCH in _context.JobCardHeaders
+        //                        on MT.JobId equals JCH.Id
+
+        //                     //join HTC in _context.HsnwiseTaxCodes
+        //                     //   on IM.Hsncode equals HTC.Hsncode
+
+        //                     join DM in _context.DealerMasters
+        //                        on JCH.DealerCode equals DM.Dealercode
+
+        //                     join JCC in _context.JobCardCustomers
+        //                         on JCH.Id equals JCC.JobCardHeaderId
+
+        //                     join LM in _context.LedgerMasters
+        //                        on JCC.CustomerLedgerId equals LM.Id
+
+        //                     join S in _context.States
+        //                         on DM.State equals S.StateName
+
+        //                     let taxType = S.StateId == LM.State ? "S" : "O"
+
+        //                     let taxCode = _context.HsnwiseTaxCodes
+        //                     .Where(x => x.Hsncode == IM.Hsncode &&
+        //                     x.StateFlag == taxType &&
+        //                     x.EffectiveDate <= Convert.ToDateTime(JCH.JobinDate))
+        //                     .OrderByDescending(x => x.EffectiveDate)
+        //                     .FirstOrDefault()
+
+        //                     let taxes = _context.AggregateTaxCodes
+        //                     .Where(x => x.AtaxCode == taxCode.AtaxCode)
+
+        //                     let cgstRate = _context.AggregateTaxCodes
+        //                     .Where(x => x.AtaxCode == taxCode.AtaxCode &&
+        //                     x.TaxCode.StartsWith("CGST"))
+        //                     .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+        //                     let sgstRate = _context.AggregateTaxCodes
+        //                         .Where(x => x.AtaxCode == taxCode.AtaxCode &&
+        //                                     x.TaxCode.StartsWith("SGST"))
+        //                         .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+        //                     let igstRate = _context.AggregateTaxCodes
+        //                         .Where(x => x.AtaxCode == taxCode.AtaxCode &&
+        //                                     x.TaxCode.StartsWith("IGST"))
+        //                         .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+        //                     join HTC in _context.HsnwiseTaxCodes
+        //                     on new
+        //                     {
+        //                         HsnCode = IM.Hsncode,
+        //                         Type = taxType
+        //                     }
+        //                     equals new
+        //                     {
+        //                         HsnCode = HTC.Hsncode,
+        //                         Type = HTC.StateFlag
+        //                     }
+
+        //                     where MT.JobId == jobId
+        //                     select new
+        //                     {
+        //                         MT.Id,
+        //                         MT.ItemId,
+        //                         MT.JobId,
+        //                         MT.RackNo,
+        //                         MT.Bin,
+        //                         MT.Technician,
+        //                         MT.Ffi,
+        //                         MT.Quantity,
+        //                         MT.ItemRate,
+        //                         MT.SerialNo,
+        //                         MT.Remarks,
+        //                         MT.ItemReceived,
+        //                         MT.ValidDays,
+        //                         MT.IssueType,
+        //                         MT.MaterialPrefix,
+        //                         MT.MaterialIssueNumber,
+        //                         MT.CreatedBy,
+        //                         MT.CreatedDate,
+        //                         MT.UpdatedBy,
+        //                         MT.UpdatedDate,
+        //                         IM.Itemname,
+        //                         IM.Itemcode,
+        //                         IM.Itemdesc,
+        //                         IM.Dlrprice,
+        //                         IM.Custprice,
+
+        //                         HTC.AtaxCode,
+
+        //                         // Percentage
+        //                         CGSTPercent = cgstRate,
+        //                         SGSTPercent = sgstRate,
+        //                         IGSTPercent = igstRate,
+
+        //                         // Tax Amount
+        //                         CGSTAmount = Math.Round((MT.ItemRate * MT.Quantity * cgstRate) / 100, 2),
+        //                         SGSTAmount = Math.Round((MT.ItemRate * MT.Quantity * sgstRate) / 100, 2),
+        //                         IGSTAmount = Math.Round((MT.ItemRate * MT.Quantity * igstRate) / 100, 2),
+
+        //                         Amount = MT.ItemRate * MT.Quantity,
+        //                     };
+
+        //        return await result.ToListAsync();
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        public async Task<IEnumerable<object>> GetMeterialByJobId(int jobId)
         {
             try
             {
-                var result = from MT in _context.MaterialTransfers
-                             join IM in _context.ItemMasters
-                             on MT.ItemId equals IM.Id
-                             where MT.JobId == jobId
-                             select new
-                             {
-                                 MT.Id,
-                                 MT.ItemId,
-                                 MT.JobId,
-                                 MT.RackNo,
-                                 MT.Bin,
-                                 MT.Technician,
-                                 MT.Ffi,
-                                 MT.Quantity,
-                                 MT.ItemRate,
-                                 MT.SerialNo,
-                                 MT.Remarks,
-                                 MT.ItemReceived,
-                                 MT.ValidDays,
-                                 MT.IssueType,
-                                 MT.CreatedBy,
-                                 MT.CreatedDate,
-                                 MT.UpdatedBy,
-                                 MT.UpdatedDate,
-                                 IM.Itemname,
-                                 IM.Itemcode,
-                                 IM.Itemdesc,
-                                 IM.Dlrprice,
-                                 IM.Custprice,
+                var result =
+                    from MT in _context.MaterialTransfers
 
-                                 Amount = MT.ItemRate * MT.Quantity,
-                             };
+                    join IM in _context.ItemMasters
+                        on MT.ItemId equals IM.Id
+
+                    join JCH in _context.JobCardHeaders
+                        on MT.JobId equals JCH.Id
+
+                    join DM in _context.DealerMasters
+                        on JCH.DealerCode equals DM.Dealercode
+
+                    join JCC in _context.JobCardCustomers
+                        on JCH.Id equals JCC.JobCardHeaderId
+
+                    join LM in _context.LedgerMasters
+                        on JCC.CustomerLedgerId equals LM.Id
+
+                    join S in _context.States
+                        on DM.State equals S.StateName
+
+                    where MT.JobId == jobId
+
+                    let taxType = S.StateId == LM.State ? "S" : "O"
+
+                    let taxCode = _context.HsnwiseTaxCodes
+                        .Where(x =>
+                            x.Hsncode == IM.Hsncode &&
+                            x.StateFlag == taxType &&
+                           DateOnly.FromDateTime(x.EffectiveDate) <= JCH.JobinDate)
+                        .OrderByDescending(x => x.EffectiveDate)
+                        .FirstOrDefault()
+
+                    let cgstRate = IM.Cgst
+                    let sgstRate = IM.Sgst
+                    let igstRate = IM.Igst
+
+                    //let cgstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("CGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+                    //let sgstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("SGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+                    //let igstRate = _context.AggregateTaxCodes
+                    //    .Where(x =>
+                    //        x.AtaxCode == taxCode.AtaxCode &&
+                    //        x.TaxCode.StartsWith("IGST"))
+                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+                    select new
+                    {
+                        MT.Id,
+                        MT.ItemId,
+                        MT.JobId,
+                        MT.RackNo,
+                        MT.Bin,
+                        MT.Technician,
+                        MT.Ffi,
+                        MT.Quantity,
+                        MT.ItemRate,
+                        MT.SerialNo,
+                        MT.Remarks,
+                        MT.ItemReceived,
+                        MT.ValidDays,
+                        MT.IssueType,
+                        MT.MaterialPrefix,
+                        MT.MaterialIssueNumber,
+                        MT.CreatedBy,
+                        MT.CreatedDate,
+                        MT.UpdatedBy,
+                        MT.UpdatedDate,
+
+                        IM.Itemname,
+                        IM.Itemcode,
+                        IM.Itemdesc,
+                        IM.Dlrprice,
+                        IM.Custprice,
+
+                        TaxType = taxType,
+                        AtaxCode = taxCode.AtaxCode,
+
+                        Amount = MT.ItemRate * MT.Quantity,
+
+                        CGSTPercent = cgstRate,
+                        SGSTPercent = sgstRate,
+                        IGSTPercent = igstRate,
+
+                        GSTPercent = cgstRate + sgstRate + igstRate,
+
+                        CGSTAmount = Math.Round(
+                            (MT.ItemRate * MT.Quantity * cgstRate) / 100, 2),
+
+                        SGSTAmount = Math.Round(
+                            (MT.ItemRate * MT.Quantity * sgstRate) / 100, 2),
+
+                        IGSTAmount = Math.Round(
+                            (MT.ItemRate * MT.Quantity * igstRate) / 100, 2),
+
+                        GSTAmount = Math.Round(
+                            (MT.ItemRate * MT.Quantity *
+                            (cgstRate + sgstRate + igstRate)) / 100, 2)
+                    };
 
                 return await result.ToListAsync();
             }
-            catch { throw; }
+            catch
+            {
+                throw;
+            }
         }
 
         async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(
@@ -172,10 +371,14 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             {
                 var materialTransferGroup = _context.MaterialTransfers
                     .GroupBy(x => x.JobId)
-                    .Select(x => new
+                    .Select(g => new
                     {
-                        JobId = x.Key,
-                        CreatedDate = x.Max(y => y.CreatedDate)
+                        JobId = g.Key,
+                        MaterialIssueNumber = g
+                        .OrderByDescending(x => x.CreatedDate)
+                        .Select(x => x.MaterialIssueNumber)
+                        .FirstOrDefault(),
+                        CreatedDate = g.Max(x => x.CreatedDate)
                     });
 
                 var query =
@@ -206,12 +409,13 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         JH.JobNo,
                         JH.Serviceloc,
 
-                        PreparedBy = U != null ? U.UserName : null,
-                        ModifiedBy = UM != null ? UM.UserName : null,
+                        PreparedBy = U != null ? U.DealerCode : null,
+                        ModifiedBy = UM != null ? UM.DealerCode : null,
 
                         JC.CustomerName,
                         JC.RegisterNo,
 
+                        MT.MaterialIssueNumber,
                         MT.CreatedDate
                     };
 
@@ -248,6 +452,8 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     x.PreparedBy,
                     x.ModifiedBy,
                     x.CustomerName,
+                    x.MaterialIssueNumber,
+                    x.CreatedDate,
                     x.RegisterNo
                 }).Cast<object>().ToList();
 
@@ -334,5 +540,29 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             }
         }
 
+        async Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferRepo.GetMeterialTransferByJobId(int jobId)
+        {
+            var result = await (
+                from mt in _context.MaterialTransfers
+
+                join im in _context.ItemMasters
+                    on mt.ItemId equals im.Id
+
+                join jch in _context.JobCardHeaders
+                    on mt.JobId equals jch.Id
+
+                where mt.JobId == jobId
+
+                select new MaterialTransferViewModel
+                {
+                    JobId = mt.JobId,
+                    ItemId = mt.ItemId,
+                    ItemCode = im.Itemcode,
+                    Quantity = mt.Quantity
+                }
+            ).ToListAsync();
+
+            return result;
+        }
     }
 }

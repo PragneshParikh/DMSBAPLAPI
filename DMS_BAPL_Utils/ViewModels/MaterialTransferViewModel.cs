@@ -9,7 +9,9 @@ namespace DMS_BAPL_Utils.ViewModels
     public class MaterialTransferViewModel
     {
         public int Id { get; set; }
+
         public int ItemId { get; set; }
+
         public int JobId { get; set; }
 
         public int? RackNo { get; set; }
@@ -33,6 +35,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? ValidDays { get; set; }
 
         public int IssueType { get; set; }
+
+        public string MaterialPrefix { get; set; }
+
+        public int MaterialIssueNumber { get; set; }
+
+        public string DealerCode { get; set; }
+
+        public string ItemCode { get; set; }
+
+        public string Location { get; set; }
 
         public string CreatedBy { get; set; } = null!;
 

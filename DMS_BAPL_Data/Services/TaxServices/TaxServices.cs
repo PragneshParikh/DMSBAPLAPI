@@ -34,7 +34,7 @@ namespace DMS_BAPL_Data.Services.TaxServices
                 var hsnCode = item.Hsncode;
 
                 // Step 2: Determine State Flag
-                string companyLocation = StringConstants.CompanyLocation;
+                //string companyLocation = StringConstants.CompanyLocation;
 
                 string stateFlag = string.Equals(dealerLocation,
                     customerLocation,
