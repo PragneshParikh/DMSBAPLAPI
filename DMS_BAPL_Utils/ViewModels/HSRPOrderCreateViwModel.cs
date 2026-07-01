@@ -8,7 +8,7 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class HSRPOrderCreateViwModel
     {
-        public int? id {  get; set; }
+        public int? id { get; set; }
         public string? DealerCode { get; set; }
         public string OrderNo { get; set; } = null!;
 
@@ -38,7 +38,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool? IsTlpsticker { get; set; }
 
         public string? MotorNo { get; set; }
-        
+
     }
 
 
@@ -138,18 +138,22 @@ namespace DMS_BAPL_Utils.ViewModels
     }
 
     public class HSRPDispatchRequest
-{
-    public string Ver { get; set; }          
-    public int VendorId { get; set; }
-    public string DealerCode { get; set; }
-    public string DispatchNumber { get; set; }
-    public string DispatchDate { get; set; } 
-    public string OrderNumber { get; set; }
-    public int OrderId { get; set; }
-    public string RegistrationNumber { get; set; }
-    public string FrontLaserCode { get; set; }
-    public string RearLaserCode { get; set; }
-}
+    {
+        public List<HSRPDispatchItem> Data { get; set; }
+    }
+    public class HSRPDispatchItem
+    {
+        public string? Ver { get; set; }
+        public int VendorId { get; set; }
+        public string DealerCode { get; set; }
+        public string DispatchNumber { get; set; }
+        public string DispatchDate { get; set; }
+        public string OrderNumber { get; set; }
+        public int OrderId { get; set; }
+        public string RegistrationNumber { get; set; }
+        public string FrontLaserCode { get; set; }
+        public string RearLaserCode { get; set; }
+    }
     public class HSRPDispatchResponse
     {
         public bool Valid { get; set; }
