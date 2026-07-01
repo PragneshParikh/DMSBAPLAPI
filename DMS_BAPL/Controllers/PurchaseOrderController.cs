@@ -135,7 +135,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ConvertPO([FromBody] string poNumber)
+        public async Task<IActionResult> ConvertPO([FromBody] object erpObject)
         {
             try
             {
@@ -144,10 +144,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                if (string.IsNullOrEmpty(poNumber))
-                    return BadRequest(StringConstants.PORequired);
+                //if (string.IsNullOrEmpty(erpObject))
+                //    return BadRequest(StringConstants.PORequired);
 
-                var result = await _purchaseOrderService.ConvertPOToERPJsonAsync(poNumber);
+                var result = await _purchaseOrderService.ConvertPOToERPJsonAsync(erpObject);
 
                 if (result == null)
                     return NotFound(StringConstants.PONotFound);

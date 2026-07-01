@@ -12,6 +12,8 @@ using Org.BouncyCastle.Asn1.Crmf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
@@ -341,68 +343,13 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
-        public async Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber)
+        public async Task<object> ConvertPOToERPJsonAsync(object erpObject)
         {
             try
             {
-                // Get PO
-                var po = await _repo.GetPOByNumberAsync(poNumber);
+                var result = SendToERP(erpObject);
 
-                if (po == null)
-                    throw new Exception(StringConstants.PONotFound);
-                await _repo.UpdateStatus(po.PONumber);
-                // Consignee Logic
-                string suffix = "S1";
-                string consigneeCode = po.CustomerCode + suffix;
-
-                var soLines = new List<SOLine>();
-
-                foreach (var item in po.Items)
-                {
-                    // Get Item Master
-                    var itemMaster = await _itemRepo.GetItemByCodeAsync(item.ItemCode);
-
-                    if (itemMaster == null)
-                        throw new Exception(StringConstants.ItemNotFound + " " + item.ItemCode);
-
-                    // Get Color
-                    var color = await _colorRepo.GetColorByCodeAsync(itemMaster.Colorcode);
-
-                    // Build SO Line
-                    soLines.Add(new SOLine
-                    {
-                        Itemname = item.ItemCode,
-                        modlname = item.ItemCode,
-                        descriptions = itemMaster.Itemname,
-                        Unit = "NOS",
-                        qty = item.Qty.ToString(),
-                        itemmodelname = "",
-                        colridno = color?.Rrgcoloridno.ToString() ?? "0",
-                        colrcode = color?.Colorcode ?? "",
-                        dmspordridno = po.PONumber
-                    });
-                }
-
-                // Return ERP JSON
-                return new POERPRequestViewModel
-                {
-                    soHeader = new SOHeader
-                    {
-                        refno = po.PONumber,
-                        pordrdate = po.PODate?.ToString("dd-MM-yyyy") ?? "",
-                        pordr_type = "",
-                        ordrtype = "V",
-                        testcertificate = "N",
-                        consigneecode = consigneeCode,
-                        customercode = po.CustomerCode,
-                        amount = po.TotalAmount.ToString(),
-                        FameIIFlag = "Y",
-                        TransactionType = "",
-
-
-                    },
-                    soLine = soLines
-                };
+                return result;
             }
             catch (Exception)
             {
@@ -637,5 +584,36 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         }
 
         public async Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel) => await _repo.UpdatePOStatusAsync(updatePOStatusViewModel);
+
+        private async Task<string> SendToERP(object erpObject)
+        {
+            try
+            {
+                using var client = new HttpClient();
+
+                var json = JsonSerializer.Serialize(erpObject);
+
+                var content = new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await client.PostAsync(
+                    "https://uatbaplai-cpapc4h7gvdkfxh4.centralindia-01.azurewebsites.net/api/BAPLSOHeader",
+                    content
+                );
+
+                response.EnsureSuccessStatusCode();
+
+                var _response = await response.Content.ReadAsStringAsync();
+
+                return _response;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }
