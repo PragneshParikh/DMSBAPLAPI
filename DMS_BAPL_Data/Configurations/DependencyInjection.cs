@@ -66,6 +66,7 @@ using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
+using DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
@@ -198,6 +199,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IServiceTypeMasterRepo, ServiceTypeMasterRepo>();
             services.AddScoped<IFreeServiceClaimRepo, FreeServiceClaimRepo>();
             services.AddScoped<IVehicleInfoRepo, VehicleInfoRepo>();
+            services.AddScoped<IWarrantyJobCardClaimRepo, WarrantyJobCardClaimRepo>();
             services.AddScoped<IBgEmployeeMasterRepo, BgEmployeeMasterRepo>();
             services.AddScoped<IEmployeeProfileMasterRepo, EmployeeProfileMasterRepo>();
             services.AddScoped<ICounterBillRepo,CounterBillRepo>();

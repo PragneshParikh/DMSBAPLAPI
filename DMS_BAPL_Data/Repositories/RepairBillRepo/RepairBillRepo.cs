@@ -206,6 +206,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     {
                         Id = x.RepairBill.Id,
                         LocationCode = x.RepairBill.LocationCode,
+                        CashAccount = x.RepairBill.CashAccount,
                         Prefix = x.RepairBill.Prefix,
                         BillNo = x.RepairBill.BillNo,
                         BillType = x.RepairBill.BillType,
@@ -290,6 +291,13 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            : null,
 
                        JobId = rbh.JobId,
+                       JobInDate = jh.JobinDate,
+                       JobNo = jh.JobNo,
+                       RegisterNo = jc.RegisterNo,
+                       ModelName = jc.ModelName,
+                       VehicleKms = jh.Vehiclekms,
+                       ChassisNo = jc.ChassisNo,
+                       Technician = jh.Technician,
                        InsuranceId = rbh.InsuranceId ?? 0,
                        insDescription = rbh.InsDecription,
                        SurveyorName = rbh.SurveyorName,

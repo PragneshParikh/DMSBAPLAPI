@@ -122,7 +122,6 @@ namespace DMS_BAPL_Utils.ViewModels
         {
             public int Id { get; set; }
             public string? LocationCode { get; set; }
-
             public string DealerCode { get; set; }
             public string? Prefix { get; set; }
             public int BillNo { get; set; }
@@ -131,14 +130,17 @@ namespace DMS_BAPL_Utils.ViewModels
             public int? CustomerLedgerId { get; set; }
             public string? PartyName { get; set; }
             public string? MobileNumber { get; set; }
-
             public string? PartyState { get; set; }
-
             public int? Scheme { get; set; }
             public int JobId { get; set; }
-
+            public DateOnly? JobInDate { get; set; }
+            public int? JobNo { get; set; }
+            public string? RegisterNo { get; set; }
+            public string? ModelName { get;set; }
+            public int? VehicleKms { get; set; }
+            public string? ChassisNo { get; set; }
+            public string? Technician { get; set; }
             public string? Remarks { get; set; }
-
             public decimal? TotalDiscount { get; set; }
             public decimal? TaxableAmount { get; set; }
             public decimal? NetAmount { get; set; }

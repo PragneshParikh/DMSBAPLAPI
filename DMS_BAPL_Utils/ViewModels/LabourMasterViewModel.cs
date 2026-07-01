@@ -38,6 +38,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? JobTypeName { get; set; }
         public string? ServiceHeadName { get; set; }
         public string? ServicetypeName { get; set; }
+        public DateTime CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
     }
@@ -66,6 +67,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? JobTypeName { get; set; }
         public string? ServiceHeadName { get; set; }
         public string? ServicetypeName { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime UpdatedDate { get; set; }
 

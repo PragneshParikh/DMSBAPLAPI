@@ -50,4 +50,6 @@ public partial class WarrantyJcclaim
     public virtual RepairBillHeader? RepairBillHeader { get; set; }
 
     public virtual LedgerMaster? Supplier { get; set; }
+
+    public virtual ICollection<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; } = new List<WarrantyJcclaimDetail>();
 }
