@@ -15,7 +15,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, [FromQuery] PurchaseOrderSearchViewModel purchaseOrderSearchViewModel);
         Task<bool> CreatePartsPOAsync(PurchaseOrderViewModel purchaseOrderViewModel);
         Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
-        Task<POERPRequestViewModel> ConvertPOToERPJsonAsync(string poNumber);
+        Task<object> ConvertPOToERPJsonAsync(object erpObject);
         Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<bool> DeletePOItemsAsync(string poNumber);
         Task<decimal> GetSubsidyValueAsync();
