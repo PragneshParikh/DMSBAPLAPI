@@ -206,10 +206,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
     public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
     public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
-    public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
+    public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
     public virtual DbSet<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; }
-
-
+    public object WarrantyJcclaims { get; internal set; }
+    public object WarrantyJcclaimDetails { get; internal set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -3907,7 +3907,7 @@ public partial class BapldmsvadContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Profile");
         });
-        modelBuilder.Entity<ZoneMasters>(entity =>
+        modelBuilder.Entity<ZoneMaster>(entity =>
         {
                 entity.ToTable("zone_master");
 

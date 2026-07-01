@@ -14,20 +14,21 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
         public ZoneMasterRepo(BapldmsvadContext context)
             => _context = context;
 
+        // ── GET ALL ZONES ─────────────────────────────────────
         public async Task<IEnumerable<ZoneViewModel>> GetAllZonesAsync()
             => await _context.ZoneMasters
-                .Where(z => z.IsActive == true || z.IsActive == null)
+                .Where(z => z.IsActive)                     // plain bool — no == true, no ?? null
                 .GroupBy(z => z.Zone)
                 .Select(g => new ZoneViewModel
                 {
                     Id = g.First().Id,
                     Zone = g.Key,
-                    IsActive = true
+                    IsActive = true                          // always true since we filtered above
                 })
                 .OrderBy(z => z.Zone)
                 .ToListAsync();
 
-        // GetDealersByZoneAsync — same relaxed filter
+        // ── GET DEALERS BY ZONE ───────────────────────────────
         public async Task<IEnumerable<ZoneDealerViewModel>> GetDealersByZoneAsync(string zone)
             => await (
                 from zm in _context.ZoneMasters
@@ -40,7 +41,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
                      on zm.StateId equals s.StateId into sg
                 from s in sg.DefaultIfEmpty()
                 where zm.Zone == zone
-                   && (zm.IsActive == true || zm.IsActive == null)
+                   && zm.IsActive                           // plain bool — no == true, no ?? null
                    && zm.DealerId != null
                 select new ZoneDealerViewModel
                 {
@@ -56,8 +57,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
                 }
             ).Distinct().OrderBy(d => d.DealerName).ToListAsync();
 
-        // GetZoneByIdAsync, UpdateZoneAsync — IsActive is now bool?, no other changes needed
-        // since ZoneMasterViewModel.IsActive is still plain bool, EF will coalesce on read:
+        // ── GET BY ID ─────────────────────────────────────────
         public async Task<ZoneMasterViewModel> GetZoneByIdAsync(int id)
         {
             var z = await _context.ZoneMasters.FindAsync(id);
@@ -66,14 +66,14 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
             {
                 Id = z.Id,
                 Zone = z.Zone,
-                IsActive = z.IsActive ?? true
+                IsActive = z.IsActive                       // plain bool — no ?? true
             };
         }
 
-        // ── CREATE ───────────────────────────────────────────
+        // ── CREATE ────────────────────────────────────────────
         public async Task<ZoneMasterViewModel> CreateZoneAsync(ZoneMasterViewModel model)
         {
-            var entity = new ZoneMasters
+            var entity = new ZoneMaster
             {
                 Zone = model.Zone,
                 IsActive = model.IsActive
@@ -84,7 +84,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
             return model;
         }
 
-        // ── UPDATE ───────────────────────────────────────────
+        // ── UPDATE ────────────────────────────────────────────
         public async Task<bool> UpdateZoneAsync(ZoneMasterViewModel model)
         {
             var entity = await _context.ZoneMasters.FindAsync(model.Id);
@@ -95,7 +95,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
             return true;
         }
 
-        // ── SOFT DELETE ──────────────────────────────────────
+        // ── SOFT DELETE ───────────────────────────────────────
         public async Task<bool> DeleteZoneAsync(int id)
         {
             var entity = await _context.ZoneMasters.FindAsync(id);
