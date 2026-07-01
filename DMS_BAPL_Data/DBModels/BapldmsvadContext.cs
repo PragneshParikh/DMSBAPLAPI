@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace DMS_BAPL_Data.DBModels;
 
@@ -207,6 +208,14 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
 
     public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
+=======
+    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
+    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
+    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+    public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
+    public virtual DbSet<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; }
+
+>>>>>>> Stashed changes
 
     public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
 
@@ -4052,6 +4061,11 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("EmailId");
+
+            entity.Property(e => e.Email)              // NEW
+                .HasMaxLength(150)
+                .IsUnicode(false);
+
 
             entity.Property(e => e.Password)
                 .HasMaxLength(200)

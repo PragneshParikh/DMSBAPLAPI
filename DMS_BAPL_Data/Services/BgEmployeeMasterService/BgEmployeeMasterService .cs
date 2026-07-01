@@ -51,7 +51,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
         // =====================================================
         // CREATE
-        // =====================================================
+        // ====================================================
 
         public async Task<BgEmployeeMaster> Create(BgEmployeeViewModel model)
         {
@@ -123,14 +123,25 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         {
             try
             {
+                // ── STEP 1: strip these dealer codes from any OTHER BG employee ─
+                await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: model.Id);
+
                 var entity = MapToEntity(model);
                 entity.UpdatedBy = model.UpdatedBy ?? "admin";
                 entity.UpdatedDate = DateTime.Now;
 
-                return await _repo.Update(entity);
+                var result = await _repo.Update(entity);
+
+                // ── NEW: clear + re-insert category/role mappings ────────────
+                // Runs regardless of createLogin state, so unchecking "Create Login"
+                // (which sends an empty RoleMappings list) correctly clears old roles too.
+                await _repo.SaveRoleMappings(model.Id, model.RoleMappings ?? new List<RoleMappingDto>());
+
+                return result;
             }
             catch { throw; }
         }
+
 
         // =====================================================
         // DELETE
@@ -185,6 +196,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 Department = model.Department,
                 ProfileId = model.ProfileId,
                 EmailId = model.EmailId,
+                Email = model.Email,
                 Password = model.Password,
                 //Zones = model.Zones,
                 MappedZones = model.MappedZones,
@@ -198,6 +210,61 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 UpdatedDate = model.UpdatedDate,
             };
         }
+
+        private async Task UnassignConflictingDealers(string dealerCodesCsv, int excludeEmployeeId)
+        {
+            if (string.IsNullOrWhiteSpace(dealerCodesCsv)) return;
+
+            // the incoming dealer codes that need to become exclusive to this employee
+            var incomingCodes = dealerCodesCsv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(c => c.Trim())
+                .Where(c => !string.IsNullOrEmpty(c))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!incomingCodes.Any()) return;
+
+            // get ALL active BG employees except the one being saved
+            var others = (await _repo.Get())
+                .Where(e => e.IsActive
+                         && e.Id != excludeEmployeeId
+                         && !string.IsNullOrWhiteSpace(e.DealerCode))
+                .ToList();
+
+            foreach (var other in others)
+            {
+                // split this employee's current dealer codes
+                var existingCodes = (other.DealerCode ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(c => c.Trim())
+                    .Where(c => !string.IsNullOrEmpty(c))
+                    .ToList();
+
+                // check if any of their codes overlap with the incoming codes
+                var hasConflict = existingCodes.Any(c => incomingCodes.Contains(c));
+                if (!hasConflict) continue;
+
+                // remove only the conflicting codes, keep the rest
+                var remaining = existingCodes
+                    .Where(c => !incomingCodes.Contains(c))
+                    .ToList();
+
+                other.DealerCode = string.Join(",", remaining);
+                other.UpdatedDate = DateTime.Now;
+                other.UpdatedBy = "system";
+
+                await _repo.Update(other);
+            }
+        }
+
+        // BgEmployeeMasterService.cs
+        public Task<IEnumerable<BgEmployeeRoleMapping>> GetRoleMappings(int employeeId)
+            => _repo.GetRoleMappings(employeeId);
+        public Task<IEnumerable<AssignedDealerInfo>>GetAssignedDealerCodes(int excludeEmployeeId)
+            => _repo.GetAssignedDealerCodes(excludeEmployeeId);
+
+        public Task<IEnumerable<BgEmployeeListItemViewModel>> GetEmployeeListView()
+            => _repo.GetEmployeeListView();
     }
 }
 
