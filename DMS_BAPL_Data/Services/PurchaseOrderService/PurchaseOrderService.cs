@@ -347,7 +347,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         {
             try
             {
-                var result = SendToERP(erpObject);
+                var result = await SendToERP(erpObject);
 
                 return result;
             }

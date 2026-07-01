@@ -72,8 +72,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 {
                     return new
                     {
-                        Success = false,
-                        Message = "Chassis number already exist. Duplicate entry."
+                        Valid = false,
+                        Message = "Chassis number already exist. Duplicate entry.",
+                        Value = Array.Empty<object>()
                     };
                 }
 

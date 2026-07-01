@@ -124,12 +124,40 @@ namespace DMS_BAPL_Api.Controllers
                     await _chassisBatteryDetailService.InsertBatteryDetail(vehicleInwardViewModel, userId);
                 }
 
+                if (success)
+                {
+                    result = new
+                    {
+                        Valid = true,
+                        Description = "Data Saved Successfully",
+                        Value = new
+                        {
+                            Msg = "Data Saved Successfully",
+                            StatusCode = "200",
+                            ResponseStatus = "true"
+                        }
+                    };
+                }
+                else
+                {
+                    result = new
+                    {
+                        Valid = false,
+                        Description = "Data not saved.",
+                        Value = (object)null
+                    };
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error occurred while inserting vehicle dispatch details.");
-                throw;
+                return StatusCode(500, new
+                {
+                    Valid = false,
+                    Description = "Data not saved.",
+                    Value = (object)null
+                });
             }
         }
 
