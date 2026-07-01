@@ -23,5 +23,5 @@ public partial class BgEmployeeZoneMapping
 
     public virtual BgEmployeeMaster BgEmployee { get; set; } = null!;
 
-    public virtual ZoneMaster Zone { get; set; } = null!;
+    //public virtual ZoneMaster Zone { get; set; } = null!;
 }

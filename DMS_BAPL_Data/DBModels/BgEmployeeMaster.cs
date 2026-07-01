@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DMS_BAPL_Data.DBModels;
 
 public partial class BgEmployeeMaster
 {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
-        // ---- Personal ---------------------------------------
+    // ---- Personal ---------------------------------------
     public string? EmployeeCode { get; set; }
 
     public string FirstName { get; set; } = null!;
@@ -33,13 +35,11 @@ public partial class BgEmployeeMaster
     public DateTime? EffectiveDate { get; set; }
 
     public string? ReportingTo { get; set; }
-        public bool IsActive { get; set; } = true;
-
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public int? Department { get; set; }
 
-        // ---- Login ------------------------------------------
+    // ---- Login ------------------------------------------
     public string? EmailId { get; set; }
 
     public string? Password { get; set; }
@@ -47,21 +47,20 @@ public partial class BgEmployeeMaster
     public string? MappedZoneIds { get; set; }
 
     public string? MappedZones { get; set; }
-        public string? MappedZoneIds { get; set; }
 
-        // ---- Employee mapping cache -------------------------
+    // ---- Employee mapping cache -------------------------
     public string? MappedEmployeeIds { get; set; }
 
     public string? MappedEmployees { get; set; }
 
-        // ---- Misc -------------------------------------------
+    // ---- Misc -------------------------------------------
     public string? ProfileImage { get; set; }
 
     public string? DealerCode { get; set; }
 
     public string? LocationCode { get; set; }
 
-        // ---- Audit ------------------------------------------
+    // ---- Audit ------------------------------------------
     public string? CreatedBy { get; set; }
 
     public DateTime CreatedDate { get; set; }
