@@ -37,8 +37,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         // ---- Zones -------------------------------------------
         //public string? Zones { get; set; }
-        public string? MappedZones { get; set; }
-        public string? MappedZoneIds { get; set; }
+        public string MappedZones { get; set; }
+        public string MappedZoneIds { get; set; }
 
         // ---- Misc --------------------------------------------
         public string? ProfileImage { get; set; }

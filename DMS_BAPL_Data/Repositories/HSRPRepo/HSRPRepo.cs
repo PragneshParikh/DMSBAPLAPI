@@ -134,8 +134,8 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                         SaleBillDeailsId = vd.Id,
                                         CustomerLedgerId = vh.LedgerId,
                                         DealerCode = vh.DealerCode,
-                                        //HsrpResponse =ho.Hsrpresponse,
-                                        //HsrpStatus=ho.Hsrpstatus
+                                        HsrpResponse =ho.Hsrpresponse,
+                                        HsrpStatus=ho.Hsrpstatus
 
 
                                     }).ToListAsync();
@@ -352,7 +352,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                     OrderDate = item.OrderDate.ToString("yyyy-MM-dd"),
                     RegDate = item.OrderDate.ToString("yyyy-MM-dd"),
                     ChassisNumber = item.ChassisNo,
-                    EngineNo = item.MotorNo,
+                    EngineNo = vehicle.MotorNo,
                     RegistrationNo = item.RegNo,
                     CustomerName = item.CustomerName,
                     VehicleClass = "2 WHEELER BOV-L2",

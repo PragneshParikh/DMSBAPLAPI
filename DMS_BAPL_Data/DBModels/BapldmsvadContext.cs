@@ -204,7 +204,15 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
 
+    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
+    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
+    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+    public virtual DbSet<ZoneMasters> ZoneMasters { get; set; }
+
+
     public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
+
+    public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -417,6 +425,17 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
+            entity.HasOne(d => d.CityNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.City)
+                .HasConstraintName("FK_BgEmployeeMaster_Cities");
+
+            entity.HasOne(d => d.DepartmentNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.Department)
+                .HasConstraintName("FK_BgEmployeeMaster_Department");
+
+            entity.HasOne(d => d.StateNavigation).WithMany(p => p.BgEmployeeMasters)
+                .HasForeignKey(d => d.State)
+                .HasConstraintName("FK_BgEmployeeMaster_States");
         });
 
         modelBuilder.Entity<BgEmployeeProfileMapping>(entity =>
@@ -437,11 +456,19 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
+            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeProfileMappings)
+                .HasForeignKey(d => d.BgEmployeeId)
+                .HasConstraintName("FK_BgEmpProfileMap_BgEmployee");
+
             entity.HasOne(d => d.Employee).WithMany(p => p.BgEmployeeProfileMappings)
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Employee");
 
+            entity.HasOne(d => d.Profile).WithMany(p => p.BgEmployeeProfileMappings)
+                .HasForeignKey(d => d.ProfileId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BgEmpProfileMap_Profile");
         });
 
         modelBuilder.Entity<ChassisBatteryDetail>(entity =>
@@ -3869,6 +3896,96 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(d => d.SupplierId)
                 .HasConstraintName("FK_WarrantyJCClaim_Supplier");
         });
+
+        modelBuilder.Entity<WarrantyJcclaimDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Warranty__3214EC07DCB0C822");
+
+            entity.ToTable("WarrantyJCClaimDetail");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ClaimType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.ItemType)
+                .HasMaxLength(70)
+                .IsUnicode(false);
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.WarrantyJcclaimHeaderId).HasColumnName("WarrantyJCClaimHeaderId");
+
+            entity.HasOne(d => d.RepairBillDetail).WithMany(p => p.WarrantyJcclaimDetails)
+                .HasForeignKey(d => d.RepairBillDetailId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyJCClaimDetail_RepairBillDetail");
+
+            entity.HasOne(d => d.WarrantyJcclaimHeader).WithMany(p => p.WarrantyJcclaimDetails)
+                .HasForeignKey(d => d.WarrantyJcclaimHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyJCClaimDetail_Header");
+        });
+
+        modelBuilder.Entity<WarrantyJcclaim>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Warranty__3214EC0760ACBD66");
+
+            entity.ToTable("WarrantyJCClaim");
+
+            entity.Property(e => e.ApprovedEmpCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ClaimAccount)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+            entity.Property(e => e.ClaimPrefix)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+            entity.Property(e => e.IsWjcclaimApproved).HasColumnName("IsWJCClaimApproved");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.WarrantyJcclaimCustomerLedgers)
+                .HasForeignKey(d => d.CustomerLedgerId)
+                .HasConstraintName("FK_WarrantyJCClaim_CustomerLedger");
+
+            entity.HasOne(d => d.Ffir).WithMany(p => p.WarrantyJcclaims)
+                .HasForeignKey(d => d.Ffirid)
+                .HasConstraintName("FK_WarrantyJCClaim_FFIR");
+
+            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.WarrantyJcclaims)
+                .HasForeignKey(d => d.JobCardHeaderId)
+                .HasConstraintName("FK_WarrantyJCClaim_JobCardHeader");
+
+            entity.HasOne(d => d.RepairBillHeader).WithMany(p => p.WarrantyJcclaims)
+                .HasForeignKey(d => d.RepairBillHeaderId)
+                .HasConstraintName("FK_WarrantyJCClaim_RepairBillHeader");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.WarrantyJcclaimSuppliers)
+                .HasForeignKey(d => d.SupplierId)
+                .HasConstraintName("FK_WarrantyJCClaim_Supplier");
+        });
         modelBuilder.HasSequence("cir_no_seq");
         modelBuilder.HasSequence("LotNo_Seq");
 
@@ -4054,6 +4171,35 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(e => e.ProfileId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BgEmpProfileMap_Profile");
+        });
+        modelBuilder.Entity<ZoneMasters>(entity =>
+        {
+                entity.ToTable("zone_master");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                      .HasColumnName("id")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Zone)
+                      .HasColumnName("zone")
+                      .HasMaxLength(20)
+                      .IsUnicode(false);
+
+                entity.Property(e => e.CityId)
+                      .HasColumnName("city_id");
+
+                entity.Property(e => e.StateId)
+                      .HasColumnName("state_id");
+
+                entity.Property(e => e.DealerId)
+                      .HasColumnName("dealer_id");
+
+                entity.Property(e => e.IsActive)
+                      .HasColumnName("is_active")
+                      .HasColumnType("bit")
+                      .IsRequired();
         });
     }
 

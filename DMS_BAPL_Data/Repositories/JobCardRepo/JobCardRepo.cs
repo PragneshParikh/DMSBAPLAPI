@@ -1854,221 +1854,150 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return data;
 
         }
-        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetails(
-            string? dealerCode,
-            int? jobNo,
-            string? serviceloc,
-            DateTime? fromDate,
-            DateTime? toDate)
+        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode,int? jobNo,string? serviceloc,DateTime? fromDate,DateTime? toDate)
         {
             try
             {
                 var query =
                     from rbh in _context.RepairBillHeaders
+                    join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
+                    join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                    join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode
+                    join lg in _context.LedgerMasters on jc.CustomerLedgerId equals lg.Id
+                    join jt in _context.JobTypes on jh.Jobtype equals jt.Id
+                    join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
+                    join st in _context.ServiceTypes on jh.Servicetype equals st.Id
+                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo
+                    join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo
 
-                    join jh in _context.JobCardHeaders
-                        on rbh.JobId equals jh.Id
-
-                    join jc in _context.JobCardCustomers
-                        on jh.Id equals jc.JobCardHeaderId
-
-                    join loc in _context.LocationMasters
-                        on jh.Serviceloc equals loc.Loccode
-
-                    join lg in _context.LedgerMasters
-                        on jc.CustomerLedgerId equals lg.Id
-
-                    join jt in _context.JobTypes
-                        on jh.Jobtype equals jt.Id
-
-                    join sh in _context.ServiceHeads
-                        on jh.Servicehead equals sh.Id
-
-                    join st in _context.ServiceTypes
-                        on jh.Servicetype equals st.Id
-
-                    join vs in _context.VehicleSaleBillDetails
-                        on jh.Chassisno equals vs.ChassisNo
-
-                    join ch in _context.ChassisDetails
-                        on jh.Chassisno equals ch.ChassisNo
-
-                    join chb in _context.ChassisBatteryDetails
-                        on jh.Chassisno equals chb.ChassisNo
-                        into chbGroup
+                    join chb in _context.ChassisBatteryDetails on jh.Chassisno equals chb.ChassisNo into chbGroup
                     from chb in chbGroup.DefaultIfEmpty()
 
-                    join ffir in _context.Ffirheaders
-                        on jh.Id equals ffir.JobCardHeaderId
-                        into ffirGroup
+                    join ffir in _context.Ffirheaders on jh.Id equals ffir.JobCardHeaderId into ffirGroup
                     from ffir in ffirGroup.DefaultIfEmpty()
 
                     where rbh.RepairbillStatus == "Billed"
                           && jh.Jobtype != 2
-                          && _context.RepairBillDetails.Any(d =>
-                                d.RepairBillId == rbh.Id &&
-                                d.IssutypeId == 2)
-
-                    select new
-                    {
-                        rbh,
-                        jh,
-                        jc,
-                        loc,
-                        lg,
-                        jt,
-                        sh,
-                        st,
-                        vs,
-                        ch,
-                        chb,
-                        ffir
-                    };
+                          && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
+                    select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
 
                 // Dynamic Filters
-
-                if (!string.IsNullOrWhiteSpace(dealerCode))
-                {
-                    query = query.Where(x => x.rbh.DealerCode == dealerCode);
-                }
-
-                if (jobNo.HasValue && jobNo.Value > 0)
-                {
-                    query = query.Where(x => x.jh.JobNo == jobNo.Value);
-                }
-
-                if (!string.IsNullOrWhiteSpace(serviceloc)
-                    && serviceloc.Trim().ToLower() != "null")
-                {
-                    query = query.Where(x => x.jh.Serviceloc == serviceloc);
-                }
-
-                if (fromDate.HasValue)
-                {
-                    query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
-                }
-
-                if (toDate.HasValue)
-                {
-                    query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
-                }
+                if (!string.IsNullOrWhiteSpace(dealerCode)) query = query.Where(x => x.rbh.DealerCode == dealerCode);
+                if (jobNo.HasValue && jobNo.Value > 0) query = query.Where(x => x.jh.JobNo == jobNo.Value);
+                if (!string.IsNullOrWhiteSpace(serviceloc) && serviceloc.Trim().ToLower() != "null") query = query.Where(x => x.jh.Serviceloc == serviceloc);
+                if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
+                if (toDate.HasValue) query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
 
                 var result = await query
                     .Select(x => new IssueTypebasedJobDetails
                     {
                         RepairBillHeaderId = x.rbh.Id,
-
                         JobcardId = x.jh.Id,
                         JobNo = x.jh.JobNo,
                         JobType = x.jt.JobTypeName,
                         JobInDate = x.jh.JobinDate,
-
                         JobLocation = x.loc.Locname,
-
                         serviceHead = x.sh.ServiceHeadName,
                         serviceType = x.st.ServiceTypeName,
-
+                        CustomerLedgerId = x.lg.Id,
                         CustomerName = x.lg.LedgerName,
-
                         ChassisNo = x.jh.Chassisno,
                         ModelName = x.jc.ModelName,
-
-                        MotorNo = x.chb != null
-                            ? x.chb.MotorNo
-                            : null,
-
+                        MotorNo = x.chb != null ? x.chb.MotorNo : null,
                         Vehiclekms = x.jh.Vehiclekms,
-
                         RegistrationNo = x.vs.RegNo,
-
                         SaleDate = x.ch.SaleDate,
-
-                        FailureDate = x.ffir != null
-                            ? x.ffir.FailureDate
-                            : null,
-
+                        FailureDate = x.ffir != null ? x.ffir.FailureDate : null,
                         RepairBillNo = x.rbh.BillNo,
-                        RepairBillDate = x.rbh.CreatedDate,
-
-                        issueTypeId = 2
+                        RepairBillDate = x.rbh.CreatedDate
                     })
                     .ToListAsync();
 
-                // Load all Repair Bill Details for each Header
+                if (!result.Any()) return result;
 
-                //foreach (var item in result)
-                //{
-                //    item.RepairBillDetails = await
-                //    (
-                //        from rbd in _context.RepairBillDetails
+                // 1. Fetch non-null Header IDs from your main result list
+                var headerIds = result.Select(r => r.RepairBillHeaderId).ToList();
 
-                //        join lm in _context.LabourMasters
-                //            on rbd.LabourMasterId equals lm.Id
-                //            into labourGroup
-                //        from lm in labourGroup.DefaultIfEmpty()
+                // 2. Fetch all details where the nullable RepairBillId matches your header collection
+                var allDetails = await (
+                    from rbd in _context.RepairBillDetails
+                    join lm in _context.LabourMasters on rbd.LabourMasterId equals lm.Id into labourGroup
+                    from lm in labourGroup.DefaultIfEmpty()
+                    join pwm in _context.PartWiseLabourMasters on rbd.PartWiseLabourId equals pwm.Id into partWiseGroup
+                    from pwm in partWiseGroup.DefaultIfEmpty()
+                    join mt in _context.MaterialTransfers on rbd.MaterialId equals mt.Id into materialGroup
+                    from mt in materialGroup.DefaultIfEmpty()
+                    join im in _context.ItemMasters on mt.ItemId equals im.Id into itemGroup
+                    from im in itemGroup.DefaultIfEmpty()
+                        // Safely use Value or handle matching on nullable foreign keys
+                    where rbd.RepairBillId.HasValue && headerIds.Contains(rbd.RepairBillId.Value)
+                    select new
+                    {
+                        rbd,
+                        lm,
+                        pwm,
+                        mt,
+                        im
+                    }
+                ).ToListAsync();
 
-                //        join pwm in _context.PartWiseLabourMasters
-                //            on rbd.PartWiseLabourId equals pwm.Id
-                //            into partWiseGroup
-                //        from pwm in partWiseGroup.DefaultIfEmpty()
+                // 3. Map and group the details cleanly in memory
+                foreach (var item in result)
+                {
+                    item.RepairBillDetails = allDetails
+                        // Match the values safely using GetValueOrDefault() to handle the int? structure
+                        .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
+                        .Select(d => {
+                            bool isLabour = d.rbd.ItemType == "Labour";
+                            bool isPart = d.rbd.ItemType == "Part";
 
-                //        join im in _context.MaterialTransfers
-                //            on rbd.PartItemId equals im.Id
-                //            into itemGroup
-                //        from im in itemGroup.DefaultIfEmpty()
+                            decimal rate = isLabour ? (d.lm?.LabourRate ?? 0) : (d.pwm?.LabourRate ?? 0);
+                            decimal qty = isLabour ? (d.rbd.LabourQty ?? 0) : (d.rbd.PartQty ?? 0);
 
-                //        where rbd.RepairBillId == item.RepairBillHeaderId
+                            decimal partRate = isPart ? (d.mt?.ItemRate ?? 0) : 0;
+                            decimal partQty = isPart ? (d.mt?.Quantity ?? 0) : 0;
 
-                //        select new IssueTypebasedJobDetails
-                //        {
-                //            //Id = rbd.Id,
+                            // Direct, clean amount calculation
+                            decimal lineSubtotal = isLabour ? (qty * rate) : (partQty * partRate);
+                            decimal taxAmount = (d.rbd.Igstamount ?? 0) > 0
+                                ? d.rbd.Igstamount.Value
+                                : ((d.rbd.Cgstamount ?? 0) + (d.rbd.Sgstamount ?? 0));
 
-                //            //ItemType = rbd.ItemType,
+                            return new IssueTypebasedJobDetails
+                            {
+                                RepairBillDetailsId = d.rbd.Id,
+                                ItemType = d.rbd.ItemType,
+                                MaterialId = d.rbd.MaterialId,
+                                LabourId = d.rbd.LabourMasterId,
+                                PartWiseLabourId = d.rbd.PartWiseLabourId,
+                                PartItemId = d.rbd.PartItemId,
 
-                //            //MaterialId = rbd.MaterialId,
-                //            //LabourId = rbd.LabourMasterId,
-                //            //PartWiseLabourId = rbd.PartWiseLabourId,
-                //            //PartItemId = rbd.PartItemId,
+                                // Pure Labour Grid Data
+                                LabourQty = isLabour ? qty : 0,
+                                LabourName = isLabour ? d.lm?.LabourCode : null,
+                                LabourDesc = isLabour ? d.lm?.LabourDescription : null,
+                                LabourRate = isLabour ? rate : 0,
 
-                //           // LabourQty = rbd.LabourQty,
-                //            //Rate = rbd.LabourRate,
+                                // Pure Part Labour Grid Data
+                                PartLabourQty = !isLabour ? qty : 0,
+                                PartLabourName = !isLabour ? d.pwm?.PartCode : null,
+                                PartLabourDesc = !isLabour ? d.pwm?.PartDescription : null,
+                                PartLabourRate = !isLabour ? rate : 0,
 
-                //            //PartItemQty = rbd.PartQty,
-                //            //PartRate = rbd.PartRate,
+                                // Pure Part Inventory Grid Data
+                                PartitemName = isPart ? (d.im != null ? d.im.Itemcode : "") : "",
+                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemname : "") : "",
+                                PartItemQty = partQty,
+                                PartItemRate = partRate,
 
-                //            //Discount = rbd.LabourDiscount,
-                //            //PartDiscount = rbd.PartDiscount,
-
-                //            //TaxableAmount = rbd.LabourTaxblAmount,
-                //            //NetAmount = rbd.LabourNetAmount,
-
-                //            //PartTaxbleAmount = rbd.PartTaxblAmount,
-                //            //PartNetAmount = rbd.PartNetAmount,
-
-                //            issueTypeId = rbd.IssutypeId,
-
-                //            // Labour Details
-                          
-                //            //LabourName = rbd.ItemType == "Labour"
-                //            //                ? lm.LabourName
-                //            //                : pwm.ServiceHeadName,
-
-                //            //LabourDesc = rbd.ItemType == "Labour"
-                //            //                ? lm.LabourCode
-                //            //                : pwm.ServiceHeadCode,
-
-                //            //// Part Details
-                //            //PartitemName = rbd.ItemType == "Part"
-                //            //                ? im.Itemname
-                //            //                : null,
-
-                //            //PartitemDesc = rbd.ItemType == "Part"
-                //            //                ? im.Itemcode
-                //            //                : null
-                //        }
-
-                //    ).ToListAsync();
-                //}
+                                // Calculated values to resolve frontend grid mismatches
+                                IgstAmount = taxAmount,
+                                RowSubTotal = lineSubtotal,
+                                TotalWithTax = lineSubtotal + taxAmount,
+                                ClaimType = "Warranty"
+                            };
+                        }).ToList();
+                }
 
                 return result;
             }

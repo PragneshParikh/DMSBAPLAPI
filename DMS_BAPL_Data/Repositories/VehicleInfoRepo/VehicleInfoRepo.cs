@@ -47,7 +47,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                 from im in ItemInfo.DefaultIfEmpty()
 
                 where ((!string.IsNullOrWhiteSpace(chassisNo) && cd.ChassisNo == chassisNo) ||
-                (!string.IsNullOrWhiteSpace(regNo) && cd.RegNo != null && cd.RegNo == regNo)) && 
+                (!string.IsNullOrWhiteSpace(regNo) && cd.RegNo != null && cd.RegNo == regNo)) &&
                 (string.IsNullOrWhiteSpace(dealerCode) ? true : cd.SaleDate.HasValue || cd.DealerId == dealerCode
   )
 
@@ -61,7 +61,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                         DealerLocation = locdealer.Locname,
                         MobileNo = di.Mobile,
                         Address = di.Adress1,
-                        Email = di.Email
+                        Email = di.Email,
+                        DealerState = di.State,
+                        DealerCity = di.City
                     },
                     PartyDetails = new PartyDetailsViewModel
                     {
@@ -187,26 +189,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
         {
             var chassis = await _context.ChassisDetails.FirstOrDefaultAsync(x => x.ChassisNo == model.ChassisNo);
             var saleBill = await _context.VehicleSaleBillDetails.FirstOrDefaultAsync(x => x.ChassisNo == model.ChassisNo);
+            var orderRows = new Dictionary<int, ChassisBatteryDetail>();
+            var chassisRows = await _context.ChassisBatteryDetails.Where(x => x.ChassisNo == model.ChassisNo).ToListAsync();
             bool saleBillUpdated = false;
+
             // Batteries
             foreach (var battery in model.Batteries)
             {
-                var existing = await _context.ChassisBatteryDetails
-                    .Where(x =>
-                        x.ChassisNo == model.ChassisNo &&
-                        x.BatteryOrderNo == battery.OrderNo)
-                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
-                    .FirstOrDefaultAsync();
+                var row = await GetOrCreateOrderRow(model.ChassisNo, battery.OrderNo, chassisRows, orderRows); 
 
 
-                if (existing != null)
+                if (row != null)
                 {
-                    existing.BatteryNo = battery.BatteryNo;
-                    existing.BatteryCapacity = battery.BatteryCapacity;
-                    existing.BatteryChemical = battery.BatteryChemical;
-                    existing.BatteryMake = battery.BatteryMake;
-                    existing.UpdatedDate = DateTime.Now;
-                    existing.UpdatedBy = "Admin";
+                    row.BatteryNo = battery.BatteryNo;
+                    row.BatteryCapacity = battery.BatteryCapacity;
+                    row.BatteryChemical = battery.BatteryChemical;
+                    row.BatteryMake = battery.BatteryMake;
+                    row.UpdatedDate = DateTime.Now;
+                    row.UpdatedBy = "Admin";
                     if (battery.OrderNo == 1 && saleBill != null)
                     {
                         saleBill.Battery = battery.BatteryNo;
@@ -235,18 +235,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
             // Motors
             foreach (var motor in model.Motors)
             {
-                var existing = await _context.ChassisBatteryDetails
-                    .Where(x =>
-                        x.ChassisNo == model.ChassisNo &&
-                        x.MotorOrderNo == motor.OrderNo)
-                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
-                    .FirstOrDefaultAsync();
+                var row = await GetOrCreateOrderRow(model.ChassisNo, motor.OrderNo, chassisRows, orderRows);
 
-                if (existing != null)
+                if (row != null)
                 {
-                    existing.MotorNo = motor.ComponentNo;
-                    existing.UpdatedDate = DateTime.Now;
-                    existing.UpdatedBy = "Admin";
+                    row.MotorNo = motor.ComponentNo;
+                    row.UpdatedDate = DateTime.Now;
+                    row.UpdatedBy = "Admin";
                     //if (motor.OrderNo == 1 && saleBill != null)
                     //{
                     //    saleBill.M = battery.BatteryNo;
@@ -269,18 +264,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
             // Chargers
             foreach (var charger in model.Chargers)
             {
-                var existing = await _context.ChassisBatteryDetails
-                    .Where(x =>
-                        x.ChassisNo == model.ChassisNo &&
-                        x.ChargerOrderNo == charger.OrderNo)
-                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
-                    .FirstOrDefaultAsync();
+                var row = await GetOrCreateOrderRow(model.ChassisNo, charger.OrderNo, chassisRows, orderRows);
 
-                if (existing != null)
+                if (row != null)
                 {
-                    existing.ChargerNo = charger.ComponentNo;
-                    existing.UpdatedDate = DateTime.Now;
-                    existing.UpdatedBy = "Admin";
+                    row.ChargerNo = charger.ComponentNo;
+                    row.UpdatedDate = DateTime.Now;
+                    row.UpdatedBy = "Admin";
                     if (charger.OrderNo == 1 && saleBill != null)
                     {
                         saleBill.ChargerNo = charger.ComponentNo;
@@ -303,18 +293,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
             // Controllers
             foreach (var controller in model.Controllers)
             {
-                var existing = await _context.ChassisBatteryDetails
-                    .Where(x =>
-                        x.ChassisNo == model.ChassisNo &&
-                        x.ControllerOrderNo == controller.OrderNo)
-                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
-                    .FirstOrDefaultAsync();
+                var row = await GetOrCreateOrderRow(model.ChassisNo, controller.OrderNo, chassisRows, orderRows);
 
-                if (existing != null)
+                if (row != null)
                 {
-                    existing.ControllerNo = controller.ComponentNo;
-                    existing.UpdatedDate = DateTime.Now;
-                    existing.UpdatedBy = "Admin";
+                    row.ControllerNo = controller.ComponentNo;
+                    row.UpdatedDate = DateTime.Now;
+                    row.UpdatedBy = "Admin";
                     if (controller.OrderNo == 1 && saleBill != null)
                     {
                         saleBill.ControllerNo = controller.ComponentNo;
@@ -337,18 +322,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
             // Converters
             foreach (var converter in model.Converters)
             {
-                var existing = await _context.ChassisBatteryDetails
-                    .Where(x =>
-                        x.ChassisNo == model.ChassisNo &&
-                        x.ConverterOrderNo == converter.OrderNo)
-                    .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
-                    .FirstOrDefaultAsync();
+                var row = await GetOrCreateOrderRow(model.ChassisNo, converter.OrderNo, chassisRows, orderRows);
 
-                if (existing != null)
+                if (row != null)
                 {
-                    existing.ConverterNo = converter.ComponentNo;
-                    existing.UpdatedDate = DateTime.Now;
-                    existing.UpdatedBy = "Admin";
+                    row.ConverterNo = converter.ComponentNo;
+                    row.UpdatedDate = DateTime.Now;
+                    row.UpdatedBy = "Admin";
                     if (converter.OrderNo == 1 && saleBill != null)
                     {
                         saleBill.ConvertorNo = converter.ComponentNo;
@@ -435,6 +415,69 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                 }
             }
             await _context.SaveChangesAsync();
+        }
+
+        private async Task<ChassisBatteryDetail> GetOrCreateOrderRow(
+    string chassisNo,
+    int orderNo,
+    List<ChassisBatteryDetail> chassisRows,
+    Dictionary<int, ChassisBatteryDetail> orderRows)
+        {
+            if (orderRows.TryGetValue(orderNo, out var existingRow))
+                return existingRow;
+
+            existingRow = chassisRows
+                .Where(x =>
+                    x.BatteryOrderNo == orderNo ||
+                    x.MotorOrderNo == orderNo ||
+                    x.ChargerOrderNo == orderNo ||
+                    x.ControllerOrderNo == orderNo ||
+                    x.ConverterOrderNo == orderNo)
+                .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                .FirstOrDefault();
+
+            if (existingRow != null)
+            {
+                orderRows[orderNo] = existingRow;
+                return existingRow;
+            }
+
+            var latest = chassisRows
+                .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
+                .FirstOrDefault();
+
+            var newRow = new ChassisBatteryDetail
+            {
+                ChassisNo = chassisNo,
+
+                BatteryOrderNo = latest?.BatteryOrderNo,
+                BatteryNo = latest?.BatteryNo,
+                BatteryCapacity = latest?.BatteryCapacity,
+                BatteryChemical = latest?.BatteryChemical,
+                BatteryMake = latest?.BatteryMake,
+
+                MotorOrderNo = latest?.MotorOrderNo,
+                MotorNo = latest?.MotorNo,
+
+                ChargerOrderNo = latest?.ChargerOrderNo,
+                ChargerNo = latest?.ChargerNo,
+
+                ControllerOrderNo = latest?.ControllerOrderNo,
+                ControllerNo = latest?.ControllerNo,
+
+                ConverterOrderNo = latest?.ConverterOrderNo,
+                ConverterNo = latest?.ConverterNo,
+
+                CreatedDate = DateTime.Now,
+                CreatedBy = "Admin"
+            };
+
+            _context.ChassisBatteryDetails.Add(newRow);
+
+            chassisRows.Add(newRow);
+            orderRows[orderNo] = newRow;
+
+            return newRow;
         }
     }
 }

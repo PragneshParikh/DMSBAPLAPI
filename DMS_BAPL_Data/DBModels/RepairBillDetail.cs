@@ -68,4 +68,6 @@ public partial class RepairBillDetail
     public virtual PartWiseLabourMaster? PartWiseLabour { get; set; }
 
     public virtual RepairBillHeader? RepairBill { get; set; }
+
+    public virtual ICollection<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; } = new List<WarrantyJcclaimDetail>();
 }

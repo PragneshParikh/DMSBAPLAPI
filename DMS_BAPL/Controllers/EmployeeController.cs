@@ -66,10 +66,15 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                // NEW — normalize email before saving anywhere
+                if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                    employeeMaster.EmailId = employeeMaster.EmailId.Trim().ToLowerInvariant();
+
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
-                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
-                //    await EnsureEmployeeLogin(employeeMaster);   // <-- this is the missing call
+                // FIX — this call was commented out, which is why no login was ever created
+                if (!(!employeeMaster.CreateLogin || string.IsNullOrWhiteSpace(employeeMaster.EmailId)))
+                    await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
             }
@@ -85,26 +90,28 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                // NEW — same normalization on update
+                if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                    employeeMaster.EmailId = employeeMaster.EmailId.Trim().ToLowerInvariant();
+
                 var result = await _employeeService.UpdateEmployee(employeeMaster);
 
                 if (result == 0)
-                {
                     return NotFound("Employee Not Found");
-                }
 
-                return Ok(new
-                {
-                    message = "Employee Updated Successfully"
-                });
+                // NEW — also ensure/sync login on update, in case CreateLogin was toggled on
+                // after the employee already existed, or password changed
+                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                    await EnsureEmployeeLogin(employeeMaster);
+
+                return Ok(new { message = "Employee Updated Successfully" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
-
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
-
 
 
         // GET DEALER INFO BY CODE
@@ -158,29 +165,31 @@ namespace DMS_BAPL_Api.Controllers
 
             if (existing == null)
             {
-                // create new account
                 var user = new ApplicationUser
                 {
                     UserName = emp.EmailId,
                     Email = emp.EmailId,
                     EmailConfirmed = true
                 };
+
+                // CreateAsync normalizes UserName/Email internally — NormalizedUserName
+                // and NormalizedEmail are populated automatically.
                 var pwd = string.IsNullOrWhiteSpace(emp.Password) ? "Temp@123" : emp.Password;
                 var res = await _userManager.CreateAsync(user, pwd);
+
                 if (!res.Succeeded)
                     throw new Exception($"Login could not be created: {string.Join(", ", res.Errors.Select(e => e.Description))}");
+
                 await _userManager.AddToRoleAsync(user, "Employee");
             }
             else if (!string.IsNullOrWhiteSpace(emp.Password))
             {
-                // account exists — re-sync the password to match EmployeeMaster
                 var token = await _userManager.GeneratePasswordResetTokenAsync(existing);
                 var res = await _userManager.ResetPasswordAsync(existing, token, emp.Password);
+
                 if (!res.Succeeded)
                     throw new Exception($"Login password could not be updated: {string.Join(", ", res.Errors.Select(e => e.Description))}");
             }
         }
-
-
     }
 }

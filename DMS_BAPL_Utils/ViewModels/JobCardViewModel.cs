@@ -394,6 +394,12 @@ namespace DMS_BAPL_Utils.ViewModels
     public class IssueTypebasedJobDetails
     {
         public int RepairBillHeaderId { get; set; }
+        public int RepairBillDetailsId { get; set; }
+        public int CustomerLedgerId { get; set; }
+        public int? MaterialId { get; set; }
+        public int? PartItemId { get; set; }
+        public int? LabourId { get; set; }
+        public int? PartWiseLabourId { get; set; }
         public int JobcardId { get; set; }
         public int? JobNo { get; set; }
         public string JobType { get; set; }
@@ -411,19 +417,31 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? FailureDate { get; set; }
         public int RepairBillNo { get; set; }
         public DateTime? RepairBillDate { get; set; }
-        public int? issueTypeId { get; set; }
-
+        public string? ItemType { get; set; }
+        public int? IssueTypeId { get; set; }   
         public string? LabourName { get; set; }
         public string? PartLabourName { get; set; }
         public string? PartitemName { get; set; }
         public string? LabourDesc { get; set; }
         public string? PartLabourDesc { get; set; }
         public string? PartitemDesc { get; set; }
-        public int? PartItemQty { get; set; }
-        public int? PartLabourQty { get; set; }
-        public int? LabourQty { get; set; }
+        public decimal PartItemQty { get; set; }
+        public decimal? PartItemRate { get; set; }
+        public decimal? PartLabourQty { get; set; }
+        public decimal? LabourQty { get; set; }
+        public decimal? LabourRate { get; set; }
+        public decimal? PartLabourRate { get; set; }
 
-        public List<RepairBillDetailVM> RepairBillDetails { get; set; }
+        public decimal? IgstAmount { get;set; }
+        public decimal? RowSubTotal { get; set; }
+        public decimal? TotalWithTax { get; set; }
+        public string? ClaimType { get; set; }
+        public string? DealerObservation { get; set; }
+
+        public string? RootCauseAnalysis { get; set; }
+
+
+        public List<IssueTypebasedJobDetails> RepairBillDetails { get; set; }
     }
 
 }

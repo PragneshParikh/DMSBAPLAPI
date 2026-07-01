@@ -456,6 +456,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Sgst = labour.Sgst,
                     Igst = labour.Igst,
                     EffectiveDate = labour.EffectiveDate,
+                    CreatedDate = labour.CreatedDate,
                     OemModelName = labour.Oemmodelname,
                     CityTier = labour.CityTier,
                     JobTypeName = jobType != null ? jobType.JobTypeName : null,
@@ -498,6 +499,7 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     DealerCode = partwiselabour.DealerCode,
                     HSNCode = partwiselabour.Hsncode,
                     EffectiveDate = partwiselabour.EffectiveDate,
+                    CreatedDate = partwiselabour.CreatedDate,
                     IsActive = partwiselabour.IsActive
                 }).ToListAsync();
             return LaboorRatePartwiseListingdata;

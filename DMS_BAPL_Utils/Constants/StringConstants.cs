@@ -101,7 +101,7 @@ namespace DMS_BAPL_Utils.Constants
         public const string JobCardDetailsSaved = "Job card details saved successfully.";
         public const string JobCardNotFound = "No Data Available";
         public const string WarrantyDetailsNotFound = "Warranty details not found for the specified model name.";
-
+        public const string WarrantyDetailsSaved = "Warranty Details Saved Sucessfully.";
         //HSRP
         public const string HSRPSheet = "HSRPList";
 
@@ -120,5 +120,8 @@ namespace DMS_BAPL_Utils.Constants
 
         //LabourMaster
         public const string LabourMasterExcelSheetName = "Excel Imported Successfully";
+
+        public const string BgEmployeeDefaultPassword = "BgEmp@123";
+        public const string BgEmployeeText = "BGEmployee";
     }
 }
