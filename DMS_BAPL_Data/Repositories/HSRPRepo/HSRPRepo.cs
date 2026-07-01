@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml.Drawing.Vml;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -134,8 +135,8 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                         SaleBillDeailsId = vd.Id,
                                         CustomerLedgerId = vh.LedgerId,
                                         DealerCode = vh.DealerCode,
-                                        HsrpResponse =ho.Hsrpresponse,
-                                        HsrpStatus=ho.Hsrpstatus
+                                        HsrpResponse = ho.Hsrpresponse,
+                                        HsrpStatus = ho.Hsrpstatus
 
 
                                     }).ToListAsync();
@@ -930,28 +931,48 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             return tokenResponse.Value.AccessToken;
         }
 
-        public async Task<bool> ReceiveDispatchAsync(HSRPDispatchRequest request)
+        public async Task<bool> ReceiveDispatchAsync(List<HSRPDispatchItem> request)
         {
-            var order = await _context.Hsrporders
-                .FirstOrDefaultAsync(x => x.Id == request.OrderId);
+            var orderIds = request.Select(x => x.OrderId).Distinct().ToList();
 
-            if (order == null)
-                throw new Exception("Order not found.");
+            var orders = await _context.Hsrporders
+                .Where(x => orderIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id);
 
-            order.DispatchNumber = request.DispatchNumber;
-            order.DispatchDate = DateTime.ParseExact(request.DispatchDate, "dd-MM-yyyy", null);
+            var missingOrderIds = new List<int>();
 
-            order.FrontLasercode = request.FrontLaserCode;
-            order.Rearlasercode = request.RearLaserCode;
+            foreach (var item in request)
+            {
+                if (!orders.TryGetValue(item.OrderId, out var order))
+                {
+                    missingOrderIds.Add(item.OrderId);
+                    continue;
+                }
 
-            order.InwardStatus = "Dispatched";
-            order.InwardResponse = "Dispatch Received";
+                order.DispatchNumber = item.DispatchNumber;
+
+                order.DispatchDate = DateTime.ParseExact(
+                    item.DispatchDate,
+                    "dd-MM-yyyy",
+                    CultureInfo.InvariantCulture);
+
+                order.FrontLasercode = item.FrontLaserCode;
+                order.Rearlasercode = item.RearLaserCode;
+
+                order.InwardStatus = "Dispatched";
+                order.InwardResponse = "Dispatch Received";
+            }
 
             await _context.SaveChangesAsync();
 
+            if (missingOrderIds.Any())
+            {
+                throw new Exception(
+                    $"OrderId(s) not found: {string.Join(", ", missingOrderIds.Distinct())}");
+            }
+
             return true;
         }
-
         public async Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders, string accessToken)
         {
             var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContext.HttpContext);
