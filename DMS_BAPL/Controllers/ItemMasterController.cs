@@ -263,7 +263,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var items = await _itemMasterService.GetItemsByLocation(dealerLocation,customerLocation);
+                var items = await _itemMasterService.GetItemsByLocation(dealerLocation, customerLocation);
 
                 return Ok(items);
             }
