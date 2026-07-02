@@ -74,7 +74,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
 
                 var result = await (
-                    from h in _context.VehicleSaleBillHeaders
+                    from h in _context.VehicleSaleBillHeaders 
+                    join cled in _context.LedgerMasters on h.LedgerId equals cled.Id
                     where h.Id == id
 
                     select new VehicleSaleBillResponseViewModel
@@ -89,8 +90,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         Financier = h.Financier,
                         BillType = h.BillType,
                         BillFrom = h.BillFrom,
-                        CustomerName = h.CustomerName,
-                        BillingName = h.BillingName,
+                        CustomerName = cled.LedgerName,
+                        BillingName = cled.LedgerName,
                         SalesExecutive = h.SalesExecutive,
                         LedgerId = h.LedgerId,
                         TempRegNo = h.TempRegNo,
