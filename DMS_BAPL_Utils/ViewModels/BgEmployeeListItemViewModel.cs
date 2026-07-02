@@ -16,7 +16,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Zone { get; set; }
         public string? JobRoles { get; set; }
         public DateTime CreatedDate { get; set; }
-        public DateTime UpdatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
         public string? ReportingTo { get; set; }
         public string? CreatedBy { get; set; }
         public bool IsActive { get; set; }

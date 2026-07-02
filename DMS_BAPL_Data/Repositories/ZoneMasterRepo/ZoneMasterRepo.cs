@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
         // ── GET ALL ZONES ─────────────────────────────────────
         public async Task<IEnumerable<ZoneViewModel>> GetAllZonesAsync()
             => await _context.ZoneMasters
-                .Where(z => z.IsActive)                     // plain bool — no == true, no ?? null
+                .Where(z => z.IsActive == true)              // plain bool — no == true, no ?? null
                 .GroupBy(z => z.Zone)
                 .Select(g => new ZoneViewModel
                 {
@@ -40,8 +40,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
                 join s in _context.States
                      on zm.StateId equals s.StateId into sg
                 from s in sg.DefaultIfEmpty()
-                where zm.Zone == zone
-                   && zm.IsActive                           // plain bool — no == true, no ?? null
+                where zm.Zone == zone && zm.IsActive == true                        // plain bool — no == true, no ?? null
                    && zm.DealerId != null
                 select new ZoneDealerViewModel
                 {
@@ -73,7 +72,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
         // ── CREATE ────────────────────────────────────────────
         public async Task<ZoneMasterViewModel> CreateZoneAsync(ZoneMasterViewModel model)
         {
-            var entity = new ZoneMaster
+            var entity = new ZoneMasters
             {
                 Zone = model.Zone,
                 IsActive = model.IsActive

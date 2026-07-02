@@ -113,8 +113,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             catch { throw; }
         }
 
-            return savedEmployee;
-        }
 
         // =====================================================
         // UPDATE
@@ -170,7 +168,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         //    catch { throw; }
         //}
 
-        public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 
         public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 

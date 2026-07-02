@@ -10,6 +10,6 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public int Id { get; set; }
         public string Zone { get; set; }
-        public bool IsActive { get; set; } = true;
+        public bool? IsActive { get; set; } = true;
     }
 }
