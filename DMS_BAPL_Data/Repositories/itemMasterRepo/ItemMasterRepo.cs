@@ -551,24 +551,81 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
 
+        //public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
+        //{
+        //    try
+        //    {
+        //        var result = await (
+        //            from IM in _context.ItemMasters
+
+        //            join HM in _context.HsncodeMasters
+        //                on IM.Hsncode equals HM.Hsncode
+
+        //            join PI in _context.PartsInventories
+        //                    .Where(x => x.FinalStockFlag == "Y")
+        //                on IM.Itemcode equals PI.ItemCode into PIGroup
+        //            from PI in PIGroup.DefaultIfEmpty()
+
+        //            join HSNT in _context.HsnwiseTaxCodes
+        //                ATC in _context.aggregateTaxCode
+        //                on HSNT.ATaxCode equal ATC.AtaxCode
+        //                on IM.Hsncode equals HSNT.Hsncode && HSNT.StateFlag = "S" into taxGroup
+        //            from HSNT in taxGroup.DefaultIfEmpty()
+
+        //            where IM.Grpidno == groupId
+
+        //            select new
+        //            {
+        //                IM.Id,
+        //                IM.Itemcode,
+        //                IM.Itemname,
+        //                IM.Itemdesc,
+        //                IM.Hsncode,
+        //                IM.Dlrprice,
+        //                IM.Custprice,
+        //                IM.Sgst,
+        //                IM.Cgst,
+        //                IM.Igst,
+        //                IM.Ugst,
+        //                IM.Grpidno,
+        //                IM.Colorcode,
+        //                BatchClosingQty = PI != null ? PI.BatchClosingQty : 0
+        //            })
+        //            .Distinct()
+        //            .ToListAsync();
+
+        //        return result;
+        //    }
+        //    catch { throw; }
+        //}
+
         public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
         {
             try
             {
                 var result = await (
                     from IM in _context.ItemMasters
-
                     join HM in _context.HsncodeMasters
                         on IM.Hsncode equals HM.Hsncode
-
                     join PI in _context.PartsInventories
                             .Where(x => x.FinalStockFlag == "Y")
                         on IM.Itemcode equals PI.ItemCode into PIGroup
-
                     from PI in PIGroup.DefaultIfEmpty()
-
                     where IM.Grpidno == groupId
-
+                    let taxType = "S"
+                    let taxCode = _context.HsnwiseTaxCodes
+                        .Where(x => x.Hsncode == IM.Hsncode && x.StateFlag == taxType)
+                        .OrderByDescending(x => x.EffectiveDate)
+                        .FirstOrDefault()
+                    let cgstPercentage = _context.AggregateTaxCodes
+                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("CGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    let sgstPercentage = _context.AggregateTaxCodes
+                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("SGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    let igstPercentage = _context.AggregateTaxCodes
+                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("IGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
                     select new
                     {
                         IM.Id,
@@ -578,20 +635,21 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         IM.Hsncode,
                         IM.Dlrprice,
                         IM.Custprice,
-                        IM.Sgst,
-                        IM.Cgst,
-                        IM.Igst,
-                        IM.Ugst,
                         IM.Grpidno,
                         IM.Colorcode,
-                        BatchClosingQty = PI != null ? PI.BatchClosingQty : 0
+                        BatchClosingQty = PI != null ? PI.BatchClosingQty : 0,
+                        CgstPercentage = cgstPercentage,
+                        SgstPercentage = sgstPercentage,
+                        IgstPercentage = igstPercentage
                     })
                     .Distinct()
                     .ToListAsync();
-
                 return result;
             }
-            catch { throw; }
+            catch
+            {
+                throw;
+            }
         }
 
         public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(
