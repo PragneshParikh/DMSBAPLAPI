@@ -17,6 +17,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Repositories.HSRPRepo
@@ -270,8 +271,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                 var apiResponse = await SendOrderPlacementAsync(apiRequests, accessToken);
 
 
-                var responses = JsonSerializer.Deserialize<List<HsrpApiResponse>>(
-                    apiResponse,
+                var responses = JsonSerializer.Deserialize<List<HsrpApiResponse>>(apiResponse,
                     new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
@@ -279,26 +279,51 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
 
                 foreach (var item in orders)
                 {
-                    var responseItem = responses.FirstOrDefault(x => x.Value != null && x.Value.ChassisNumber == item.ChassisNo);
-                    orderList.Add(new Hsrporder
+                    var existing = await _context.Hsrporders.Where(i => i.ChassisNo == item.ChassisNo && i.OrderNo == item.OrderNo).FirstOrDefaultAsync();
+                    if (existing != null)
                     {
-                        ChassisNo = item.ChassisNo,
-                        RegNo = item.RegNo,
-                        InvoiceNo = item.InvoiceNo,
-                        IsFrontPlate = item.IsFrontPlate,
-                        IsRearPlate = item.IsRearPlate,
-                        IsTlpsticker = item.IsTlpsticker,
-                        CustomerLedgerId = item.CustomerLedgerId,
-                        SaleBillDetailsId = item.SaleBillDetailsId,
-                        SupplierLedgerId = item.SupplierLedgerId,
-                        SaleBillNo = item.SaleBillNo,
-                        OrderDate = item.OrderDate,
-                        OrderNo = item.OrderNo,
-                        Hsrpstatus = responseItem?.STATUS == "1" ? "Success" : "Failed",
-                        Hsrpresponse = responseItem?.MESSAGE ?? "No response received",
-                        CreatedBy = userId,
-                        CreatedDate = DateTime.Now
-                    });
+                        var responseItems = responses.FirstOrDefault(x => x.Value != null && x.Value.ChassisNumber == item.ChassisNo);
+                        existing.ChassisNo = item.ChassisNo;
+                        existing.RegNo = item.RegNo;
+                        existing.InvoiceNo = item.InvoiceNo;
+                        existing.IsFrontPlate = item.IsFrontPlate;
+                        existing.IsRearPlate = item.IsRearPlate;
+                        existing.IsTlpsticker = item.IsTlpsticker;
+                        existing.CustomerLedgerId = item.CustomerLedgerId;
+                        existing.SaleBillDetailsId = item.SaleBillDetailsId;
+                        existing.SupplierLedgerId = item.SupplierLedgerId;
+                        existing.SaleBillNo = item.SaleBillNo;
+                        existing.OrderDate = item.OrderDate;
+                        existing.OrderNo = item.OrderNo;
+                        existing.Hsrpstatus = responseItems?.STATUS == "1" ? "Success" : "Failed";
+                        existing.Hsrpresponse = responseItems?.MESSAGE ?? "No response received";
+                        existing.CreatedBy = userId;
+                        existing.CreatedDate = DateTime.Now;
+                    }
+                    else
+                    {
+                        var responseItem = responses.FirstOrDefault(x => x.Value != null && x.Value.ChassisNumber == item.ChassisNo);
+                        orderList.Add(new Hsrporder
+                        {
+                            ChassisNo = item.ChassisNo,
+                            RegNo = item.RegNo,
+                            InvoiceNo = item.InvoiceNo,
+                            IsFrontPlate = item.IsFrontPlate,
+                            IsRearPlate = item.IsRearPlate,
+                            IsTlpsticker = item.IsTlpsticker,
+                            CustomerLedgerId = item.CustomerLedgerId,
+                            SaleBillDetailsId = item.SaleBillDetailsId,
+                            SupplierLedgerId = item.SupplierLedgerId,
+                            SaleBillNo = item.SaleBillNo,
+                            OrderDate = item.OrderDate,
+                            OrderNo = item.OrderNo,
+                            Hsrpstatus = responseItem?.STATUS == "1" ? "Success" : "Failed",
+                            Hsrpresponse = responseItem?.MESSAGE ?? "No response received",
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        });
+                    }
+
                 }
             }
             catch (Exception ex)
@@ -983,7 +1008,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
 
             var inwardRequests = dbOrders.Select(x => new HSRPInwardRequestViewModel
             {
-                Ver = "1.1",
+                //Ver = "1.1",
                 VendorId = 14,
                 DealerCode = x.DealerCode,
                 DCNumber = x.OrderNo,
@@ -1036,12 +1061,161 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
             }
         }
 
+
+        public async Task<HSRPFitmentResponse> ReceiveFitmentAsync(HSRPFitmentRequestData request)
+        {
+            // Validate Order Number
+            if (string.IsNullOrWhiteSpace(request.OrderNumber))
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = "Order Number cannot be null or empty.",
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg = "Order Number cannot be null or empty.",
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                };
+            }
+
+            // Convert Order Number to Id
+            if (!int.TryParse(request.OrderNumber, out int orderId))
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = $"Invalid Order Number: {request.OrderNumber}",
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg = $"Invalid Order Number: {request.OrderNumber}",
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                };
+            }
+
+            var order = await _context.Hsrporders
+                .FirstOrDefaultAsync(x => x.Id == orderId);
+
+            if (order == null)
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = $"Order does not exist. Order No: {request.OrderNumber}",
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg = $"Order does not exist. Order No: {request.OrderNumber}",
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                };
+            }
+
+            if(order.RegNo != request.RegNumber)
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = $"Reg No  {request.RegNumber} does not match Order No: {request.OrderNumber}",
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg =  $"Reg No  {request.RegNumber} does not match Order No: {request.OrderNumber}",
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                };
+
+            }
+
+            // Optional validations
+            if (string.IsNullOrWhiteSpace(request.RegNumber))
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = "Registration Number cannot be null or empty.",
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg = "Registration Number cannot be null or empty.",
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                };
+            }
+            // Check if fitment details already exist with the same values
+            if (order.FitmentStatus == "Completed" &&
+                order.FitmentDate.HasValue &&
+                order.FitmentDate.Value.ToString("dd-MM-yyyy") == request.FitmentDate &&
+                order.FitmentResponse == request.VahanResponse)
+            {
+                return new HSRPFitmentResponse
+                {
+                    Valid = true,
+                    Description = $"Fitment detail for {request.RegNumber} already exists on order no.{order.Id}.",
+                    Value = new List<HSRPFitmentResponseValue>
+        {
+            new HSRPFitmentResponseValue
+            {
+                Fitment_Idno = order.Id.ToString(),
+                Msg = $"Fitment detail for {request.RegNumber} already exists on order no.{order.Id}.",
+                StatusCode = "200",
+                ResponseStatus = "true"
+            }
+        }
+                };
+            }
+            // Update Fitment Details
+            order.FitmentDate = DateTime.ParseExact(request.FitmentDate, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+            order.FitmentStatus = "Completed";
+            order.FitmentResponse = request.VahanResponse;
+
+            await _context.SaveChangesAsync();
+
+            return new HSRPFitmentResponse
+            {
+                Valid = true,
+                Description = $"Fitment detail received successfully for {request.RegNumber}.",
+                Value = new List<HSRPFitmentResponseValue>
+        {
+            new HSRPFitmentResponseValue
+            {
+                Fitment_Idno = order.Id.ToString(),
+                Msg = $"Fitment detail received successfully for {request.RegNumber}.",
+                StatusCode = "200",
+                ResponseStatus = "true"
+            }
+        }
+            };
+        }
         private async Task<string> SendInwardAsync(List<HSRPInwardRequestViewModel> requests, string accessToken)
         {
             using var httpClient = new HttpClient();
             var json = JsonSerializer.Serialize(requests);
 
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://devbgaussapi.rosmertahsrp.com/api/pos/Inward");
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://devbgaussapi.rosmertahsrp.com/api/pos/hsrpinward");
 
             httpRequest.Headers.Add("API-Key", $"{accessToken}");
 
@@ -1058,64 +1232,3 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
     }
 }
 
-//private async Task<string> SendOrderPlacementAsync(HsrpExternalRequestViewModel request, string accessToken)
-//{
-//    using var httpClient = new HttpClient();
-
-//    using var httpRequest = new HttpRequestMessage(
-//        HttpMethod.Post,
-//        "https://devbgaussapi.rosmertahsrp.com/api/pos/OrderPlacement");
-
-//    httpRequest.Headers.Authorization =
-//        new System.Net.Http.Headers.AuthenticationHeaderValue(
-//            "Bearer",
-//            accessToken);
-
-//    httpRequest.Content = new StringContent(
-//        JsonSerializer.Serialize(request),
-//        Encoding.UTF8,
-//        "application/json");
-
-//    var response =
-//        await httpClient.SendAsync(httpRequest);
-
-//    return await response.Content.ReadAsStringAsync();
-//}
-//       private async Task<string> SendOrderPlacementAsync(
-//   List<HsrpExternalRequestViewModel> requests,
-//   string accessToken)
-//       {
-//           using var httpClient = new HttpClient();
-
-//           using var httpRequest = new HttpRequestMessage(
-//               HttpMethod.Post,
-//               "https://devbgaussapi.rosmertahsrp.com/api/pos/OrderPlacement");
-
-//           // API documentation says:
-//           // Header: API-Key = Token generated while login
-//           httpRequest.Headers.Add(
-//    "API-Key",
-//    $"{accessToken}"
-//);
-
-//           var json = JsonSerializer.Serialize(requests);
-
-//           Console.WriteLine("Request JSON:");
-//           Console.WriteLine(json);
-
-//           httpRequest.Content = new StringContent(
-//               json,
-//               Encoding.UTF8,
-//               "application/json");
-
-//           var response = await httpClient.SendAsync(httpRequest);
-
-//           var responseBody = await response.Content.ReadAsStringAsync();
-
-//           Console.WriteLine($"Status: {response.StatusCode}");
-//           Console.WriteLine($"Response: {responseBody}");
-
-//           return responseBody;
-//       }
-//   }
-//}

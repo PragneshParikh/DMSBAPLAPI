@@ -16,13 +16,14 @@ namespace DMS_BAPL_Data.Services.HSRPService
         Task<List<Hsrporder>> CreateBulkHSRPOrder(List<HSRPOrderCreateViwModel> order);
         // Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode);
         Task<HSRPOrderAddEditViewModel> GetAllHSRPOrderByIdAsync(int id);
-       // Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders);
+        // Task<List<Hsrporder>> UpdateBulkHSRPOrder(List<HSRPOrderCreateViwModel> orders);
         //Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode);
         Task<List<Hsrporder>> UpdateInwardStatus(List<HSRPInwardUpdate> orders);
 
         Task<List<HSRPInward>> GetAllHSRPInward(string? dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<List<HSRPListViewModel>> GetAllHSRPOrderAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<List<HSRPOrderAddEditViewModel>> GetPendingHSRPListAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
-        Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin,string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<byte[]> DownloadHSRPExcel(bool isSuperAdmin, string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<HSRPFitmentResponse> ReceiveFitmentAsync(HSRPFitmentRequestData request);
     }
 }
