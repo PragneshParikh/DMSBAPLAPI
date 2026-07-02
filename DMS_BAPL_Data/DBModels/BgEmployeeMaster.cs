@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DMS_BAPL_Data.DBModels;
 
 public partial class BgEmployeeMaster
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
-    // ---- Personal ---------------------------------------
     public string? EmployeeCode { get; set; }
 
     public string FirstName { get; set; } = null!;
@@ -22,9 +17,10 @@ public partial class BgEmployeeMaster
 
     public string? Mobile { get; set; }
 
-    // ---- Address ----------------------------------------
-    public int State { get; set; }
-    public int City { get; set; }
+    public int? State { get; set; }
+
+    public int? City { get; set; }
+
     public string? Pincode { get; set; }
 
     public DateTime? DateOfBirth { get; set; }
@@ -34,35 +30,29 @@ public partial class BgEmployeeMaster
     public DateTime? EffectiveDate { get; set; }
 
     public string? ReportingTo { get; set; }
-    public bool IsActive { get; set; } = true;
 
-    // ---- Department -------------------------------------
-    public int? Department { get; set; }   // FK → DepartmentMaster.DepartmentId
+    public bool IsActive { get; set; }
 
-    // ---- Profile ----------------------------------------
-    public int? ProfileId { get; set; }   // FK → EmployeeProfileMaster.Id
+    public int? Department { get; set; }
 
-    // ---- Login ------------------------------------------
     public string? EmailId { get; set; }
 
-    public string? Email { get; set; }
     public string? Password { get; set; }
 
-    // ---- Zones ------------------------------------------
-    //public string? Zones { get; set; }
-    public string? MappedZones { get; set; }
     public string? MappedZoneIds { get; set; }
-    // ---- Employee mapping cache -------------------------
+
+    public string? MappedZones { get; set; }
+
     public string? MappedEmployeeIds { get; set; }
 
     public string? MappedEmployees { get; set; }
-    // ---- Misc -------------------------------------------
+
     public string? ProfileImage { get; set; }
 
     public string? DealerCode { get; set; }
 
     public string? LocationCode { get; set; }
-    // ---- Audit ------------------------------------------
+
     public string? CreatedBy { get; set; }
 
     public DateTime CreatedDate { get; set; }
@@ -71,7 +61,13 @@ public partial class BgEmployeeMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public int? ProfileId { get; set; }
+
+    public string? Email { get; set; }
+
     public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
+
+    public virtual ICollection<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; } = new List<BgEmployeeRoleMapping>();
 
     public virtual City? CityNavigation { get; set; }
 

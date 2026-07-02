@@ -72,7 +72,7 @@ namespace DMS_BAPL_Data.Repositories.ZoneMasterRepo
         // ── CREATE ────────────────────────────────────────────
         public async Task<ZoneMasterViewModel> CreateZoneAsync(ZoneMasterViewModel model)
         {
-            var entity = new ZoneMasters
+            var entity = new ZoneMaster
             {
                 Zone = model.Zone,
                 IsActive = model.IsActive

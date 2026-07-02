@@ -59,5 +59,11 @@ public partial class Hsrporder
 
     public DateTime? InwardDate { get; set; }
 
+    public string? FitmentStatus { get; set; }
+
+    public string? FitmentResponse { get; set; }
+
+    public DateTime? FitmentDate { get; set; }
+
     public virtual LedgerMaster? SupplierLedger { get; set; }
 }
