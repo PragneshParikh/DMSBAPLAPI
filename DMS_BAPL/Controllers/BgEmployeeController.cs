@@ -51,7 +51,46 @@ namespace DMS_BAPL_API.Controllers
                 if (result == null)
                     return NotFound(new { message = $"Employee with ID {id} not found." });
 
-                return Ok(result);
+                var mappings = await _service.GetRoleMappings(id);
+
+                var response = new
+                {
+                    // spread all existing employee fields
+                    result.Id,
+                    result.EmployeeCode,
+                    result.FirstName,
+                    result.LastName,
+                    result.Gender,
+                    result.Mobile,
+                    result.State,
+                    result.City,
+                    result.Pincode,
+                    result.DateOfBirth,
+                    result.DateOfJoin,
+                    result.EffectiveDate,
+                    result.ReportingTo,
+                    result.IsActive,
+                    result.Department,
+                    result.ProfileId,
+                    result.EmailId,
+                    result.Email,
+                    result.Password,
+                    result.MappedZones,
+                    result.MappedZoneIds,
+                    result.ProfileImage,
+                    result.DealerCode,
+                    result.LocationCode,
+                    result.CreatedBy,
+                    result.CreatedDate,
+                    result.UpdatedBy,
+                    result.UpdatedDate,
+
+                    // NEW
+                    selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
+                    roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -118,6 +157,34 @@ namespace DMS_BAPL_API.Controllers
                     return NotFound(new { message = $"Employee with ID {id} not found." });
 
                 return Ok(new { message = "Employee deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("AssignedDealers")]
+        public async Task<IActionResult> GetAssignedDealers([FromQuery] int excludeId = 0)
+        {
+            try
+            {
+                var result = await _service.GetAssignedDealerCodes(excludeId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("ListView")]
+        public async Task<IActionResult> GetListView()
+        {
+            try
+            {
+                var result = await _service.GetEmployeeListView();
+                return Ok(result);
             }
             catch (Exception ex)
             {

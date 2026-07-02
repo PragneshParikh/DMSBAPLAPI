@@ -121,7 +121,7 @@ namespace DMS_BAPL_Utils.Constants
         //LabourMaster
         public const string LabourMasterExcelSheetName = "Excel Imported Successfully";
 
+        public const string BgEmployeeText = "Employee";
         public const string BgEmployeeDefaultPassword = "BgEmp@123";
-        public const string BgEmployeeText = "BGEmployee";
     }
 }

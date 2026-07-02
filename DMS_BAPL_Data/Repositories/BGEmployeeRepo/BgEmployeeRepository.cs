@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -139,6 +140,167 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
 
                 return await _context.BgEmployeeMasters
                     .FirstOrDefaultAsync(x => x.EmailId.ToLower() == normalizedEmail);
+            }
+            catch { throw; }
+        }
+
+        async Task<IEnumerable<AssignedDealerInfo>> IBgEmployeeMasterRepo.GetAssignedDealerCodes(int excludeEmployeeId)
+        {
+            // Pull all active employees except the one being edited
+            var rows = await _context.BgEmployeeMasters
+                .Where(e => e.IsActive
+                         && !string.IsNullOrWhiteSpace(e.DealerCode)
+                         && e.Id != excludeEmployeeId)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.EmployeeCode,
+                    e.FirstName,
+                    e.LastName,
+                    e.DealerCode         
+                })
+                .ToListAsync();
+
+            // Flatten CSV into one row per dealer code
+            return rows.SelectMany(e =>
+                (e.DealerCode ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(code => new AssignedDealerInfo(
+                        e.Id,
+                        e.EmployeeCode,
+                        $"{e.FirstName} {e.LastName}".Trim(),
+                        code.Trim()
+                    ))
+            );
+        }
+
+        async Task<int> IBgEmployeeMasterRepo.UpdateEntity(BgEmployeeMaster bgEmployee)
+        {
+            try
+            {
+                var existing = await _context.BgEmployeeMasters
+                    .FirstOrDefaultAsync(x => x.Id == bgEmployee.Id);
+
+                if (existing == null) return 0;
+
+                existing.DealerCode = bgEmployee.DealerCode;
+                existing.MappedZones = bgEmployee.MappedZones;
+                existing.MappedZoneIds = bgEmployee.MappedZoneIds;
+                existing.UpdatedBy = bgEmployee.UpdatedBy;
+                existing.UpdatedDate = bgEmployee.UpdatedDate;
+
+                return await _context.SaveChangesAsync();
+            }
+            catch { throw; }
+        }
+
+        async Task IBgEmployeeMasterRepo.SaveRoleMappings(int employeeId, List<RoleMappingDto> roleMappings)
+        {
+            try
+            {
+                var existing = _context.BgEmployeeRoleMappings
+                    .Where(m => m.BgEmployeeId == employeeId);
+
+                _context.BgEmployeeRoleMappings.RemoveRange(existing);
+
+                if (roleMappings?.Any() == true)
+                {
+                    var newRows = roleMappings
+                        .Where(m => !string.IsNullOrWhiteSpace(m.Category) && !string.IsNullOrWhiteSpace(m.RoleName))
+                        .Select(m => new BgEmployeeRoleMapping
+                        {
+                            BgEmployeeId = employeeId,
+                            Category = m.Category.Trim(),
+                            RoleName = m.RoleName.Trim(),
+                            CreatedDate = DateTime.Now,   // ← FIX: explicit value, never default(DateTime)
+                            CreatedBy = "system"
+                        });
+
+                    await _context.BgEmployeeRoleMappings.AddRangeAsync(newRows);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch { throw; }
+        }
+
+        async Task<IEnumerable<BgEmployeeRoleMapping>> IBgEmployeeMasterRepo.GetRoleMappings(int employeeId)
+        {
+            try
+            {
+                return await _context.BgEmployeeRoleMappings
+                    .Where(m => m.BgEmployeeId == employeeId)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        async Task<IEnumerable<BgEmployeeListItemViewModel>> IBgEmployeeMasterRepo.GetEmployeeListView()
+        {
+            try
+            {
+                var employees = await _context.BgEmployeeMasters.ToListAsync();
+
+                // Dealer code -> dealer name lookup
+                var dealers = await _context.DealerMasters
+                    .Select(d => new { d.Dealercode, d.Compname })
+                    .ToListAsync();
+
+                var dealerMap = dealers
+                    .Where(d => !string.IsNullOrWhiteSpace(d.Dealercode))
+                    .GroupBy(d => d.Dealercode.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().Compname, StringComparer.OrdinalIgnoreCase);
+
+                // Employee Id -> Role names (comma joined)
+                var roleMappings = await _context.BgEmployeeRoleMappings.ToListAsync();
+                var roleMap = roleMappings
+                    .GroupBy(r => r.BgEmployeeId)
+                    .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.RoleName).Distinct()));
+
+                // Employee Id -> Full name, for resolving "Reporting To"
+                var employeeNameMap = employees
+                    .ToDictionary(e => e.Id, e => $"{e.FirstName} {e.LastName}".Trim());
+
+                var result = employees.Select(e =>
+                {
+                    var dealerCodes = (e.DealerCode ?? "")
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => c.Trim())
+                        .Where(c => !string.IsNullOrEmpty(c))
+                        .ToList();
+
+                    var dealerNames = dealerCodes
+                        .Select(c => dealerMap.TryGetValue(c, out var name) ? name : c)
+                        .Distinct();
+
+                    string? reportingToName = null;
+                    if (!string.IsNullOrWhiteSpace(e.ReportingTo))
+                    {
+                        reportingToName = int.TryParse(e.ReportingTo, out var reportId)
+                                           && employeeNameMap.TryGetValue(reportId, out var name)
+                            ? name
+                            : e.ReportingTo;
+                    }
+
+                    return new BgEmployeeListItemViewModel
+                    {
+                        Id = e.Id,
+                        EmployeeCode = e.EmployeeCode,
+                        EmployeeName = $"{e.FirstName} {e.LastName}".Trim(),
+                        DealerCode = e.DealerCode,
+                        DealerName = string.Join(", ", dealerNames),
+                        Zone = e.MappedZones,
+                        JobRoles = roleMap.TryGetValue(e.Id, out var roles) ? roles : "",
+                        CreatedDate = e.CreatedDate,
+                        UpdatedDate = e.UpdatedDate,
+                        ReportingTo = reportingToName,
+                        CreatedBy = e.CreatedBy,
+                        IsActive = e.IsActive,
+                        ProfileImage = e.ProfileImage,
+                    };
+                });
+
+                return result;
             }
             catch { throw; }
         }
