@@ -36,19 +36,21 @@ public partial class BgEmployeeMaster
     public string? ReportingTo { get; set; }
     public bool IsActive { get; set; } = true;
 
-    public int? Department { get; set; }
+        // ---- Department -------------------------------------
+        public int? Department { get; set; }   // FK → DepartmentMaster.DepartmentId
 
-    // ---- Login ------------------------------------------
-    public string? EmailId { get; set; }
-=======
-=======
+        // ---- Profile ----------------------------------------
+        public int? ProfileId { get; set; }   // FK → EmployeeProfileMaster.Id
+
+        // ---- Login ------------------------------------------
         public string? EmailId { get; set; }
 
         public string? Email { get; set; }
         public string? Password { get; set; }
-    public string? MappedZoneIds { get; set; }
 
-    public string? MappedZones { get; set; }
+        // ---- Zones ------------------------------------------
+        //public string? Zones { get; set; }
+        public string? MappedZones { get; set; }
         public string? MappedZoneIds { get; set; }
     // ---- Employee mapping cache -------------------------
     public string? MappedEmployeeIds { get; set; }

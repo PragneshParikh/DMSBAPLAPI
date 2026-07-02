@@ -55,62 +55,63 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
         public async Task<BgEmployeeMaster> Create(BgEmployeeViewModel model)
         {
-            model.EmailId = model.EmailId?.Trim().ToLowerInvariant();
-
-            var existingEmployee = await _repo.GetByEmail(model.EmailId);
-            if (existingEmployee != null)
-                throw new InvalidOperationException("An employee with this email already exists.");
-
-            var entity = MapToEntity(model);
-            entity.CreatedBy = model.CreatedBy ?? "admin";
-            entity.CreatedDate = DateTime.Now;
-            entity.UpdatedBy = model.CreatedBy ?? "admin";
-            entity.UpdatedDate = DateTime.Now;
-
-            var savedEmployee = await _repo.Create(entity);
-
-            // NEW — login-creation failures no longer 500 the whole request.
-            // The employee row is already saved at this point; treat login setup
-            // as best-effort and log instead of throwing.
-            if (!string.IsNullOrWhiteSpace(savedEmployee.EmailId))
+            try
             {
-                try
+                model.EmailId = model.EmailId?.Trim().ToLowerInvariant();
+
+                var existingEmployee = await _repo.GetByEmail(model.EmailId);
+                if (existingEmployee != null)
+                    throw new InvalidOperationException("An employee with this email already exists.");
+
+                // ── STEP 1: strip these dealer codes from any other BG employee ──
+                await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
+
+                var entity = MapToEntity(model);
+                entity.CreatedBy = model.CreatedBy ?? "admin";
+                entity.CreatedDate = DateTime.Now;
+                entity.UpdatedBy = model.CreatedBy ?? "admin";
+                entity.UpdatedDate = DateTime.Now;
+
+                var savedEmployee = await _repo.Create(entity);
+
+                // ── NEW: persist category/role mappings ──────────────────────
+                if (model.RoleMappings?.Any() == true)
+                    await _repo.SaveRoleMappings(savedEmployee.Id, model.RoleMappings);
+
+                // ── login creation (unchanged) ────────────────────────────────
+                if (!string.IsNullOrWhiteSpace(savedEmployee.EmailId))
                 {
-                    var existingUser = await _userManager.FindByNameAsync(savedEmployee.EmailId);
-
-                    if (existingUser == null)
+                    try
                     {
-                        var newUser = new ApplicationUser
+                        var existingUser = await _userManager.FindByNameAsync(savedEmployee.EmailId);
+                        if (existingUser == null)
                         {
-                            UserName = savedEmployee.EmailId,
-                            Email = savedEmployee.EmailId,
-                            EmailConfirmed = true
-                        };
+                            var newUser = new ApplicationUser
+                            {
+                                UserName = savedEmployee.EmailId,
+                                Email = savedEmployee.EmailId,
+                                EmailConfirmed = true
+                            };
+                            var passwordToUse = !string.IsNullOrWhiteSpace(model.Password)
+                                ? model.Password : StringConstants.BgEmployeeDefaultPassword;
 
-                        var passwordToUse = !string.IsNullOrWhiteSpace(model.Password)
-                            ? model.Password
-                            : StringConstants.BgEmployeeDefaultPassword;
-
-                        var userResult = await _userManager.CreateAsync(newUser, passwordToUse);
-
-                        if (userResult.Succeeded)
-                        {
-                            await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
-                        }
-                        else
-                        {
-                            // log but don't throw — employee record is already saved successfully
-                            Console.WriteLine($"Login creation failed for {savedEmployee.EmailId}: " +
-                                string.Join(", ", userResult.Errors.Select(e => e.Description)));
+                            var userResult = await _userManager.CreateAsync(newUser, passwordToUse);
+                            if (userResult.Succeeded)
+                                await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
+                            else
+                                Console.WriteLine($"Login creation failed: {string.Join(", ", userResult.Errors.Select(e => e.Description))}");
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Login creation exception: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // same — log, don't fail the whole save
-                    Console.WriteLine($"Login creation exception for {savedEmployee.EmailId}: {ex.Message}");
-                }
+
+                return savedEmployee;
             }
+            catch { throw; }
+        }
 
             return savedEmployee;
         }
@@ -168,6 +169,8 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         //    }
         //    catch { throw; }
         //}
+
+        public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 
         public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
 
