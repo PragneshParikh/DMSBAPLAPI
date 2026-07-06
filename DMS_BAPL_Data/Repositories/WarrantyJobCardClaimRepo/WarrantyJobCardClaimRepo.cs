@@ -100,8 +100,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                         CreatedDate = DateTime.Now
                     }).ToList();
 
-                    _context.WarrantyJcclaimDetails.AddRange(details);
-                    await _context.SaveChangesAsync();
+                    //_context.WarrantyJcclaimDetails.AddRange(details);
+                    //await _context.SaveChangesAsync();
                 }
 
                 await transaction.CommitAsync();

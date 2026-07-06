@@ -73,7 +73,7 @@ namespace DMS_BAPL_Api.Controllers
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
                 // FIX — this call was commented out, which is why no login was ever created
-                if (!(!employeeMaster.CreateLogin || string.IsNullOrWhiteSpace(employeeMaster.EmailId)))
+                //if (!(!employeeMaster.CreateLogin || string.IsNullOrWhiteSpace(employeeMaster.EmailId)))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
@@ -101,7 +101,7 @@ namespace DMS_BAPL_Api.Controllers
 
                 // NEW — also ensure/sync login on update, in case CreateLogin was toggled on
                 // after the employee already existed, or password changed
-                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Updated Successfully" });

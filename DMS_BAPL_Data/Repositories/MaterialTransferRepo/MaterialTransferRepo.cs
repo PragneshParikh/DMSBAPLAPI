@@ -270,34 +270,30 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     let taxType = S.StateId == LM.State ? "S" : "O"
 
                     let taxCode = _context.HsnwiseTaxCodes
+                    .Where(x =>
+                    x.Hsncode == IM.Hsncode &&
+                    x.StateFlag == taxType &&
+                    DateOnly.FromDateTime(x.EffectiveDate) <= JCH.JobinDate)
+                    .OrderByDescending(x => x.EffectiveDate)
+                    .FirstOrDefault()
+
+                    let cgstRate = _context.AggregateTaxCodes
                         .Where(x =>
-                            x.Hsncode == IM.Hsncode &&
-                            x.StateFlag == taxType &&
-                           DateOnly.FromDateTime(x.EffectiveDate) <= JCH.JobinDate)
-                        .OrderByDescending(x => x.EffectiveDate)
-                        .FirstOrDefault()
+                            x.AtaxCode == taxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("CGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
 
-                    let cgstRate = IM.Cgst
-                    let sgstRate = IM.Sgst
-                    let igstRate = IM.Igst
+                    let sgstRate = _context.AggregateTaxCodes
+                        .Where(x =>
+                            x.AtaxCode == taxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("SGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
 
-                    //let cgstRate = _context.AggregateTaxCodes
-                    //    .Where(x =>
-                    //        x.AtaxCode == taxCode.AtaxCode &&
-                    //        x.TaxCode.StartsWith("CGST"))
-                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
-
-                    //let sgstRate = _context.AggregateTaxCodes
-                    //    .Where(x =>
-                    //        x.AtaxCode == taxCode.AtaxCode &&
-                    //        x.TaxCode.StartsWith("SGST"))
-                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
-
-                    //let igstRate = _context.AggregateTaxCodes
-                    //    .Where(x =>
-                    //        x.AtaxCode == taxCode.AtaxCode &&
-                    //        x.TaxCode.StartsWith("IGST"))
-                    //    .Sum(x => (decimal?)x.TaxRate) ?? 0
+                    let igstRate = _context.AggregateTaxCodes
+                        .Where(x =>
+                            x.AtaxCode == taxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("IGST"))
+                        .Sum(x => (decimal?)x.TaxRate) ?? 0
 
                     select new
                     {
@@ -327,6 +323,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         IM.Itemdesc,
                         IM.Dlrprice,
                         IM.Custprice,
+                        IM.Hsncode,
 
                         TaxType = taxType,
                         AtaxCode = taxCode.AtaxCode,
@@ -398,6 +395,10 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         on JH.UpdateBy equals UM.Id into userModGroup
                     from UM in userModGroup.DefaultIfEmpty()
 
+                    join RB in _context.RepairBillHeaders
+                        on JH.Id equals RB.JobId into repairBillStatus
+                    from RB in repairBillStatus.DefaultIfEmpty()
+
                     where JH.DealerCode == dealerCode
 
                     select new
@@ -416,7 +417,8 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         JC.RegisterNo,
 
                         MT.MaterialIssueNumber,
-                        MT.CreatedDate
+                        MT.CreatedDate,
+                        JobCardStatus = RB.RepairbillStatus == "Billed" ? "Closed" : "Open"
                     };
 
                 if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -454,7 +456,8 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     x.CustomerName,
                     x.MaterialIssueNumber,
                     x.CreatedDate,
-                    x.RegisterNo
+                    x.RegisterNo,
+                    x.JobCardStatus
                 }).Cast<object>().ToList();
 
                 return new PagedResponse<object>
