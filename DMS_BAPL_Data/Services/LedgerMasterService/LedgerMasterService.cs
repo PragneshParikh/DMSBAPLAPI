@@ -134,5 +134,17 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
+        
+        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetLotRelatedLedgers(dealerCode, IsD2D);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

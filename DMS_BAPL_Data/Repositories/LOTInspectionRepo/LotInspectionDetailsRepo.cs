@@ -130,6 +130,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         nameSupervisor = lotHeader.SupervisorName,
                         locationName = lotHeader.LocationName,
                         islotinspected = lotHeader.IsLotInspected,
+                        IsD2D = lotHeader.IsD2d,
+                        InwardType = lotHeader.InwardType,
 
                         id = lotDetail.Id,
                         lotHeaderID = lotDetail.LotHeaderId,

@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -246,10 +247,12 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             }
         }
 
-        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode)
+        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string? dealerCode)
         {
+            Console.WriteLine($"DealerCode = '{dealerCode}'");
             var result = await _context.LocationMasters
-                .Where(x => x.Dealercode == dealerCode)
+                .Where(x => x.Active == "Y" &&
+                            (dealerCode == "null" || x.Dealercode == dealerCode))
                 .Select(x => new LocationTypewiseNameViewModel
                 {
                     locname = x.Locname,

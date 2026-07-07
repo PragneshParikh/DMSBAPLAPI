@@ -1303,7 +1303,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Igst = i.Igst,
                     Cgst = i.Cgst,
                     Sgst = i.Sgst,
-                   // IssueType = m.IssueType,
+                   IssueType = m.IssueType,
 
                     // Labour Codes
                     LabourCodeDetailslist = _context.PartWiseLabourMasters
