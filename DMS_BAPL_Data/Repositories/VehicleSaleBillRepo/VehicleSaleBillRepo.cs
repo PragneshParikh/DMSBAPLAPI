@@ -34,25 +34,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             _prefixRepo = prefixRepo;
         }
 
-        //public async Task<int> CreateAsync(VehicleSaleBillHeader entity)
-        //{
-        //    using var transaction = await _context.Database.BeginTransactionAsync();
-
-        //    try
-        //    {
-        //        _context.VehicleSaleBillHeaders.Add(entity);
-        //        await _context.SaveChangesAsync();
-
-        //        await transaction.CommitAsync();
-        //        return entity.Id;
-        //    }
-        //    catch
-        //    {
-        //        await transaction.RollbackAsync();
-        //        throw;
-        //    }
-        //}
-
+       
         public async Task<VehicleSaleBillHeader?> GetByIdAsync(int id)
         {
             try
@@ -74,7 +56,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
 
                 var result = await (
-                    from h in _context.VehicleSaleBillHeaders
+                    from h in _context.VehicleSaleBillHeaders 
+                    join cled in _context.LedgerMasters on h.LedgerId equals cled.Id
                     where h.Id == id
 
                     select new VehicleSaleBillResponseViewModel
@@ -89,8 +72,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         Financier = h.Financier,
                         BillType = h.BillType,
                         BillFrom = h.BillFrom,
-                        CustomerName = h.CustomerName,
-                        BillingName = h.BillingName,
+                        CustomerName = cled.LedgerName,
+                        BillingName = cled.LedgerName,
                         SalesExecutive = h.SalesExecutive,
                         LedgerId = h.LedgerId,
                         TempRegNo = h.TempRegNo,
@@ -103,6 +86,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         RefRemarks = h.RefRemarks,
                         TotalAmount = h.TotalAmount,
                         Status = h.Status,
+                        RefMobile = h.RefMobile,
+                        isTempRegNo =h.TempRegNo,
+                        AccessoryAmount = h.AccessoryAmount,
+                        AccessoryBillNo = h.AccessoryBillNo,
+                        HandlingCharges = h.HandlingCharges,
+                        Hpamount = h.Hpamount,
+                        NoPlateAmount = h.NoPlateAmount,
+                        StateSubsidyAmount = h.StateSubsidyAmount,
+                        
                         DealerCode = h.DealerCode,
 
                         Details = (
@@ -214,6 +206,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 return await _context.VehicleSaleBillHeaders
                     .Include(x => x.VehicleSaleBillDetails)
+                    
                     .OrderByDescending(x => x.CreatedDate)
                     .ToListAsync();
             }
@@ -690,8 +683,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     invoice.UpdatedBy = userId;
                     invoice.UpdatedDate = DateTime.Now;
                     invoice.InvoiceNo = "IN" + saleBill.SaleBillNo;
-
-                    // REMOVE OLD DETAILS (important to avoid duplicates)
                     _context.InvoiceDetails.RemoveRange(invoice.InvoiceDetails);
                     invoice.InvoiceDetails.Clear();
                 }
@@ -712,8 +703,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                     _context.InvoiceHeaders.Add(invoice);
                 }
-
-                // ADD DETAILS (COMMON FOR BOTH CASES)
                 foreach (var detail in saleBill.VehicleSaleBillDetails)
                 {
                     var item = new InvoiceDetail

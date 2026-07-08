@@ -493,8 +493,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
-                // Local rule: how a finalized bill is distinguished from a proforma.
-                // ── Adjust this to match your data (Status / BillType / SaleBillNo) ──
                 static bool IsBilled(VehicleSaleBillHeader hdr) =>
                     hdr != null && hdr.Status == "Billed";
 
@@ -564,8 +562,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 }
 
                 var rawData = await query.ToListAsync();
-
-                // ── Condition 3: vehicle billed against chassis → exclude from report ──
                 rawData = rawData
                     .Where(x => !IsBilled(x.SaleHdr))
                     .ToList();
@@ -581,9 +577,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                                 .ToDateTime(TimeOnly.MinValue);
                     }
 
-                    // ── Conditions 1 & 2 ──
-                    // A non-billed sale header against the chassis = proforma (Allocated).
-                    // No sale header at all = not yet allocated (Available).
                     string vehicleStatus =
                         x.SaleHdr != null ? "Allocated" : "Available";
 
@@ -666,7 +659,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     };
                 });
 
-                // ── Vehicle Status filter (Available / Allocated) ──
+               
                 if (!string.IsNullOrWhiteSpace(filter.StockStatus))
                 {
                     result = result.Where(x => x.VehicleStatus == filter.StockStatus);
@@ -2204,13 +2197,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Pin = dealer?.Pin,
                     PhoneNo1 = dealer?.Mobile,
                     PhoneNo2 = dealer?.PhoneOff,
-                   
+
                     PanNo = dealer?.Pan,
                     GSTNo = dealer?.CompgstinNo,
                     ChassisNo = header?.ChassisNo,
                     BillType = header?.BillType,
-                    City= cityName,
-                    Remarks =header.Remarks,
+                    City = cityName,
+                    Remarks = header.Remarks,
                     // Invoice Details
                     InvoiceNo = header.BillNo,
                     InvoiceDate = header.BillDate,
@@ -2222,16 +2215,16 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     CustomerGST = customer?.Gstno,
                     State = stateName,
                     TermsAndConditions = await _context.TermandConditionMasters
-        .Where(i => i.ConditionModule == 7 &&
-                    i.ConditionEffectiveDate <= header.BillDate)
-        .OrderBy(i => i.Id)
-        .Select(i => new SalesConditionViewModel
-        {
-            Id = i.Id,
-            SrNo = null,
-            ConditionText = i.TermCondition
-        })
-        .ToListAsync(),
+                                        .Where(i => i.ConditionModule == 7 &&
+                                                    i.ConditionEffectiveDate <= header.BillDate)
+                                        .OrderBy(i => i.Id)
+                                        .Select(i => new SalesConditionViewModel
+                                        {
+                                            Id = i.Id,
+                                            SrNo = null,
+                                            ConditionText = i.TermCondition
+                                        })
+                                        .ToListAsync(),
 
                     // Items
                     Details = header.CounterBillDetails
@@ -2267,6 +2260,156 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        // ═════════════════════════════════════════════════════════════════════
+        // VEHICLE INWARD REPORT
+        // ═════════════════════════════════════════════════════════════════════
 
+        public async Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter)
+        {
+            try
+            {
+                var query =
+                    from vi in _context.VehicleInwards.AsNoTracking()
+                    join dm in _context.DealerMasters.AsNoTracking()
+                        on vi.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+                    join loc in _context.LocationMasters.AsNoTracking()
+                        on vi.LocCode equals loc.Loccode into locJoin
+                    from loc in locJoin.DefaultIfEmpty()
+                    join im in _context.ItemMasters.AsNoTracking()
+                        on vi.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+                    join clr in _context.ColorMasters.AsNoTracking()
+                        on vi.ColrCode equals clr.Colorcode into clrJoin
+                    from clr in clrJoin.DefaultIfEmpty()
+                    join lih in _context.LotinspectionHeaders.AsNoTracking()
+                        on vi.InvoiceNo equals lih.InvoiceNo into lihJoin
+                    from lih in lihJoin.DefaultIfEmpty()
+                    select new { vi, dm, loc, im, clr, lih };
+
+                if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                    query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
+
+                if (!string.IsNullOrWhiteSpace(filter.LocationCode))
+                    query = query.Where(x => x.vi.LocCode == filter.LocationCode);
+
+                if (!string.IsNullOrWhiteSpace(filter.InvoiceNo))
+                    query = query.Where(x => x.vi.InvoiceNo != null && x.vi.InvoiceNo.Contains(filter.InvoiceNo));
+
+                if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                    query = query.Where(x => x.vi.ChasisNo != null && x.vi.ChasisNo.Contains(filter.ChassisNo));
+
+                if (!string.IsNullOrWhiteSpace(filter.MotorNo))
+                    query = query.Where(x => x.vi.MotorNo != null && x.vi.MotorNo.Contains(filter.MotorNo));
+
+                if (!string.IsNullOrWhiteSpace(filter.BatteryNo))
+                    query = query.Where(x => x.vi.BatteryNo != null && x.vi.BatteryNo.Contains(filter.BatteryNo));
+
+                var rawData = await query.ToListAsync();
+
+                // InvoiceDate is DateOnly? on VehicleInward — convert & date-filter in memory
+                var withDates = rawData.Select(x => new
+                {
+                    x.vi,
+                    x.dm,
+                    x.loc,
+                    x.im,
+                    x.clr,
+                    x.lih,
+                    InvoiceDateTime = x.vi.InvoiceDate.HasValue
+                        ? x.vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
+                        : (DateTime?)null
+                }).AsEnumerable();
+
+                if (filter.FromDate.HasValue)
+                    withDates = withDates.Where(x =>
+                        x.InvoiceDateTime.HasValue && x.InvoiceDateTime.Value.Date >= filter.FromDate.Value.Date);
+
+                if (filter.ToDate.HasValue)
+                    withDates = withDates.Where(x =>
+                        x.InvoiceDateTime.HasValue && x.InvoiceDateTime.Value.Date <= filter.ToDate.Value.Date);
+
+                var filteredList = withDates
+                    .OrderByDescending(x => x.InvoiceDateTime)
+                    .ThenByDescending(x => x.vi.Id)
+                    .ToList();
+
+                var totalRecords = filteredList.Count;
+
+                var allMapped = filteredList.Select(x =>
+                {
+                    var rate = x.vi.Dlrprice ?? 0;
+                    var sgstPer = x.im?.Sgst ?? 0;
+                    var cgstPer = x.im?.Cgst ?? 0;
+                    var igstPer = x.im?.Igst ?? 0;
+                    var ugstPer = x.im?.Ugst ?? 0;
+                    var invoiceNo = x.vi.InvoiceNo ?? "";
+                    var partyName = invoiceNo.StartsWith("BG", StringComparison.OrdinalIgnoreCase)
+                        ? "BGauss"
+                        : (x.dm != null ? x.dm.Compname : x.vi.DealerCode);
+
+                    return new VehicleInwardReportViewModel
+                    {
+                        ReceivingDate = x.InvoiceDateTime,
+                        InvoiceDate = x.InvoiceDateTime,
+                        DealerCode = x.vi.DealerCode,
+                        DealerName = x.dm != null ? x.dm.Compname : x.vi.DealerCode,
+                        BgInvoiceNo = x.vi.InvoiceNo,
+                        LotInspectionNo = x.lih != null ? x.lih.LotNo : (int?)null,
+                        PartyName = partyName,
+                        PurchaseReceivingLocation = x.loc != null ? x.loc.Locname : x.vi.LocCode,
+                        ModelName = x.im != null
+                            ? (x.im.Oemmodelname ?? x.im.Itemname ?? x.vi.ItemCode)
+                            : x.vi.ItemCode,
+                        Quantity = 1,
+                        ChassisNo = x.vi.ChasisNo,
+                        MotorNo = x.vi.MotorNo,
+                        Colour = x.clr != null ? x.clr.Colorname : x.vi.ColrCode,
+                        MfgYear = x.vi.MfgYear,
+                        BatteryNo = x.vi.BatteryNo,
+                        BatteryMake = x.vi.BatteryMake,
+                        BatteryCapacity = x.vi.BatteryCapacity,
+                        BatteryChemical = x.vi.BatteryChemistry,
+                        ChargerNo = x.vi.ChargerNo,
+                        ControllerNo = x.vi.ControllerNo,
+                        Rate = rate,
+                        SubsidyAmountFame2 = x.vi.Fame2Discount ?? 0,
+                        Sgst = Math.Round(rate * sgstPer / 100m, 2),
+                        Cgst = Math.Round(rate * cgstPer / 100m, 2),
+                        Igst = Math.Round(rate * igstPer / 100m, 2),
+                        Hst = Math.Round(rate * ugstPer / 100m, 2),
+                    };
+                }).ToList();
+
+                var paged = allMapped
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
+                foreach (var row in paged)
+                    row.SrNo = srNo++;
+
+                return new VehicleInwardReportResponse
+                {
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+                    TotalQuantity = allMapped.Sum(x => x.Quantity),
+                    TotalRate = allMapped.Sum(x => x.Rate),
+                    TotalSubsidy = allMapped.Sum(x => x.SubsidyAmountFame2),
+                    TotalSgst = allMapped.Sum(x => x.Sgst),
+                    TotalCgst = allMapped.Sum(x => x.Cgst),
+                    TotalIgst = allMapped.Sum(x => x.Igst),
+                    TotalHst = allMapped.Sum(x => x.Hst),
+                    GrandTotal = allMapped.Sum(x => x.Rate + x.Sgst + x.Cgst + x.Igst + x.Hst - x.SubsidyAmountFame2),
+                    Data = paged
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching vehicle inward report: " + ex.Message, ex);
+            }
+        }
     }
 }

@@ -186,6 +186,8 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? Qty { get; set; }
             public decimal? Rate { get; set; }
 
+            public string? LabourHsnCode { get; set; }
+
             public decimal? Discount { get; set; }
             public string? DiscountType { get; set; }
 

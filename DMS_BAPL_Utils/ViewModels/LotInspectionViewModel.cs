@@ -53,6 +53,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LocationName { get; set; }
 
         public bool? IsLotInspected { get; set; } = false;
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
     }
     public class InvoiceAcceptHeaderViewModel
     {
@@ -137,6 +139,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? updatedBy { get; set; }
         public string? updatedDate { get; set; }
         public bool IsLotInspected { get; set; } = false;
+        public bool? isD2d { get; set; }
+        public string? inwardType { get; set; }
     }
 
     public class LotInspectedDetails
@@ -210,5 +214,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? damageDetails { get; set; }
         public string? chassisWiseRemarks { get; set; }
         public string? lotVehicleDamageImage { get; set; }
+        public bool? IsD2D { get; set; }
+        public string? InwardType { get; set; }
     }
 }

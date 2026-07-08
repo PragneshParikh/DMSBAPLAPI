@@ -114,4 +114,8 @@ public partial class VehicleInward
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public bool? IsD2d { get; set; }
+
+    public string? InwardType { get; set; }
 }

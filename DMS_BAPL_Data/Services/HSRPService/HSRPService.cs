@@ -181,5 +181,9 @@ namespace DMS_BAPL_Data.Services.HSRPService
             }
         }
 
+        public async Task<HSRPFitmentResponse> ReceiveFitmentAsync(HSRPFitmentRequestData request)
+        {
+            return await _hsrpRepo.ReceiveFitmentAsync(request);
+        }
     }
 }

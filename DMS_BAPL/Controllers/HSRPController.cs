@@ -270,40 +270,33 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        private async Task<string> GetHSRPLoginTokenAsync()
+        [HttpPost("fitment")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ReceiveFitment([FromBody] HSRPFitmentRequestData request)
         {
-            using var httpClient = new HttpClient();
-
-            var url = "https://devbgaussapi.rosmertahsrp.com/api/pos/getApiKey";
-
-            var payload = new
-            {
-                username = username,
-                password = password
-            };
-
-            var json = JsonSerializer.Serialize(payload);
-
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             try
             {
-                var response = await httpClient.PostAsync(url, content);
+                var response = await _hsrpService.ReceiveFitmentAsync(request);
 
-                var responseString = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    return $"Error: {response.StatusCode} - {responseString}";
-                }
-                var tokenResponse = JsonSerializer.Deserialize<HSRPLoginResponseViewModel>(responseString);
-
-                return tokenResponse.Value.AccessToken;
-                //return responseString.AccessToken;
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return BadRequest(new HSRPFitmentResponse
+                {
+                    Valid = false,
+                    Description = ex.Message,
+                    Value = new List<HSRPFitmentResponseValue>
+            {
+                new HSRPFitmentResponseValue
+                {
+                    Fitment_Idno = "",
+                    Msg = ex.Message,
+                    StatusCode = "400",
+                    ResponseStatus = "false"
+                }
+            }
+                });
             }
         }
     }

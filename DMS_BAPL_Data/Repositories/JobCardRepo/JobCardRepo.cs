@@ -440,6 +440,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             IsPdiSuccess = x.jh.IsPdiSuccess,
                             Observation = x.jh.Observation,
                             SupervisorComment = x.jh.SupervisorComment,
+                            CreatedDate = x.jh.CreatedDate,
+                            UpdatedDate = x.jh.UpdatedDate,
                             JobStatus =
                                    x.rb != null && x.rb.RepairbillStatus == "Billed"
                                         ? "Closed"
@@ -1357,10 +1359,12 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     PartDesc = i.Itemdesc,
                     PartQty = m.Quantity,
                     PartRate = m.ItemRate,
+                    PartHsnCode = i.Hsncode,
+                    PartMRP = i.Custprice,
                     Igst = i.Igst,
                     Cgst = i.Cgst,
                     Sgst = i.Sgst,
-                    // IssueType = m.IssueType,
+                   IssueType = m.IssueType,
 
                     // Labour Codes
                     LabourCodeDetailslist = _context.PartWiseLabourMasters
@@ -1374,6 +1378,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             LabourCode = pl.LabourCode,
                             LabourName = pl.LabourName,
                             LabourRate = pl.LabourRate,
+                            LabourHsnCode = pl.Hsncode,
                             CityTier = pl.CityTier,
                             Igst = pl.Igst,
                             Cgst = pl.Cgst,

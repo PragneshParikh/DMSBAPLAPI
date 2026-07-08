@@ -66,6 +66,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
                 var result = await _repo.CreateWithJobUpdateAsync(header);
+               
                 if (result != 0)
                 {
                     await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
@@ -83,8 +84,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 var data = await _repo.GetVehicleWithMotorDetailsByIdAsync(id);
-                //if (data == null) return null;
-                //return MapToResponse(data);
+                
                 return data;
             }
             catch
@@ -98,7 +98,10 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             {
                 var list = await _repo.GetAllAsync();
 
+                var ledgerIds = list.Where(x => x.LedgerId.HasValue).Select(x => x.LedgerId.Value).Distinct().ToList();
 
+                var ledgers = await _ledgerRepo.GetAll();
+                var customerNames = ledgers.Where(i => ledgerIds.Contains(i.Id)).ToDictionary(i => i.Id, i => i.LedgerName);
                 // Apply search filter
                 if (!string.IsNullOrWhiteSpace(search))
                 {
@@ -134,7 +137,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     list = list.Where(i => i.DealerCode.ToLower() == dealerCode.ToLower()).ToList();
                 }
 
-                var result = list.Select(x => MapToResponse(x)).ToList();
+                var result = list.Select(x => MapToResponse(x, customerNames)).ToList();
 
                 return result;
             }
@@ -394,6 +397,14 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     CreatedDate = DateTime.Now,
                     CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
                     Status = model.Status,
+                    RefMobile =model.RefMobile,
+                    AccessoryAmount = model.AccessoryAmount,
+                    AccessoryBillNo = model.AccessoryBillNo,
+                    NoPlateAmount = model.NoPlateAmount,
+                    HandlingCharges = model.HandlingCharges,
+                    Hpamount = model.Hpamount,
+                    StateSubsidyAmount = model.StateSubsidyAmount,
+                    
                     DealerCode = model.DealerCode,
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
@@ -451,7 +462,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-        private VehicleSaleBillResponseViewModel MapToResponse(VehicleSaleBillHeader data)
+        private VehicleSaleBillResponseViewModel MapToResponse(VehicleSaleBillHeader data, Dictionary<int, string> customerNames)
         {
             try
             {
@@ -460,7 +471,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 {
                     Id = data.Id,
                     SaleBillNo = data.SaleBillNo,
-                    CustomerName = data.CustomerName ?? "",
+                    CustomerName = data.LedgerId.HasValue && customerNames.TryGetValue(data.LedgerId.Value, out var customerName) ? customerName : "",
                     TotalAmount = data.TotalAmount ?? 0,
                     Location = data.Location,
                     SaleDate = data.SaleDate,
@@ -476,7 +487,20 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     LedgerId = data.LedgerId,
                     Status = data.Status,
                     DealerCode = data.DealerCode,
-
+                    RefMobile = data.RefMobile,
+                    RefAddress = data.RefAddress,
+                    RefEmail = data.RefEmail,
+                    RefName = data.RefName,
+                    RefPoint = data.RefPoint,
+                    RefRemarks = data.RefRemarks,
+                    TempRegNo = data.TempRegNo,
+                    AccessoryAmount = data.AccessoryAmount,
+                    AccessoryBillNo = data.AccessoryBillNo,
+                    StateSubsidyAmount = data.StateSubsidyAmount,
+                    HandlingCharges = data.HandlingCharges,
+                    Hpamount = data.Hpamount,
+                    NoPlateAmount= data.NoPlateAmount,
+                    
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
                         Id = d.Id,
@@ -802,12 +826,12 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                             InsuranceAmount = d.InsuranceAmount,
                             RegAmount = d.RegAmount,
                             Battery = d.Battery,
-                            BookNo=d.BookNo,
-                            BatteryCapacity=d.BatteryCapacity,
-                            ExtWarranty=d.ExtWarranty,
-                            BatteryChemical=d.BatteryChemical,
-                            BatteryMake=d.BatteryMake,
-                            Key=d.Key,
+                            BookNo = d.BookNo,
+                            BatteryCapacity = d.BatteryCapacity,
+                            ExtWarranty = d.ExtWarranty,
+                            BatteryChemical = d.BatteryChemical,
+                            BatteryMake = d.BatteryMake,
+                            Key = d.Key,
                             ChargerNo = d.ChargerNo,
                             ControllerNo = d.ControllerNo,
                             ConvertorNo = d.ConvertorNo,
@@ -918,7 +942,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         PDIStatus = item.PDIStatus,
                         FameIIAmnt = item.FameIIAmnt,
                         ProformaCreated = item.ProformaCreated,
-                        LocationCode =item.LocationCode,
+                        LocationCode = item.LocationCode,
 
 
                     };
@@ -1665,7 +1689,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                                 IContainer Body(IContainer c) =>
                                     c.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4);
 
-                                Body(t.Cell()).AlignCenter().Text(l.SrNo.ToString()).FontSize(8);   
+                                Body(t.Cell()).AlignCenter().Text(l.SrNo.ToString()).FontSize(8);
                                 Body(t.Cell()).Text(Val(l.Description)).FontSize(8);
                                 Body(t.Cell()).Text(Val(l.ProductCode)).FontSize(8);
                                 Body(t.Cell()).Text(Val(l.Colour)).FontSize(8);

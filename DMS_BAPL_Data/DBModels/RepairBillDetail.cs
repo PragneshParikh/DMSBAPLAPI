@@ -59,6 +59,8 @@ public partial class RepairBillDetail
 
     public DateTime? UpdatedDate { get; set; }
 
+    public decimal? TotalTaxPer { get; set; }
+
     public virtual LabourMaster? LabourMaster { get; set; }
 
     public virtual MaterialTransfer? Material { get; set; }

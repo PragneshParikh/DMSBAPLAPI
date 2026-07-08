@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 
-namespace DMS_BAPL_API.Controllers
+namespace DMS_BAPL_Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

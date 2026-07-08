@@ -24,6 +24,12 @@ namespace DMS_BAPL_Data.Services.ChassisBatteryDetailService
             var batteryDetail = new ChassisBatteryDetail
             {
                 ChassisNo = vehicleInward.chasis_no,
+                BatteryOrderNo=1,
+                MotorOrderNo=1,
+                ChargerOrderNo=1,
+                ControllerOrderNo=1,
+                ConverterOrderNo=1,
+                ConverterNo=vehicleInward?.converter,
                 MotorNo = vehicleInward?.motor_no,
                 BatteryNo = vehicleInward.battery_no,
                 ChargerNo = vehicleInward.charger_no,

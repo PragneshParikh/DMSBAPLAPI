@@ -79,6 +79,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     PlasticCover = null,
                     SupervisorName = null,
                     LocationName = null,
+                    IsD2d= invoiceData.IsD2d,
                     DealerCode = invoiceData.DealerCode,
                     LocCode = invoiceData.LocCode,
                     CreatedBy = userId,
@@ -141,6 +142,8 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.LocationName = model.lotInspectedHeaderDetails.locationName;
+                header.IsD2d = model.lotInspectedHeaderDetails.isD2d;
+                header.InwardType= model.lotInspectedHeaderDetails.inwardType;
                 header.IsLotInspected = model.lotInspectedHeaderDetails.IsLotInspected;
 
                 header.UpdatedBy = userId;
@@ -323,7 +326,9 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         PlasticCover = x.PlasticCover,
                         NameSupervisor = x.SupervisorName,
                         LocationName = x.LocationName,
-                        IsLotInspected = x.IsLotInspected
+                        IsLotInspected = x.IsLotInspected,
+                        CreatedDate = x.CreatedDate,
+                        UpdatedDate= x.UpdatedDate
                     })
                     .ToListAsync();
 

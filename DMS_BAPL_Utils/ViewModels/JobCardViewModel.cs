@@ -108,7 +108,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
-        public DateTime UpdatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
     }
     public class JobCardBatteryVM
     {
@@ -299,6 +299,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? PartDesc { get; set; }
         public int? PartQty { get; set; }
         public decimal? PartRate { get; set; }
+        public string? PartHsnCode { get; set; }
+        public decimal? PartMRP { get; set; }
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
@@ -315,6 +317,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LabourCode { get; set; }
         public string? LabourName { get; set; }
         public decimal? LabourRate { get; set; }
+        public string? LabourHsnCode { get; set; }
         public int? CityTier { get; set; }
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }

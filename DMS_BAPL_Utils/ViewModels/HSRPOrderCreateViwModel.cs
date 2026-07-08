@@ -187,5 +187,34 @@ namespace DMS_BAPL_Utils.ViewModels
         public string STATUS { get; set; }
         public string MESSAGE { get; set; }
     }
+
+    public class HSRPFitmentRequest
+    {
+        public  HSRPFitmentRequestData Data {get; set;}
+}
+public class HSRPFitmentRequestData
+{
+    public int VendorId { get; set; }
+    public string DealerCode { get; set; }
+    public string OrderNumber { get; set; }
+    public string RegNumber { get; set; }
+    public string FitmentDate { get; set; }
+    public string VahanResponse { get; set; }
+}
+
+public class HSRPFitmentResponse
+{
+    public bool Valid { get; set; }
+    public string Description { get; set; }
+    public List<HSRPFitmentResponseValue> Value { get; set; }
+}
+
+public class HSRPFitmentResponseValue
+{
+    public string Fitment_Idno { get; set; }
+    public string Msg { get; set; }
+    public string StatusCode { get; set; }
+    public string ResponseStatus { get; set; }
+}
 }
 
