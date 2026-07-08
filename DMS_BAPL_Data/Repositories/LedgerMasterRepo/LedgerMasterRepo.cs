@@ -208,6 +208,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         Pan = LM.Pan,
                         AadharNumber = LM.AadharNumber,
                         MobileNumber = LM.MobileNumber,
+                        AltMobileNumber =LM.AlternateMobileNo,
                         Address = LM.Address,
                         City = LM.City,
                         State = LM.State,
@@ -366,6 +367,34 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                     .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
                     .OrderBy(c => c.LedgerName)
                     .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode,bool? IsD2D)
+        {
+
+            Console.WriteLine($"IsD2D: {IsD2D}");
+            Console.WriteLine($"dealerCode: {dealerCode}");
+
+            try
+            {
+                if (IsD2D == true && !string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.LedgerType != null && x.DealerCode == dealerCode && x.LedgerType.ToLower() == "dealer")
+                    .OrderBy(c => c.LedgerName)
+                    .ToListAsync();
+                }
+                else
+                {
+                    return await _context.LedgerMasters
+                        .AsNoTracking()
+                        .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
+                        .OrderBy(c => c.LedgerName)
+                        .ToListAsync();
+                }
             }
             catch { throw; }
         }

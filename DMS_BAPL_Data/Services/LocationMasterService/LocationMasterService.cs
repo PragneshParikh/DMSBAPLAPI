@@ -121,7 +121,7 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         {
             return await _locationMasterRepo.GetLocationByDealerCode(dealerCode);
         }
-        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string dealerCode)
+        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string? dealerCode)
         {
             return await _locationMasterRepo.GetLocationNameTypewiseListAsync(dealerCode);
         }

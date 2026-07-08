@@ -59,6 +59,8 @@ public partial class LedgerMaster
 
     public virtual ICollection<JobCardCustomer> JobCardCustomers { get; set; } = new List<JobCardCustomer>();
 
+    public virtual ICollection<LotinspectionHeader> LotinspectionHeaders { get; set; } = new List<LotinspectionHeader>();
+
     public virtual ICollection<QuotationHeader> QuotationHeaderCustomerLedgers { get; set; } = new List<QuotationHeader>();
 
     public virtual ICollection<QuotationHeader> QuotationHeaderFinancerLedgers { get; set; } = new List<QuotationHeader>();

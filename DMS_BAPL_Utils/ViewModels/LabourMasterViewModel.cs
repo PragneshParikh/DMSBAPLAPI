@@ -81,6 +81,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LabourDescription { get; set; }
         public string? OemModelName { get; set; }
         public decimal? LabourRate { get; set; }
+        public string? LabourHsnCode { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
         public decimal? Igst { get; set; }

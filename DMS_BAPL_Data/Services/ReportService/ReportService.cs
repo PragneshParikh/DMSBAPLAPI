@@ -361,20 +361,23 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+        // =================================================================
+        // VEHICLE INWARD REPORT
+        // =================================================================
 
-        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter)
+        public async Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter)
         {
             try
             {
-                filter ??= new VehicleSaleBillReportFilterModel();
+                filter ??= new VehicleInwardReportFilterModel();
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                return await _reportRepo.GetVehicleSaleBillOnlyReportAsync(filter);
+                return await _reportRepo.GetVehicleInwardReportAsync(filter);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching vehicle sale bill only report");
+                _logger.LogError(ex, "Error fetching vehicle inward report");
                 throw;
             }
         }
