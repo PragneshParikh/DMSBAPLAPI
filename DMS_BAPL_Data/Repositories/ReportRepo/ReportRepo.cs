@@ -1963,40 +1963,40 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
-        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter)
-        {
-            try
-            {
-                // Step 1: raw joined entities, filters pushed to SQL on real columns.
-                var baseQuery =
-                    from vd in _context.VehicleSaleBillDetails.AsNoTracking()
+        //public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter)
+        //{
+        //    try
+        //    {
+        //        // Step 1: raw joined entities, filters pushed to SQL on real columns.
+        //        var baseQuery =
+        //            from vd in _context.VehicleSaleBillDetails.AsNoTracking()
 
-                    join vh in _context.VehicleSaleBillHeaders.AsNoTracking()
-                        on vd.VehicleSaleBillId equals vh.Id
+        //            join vh in _context.VehicleSaleBillHeaders.AsNoTracking()
+        //                on vd.VehicleSaleBillId equals vh.Id
 
-                    join vi in _context.VehicleInwards.AsNoTracking()
-                        on vd.ChassisNo equals vi.ChasisNo into viJoin
-                    from vi in viJoin.DefaultIfEmpty()
+        //            join vi in _context.VehicleInwards.AsNoTracking()
+        //                on vd.ChassisNo equals vi.ChasisNo into viJoin
+        //            from vi in viJoin.DefaultIfEmpty()
 
-                    join im in _context.ItemMasters.AsNoTracking()
-                        on vd.ItemCode equals im.Itemcode into imJoin
-                    from im in imJoin.DefaultIfEmpty()
+        //            join im in _context.ItemMasters.AsNoTracking()
+        //                on vd.ItemCode equals im.Itemcode into imJoin
+        //            from im in imJoin.DefaultIfEmpty()
 
-                    join clr in _context.ColorMasters.AsNoTracking()
-                        on vi.ColrCode equals clr.Colorcode into clrJoin
-                    from clr in clrJoin.DefaultIfEmpty()
+        //            join clr in _context.ColorMasters.AsNoTracking()
+        //                on vi.ColrCode equals clr.Colorcode into clrJoin
+        //            from clr in clrJoin.DefaultIfEmpty()
 
-                    join dm in _context.DealerMasters.AsNoTracking()
-                        on vh.DealerCode equals dm.Dealercode into dmJoin
-                    from dm in dmJoin.DefaultIfEmpty()
+        //            join dm in _context.DealerMasters.AsNoTracking()
+        //                on vh.DealerCode equals dm.Dealercode into dmJoin
+        //            from dm in dmJoin.DefaultIfEmpty()
 
-                    join cust in _context.LedgerMasters.AsNoTracking()
-                        on vh.LedgerId equals cust.Id into custJoin
-                    from cust in custJoin.DefaultIfEmpty()
+        //            join cust in _context.LedgerMasters.AsNoTracking()
+        //                on vh.LedgerId equals cust.Id into custJoin
+        //            from cust in custJoin.DefaultIfEmpty()
 
-                    join fin in _context.LedgerMasters.AsNoTracking()
-                        on vh.Financier equals fin.Id into finJoin
-                    from fin in finJoin.DefaultIfEmpty()
+        //            join fin in _context.LedgerMasters.AsNoTracking()
+        //                on vh.Financier equals fin.Id into finJoin
+        //            from fin in finJoin.DefaultIfEmpty()
 
         // ═════════════════════════════════════════════════════════════════════
         // VEHICLE INWARD REPORT
