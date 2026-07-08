@@ -35,19 +35,15 @@ public partial class Hsrporder
 
     public string? Hsrpresponse { get; set; }
 
-    public DateTime? CreatedDate { get; set; }
-
-    public string? CreatedBy { get; set; }
-
-    public DateTime? UpdatedDate { get; set; }
-
-    public string? UpdatedBy { get; set; }
-
     public string? DealerCode { get; set; }
 
     public string? InwardStatus { get; set; }
 
     public string? InwardResponse { get; set; }
+
+    public string? DispatchStatus { get; set; }
+
+    public string? DispatchResponse { get; set; }
 
     public string? DispatchNumber { get; set; }
 
@@ -64,6 +60,14 @@ public partial class Hsrporder
     public string? FitmentResponse { get; set; }
 
     public DateTime? FitmentDate { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? CreatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
 
     public virtual LedgerMaster? SupplierLedger { get; set; }
 }
