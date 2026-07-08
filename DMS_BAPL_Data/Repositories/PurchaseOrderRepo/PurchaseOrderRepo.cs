@@ -1,3 +1,4 @@
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
@@ -340,7 +341,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
         }
 
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
+        public async Task<PagedResponse<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
             IQueryable<PurchaseOrder> query = _context.PurchaseOrders
                 .AsNoTracking()
@@ -381,7 +382,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 .ToListAsync();
 
             if (!poList.Any())
-                return new List<PurchaseOrderResponseViewModel>();
+                return new PagedResponse<PurchaseOrderResponseViewModel>();
 
             var poNumbers = poList
                 .Select(x => x.Ponumber)
@@ -454,7 +455,13 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 };
             }).ToList();
 
-            return result;
+            int totalRecords = await query.CountAsync();
+
+            return new PagedResponse<PurchaseOrderResponseViewModel>
+            {
+                Data = result,
+                TotalRecords = totalRecords
+            };
         }
         public async Task<List<PurchaseOrderDetail>> GetPODetails(string poNumber)
         {
