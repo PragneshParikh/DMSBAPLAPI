@@ -3,6 +3,7 @@ using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Crypto.Engines;
 using QuestPDF.Infrastructure;
@@ -1088,10 +1089,70 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return result;
         }
-        public async Task<JobCardHeader?> GetJobCardById(int id)
+        //public async Task<JobCardHeader?> GetJobCardById(int id)
+        //{
+        //    return await _context.JobCardHeaders
+        //        .FirstOrDefaultAsync(x => x.Id == id);
+        //}
+        public async Task<JsonResult?> GetJobCardById(int id)
         {
-            return await _context.JobCardHeaders
-                .FirstOrDefaultAsync(x => x.Id == id);
+            var result = await (from JCH in _context.JobCardHeaders
+
+                                join DM in _context.DealerMasters
+                                    on JCH.DealerCode equals DM.Dealercode
+
+                                join JCC in _context.JobCardCustomers
+                                    on JCH.Id equals JCC.JobCardHeaderId
+
+                                join LM in _context.LedgerMasters
+                                    on JCC.CustomerLedgerId equals LM.Id
+
+                                join S in _context.States
+                                    on DM.State equals S.StateName
+
+                                where JCH.Id == id
+
+                                let taxType = S.StateId == LM.State ? "S" : "O"
+
+                                select new
+                                {
+                                    Id = JCH.Id,
+                                    DealerCode = JCH.DealerCode,
+                                    InvoiceNo = JCH.InvoiceNo,
+                                    Jobtype = JCH.Jobtype,
+                                    Chassisno = JCH.Chassisno,
+                                    Vehiclekms = JCH.Vehiclekms,
+                                    Servicehead = JCH.Servicehead,
+                                    Servicetype = JCH.Servicetype,
+                                    Serviceloc = JCH.Serviceloc,
+                                    Couponno = JCH.Couponno,
+                                    Jobprefix = JCH.Jobprefix,
+                                    JobinDate = JCH.JobinDate,
+                                    JobinTime = JCH.JobinTime,
+                                    JobNo = JCH.JobNo,
+                                    ManualjobNo = JCH.ManualjobNo,
+                                    EstdelDate = JCH.EstdelDate,
+                                    EstdelTime = JCH.EstdelTime,
+                                    JobSource = JCH.JobSource,
+                                    Supervisor = JCH.Supervisor,
+                                    Technician = JCH.Technician,
+                                    Jobestmate = JCH.Jobestmate,
+                                    AirpressureRearTyre = JCH.AirpressureRearTyre,
+                                    AirpressurefrontTyre = JCH.AirpressurefrontTyre,
+                                    Observation = JCH.Observation,
+                                    SupervisorComment = JCH.SupervisorComment,
+                                    IsPdiSuccess = JCH.IsPdiSuccess,
+                                    IsMaterialTransfer = JCH.IsMaterialTransfer,
+                                    CreatedBy = JCH.CreatedBy,
+                                    CreatedDate = JCH.CreatedDate,
+                                    UpdateBy = JCH.UpdateBy,
+                                    UpdatedDate = JCH.UpdatedDate,
+                                    JobStatus = JCH.JobStatus,
+                                    ISSameState = taxType == "S" ? true : false
+                                })
+                                .FirstOrDefaultAsync();
+
+            return new JsonResult(result);
         }
         public async Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId)
         {
@@ -1859,7 +1920,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return data;
 
         }
-        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode,int? jobNo,string? serviceloc,DateTime? fromDate,DateTime? toDate)
+        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -1952,7 +2013,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     item.RepairBillDetails = allDetails
                         // Match the values safely using GetValueOrDefault() to handle the int? structure
                         .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
-                        .Select(d => {
+                        .Select(d =>
+                        {
                             bool isLabour = d.rbd.ItemType == "Labour";
                             bool isPart = d.rbd.ItemType == "Part";
 
@@ -2011,7 +2073,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw new Exception("Error while fetching issue type based job details", ex);
             }
         }
-
         public async Task<bool> GetJobCardStatusById(int id)
         {
             return await _context.RepairBillHeaders

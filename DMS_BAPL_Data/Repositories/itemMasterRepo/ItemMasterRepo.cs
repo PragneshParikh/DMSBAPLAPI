@@ -599,33 +599,121 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         //    catch { throw; }
         //}
 
+        //public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
+        //{
+        //    try
+        //    {
+        //        var result = await (
+        //            from IM in _context.ItemMasters
+        //            join HM in _context.HsncodeMasters
+        //                on IM.Hsncode equals HM.Hsncode
+        //            join PI in _context.PartsInventories
+        //                    .Where(x => x.FinalStockFlag == "Y")
+        //                on IM.Itemcode equals PI.ItemCode into PIGroup
+        //            from PI in PIGroup.DefaultIfEmpty()
+        //            where IM.Grpidno == groupId
+
+        //            //let taxType = "S"
+
+        //            //let taxCode = _context.HsnwiseTaxCodes
+        //            //    .Where(x => x.Hsncode == IM.Hsncode && x.StateFlag == taxType)
+        //            //    .OrderByDescending(x => x.EffectiveDate)
+        //            //    .FirstOrDefault()
+        //            let taxCode = _context.HsnwiseTaxCodes
+        //                .Where(x => x.Hsncode == IM.Hsncode)
+        //                .OrderByDescending(x => x.EffectiveDate)
+        //                .FirstOrDefault()
+
+        //            let cgstPercentage = _context.AggregateTaxCodes
+        //                .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("CGST"))
+        //                .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+        //            let sgstPercentage = _context.AggregateTaxCodes
+        //                .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("SGST"))
+        //                .Sum(x => (decimal?)x.TaxRate) ?? 0
+
+        //            let igstPercentage = _context.AggregateTaxCodes
+        //                .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("IGST"))
+        //                .Sum(x => (decimal?)x.TaxRate) ?? 0
+        //            select new
+        //            {
+        //                IM.Id,
+        //                IM.Itemcode,
+        //                IM.Itemname,
+        //                IM.Itemdesc,
+        //                IM.Hsncode,
+        //                IM.Dlrprice,
+        //                IM.Custprice,
+        //                IM.Grpidno,
+        //                IM.Colorcode,
+        //                BatchClosingQty = PI != null ? PI.BatchClosingQty : 0,
+        //                CgstPercentage = cgstPercentage,
+        //                SgstPercentage = sgstPercentage,
+        //                IgstPercentage = igstPercentage
+        //            })
+        //            .Distinct()
+        //            .ToListAsync();
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
         public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
         {
             try
             {
                 var result = await (
                     from IM in _context.ItemMasters
+
                     join HM in _context.HsncodeMasters
                         on IM.Hsncode equals HM.Hsncode
+
                     join PI in _context.PartsInventories
                             .Where(x => x.FinalStockFlag == "Y")
                         on IM.Itemcode equals PI.ItemCode into PIGroup
+
                     from PI in PIGroup.DefaultIfEmpty()
+
                     where IM.Grpidno == groupId
-                    let taxType = "S"
-                    let taxCode = _context.HsnwiseTaxCodes
-                        .Where(x => x.Hsncode == IM.Hsncode && x.StateFlag == taxType)
+
+                    let stateTaxCode = _context.HsnwiseTaxCodes
+                        .Where(x =>
+                            x.Hsncode == IM.Hsncode &&
+                            x.StateFlag.Trim() == "S")
                         .OrderByDescending(x => x.EffectiveDate)
                         .FirstOrDefault()
+
+                    let otherTaxCode = _context.HsnwiseTaxCodes
+                        .Where(x =>
+                            x.Hsncode == IM.Hsncode &&
+                            x.StateFlag.Trim() == "O")
+                        .OrderByDescending(x => x.EffectiveDate)
+                        .FirstOrDefault()
+
                     let cgstPercentage = _context.AggregateTaxCodes
-                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("CGST"))
+                        .Where(x =>
+                            stateTaxCode != null &&
+                            x.AtaxCode == stateTaxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("CGST"))
                         .Sum(x => (decimal?)x.TaxRate) ?? 0
+
                     let sgstPercentage = _context.AggregateTaxCodes
-                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("SGST"))
+                        .Where(x =>
+                            stateTaxCode != null &&
+                            x.AtaxCode == stateTaxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("SGST"))
                         .Sum(x => (decimal?)x.TaxRate) ?? 0
+
                     let igstPercentage = _context.AggregateTaxCodes
-                        .Where(x => x.AtaxCode == taxCode.AtaxCode && x.TaxCode.StartsWith("IGST"))
+                        .Where(x =>
+                            otherTaxCode != null &&
+                            x.AtaxCode == otherTaxCode.AtaxCode &&
+                            x.TaxCode.StartsWith("IGST"))
                         .Sum(x => (decimal?)x.TaxRate) ?? 0
+
                     select new
                     {
                         IM.Id,
@@ -637,13 +725,22 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         IM.Custprice,
                         IM.Grpidno,
                         IM.Colorcode,
-                        BatchClosingQty = PI != null ? PI.BatchClosingQty : 0,
+
+                        BatchClosingQty = PI != null
+                            ? PI.BatchClosingQty
+                            : 0,
+
                         CgstPercentage = cgstPercentage,
                         SgstPercentage = sgstPercentage,
-                        IgstPercentage = igstPercentage
-                    })
-                    .Distinct()
-                    .ToListAsync();
+                        IgstPercentage = igstPercentage,
+
+                        TotalGSTSameState = cgstPercentage + sgstPercentage,
+                        TotalGSTOtherState = igstPercentage
+                    }
+                )
+                .Distinct()
+                .ToListAsync();
+
                 return result;
             }
             catch

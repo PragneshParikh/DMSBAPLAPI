@@ -292,7 +292,7 @@ namespace DMS_BAPL_Api.Controllers
 
                 var jobCard = await _jobCardRepo.GetJobCardById(Id);
 
-                return Ok(jobCard);
+                return Ok(jobCard.Value);
             }
             catch (Exception ex)
             {
