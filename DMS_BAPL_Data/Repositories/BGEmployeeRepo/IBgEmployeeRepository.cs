@@ -19,6 +19,9 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
 
         Task<int> UpdateEntity(BgEmployeeMaster bgEmployee);
 
+        Task<int> UpdateStatus(int id, bool isActive);
+
+
         Task SaveRoleMappings(int employeeId, List<RoleMappingDto> roleMappings);
         Task<IEnumerable<BgEmployeeRoleMapping>> GetRoleMappings(int employeeId);
 

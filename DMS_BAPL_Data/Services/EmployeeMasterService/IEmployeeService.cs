@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Utils.ViewModels;
 using System;
@@ -17,9 +18,8 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
 
         Task<int> UpdateEmployee(EmployeeMaster employeeMaster);
         Task<EmployeeMaster?> GetEmployeeByEmail(string email);
-        //Task<object?> GetDealerByCode(string dealerCode);
-        //Task<List<object>> GetLocationsByDealer(string dealerCode);
-
         Task<List<EmployeeDesignationWiseViewModel>> GetEmployeesByDesignation(string? dealerCode, string designation);
+        Task<IEnumerable<EmployeeRoleMapping>> GetRoleMappings(int employeeId);
+        Task<byte[]> DownloadEmployeeExcel(string? dealerCode);
     }
 }
