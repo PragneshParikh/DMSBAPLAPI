@@ -45,6 +45,8 @@ public partial class VehicleSaleBillHeader
 
     public string? RefAddress { get; set; }
 
+    public string? RefMobile { get; set; }
+
     public string? RefEmail { get; set; }
 
     public int? RefPoint { get; set; }
@@ -54,6 +56,18 @@ public partial class VehicleSaleBillHeader
     public decimal? TotalAmount { get; set; }
 
     public string? Status { get; set; }
+
+    public string? AccessoryBillNo { get; set; }
+
+    public decimal? AccessoryAmount { get; set; }
+
+    public decimal? NoPlateAmount { get; set; }
+
+    public decimal? Hpamount { get; set; }
+
+    public decimal? HandlingCharges { get; set; }
+
+    public decimal? StateSubsidyAmount { get; set; }
 
     public string? DealerCode { get; set; }
 

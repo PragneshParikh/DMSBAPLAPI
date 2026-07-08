@@ -66,6 +66,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
                 var result = await _repo.CreateWithJobUpdateAsync(header);
+               
                 if (result != 0)
                 {
                     await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
@@ -83,8 +84,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 var data = await _repo.GetVehicleWithMotorDetailsByIdAsync(id);
-                //if (data == null) return null;
-                //return MapToResponse(data);
+                
                 return data;
             }
             catch
@@ -397,6 +397,14 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     CreatedDate = DateTime.Now,
                     CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
                     Status = model.Status,
+                    RefMobile =model.RefMobile,
+                    AccessoryAmount = model.AccessoryAmount,
+                    AccessoryBillNo = model.AccessoryBillNo,
+                    NoPlateAmount = model.NoPlateAmount,
+                    HandlingCharges = model.HandlingCharges,
+                    Hpamount = model.Hpamount,
+                    StateSubsidyAmount = model.StateSubsidyAmount,
+                    
                     DealerCode = model.DealerCode,
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
@@ -479,7 +487,20 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     LedgerId = data.LedgerId,
                     Status = data.Status,
                     DealerCode = data.DealerCode,
-
+                    RefMobile = data.RefMobile,
+                    RefAddress = data.RefAddress,
+                    RefEmail = data.RefEmail,
+                    RefName = data.RefName,
+                    RefPoint = data.RefPoint,
+                    RefRemarks = data.RefRemarks,
+                    TempRegNo = data.TempRegNo,
+                    AccessoryAmount = data.AccessoryAmount,
+                    AccessoryBillNo = data.AccessoryBillNo,
+                    StateSubsidyAmount = data.StateSubsidyAmount,
+                    HandlingCharges = data.HandlingCharges,
+                    Hpamount = data.Hpamount,
+                    NoPlateAmount= data.NoPlateAmount,
+                    
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
                         Id = d.Id,

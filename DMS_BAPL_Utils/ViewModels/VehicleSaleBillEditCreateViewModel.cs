@@ -26,14 +26,25 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? TempRegNo { get; set; }
         public string BookingId { get; set; }
         public string PrintType { get; set; }
-        public string RefName { get; set; }
-
-        public string RefAddress { get; set; }
-        public string RefEmail { get; set; }
-        public int RefPoint { get; set; }
-        public string RefRemarks { get; set; } = null!;
+        public string? RefName { get; set; }
+        public string? RefMobile { get; set; }
+        public string? RefAddress { get; set; }
+        public string? RefEmail { get; set; }
+        public int? RefPoint { get; set; }
+        public string? RefRemarks { get; set; } 
         public decimal TotalAmount { get; set; }
         public string? Status { get; set; }
+        public string? AccessoryBillNo { get; set; }
+
+        public decimal? AccessoryAmount { get; set; }
+
+        public decimal? NoPlateAmount { get; set; }
+
+        public decimal? Hpamount { get; set; }
+
+        public decimal? HandlingCharges { get; set; }
+
+        public decimal? StateSubsidyAmount { get; set; }
         public string? DealerCode { get; set; }
 
         public List<VehicleSaleBillDetailVM> Details { get; set; } = new();

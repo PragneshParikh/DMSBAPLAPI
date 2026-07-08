@@ -30,11 +30,23 @@ namespace DMS_BAPL_Utils.ViewModels
         public string DealerCode { get; set; }
         public string BookingId { get; set; }
         public string PrintType { get; set; }
-        public string RefName { get; set; }
-        public string RefAddress { get; set; }
-        public string RefEmail { get; set; }
+        public string? RefName { get; set; }
+        public string? RefAddress { get; set; }
+        public string? RefEmail { get; set; }
+        public string? RefMobile { get; set; }
         public int? RefPoint { get; set; }
-        public string RefRemarks { get; set; }
+        public string? RefRemarks { get; set; }
+        public string? AccessoryBillNo { get; set; }
+
+        public decimal? AccessoryAmount { get; set; }
+
+        public decimal? NoPlateAmount { get; set; }
+
+        public decimal? Hpamount { get; set; }
+
+        public decimal? HandlingCharges { get; set; }
+
+        public decimal? StateSubsidyAmount { get; set; }
         public string? hsnCode { get; set; }
         public string? motorNo { get; set; }
         public List<SalesConditionViewModel>? TermsAndConditions { get; set; }
