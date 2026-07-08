@@ -1,3 +1,4 @@
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -12,9 +13,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
     {
         Task<bool> CreatePOAsync(PurchaseOrderViewModel model, string userId);
         Task<PurchaseOrderResponseViewModel> GetPOByNumberAsync(string poNumber);
-        Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, [FromQuery] PurchaseOrderSearchViewModel purchaseOrderSearchViewModel);
+        Task<PagedResponse<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, [FromQuery] PurchaseOrderSearchViewModel purchaseOrderSearchViewModel);
         Task<bool> CreatePartsPOAsync(PurchaseOrderViewModel purchaseOrderViewModel);
-        Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
+        //Task<List<PartsPurchaseOrderResponseViewModel>> GetPartsPOListAsync();
         Task<object> ConvertPOToERPJsonAsync(object erpObject);
         Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string dealerCode);
         Task<bool> DeletePOItemsAsync(string poNumber);

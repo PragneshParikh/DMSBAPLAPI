@@ -1,3 +1,4 @@
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
@@ -331,7 +332,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Retrieves all purchase orders.
         /// </summary>
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
+        public async Task<PagedResponse<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
             try
             {
