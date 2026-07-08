@@ -18,6 +18,10 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             _context = context;
         }
 
+        // =====================================================
+        // GET ALL
+        // =====================================================
+
         async Task<IEnumerable<EmployeeMaster>> IEmployeeMasterRepo.Get()
         {
             try
@@ -27,29 +31,25 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             catch { throw; }
         }
 
+        // =====================================================
+        // GET BY ID — plain lookup; role-mapping projection now
+        // happens at the controller via GetRoleMappings() below.
+        // =====================================================
+
         async Task<EmployeeMaster?> IEmployeeMasterRepo.GetEmployeeById(int id)
         {
             try
             {
-                var employee = await _context.EmployeeMasters
+                return await _context.EmployeeMasters
                     .FirstOrDefaultAsync(x => x.Id == id);
-
-                if (employee != null)
-                {
-                    var maps = await _context.EmployeeRoleMappings
-                          .Where(m => m.EmployeeId == employee.Id).ToListAsync();
-
-                    //employee.SelectedDepartments = maps.Select(m => m.Category).Distinct().ToList();
-                    //employee.Roles = maps.Select(m => m.RoleName).Distinct().ToList();
-                    //employee.RoleMappings = maps
-                    //    .Select(m => new EmployeeRoleMappingItem { Category = m.Category, RoleName = m.RoleName })
-                    //    .ToList();
-                }
-
-                return employee;
             }
             catch { throw; }
         }
+
+        // =====================================================
+        // CREATE
+        // =====================================================
+
         async Task<int> IEmployeeMasterRepo.CreateNewUser(EmployeeMaster employeeMaster)
         {
             try
@@ -58,12 +58,17 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 var result = await _context.SaveChangesAsync();   // employeeMaster.Id is now populated
 
                 // save category/role selections
-                await SaveEmployeeRoleMappings(employeeMaster);
+                await SaveEmployeeRoleMappings(employeeMaster.Id, employeeMaster.RoleMappings);
 
                 return result;
             }
             catch { throw; }
         }
+
+        // =====================================================
+        // UPDATE
+        // =====================================================
+
         async Task<int> IEmployeeMasterRepo.UpdateEmployee(EmployeeMaster employeeMaster)
         {
             try
@@ -99,76 +104,72 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 var result = await _context.SaveChangesAsync();
 
                 // refresh category/role selections (use the incoming payload's lists)
-                employeeMaster.Id = existingEmployee.Id;
-                await SaveEmployeeRoleMappings(employeeMaster);
+                await SaveEmployeeRoleMappings(existingEmployee.Id, employeeMaster.RoleMappings);
 
                 return result;
             }
             catch { throw; }
         }
 
-        private async Task SaveEmployeeRoleMappings(EmployeeMaster employeeMaster)
+        // =====================================================
+        // SAVE ROLE MAPPINGS — delete-then-insert, matches the
+        // BgEmployeeMasterRepo.SaveRoleMappings pattern.
+        // FIX: insert block used to be commented out — checked
+        // categories/roles were silently discarded on every save.
+        // =====================================================
+
+        private async Task SaveEmployeeRoleMappings(int employeeId, List<RoleMappingDto>? roleMappings)
         {
-            // remove existing mappings for this employee
             var old = _context.EmployeeRoleMappings
-                .Where(m => m.EmployeeId == employeeMaster.Id);
+                .Where(m => m.EmployeeId == employeeId);
             _context.EmployeeRoleMappings.RemoveRange(old);
 
-            // insert exactly the pairs that were checked
-            //if (employeeMaster.RoleMappings != null)
-            //{
-            //    foreach (var pair in employeeMaster.RoleMappings)
-            //    {
-            //        _context.EmployeeRoleMappings.Add(new EmployeeRoleMapping
-            //        {
-            //            EmployeeId = employeeMaster.Id,
-            //            Category = pair.Category,
-            //            RoleName = pair.RoleName,
-            //            CreatedDate = DateTime.Now
-            //        });
-            //    }
-            //}
+            if (roleMappings?.Any() == true)
+            {
+                var newRows = roleMappings
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Category) && !string.IsNullOrWhiteSpace(m.RoleName))
+                    .Select(m => new EmployeeRoleMapping
+                    {
+                        EmployeeId = employeeId,
+                        Category = m.Category.Trim(),
+                        RoleName = m.RoleName.Trim(),
+                        CreatedDate = DateTime.Now
+                    });
+
+                await _context.EmployeeRoleMappings.AddRangeAsync(newRows);
+            }
 
             await _context.SaveChangesAsync();
         }
-        //async Task<object?> IEmployeeMasterRepo.GetDealerByCode(string dealerCode)
-        //{
-        //    try
-        //    {
-        //        return await _context.DealerMasters
-        //            .AsNoTracking()
-        //            .Where(x => x.Dealercode == dealerCode)
-        //            .Select(x => new
-        //            {
-        //                dealerCode = x.Dealercode,
-        //                dealerName = x.Compname,
-        //                isActive = x.IsActive
-        //            })
-        //            .FirstOrDefaultAsync();
-        //    }
-        //    catch { throw; }
-        //}
 
-        //async Task<List<object>> IEmployeeMasterRepo.GetLocationsByDealer(string dealerCode)
-        //{
-        //    try
-        //    {
-        //        return await _context.LocationMasters
-        //            .AsNoTracking()
-        //            .Where(x => x.Dealercode == dealerCode)  
-        //            .Select(x => new
-        //            {
-        //                locCode = x.Loccode,
-        //                locName = x.Locname
-        //            })
-        //            .ToListAsync<object>();
+        // =====================================================
+        // GET ROLE MAPPINGS — required by IEmployeeMasterRepo.
+        // This is the method that was missing, causing the
+        // "does not implement interface member" error.
+        // =====================================================
+
+        async Task<IEnumerable<EmployeeRoleMapping>> IEmployeeMasterRepo.GetRoleMappings(int employeeId)
+        {
+            try
+            {
+                return await _context.EmployeeRoleMappings
+                    .Where(m => m.EmployeeId == employeeId)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        // =====================================================
+        // GET EMPLOYEES BY DESIGNATION
+        // =====================================================
+
         async Task<List<EmployeeDesignationWiseViewModel>> IEmployeeMasterRepo.GetEmployeesByDesignation(string? dealerCode, string designation)
         {
             try
             {
                 var result = await _context.EmployeeMasters
                     .Where(e => e.DealerCode == dealerCode && e.Designation.ToLower() == designation.ToLower() && e.IsActive)
-                    .Select(e=> new EmployeeDesignationWiseViewModel
+                    .Select(e => new EmployeeDesignationWiseViewModel
                     {
                         EmployeeCode = e.EmployeeCode,
                         Designation = e.Designation,
@@ -183,6 +184,10 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             }
             catch { throw; }
         }
+
+        // =====================================================
+        // GET BY EMAIL
+        // =====================================================
 
         async Task<EmployeeMaster?> IEmployeeMasterRepo.GetEmployeeByEmail(string email)
         {

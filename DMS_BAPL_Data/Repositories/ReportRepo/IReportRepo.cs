@@ -76,6 +76,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         Task<CounterBillPrintViewModel?> GetCounterBillPrintById(int id);
 
+        Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter);
 
 
 

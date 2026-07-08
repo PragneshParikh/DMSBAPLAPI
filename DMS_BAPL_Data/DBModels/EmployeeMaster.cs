@@ -1,5 +1,7 @@
-﻿using System;
+﻿using DMS_BAPL_Utils.ViewModels;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DMS_BAPL_Data.DBModels;
 
@@ -54,6 +56,12 @@ public partial class EmployeeMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    [NotMapped]
+    public bool CreateLogin { get; set; }
+
+    [NotMapped]
+    public List<RoleMappingDto>? RoleMappings { get; set; }
 
     public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
 }

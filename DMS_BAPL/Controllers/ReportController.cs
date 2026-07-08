@@ -668,5 +668,42 @@ namespace DMS_BAPL_Api.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("vehicle-sale-bill-only")]
+        [ProducesResponseType(typeof(VehicleSaleBillReportResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetVehicleSaleBillOnlyReport([FromBody] VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Vehicle Sale Bill Only Report API called");
+                var result = await _reportService.GetVehicleSaleBillOnlyReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale bill only report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

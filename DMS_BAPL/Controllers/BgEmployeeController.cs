@@ -2,6 +2,7 @@
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_API.Controllers
@@ -55,7 +56,6 @@ namespace DMS_BAPL_API.Controllers
 
                 var response = new
                 {
-                    // spread all existing employee fields
                     result.Id,
                     result.EmployeeCode,
                     result.FirstName,
@@ -85,7 +85,6 @@ namespace DMS_BAPL_API.Controllers
                     result.UpdatedBy,
                     result.UpdatedDate,
 
-                    // NEW
                     selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
                     roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
                 };
@@ -109,7 +108,39 @@ namespace DMS_BAPL_API.Controllers
             try
             {
                 var result = await _service.Create(model);
-                return Ok(result);
+
+                var response = new
+                {
+                    result.Id,
+                    result.EmployeeCode,
+                    result.FirstName,
+                    result.LastName,
+                    result.Gender,
+                    result.Mobile,
+                    result.State,
+                    result.City,
+                    result.Pincode,
+                    result.DateOfBirth,
+                    result.DateOfJoin,
+                    result.EffectiveDate,
+                    result.ReportingTo,
+                    result.IsActive,
+                    result.Department,
+                    result.ProfileId,
+                    result.EmailId,
+                    result.Email,
+                    result.MappedZones,
+                    result.MappedZoneIds,
+                    result.ProfileImage,
+                    result.DealerCode,
+                    result.LocationCode,
+                    result.CreatedBy,
+                    result.CreatedDate,
+                    result.UpdatedBy,
+                    result.UpdatedDate
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -134,6 +165,35 @@ namespace DMS_BAPL_API.Controllers
                     return NotFound(new { message = $"Employee with ID {id} not found." });
 
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // =====================================================
+        // TOGGLE STATUS — RESTORED. Was missing from this file
+        // entirely, which is why PATCH ToggleStatus/{id} 404'd.
+        // Only touches IsActive — see BgEmployeeMasterRepo.UpdateStatus.
+        // =====================================================
+
+        public class ToggleStatusDto
+        {
+            public bool IsActive { get; set; }
+        }
+
+        [HttpPatch("ToggleStatus/{id}")]
+        public async Task<IActionResult> ToggleStatus(int id, [FromBody] ToggleStatusDto dto)
+        {
+            try
+            {
+                var result = await _service.UpdateStatus(id, dto.IsActive);
+
+                if (result == 0)
+                    return NotFound(new { message = $"Employee with ID {id} not found." });
+
+                return Ok(new { message = "Status updated successfully." });
             }
             catch (Exception ex)
             {
@@ -185,6 +245,31 @@ namespace DMS_BAPL_API.Controllers
             {
                 var result = await _service.GetEmployeeListView();
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // =====================================================
+        // DOWNLOAD — RESTORED. Was missing from this file entirely,
+        // which is why GET Download 404'd.
+        // GET api/BgEmployee/Download
+        // =====================================================
+
+        [HttpGet("Download")]
+        public async Task<IActionResult> Download()
+        {
+            try
+            {
+                var file = await _service.DownloadBgEmployeeExcel();
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "BgEmployeeList.xlsx"
+                );
             }
             catch (Exception ex)
             {

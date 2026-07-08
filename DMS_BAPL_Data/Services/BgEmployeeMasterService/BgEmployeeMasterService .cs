@@ -2,9 +2,12 @@
 using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,8 +17,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
     public class BgEmployeeMasterService : IBgEmployeeMasterService
     {
         private readonly IBgEmployeeMasterRepo _repo;
-        private readonly UserManager<ApplicationUser> _userManager;  // NEW
-
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public BgEmployeeMasterService(IBgEmployeeMasterRepo repo, UserManager<ApplicationUser> userManager)
         {
@@ -23,35 +25,17 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             _userManager = userManager;
         }
 
-        // =====================================================
-        // GET ALL
-        // =====================================================
-
         public async Task<IEnumerable<BgEmployeeMaster>> Get()
         {
-            try
-            {
-                return await _repo.Get();
-            }
+            try { return await _repo.Get(); }
             catch { throw; }
         }
-
-        // =====================================================
-        // GET BY ID
-        // =====================================================
 
         public async Task<BgEmployeeMaster?> GetById(int id)
         {
-            try
-            {
-                return await _repo.GetById(id);
-            }
+            try { return await _repo.GetById(id); }
             catch { throw; }
         }
-
-        // =====================================================
-        // CREATE
-        // ====================================================
 
         public async Task<BgEmployeeMaster> Create(BgEmployeeViewModel model)
         {
@@ -63,7 +47,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 if (existingEmployee != null)
                     throw new InvalidOperationException("An employee with this email already exists.");
 
-                // ── STEP 1: strip these dealer codes from any other BG employee ──
                 await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
 
                 var entity = MapToEntity(model);
@@ -74,11 +57,9 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
                 var savedEmployee = await _repo.Create(entity);
 
-                // ── NEW: persist category/role mappings ──────────────────────
                 if (model.RoleMappings?.Any() == true)
                     await _repo.SaveRoleMappings(savedEmployee.Id, model.RoleMappings);
 
-                // ── login creation (unchanged) ────────────────────────────────
                 if (!string.IsNullOrWhiteSpace(savedEmployee.EmailId))
                 {
                     try
@@ -113,16 +94,10 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             catch { throw; }
         }
 
-
-        // =====================================================
-        // UPDATE
-        // =====================================================
-
         public async Task<int> Update(BgEmployeeViewModel model)
         {
             try
             {
-                // ── STEP 1: strip these dealer codes from any OTHER BG employee ─
                 await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: model.Id);
 
                 var entity = MapToEntity(model);
@@ -131,9 +106,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
                 var result = await _repo.Update(entity);
 
-                // ── NEW: clear + re-insert category/role mappings ────────────
-                // Runs regardless of createLogin state, so unchecking "Create Login"
-                // (which sends an empty RoleMappings list) correctly clears old roles too.
                 await _repo.SaveRoleMappings(model.Id, model.RoleMappings ?? new List<RoleMappingDto>());
 
                 return result;
@@ -141,39 +113,21 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             catch { throw; }
         }
 
+        // =====================================================
+        // UPDATE STATUS ONLY — NEW. Straight passthrough; no role
+        // mapping or entity mapping involved at all.
+        // =====================================================
 
-        // =====================================================
-        // DELETE
-        // =====================================================
+        public async Task<int> UpdateStatus(int id, bool isActive)
+            => await _repo.UpdateStatus(id, isActive);
 
         public async Task<int> Delete(int id)
         {
-            try
-            {
-                return await _repo.Delete(id);
-            }
+            try { return await _repo.Delete(id); }
             catch { throw; }
         }
 
-        // =====================================================
-        // GET BY EMAIL
-        // =====================================================
-
-        //public async Task<BgEmployeeMaster?> GetByEmail(string email)
-        //{
-        //    try
-        //    {
-        //        return await _repo.GetByEmail(email);
-        //    }
-        //    catch { throw; }
-        //}
-
-
         public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
-
-        // =====================================================
-        // PRIVATE — ViewModel → Entity
-        // =====================================================
 
         private static BgEmployeeMaster MapToEntity(BgEmployeeViewModel model)
         {
@@ -198,7 +152,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 EmailId = model.EmailId,
                 Email = model.Email,
                 Password = model.Password,
-                //Zones = model.Zones,
                 MappedZones = model.MappedZones,
                 MappedZoneIds = model.MappedZoneIds,
                 ProfileImage = model.ProfileImage,
@@ -215,7 +168,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         {
             if (string.IsNullOrWhiteSpace(dealerCodesCsv)) return;
 
-            // the incoming dealer codes that need to become exclusive to this employee
             var incomingCodes = dealerCodesCsv
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(c => c.Trim())
@@ -224,7 +176,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
             if (!incomingCodes.Any()) return;
 
-            // get ALL active BG employees except the one being saved
             var others = (await _repo.Get())
                 .Where(e => e.IsActive
                          && e.Id != excludeEmployeeId
@@ -233,18 +184,15 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
             foreach (var other in others)
             {
-                // split this employee's current dealer codes
                 var existingCodes = (other.DealerCode ?? "")
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(c => c.Trim())
                     .Where(c => !string.IsNullOrEmpty(c))
                     .ToList();
 
-                // check if any of their codes overlap with the incoming codes
                 var hasConflict = existingCodes.Any(c => incomingCodes.Contains(c));
                 if (!hasConflict) continue;
 
-                // remove only the conflicting codes, keep the rest
                 var remaining = existingCodes
                     .Where(c => !incomingCodes.Contains(c))
                     .ToList();
@@ -257,14 +205,86 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             }
         }
 
-        // BgEmployeeMasterService.cs
         public Task<IEnumerable<BgEmployeeRoleMapping>> GetRoleMappings(int employeeId)
             => _repo.GetRoleMappings(employeeId);
-        public Task<IEnumerable<AssignedDealerInfo>>GetAssignedDealerCodes(int excludeEmployeeId)
+
+        public Task<IEnumerable<AssignedDealerInfo>> GetAssignedDealerCodes(int excludeEmployeeId)
             => _repo.GetAssignedDealerCodes(excludeEmployeeId);
 
         public Task<IEnumerable<BgEmployeeListItemViewModel>> GetEmployeeListView()
             => _repo.GetEmployeeListView();
+
+        // =====================================================
+        // EXCEL EXPORT — NEW. Uses the same already-resolved
+        // list-view data the grid displays (dealer names, zones,
+        // job roles, reporting-to names — not raw ids), same
+        // OpenXML approach as DealerMasterController/EmployeeController.
+        // =====================================================
+
+        public async Task<byte[]> DownloadBgEmployeeExcel()
+        {
+            var employees = (await _repo.GetEmployeeListView()).ToList();
+
+            using var stream = new MemoryStream();
+
+            using (var document = SpreadsheetDocument.Create(stream, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Workbook();
+
+                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new SheetData();
+                worksheetPart.Worksheet = new Worksheet(sheetData);
+
+                var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                sheets.Append(new Sheet
+                {
+                    Id = workbookPart.GetIdOfPart(worksheetPart),
+                    SheetId = 1,
+                    Name = "BgEmployees"
+                });
+
+                var headerRow = new Row();
+                string[] headers =
+                {
+                    "Employee Code", "Employee Name", "Dealer Code", "Dealer Name",
+                    "Zone", "Job Roles", "Reporting To", "Created By",
+                    "Created On", "Updated On", "Status"
+                };
+                foreach (var h in headers)
+                    headerRow.Append(CreateTextCell(h));
+                sheetData.Append(headerRow);
+
+                foreach (var e in employees)
+                {
+                    var row = new Row();
+                    row.Append(CreateTextCell(e.EmployeeCode));
+                    row.Append(CreateTextCell(e.EmployeeName));
+                    row.Append(CreateTextCell(e.DealerCode));
+                    row.Append(CreateTextCell(e.DealerName));
+                    row.Append(CreateTextCell(e.Zone));
+                    row.Append(CreateTextCell(e.JobRoles));
+                    row.Append(CreateTextCell(e.ReportingTo));
+                    row.Append(CreateTextCell(e.CreatedBy));
+                    row.Append(CreateTextCell(e.CreatedDate.ToString("yyyy-MM-dd")));
+                    row.Append(CreateTextCell(e.UpdatedDate?.ToString("yyyy-MM-dd") ?? ""));
+                    row.Append(CreateTextCell(e.IsActive ? "Active" : "Inactive"));
+                    sheetData.Append(row);
+                }
+
+                workbookPart.Workbook.Save();
+            }
+
+            return stream.ToArray();
+        }
+
+        private static Cell CreateTextCell(string? value)
+        {
+            return new Cell
+            {
+                DataType = CellValues.String,
+                CellValue = new CellValue(value ?? string.Empty)
+            };
+        }
     }
 }
-
