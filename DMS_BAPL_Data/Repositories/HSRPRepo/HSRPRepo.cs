@@ -160,7 +160,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         .ToList();
                 }
 
-                return result.ToList();
+                return result.OrderByDescending(i=>i.InvoiceDate).ToList();
 
             }
             catch

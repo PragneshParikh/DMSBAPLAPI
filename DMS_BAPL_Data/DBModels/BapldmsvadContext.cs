@@ -3770,6 +3770,8 @@ public partial class BapldmsvadContext : DbContext
 
             entity.HasIndex(e => e.SaleBillNo, "UQ__VehicleS__591B9B95AB63AB2D").IsUnique();
 
+            entity.Property(e => e.AccessoryAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.AccessoryBillNo).HasMaxLength(50);
             entity.Property(e => e.BillFrom).HasMaxLength(50);
             entity.Property(e => e.BillingName).HasMaxLength(150);
             entity.Property(e => e.BookingId).HasMaxLength(50);
@@ -3783,13 +3785,19 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.DealerCode).HasMaxLength(50);
+            entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Hpamount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("HPAmount");
             entity.Property(e => e.IsD2d).HasColumnName("IsD2D");
             entity.Property(e => e.Location).HasMaxLength(100);
+            entity.Property(e => e.NoPlateAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PrintType)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.RefAddress).HasMaxLength(255);
             entity.Property(e => e.RefEmail).HasMaxLength(150);
+            entity.Property(e => e.RefMobile).HasMaxLength(15);
             entity.Property(e => e.RefName).HasMaxLength(150);
             entity.Property(e => e.RefRemarks).HasMaxLength(255);
             entity.Property(e => e.SaleBillNo).HasMaxLength(50);
@@ -3800,6 +3808,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.SalesExecutive).HasMaxLength(100);
+            entity.Property(e => e.StateSubsidyAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false);
