@@ -208,6 +208,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         Pan = LM.Pan,
                         AadharNumber = LM.AadharNumber,
                         MobileNumber = LM.MobileNumber,
+                        AltMobileNumber =LM.AlternateMobileNo,
                         Address = LM.Address,
                         City = LM.City,
                         State = LM.State,

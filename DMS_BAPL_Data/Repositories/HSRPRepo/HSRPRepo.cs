@@ -91,7 +91,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
 
                     }
                     ).ToListAsync();
-                return data;
+                return data.OrderByDescending(i=>i.SaleDate).ToList();
             }
             catch
             {
@@ -160,7 +160,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         .ToList();
                 }
 
-                return result.ToList();
+                return result.OrderByDescending(i=>i.OrderDate).ToList();
 
             }
             catch
@@ -253,6 +253,16 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                     order.Hsrpstatus = responseItem?.STATUS == "1" ? "Success" : "Failed";
 
                     order.Hsrpresponse = responseItem?.MESSAGE ?? "No response received";
+                    var isSuccess = responseItem?.STATUS == "1";
+                    if (isSuccess)
+                    {
+                        var vehicle = await _context.VehicleSaleBillDetails.FirstOrDefaultAsync(v => v.ChassisNo == order.ChassisNo);
+
+                        if (vehicle != null)
+                        {
+                            vehicle.Hsrpstatus = "Success";
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -375,6 +385,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                         DealerCode = o.DealerCode,
                                         InwardStatus = o.InwardStatus,
                                         InwardResponse = o.InwardResponse,
+                                        RegNo = o.RegNo,
                                         //IsFrontPlate =ho.IsFrontPlate,
                                         //IsRearPlate =ho.IsRearPlate,
 
@@ -433,9 +444,11 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                     {
                                         id = o.Id,
                                         ChassisNo = o.ChassisNo,
+                                        RegNo =o.RegNo,
                                         InvoiceDate = inv.CreatedDate,
                                         InvoiceNo = o.InvoiceNo,
                                         CustomerName = led.LedgerName,
+                                        CustomerMobile=led.MobileNumber,
                                         OrderDate = o.OrderDate,
                                         OrderNo = o.OrderNo,
                                         CustomerLedgerId = o.CustomerLedgerId,
@@ -472,7 +485,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                   on o.CustomerLedgerId equals cus.Id into customerDetails
                                   from cus in customerDetails.DefaultIfEmpty()
 
-                                  where (o.InwardStatus == null || o.InwardStatus.ToLower() == "pending") && (o.InwardResponse.ToLower() != "success")
+                                  where (o.InwardStatus == null || o.InwardStatus.ToLower() == "pending" || o.InwardStatus.ToLower() == "") && (o.InwardResponse.ToLower() != "success")
 
                                   select new HSRPInward
                                   {
@@ -489,6 +502,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                       IsRearPlate = o.IsRearPlate,
                                       RegNo = o.RegNo,
                                       CustomerName = cus.LedgerName,
+                                      CustomerNumber = cus.MobileNumber,
                                       SupplierLedgerId = o.SupplierLedgerId,
                                       SupplierName = led.LedgerName,
                                       InwardResponse = o.InwardResponse,
@@ -766,8 +780,8 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                 order.FrontLasercode = item.FrontLaserCode;
                 order.Rearlasercode = item.RearLaserCode;
 
-                order.InwardStatus = "Dispatched";
-                order.InwardResponse = "Dispatch Received";
+                order.DispatchStatus = "Dispatched";
+                order.DispatchResponse = "Dispatch Received";
             }
 
             await _context.SaveChangesAsync();

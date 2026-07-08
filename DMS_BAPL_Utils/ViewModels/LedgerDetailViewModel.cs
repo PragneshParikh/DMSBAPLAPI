@@ -23,6 +23,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? AadharNumber { get; set; }
 
         public string? MobileNumber { get; set; }
+        public string? AltMobileNumber { get; set; }
 
         public string? Address { get; set; }
 

@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -25,12 +26,34 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         // GET ALL EMPLOYEES
+        // FIX: previously returned every employee regardless of who was
+        // asking. Now scoped to the caller's own DealerCode (already
+        // embedded in the JWT for both Dealer and Employee logins) unless
+        // the caller is SuperAdmin. Fails closed — no dealer context on the
+        // token means an empty list, never "show everyone" by default.
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get()
         {
             try
             {
                 var users = await _employeeService.Get();
+
+                if (!User.IsInRole("SuperAdmin"))
+                {
+                    var callerDealerCode = User.FindFirst("DealerCode")?.Value;
+
+                    if (string.IsNullOrWhiteSpace(callerDealerCode))
+                    {
+                        // No dealer context on this token (e.g. a BgEmployee
+                        // login, which spans multiple dealers and isn't
+                        // handled by this single-DealerCode filter yet).
+                        // Fail closed rather than exposing every dealer's data.
+                        return Ok(Enumerable.Empty<EmployeeMaster>());
+                    }
+
+                    users = users.Where(u =>
+                        string.Equals(u.DealerCode?.Trim(), callerDealerCode.Trim(), StringComparison.OrdinalIgnoreCase));
+                }
 
                 return Ok(users);
             }
@@ -43,14 +66,64 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         // GET EMPLOYEE BY ID
+        // FIX: also scoped now, so a dealer can't bypass the list filter by
+        // guessing/hitting another dealer's employee id directly.
         [HttpGet("GetById/{Id}")]
-        public async Task<ActionResult<EmployeeMaster?>> GetEmployeeById(int Id)
+        public async Task<ActionResult> GetEmployeeById(int Id)
         {
             try
             {
                 var user = await _employeeService.GetEmployeeById(Id);
 
-                return Ok(user);
+                if (user == null)
+                    return NotFound(new { message = $"Employee with ID {Id} not found." });
+
+                if (!User.IsInRole("SuperAdmin"))
+                {
+                    var callerDealerCode = User.FindFirst("DealerCode")?.Value;
+
+                    if (string.IsNullOrWhiteSpace(callerDealerCode) ||
+                        !string.Equals(user.DealerCode?.Trim(), callerDealerCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Forbid();
+                    }
+                }
+
+                var mappings = await _employeeService.GetRoleMappings(Id);
+
+                var response = new
+                {
+                    user.Id,
+                    user.EmployeeCode,
+                    user.FirstName,
+                    user.LastName,
+                    user.Gender,
+                    user.Mobile,
+                    user.EmailId,
+                    user.Password,
+                    user.Address,
+                    user.State,
+                    user.City,
+                    user.Pincode,
+                    user.DateOfJoin,
+                    user.Designation,
+                    user.Department,
+                    user.DealerCode,
+                    user.LocationCode,
+                    user.ProfileImage,
+                    user.Supervisor,
+                    user.IsActive,
+                    user.Notes,
+                    user.CreatedBy,
+                    user.CreatedDate,
+                    user.UpdatedBy,
+                    user.UpdatedDate,
+
+                    selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
+                    roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -66,14 +139,12 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                // NEW — normalize email before saving anywhere
                 if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     employeeMaster.EmailId = employeeMaster.EmailId.Trim().ToLowerInvariant();
 
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
-                // FIX — this call was commented out, which is why no login was ever created
-                //if (!(!employeeMaster.CreateLogin || string.IsNullOrWhiteSpace(employeeMaster.EmailId)))
+                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
@@ -90,7 +161,6 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                // NEW — same normalization on update
                 if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     employeeMaster.EmailId = employeeMaster.EmailId.Trim().ToLowerInvariant();
 
@@ -99,9 +169,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == 0)
                     return NotFound("Employee Not Found");
 
-                // NEW — also ensure/sync login on update, in case CreateLogin was toggled on
-                // after the employee already existed, or password changed
-                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Updated Successfully" });
@@ -113,32 +181,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-
-        // GET DEALER INFO BY CODE
-        //[HttpGet("GetDealerByCode/{dealerCode}")]
-        //public async Task<ActionResult> GetDealerByCode(string dealerCode)
-        //{
-        //    try
-        //    {
-        //        var dealer = await _employeeService.GetDealerByCode(dealerCode);
-        //        if (dealer == null) return NotFound("Dealer Not Found");
-        //        return Ok(dealer);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex.Message);
-        //        return BadRequest(ex.Message);
-        //    }
-        //}
-
-        // GET DEALER LOCATIONS
-        //[HttpGet("GetLocationsByDealer/{dealerCode}")]
-        //public async Task<ActionResult> GetLocationsByDealer(string dealerCode)
-        //{
-        //    try
-        //    {
-        //        var locations = await _employeeService.GetLocationsByDealer(dealerCode);
-        //        return Ok(locations);
         [HttpGet("employeeByDesignation")]
         public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get(string? dealerCode, string designation)
         {
@@ -152,6 +194,45 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex.Message);
 
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Downloads the employee list as an Excel file. If dealerCode is
+        /// supplied, exports only that dealer's employees — otherwise exports
+        /// everyone. FIX: non-SuperAdmin callers can no longer pass an
+        /// arbitrary dealerCode — their own DealerCode (from the token) is
+        /// enforced instead, closing the same gap as Get()/GetEmployeeById().
+        /// </summary>
+        [HttpGet("download")]
+        public async Task<IActionResult> Download([FromQuery] string? dealerCode = null)
+        {
+            try
+            {
+                if (!User.IsInRole("SuperAdmin"))
+                {
+                    dealerCode = User.FindFirst("DealerCode")?.Value;
+
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Forbid();
+                }
+
+                var file = await _employeeService.DownloadEmployeeExcel(dealerCode);
+
+                var fileName = string.IsNullOrWhiteSpace(dealerCode)
+                    ? "EmployeeList_All.xlsx"
+                    : $"EmployeeList_{dealerCode}.xlsx";
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    fileName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
                 return BadRequest(ex.Message);
             }
         }
@@ -172,8 +253,6 @@ namespace DMS_BAPL_Api.Controllers
                     EmailConfirmed = true
                 };
 
-                // CreateAsync normalizes UserName/Email internally — NormalizedUserName
-                // and NormalizedEmail are populated automatically.
                 var pwd = string.IsNullOrWhiteSpace(emp.Password) ? "Temp@123" : emp.Password;
                 var res = await _userManager.CreateAsync(user, pwd);
 

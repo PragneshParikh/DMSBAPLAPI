@@ -109,6 +109,32 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
+        // UPDATE STATUS ONLY — NEW.
+        // Deliberately touches nothing but IsActive/UpdatedBy/UpdatedDate.
+        // Used by the list page's status toggle, which never has (and
+        // shouldn't need) the full employee record on hand.
+        // =====================================================
+
+        async Task<int> IBgEmployeeMasterRepo.UpdateStatus(int id, bool isActive)
+        {
+            try
+            {
+                var existing = await _context.BgEmployeeMasters
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (existing == null)
+                    return 0;
+
+                existing.IsActive = isActive;
+                existing.UpdatedBy = "admin";
+                existing.UpdatedDate = DateTime.Now;
+
+                return await _context.SaveChangesAsync();
+            }
+            catch { throw; }
+        }
+
+        // =====================================================
         // DELETE
         // =====================================================
 
@@ -129,7 +155,7 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
-        // GET BY EMAIL — string parameter, matches interface exactly
+        // GET BY EMAIL
         // =====================================================
 
         async Task<BgEmployeeMaster?> IBgEmployeeMasterRepo.GetByEmail(string email)
@@ -146,7 +172,6 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
 
         async Task<IEnumerable<AssignedDealerInfo>> IBgEmployeeMasterRepo.GetAssignedDealerCodes(int excludeEmployeeId)
         {
-            // Pull all active employees except the one being edited
             var rows = await _context.BgEmployeeMasters
                 .Where(e => e.IsActive
                          && !string.IsNullOrWhiteSpace(e.DealerCode)
@@ -157,11 +182,10 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                     e.EmployeeCode,
                     e.FirstName,
                     e.LastName,
-                    e.DealerCode         
+                    e.DealerCode
                 })
                 .ToListAsync();
 
-            // Flatten CSV into one row per dealer code
             return rows.SelectMany(e =>
                 (e.DealerCode ?? "")
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -212,7 +236,7 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                             BgEmployeeId = employeeId,
                             Category = m.Category.Trim(),
                             RoleName = m.RoleName.Trim(),
-                            CreatedDate = DateTime.Now,   // ← FIX: explicit value, never default(DateTime)
+                            CreatedDate = DateTime.Now,
                             CreatedBy = "system"
                         });
 
@@ -241,7 +265,6 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
             {
                 var employees = await _context.BgEmployeeMasters.ToListAsync();
 
-                // Dealer code -> dealer name lookup
                 var dealers = await _context.DealerMasters
                     .Select(d => new { d.Dealercode, d.Compname })
                     .ToListAsync();
@@ -251,13 +274,11 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                     .GroupBy(d => d.Dealercode.Trim(), StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(g => g.Key, g => g.First().Compname, StringComparer.OrdinalIgnoreCase);
 
-                // Employee Id -> Role names (comma joined)
                 var roleMappings = await _context.BgEmployeeRoleMappings.ToListAsync();
                 var roleMap = roleMappings
                     .GroupBy(r => r.BgEmployeeId)
                     .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.RoleName).Distinct()));
 
-                // Employee Id -> Full name, for resolving "Reporting To"
                 var employeeNameMap = employees
                     .ToDictionary(e => e.Id, e => $"{e.FirstName} {e.LastName}".Trim());
 

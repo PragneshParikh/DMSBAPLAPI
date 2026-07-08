@@ -14,6 +14,10 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         Task<BgEmployeeMaster?> GetById(int id);
         Task<BgEmployeeMaster> Create(BgEmployeeViewModel model);
         Task<int> Update(BgEmployeeViewModel model);
+
+        Task<int> UpdateStatus(int id, bool isActive);
+        Task<byte[]> DownloadBgEmployeeExcel();
+
         Task<int> Delete(int id);
         Task<BgEmployeeMaster?> GetByEmail(string email);
 

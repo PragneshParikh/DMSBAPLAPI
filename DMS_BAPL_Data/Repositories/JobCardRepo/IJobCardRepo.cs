@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<int> UpdateSaleDetails(UpdateSaleDetailsVM updateSale);
         Task<int> DeleteJobCard(int jobId);
         Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
-        Task<JobCardHeader> GetJobCardById(int Id);
+        //Task<JobCardHeader> GetJobCardById(int Id);
+        Task<JsonResult> GetJobCardById(int Id);
         Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId);
         Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id);
         Task<int> GetNextJobNumber(string dealerCode);
