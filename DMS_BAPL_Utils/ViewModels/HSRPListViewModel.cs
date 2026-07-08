@@ -14,6 +14,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? SupplierLedgerId { get; set; }
         public string? SupplierName { get; set; }
         public string ChassisNo { get; set; }
+        public string? RegNo { get; set; }
         public string? HsrpStatus { get; set; }
         public string? HsrpResponse { get; set; }
         public string? InwardStatus { get; set; }

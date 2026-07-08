@@ -1438,6 +1438,12 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DispatchNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.DispatchResponse)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.DispatchStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.FitmentDate).HasColumnType("datetime");
             entity.Property(e => e.FitmentResponse).HasMaxLength(500);
             entity.Property(e => e.FitmentStatus).HasMaxLength(100);
@@ -3206,6 +3212,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Sgstamount)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("SGSTAmount");
+            entity.Property(e => e.TotalTaxPer).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
