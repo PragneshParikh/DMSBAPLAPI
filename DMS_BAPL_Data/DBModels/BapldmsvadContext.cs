@@ -2379,6 +2379,12 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.InvoiceNo)
                 .HasMaxLength(100)
                 .HasColumnName("invoiceNo");
+            entity.Property(e => e.InwardType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.IsD2d)
+                .HasDefaultValue(false)
+                .HasColumnName("IsD2D");
             entity.Property(e => e.LocCode)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -2417,6 +2423,10 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasColumnName("vehicleFasteningBracket");
+
+            entity.HasOne(d => d.Ledger).WithMany(p => p.LotinspectionHeaders)
+                .HasForeignKey(d => d.LedgerId)
+                .HasConstraintName("FK_LotInspectionHeader_LedgerMaster");
         });
 
         modelBuilder.Entity<MainPartAffectedFfir>(entity =>
@@ -3595,9 +3605,15 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.InvoiceNo)
                 .HasMaxLength(50)
                 .HasColumnName("invoice_no");
+            entity.Property(e => e.InwardType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.IsAccepted)
                 .HasDefaultValue(false)
                 .HasColumnName("isAccepted");
+            entity.Property(e => e.IsD2d)
+                .HasDefaultValue(false)
+                .HasColumnName("IsD2D");
             entity.Property(e => e.ItemCode)
                 .HasMaxLength(50)
                 .HasColumnName("item_code");
