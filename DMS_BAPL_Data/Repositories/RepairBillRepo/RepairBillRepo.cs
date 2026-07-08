@@ -252,7 +252,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                join st in _context.States
                    on rbh.CustomerLedger.State equals st.StateId into stJoin
                from st in stJoin.DefaultIfEmpty()
-
+               
                where rbh.Id == id
 
                select new RepairBillUpdateVM
@@ -356,6 +356,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                            Qty = d.LabourQty ?? 0,
                            Rate = d.LabourRate ?? 0,
+                           LabourHsnCode = d.LabourMasterId > 0
+                           ? d.LabourMaster.Hsncode
+                           : d.PartWiseLabour != null
+                           ? d.PartWiseLabour.Hsncode : "",
 
                            PartQty = d.PartQty ?? 0,
                            PartRate = d.PartRate ?? 0,

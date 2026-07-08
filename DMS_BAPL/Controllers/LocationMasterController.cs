@@ -144,7 +144,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLocationTypeWiseNameByDealerCode(string dealerCode)
+        public async Task<IActionResult> GetLocationTypeWiseNameByDealerCode(string? dealerCode)
         {
             try
             {

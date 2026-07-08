@@ -43,6 +43,12 @@ public partial class LotinspectionHeader
 
     public string? LocationName { get; set; }
 
+    public bool? IsD2d { get; set; }
+
+    public string? InwardType { get; set; }
+
+    public int? LedgerId { get; set; }
+
     public bool? IsLotInspected { get; set; }
 
     public string CreatedBy { get; set; } = null!;
@@ -52,6 +58,8 @@ public partial class LotinspectionHeader
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public virtual LedgerMaster? Ledger { get; set; }
 
     public virtual ICollection<LotinspectionDetail> LotinspectionDetails { get; set; } = new List<LotinspectionDetail>();
 }
