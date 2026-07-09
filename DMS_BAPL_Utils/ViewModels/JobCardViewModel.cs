@@ -304,6 +304,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Igst { get; set; }
         public decimal? Cgst { get; set; }
         public decimal? Sgst { get; set; }
+        public decimal? CgstAmount { get; set; }
+        public decimal? SgstAmount { get; set; }
+        public decimal? IgstAmount { get; set; }
         public int? IssueType { get; set; }
 
         public List<LabourCodeDetails> LabourCodeDetailslist { get; set; }
