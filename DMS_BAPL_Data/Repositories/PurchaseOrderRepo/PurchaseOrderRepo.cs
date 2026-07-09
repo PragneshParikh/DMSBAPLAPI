@@ -105,6 +105,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                 existing.TransactionType = po.TransactionType;
                 existing.Remarks = po.Remarks;
                 existing.LocCode = po.LocCode;
+                existing.ConsigneeCode = po.ConsigneeCode;
                 existing.LedgerCode = po.LedgerCode;
                 existing.SubOrderType = po.SubOrderType;
                 existing.UpdatedBy = po.UpdatedBy;

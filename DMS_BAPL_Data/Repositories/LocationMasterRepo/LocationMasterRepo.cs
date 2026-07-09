@@ -388,7 +388,8 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 Loccode = x.Loccode,
                 Locname = x.Locname,
                 Locareaidno = x.Locareaidno,
-                Dealercode = x.Dealercode
+                Dealercode = x.Dealercode,
+                State = x.State
             });
         }
 

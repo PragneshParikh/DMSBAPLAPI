@@ -372,6 +372,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     OrderType = model.POType,
                     SubOrderType = model.SubOrderType,
                     CustomerCode = model.CustomerCode,
+                    ConsigneeCode = model.LocCode,
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,
