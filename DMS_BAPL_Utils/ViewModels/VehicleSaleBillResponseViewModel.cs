@@ -20,6 +20,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string BillFrom { get; set; }
         public string BillingName { get; set; }
         public int? Financier { get; set; }
+
+        public string? FinancierName { get; set; }
         public string? CashAccount { get; set; }
         public string? SalesExecutive { get; set; }
         public string? isTempRegNo { get; set; }

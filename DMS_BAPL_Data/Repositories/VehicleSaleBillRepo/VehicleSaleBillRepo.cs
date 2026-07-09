@@ -56,8 +56,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
 
                 var result = await (
-                    from h in _context.VehicleSaleBillHeaders 
+                    from h in _context.VehicleSaleBillHeaders
                     join cled in _context.LedgerMasters on h.LedgerId equals cled.Id
+
+                    join finLed in _context.LedgerMasters on h.Financier equals finLed.Id into finLedJoin
+                    from finLed in finLedJoin.DefaultIfEmpty()
+
                     where h.Id == id
 
                     select new VehicleSaleBillResponseViewModel
@@ -69,7 +73,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         Location = h.Location,
                         SaleType = h.SaleType,
                         CashAccount = h.CashAccount,
-                        Financier = h.Financier,
+                        Financier = h.Financier,                                    
+                        FinancierName = finLed != null ? finLed.LedgerName : null,  
                         BillType = h.BillType,
                         BillFrom = h.BillFrom,
                         CustomerName = cled.LedgerName,
@@ -184,8 +189,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     return null;
                 }
                 result.TermsAndConditions = await _context.TermandConditionMasters
-                    .Where(i => i.ConditionModule ==6 && i.ConditionEffectiveDate <= result.SaleDate )
-                    
+                    .Where(i => i.ConditionModule == 6 && i.ConditionEffectiveDate <= result.SaleDate)
+
                     .Select(i => new SalesConditionViewModel
                     {
                         Id = i.Id,
