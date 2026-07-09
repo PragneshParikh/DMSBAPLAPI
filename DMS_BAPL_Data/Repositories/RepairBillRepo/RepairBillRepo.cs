@@ -100,6 +100,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         LabourNetAmount = item.NetAmount ?? 0,
                         PartTaxblAmount = item.PartTaxbleAmount,
                         PartNetAmount = item.PartNetAmount ?? 0,
+                        TotalTaxPer = item.TotalTaxPer ?? 0,
                         IssutypeId = item.IssueType,
 
 
@@ -252,7 +253,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                join st in _context.States
                    on rbh.CustomerLedger.State equals st.StateId into stJoin
                from st in stJoin.DefaultIfEmpty()
-               
+               join dl in _context.DealerMasters
+                   on rbh.DealerCode equals dl.Dealercode into dlJoin
+               from dl in dlJoin.DefaultIfEmpty()
+
                where rbh.Id == id
 
                select new RepairBillUpdateVM
@@ -266,6 +270,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                        BillNo = rbh.BillNo,
                        BillType = rbh.BillType,
                        CashAccount = rbh.CashAccount,
+                       DealerState = dl != null ? dl.State : null,
 
                        CustomerLedgerId =
                            rbh.CustomerLedgerId == 0
@@ -320,10 +325,11 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            ItemType = d.ItemType,
 
                            MaterialId = d.MaterialId ?? 0,
+                           PartItemId = d.PartItemId ?? 0,
                            LabourId = d.LabourMasterId ?? 0,
                            PartWiseLabourId = d.PartWiseLabourId ?? 0,
 
-                           PartItemId = d.PartItemId,
+                          
 
                            // NEW
                            PartCode = d.PartItem != null
@@ -333,15 +339,30 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            PartDesc = d.PartItem != null
                            ? d.PartItem.Itemdesc
                            : "",
-                           Cgst = d.PartItem != null
-                           ? d.PartItem.Cgst
+                           Cgst = d.LabourMasterId > 0
+                           ? d.LabourMaster.Cgst
+                           : d.PartWiseLabour != null
+                           ? d.PartWiseLabour.Cgst
                            : 0,
-                           Sgst = d.PartItem != null
-                           ? d.PartItem.Sgst
+                           Sgst = d.LabourMasterId > 0
+                           ? d.LabourMaster.Sgst
+                           : d.PartWiseLabour != null
+                           ? d.PartWiseLabour.Sgst
                            : 0,
-                           Igst = d.PartItem != null
-                           ? d.PartItem.Igst
+                           Igst = d.LabourMasterId > 0
+                           ? d.LabourMaster.Igst
+                           : d.PartWiseLabour != null
+                           ? d.PartWiseLabour.Igst
                            : 0,
+                           //Cgst = d.PartItem != null
+                           //? d.PartItem.Cgst
+                           //: 0,
+                           //Sgst = d.PartItem != null
+                           //? d.PartItem.Sgst
+                           //: 0,
+                           //Igst = d.PartItem != null
+                           //? d.PartItem.Igst
+                           //: 0,
                            LabourCode = d.LabourMasterId > 0
                            ? d.LabourMaster.LabourCode
                            : d.PartWiseLabour != null
@@ -456,6 +477,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         {
                             detail.ItemType = item.ItemType;
                             detail.MaterialId = item.MaterialId > 0 ? item.MaterialId : null;
+                            detail.PartItemId = item.PartItemId;
 
                             detail.LabourMasterId = item.LabourId > 0 ? item.LabourId : null;
 
@@ -481,6 +503,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                             detail.Cgstamount = item.CgstAmount;
                             detail.Sgstamount = item.SgstAmount;
                             detail.Igstamount = item.IgstAmount;
+                            detail.TotalTaxPer = item.TotalTaxPer;
 
                             detail.IssutypeId = item.IssueType;
                             detail.UpdatedBy = userId;
@@ -496,6 +519,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                             ItemType = item.ItemType,
                             MaterialId = item.MaterialId > 0 ? item.MaterialId : null,
+                            PartItemId = item.PartItemId > 0 ? item.PartItemId : null,
                             LabourMasterId = item.LabourId > 0 ? item.LabourId : null,
                             PartWiseLabourId = item.PartWiseLabourId > 0 ? item.PartWiseLabourId : null,
 
@@ -519,6 +543,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                             Cgstamount = item.CgstAmount,
                             Sgstamount = item.SgstAmount,
                             Igstamount = item.IgstAmount,
+                            TotalTaxPer = item.TotalTaxPer,
 
                             IssutypeId = item.IssueType,
                             CreatedBy = userId,

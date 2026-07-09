@@ -32,10 +32,8 @@
         public string? InvoiceNo { get; set; }
         public int? BillType { get; set; }
         public string? FinanceBy { get; set; }
-
         // ── NEW: raw Financier ledger ID, for diagnosing join-vs-data gaps ──
         public int? FinancierId { get; set; }
-
         public string? FinancerCode { get; set; }
         public string? FinancerCategory { get; set; }
         public string? ExecutiveName { get; set; }
@@ -57,14 +55,19 @@
         public decimal ItemRate { get; set; }
         public decimal PreGstDiscount { get; set; }
         public decimal TaxableAmount { get; set; }
-        public decimal Sgstper { get; set; }
+        public decimal SgstPer { get; set; }
         public decimal SgstAmount { get; set; }
-        public decimal Cgstper { get; set; }
+        public decimal CgstPer { get; set; }
         public decimal CgstAmount { get; set; }
-        public decimal Igstper { get; set; }
+        public decimal IgstPer { get; set; }
         public decimal IgstAmount { get; set; }
         public decimal TotalGstAmount { get; set; }
         public decimal FinalAmount { get; set; }
+        public decimal FameIIDiscount { get; set; }
+        public decimal RegAmount { get; set; }
+        public decimal InsuranceAmount { get; set; }
+        public decimal PostGstDiscount { get; set; }
+        public string? Vcu { get; set; }
         public string? BillingName { get; set; }
         public string? Hsn { get; set; }
         public int? MfgYear { get; set; }
