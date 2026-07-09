@@ -45,6 +45,7 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                     "S" => openingQty - partsInventory.BatchTransQty,
                     "TI" => openingQty + partsInventory.BatchTransQty,
                     "TO" => openingQty - partsInventory.BatchTransQty,
+                    "PI" => openingQty - partsInventory.BatchTransQty,
                     _ => throw new Exception("Invalid transaction type")
                 };
 
