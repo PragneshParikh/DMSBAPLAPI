@@ -1259,14 +1259,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return maxId + 1;
         }
-        public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId,string? dealerCode)
+        public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId, string? dealerCode)
         {
             var CustomerStateId = await (
                 from c in _context.JobCardCustomers
                 join lg in _context.LedgerMasters
                     on c.CustomerLedgerId equals lg.Id into lgJoin
                 from lg in lgJoin.DefaultIfEmpty()
-               where c.JobCardHeaderId == jobId
+                where c.JobCardHeaderId == jobId
                 select lg.State
             ).FirstOrDefaultAsync();
             var custState = await _context.States
@@ -1277,6 +1277,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .Where(ds => ds.Dealercode == dealerCode)
                 .Select(ds => ds.State)
                 .FirstOrDefaultAsync();
+
+
             // First get customer city tier
             var cityTier = await (
                 from c in _context.JobCardCustomers
@@ -1293,21 +1295,19 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
-
-
             // Material Transfer + Item Details
+            var stateFlag = custState == DealerState ? "S" : "O";
+
             var data = await (
                 from m in _context.MaterialTransfers
-
                 join i in _context.ItemMasters
-                    on m.ItemId equals i.Id into itemJoin
-                from i in itemJoin.DefaultIfEmpty()
-
+                    on m.ItemId equals i.Id
+                join hsn in _context.HsnwiseTaxCodes
+                    on i.Hsncode equals hsn.Hsncode
                 where m.JobId == jobId
-
+                      && hsn.StateFlag == stateFlag
                 select new MaterialedJobCardListVM
                 {
-
                     ItemId = i.Id,
                     MaterialTransferId = m.Id,
                     PartCode = i.Itemcode,
@@ -1316,33 +1316,108 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     PartRate = m.ItemRate,
                     PartHsnCode = i.Hsncode,
                     PartMRP = i.Custprice,
-                    Igst = i.Igst,
-                    Cgst = i.Cgst,
-                    Sgst = i.Sgst,
-                   IssueType = m.IssueType,
 
-                    // Labour Codes
-                    LabourCodeDetailslist = _context.PartWiseLabourMasters
-                        .Where(pl =>
-                            pl.PartCode == i.Itemcode &&
-                            pl.CityTier == cityTier)
-                        .Select(pl => new LabourCodeDetails
-                        {
-                            PartwiseLabourId = pl.Id,
-                            //LabourId = pl.Id,
-                            LabourCode = pl.LabourCode,
-                            LabourName = pl.LabourName,
-                            LabourRate = pl.LabourRate,
-                            LabourHsnCode = pl.Hsncode,
-                            CityTier = pl.CityTier,
-                            Igst = pl.Igst,
-                            Cgst = pl.Cgst,
-                            Sgst = pl.Sgst
-                        })
-                        .ToList()
-                }
+                    Cgst = stateFlag == "S"
+                        ? (
+                            from a in _context.AggregateTaxCodes
+                            join t in _context.TaxCodeMasters
+                                on a.TaxCode equals t.TaxCode
+                            where a.AtaxCode == hsn.AtaxCode
+                                  && a.TaxCode.StartsWith("CGST")
+                                  && t.EffectiveDate <= DateTime.Now
+                            orderby t.EffectiveDate descending
+                            select t.TaxRate
+                          ).FirstOrDefault()
+                        : 0,
 
-            ).ToListAsync();
+                    Sgst = stateFlag == "S"
+                        ? (
+                            from a in _context.AggregateTaxCodes
+                            join t in _context.TaxCodeMasters
+                                on a.TaxCode equals t.TaxCode
+                            where a.AtaxCode == hsn.AtaxCode
+                                  && a.TaxCode.StartsWith("SGST")
+                                  && t.EffectiveDate <= DateTime.Now
+                            orderby t.EffectiveDate descending
+                            select t.TaxRate
+                          ).FirstOrDefault()
+                        : 0,
+
+                    Igst = stateFlag == "O"
+                        ? (
+                            from a in _context.AggregateTaxCodes
+                            join t in _context.TaxCodeMasters
+                                on a.TaxCode equals t.TaxCode
+                            where a.AtaxCode == hsn.AtaxCode
+                                  && a.TaxCode.StartsWith("IGST")
+                                  && t.EffectiveDate <= DateTime.Now
+                            orderby t.EffectiveDate descending
+                            select t.TaxRate
+                          ).FirstOrDefault()
+                        : 0,
+
+                    IssueType = m.IssueType
+                }).ToListAsync();
+            foreach (var item in data)
+            {
+                decimal? taxableAmount = item.PartQty * item.PartRate;
+
+                item.CgstAmount = Math.Round((decimal)((taxableAmount * (item.Cgst ?? 0)) / 100), 2);
+                item.SgstAmount = Math.Round((decimal)((taxableAmount * (item.Sgst ?? 0)) / 100), 2);
+                item.IgstAmount = Math.Round((decimal)((taxableAmount * (item.Igst ?? 0)) / 100), 2);
+            }
+
+
+            //var data = await (
+            //    from m in _context.MaterialTransfers
+
+            //    join i in _context.ItemMasters
+            //        on m.ItemId equals i.Id into itemJoin
+            //    from i in itemJoin.DefaultIfEmpty()
+
+
+            //    where m.JobId == jobId
+
+
+            //    select new MaterialedJobCardListVM
+            //    {
+
+            //        ItemId = i.Id,
+            //        MaterialTransferId = m.Id,
+            //        PartCode = i.Itemcode,
+            //        PartDesc = i.Itemdesc,
+            //        PartQty = m.Quantity,
+            //        PartRate = m.ItemRate,
+            //        PartHsnCode = i.Hsncode,
+            //        PartMRP = i.Custprice,
+
+            //        //Igst = i.Igst,
+            //        //Cgst = i.Cgst,
+            //        //Sgst = i.Sgst,
+            //        IssueType = m.IssueType,
+
+            //        // Labour Codes
+            //        LabourCodeDetailslist = _context.PartWiseLabourMasters
+            //                .Where(pl =>
+            //                    pl.PartCode == i.Itemcode &&
+            //                    pl.CityTier == cityTier)
+            //                .Select(pl => new LabourCodeDetails
+            //                {
+            //                    PartwiseLabourId = pl.Id,
+            //                    //LabourId = pl.Id,
+            //                    LabourCode = pl.LabourCode,
+            //                    LabourName = pl.LabourName,
+            //                    LabourRate = pl.LabourRate,
+            //                    LabourHsnCode = pl.Hsncode,
+            //                    CityTier = pl.CityTier,
+            //                    Igst = pl.Igst,
+            //                    Cgst = pl.Cgst,
+            //                    Sgst = pl.Sgst
+            //                })
+            //                .ToList()
+            //    }
+
+            //).ToListAsync();
 
             return data;
         }
@@ -1875,7 +1950,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return data;
 
         }
-        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode,int? jobNo,string? serviceloc,DateTime? fromDate,DateTime? toDate)
+        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -1968,7 +2043,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     item.RepairBillDetails = allDetails
                         // Match the values safely using GetValueOrDefault() to handle the int? structure
                         .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
-                        .Select(d => {
+                        .Select(d =>
+                        {
                             bool isLabour = d.rbd.ItemType == "Labour";
                             bool isPart = d.rbd.ItemType == "Part";
 
