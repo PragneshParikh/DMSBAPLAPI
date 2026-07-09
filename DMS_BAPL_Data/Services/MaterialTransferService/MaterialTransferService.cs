@@ -130,7 +130,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                 if (difference > 0)
                 {
                     // Consume additional stock
-                    stockTransaction.TransType = "PI";
+                    stockTransaction.TransType = "S";
                     stockTransaction.BatchTransQty = difference;
 
                     await _partInventoryService.UpdateOutgoing(stockTransaction);
@@ -138,7 +138,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                 else
                 {
                     // Return stock
-                    stockTransaction.TransType = "PO";
+                    stockTransaction.TransType = "PI";
                     stockTransaction.BatchTransQty = Math.Abs(difference);
 
                     await _partInventoryService.UpdateIncoming(stockTransaction);
