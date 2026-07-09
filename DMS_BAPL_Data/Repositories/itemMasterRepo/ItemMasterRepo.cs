@@ -698,21 +698,24 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                             stateTaxCode != null &&
                             x.AtaxCode == stateTaxCode.AtaxCode &&
                             x.TaxCode.StartsWith("CGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                        .Select(x => (decimal?)x.TaxRate)
+                        .FirstOrDefault() ?? 0
 
                     let sgstPercentage = _context.AggregateTaxCodes
                         .Where(x =>
                             stateTaxCode != null &&
                             x.AtaxCode == stateTaxCode.AtaxCode &&
                             x.TaxCode.StartsWith("SGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                        .Select(x => (decimal?)x.TaxRate)
+                        .FirstOrDefault() ?? 0
 
                     let igstPercentage = _context.AggregateTaxCodes
                         .Where(x =>
                             otherTaxCode != null &&
                             x.AtaxCode == otherTaxCode.AtaxCode &&
                             x.TaxCode.StartsWith("IGST"))
-                        .Sum(x => (decimal?)x.TaxRate) ?? 0
+                        .Select(x => (decimal?)x.TaxRate)
+                        .FirstOrDefault() ?? 0
 
                     select new
                     {
