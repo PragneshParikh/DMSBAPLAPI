@@ -154,6 +154,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? SaleType { get; set; }
         public int? BillType { get; set; }
         public string? Financier { get; set; }
+        // ── NEW: raw Financier ledger ID, same diagnostic field already added
+        // to VehicleSaleReportViewModel — lets you see whether a blank
+        // Financier name is because the FK is null (no financier assigned)
+        // or because the FK is set but doesn't resolve to a Ledger row.
+        public int? FinancierId { get; set; }
         public string? SalesExecutive { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerCity { get; set; }
