@@ -1259,8 +1259,24 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return maxId + 1;
         }
-        public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId)
+        public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId,string? dealerCode)
         {
+            var CustomerStateId = await (
+                from c in _context.JobCardCustomers
+                join lg in _context.LedgerMasters
+                    on c.CustomerLedgerId equals lg.Id into lgJoin
+                from lg in lgJoin.DefaultIfEmpty()
+               where c.JobCardHeaderId == jobId
+                select lg.State
+            ).FirstOrDefaultAsync();
+            var custState = await _context.States
+                .Where(custst => custst.StateId == CustomerStateId)
+                .Select(custst => custst.StateName)
+                .FirstOrDefaultAsync();
+            var DealerState = await _context.DealerMasters
+                .Where(ds => ds.Dealercode == dealerCode)
+                .Select(ds => ds.State)
+                .FirstOrDefaultAsync();
             // First get customer city tier
             var cityTier = await (
                 from c in _context.JobCardCustomers

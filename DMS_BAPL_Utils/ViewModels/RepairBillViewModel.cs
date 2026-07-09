@@ -85,6 +85,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? PartDiscount { get; set; }
             public decimal? PartTaxbleAmount { get; set; }
             public decimal? PartNetAmount { get; set; }
+            public decimal? TotalTaxPer { get; set; }
         }
 
         public class RepairBillSearchVM
@@ -123,6 +124,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public int Id { get; set; }
             public string? LocationCode { get; set; }
             public string DealerCode { get; set; }
+            public string? DealerState { get; set; }
             public string? Prefix { get; set; }
             public int BillNo { get; set; }
             public string? BillType { get; set; }
@@ -205,6 +207,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? PartDiscount { get; set; }
             public decimal? PartTaxbleAmount { get; set; }
             public decimal? PartNetAmount { get; set; }
+            public decimal? TotalTaxPer { get; set; }
         }
         public class RepairBillUpdateVM
         {
