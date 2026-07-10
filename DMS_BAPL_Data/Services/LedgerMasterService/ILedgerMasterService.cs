@@ -16,7 +16,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<LedgerDetailViewModel?> GetLedgerByIdAsync(int id);
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster, string userId);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster, string userId);
-        Task<IEnumerable<LedgerMaster>> GetCompanyLedgersAsync();
+        Task<IEnumerable<LedgerDetailViewModel>> GetCompanyLedgersAsync();
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgersAsync();
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
         Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);

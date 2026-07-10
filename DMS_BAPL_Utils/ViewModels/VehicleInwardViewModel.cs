@@ -105,5 +105,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? poType { get; set; }
 
         public bool? IsAccepted { get; set; }
+        public string DMSPoNo { get; set; }
     }
 }

@@ -302,20 +302,20 @@ namespace DMS_BAPL_Api.Controllers
         /// Get Parts PO List Async
         /// </summary>
         /// <returns></returns>
-        [HttpGet("parts/Polist")]
-        [ProducesResponseType(typeof(IEnumerable<PartsPurchaseOrderResponseViewModel>), StatusCodes.Status200OK)]
-        public async Task<ActionResult> GetPartsPOList()
-        {
-            try
-            {
-                var result = await _purchaseOrderService.GetPartsPOListAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
-            }
-        }
+        //[HttpGet("parts/Polist")]
+        //[ProducesResponseType(typeof(IEnumerable<PartsPurchaseOrderResponseViewModel>), StatusCodes.Status200OK)]
+        //public async Task<ActionResult> GetPartsPOList()
+        //{
+        //    try
+        //    {
+        //        var result = await _purchaseOrderService.GetPartsPOListAsync();
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+        //    }
+        //}
         /// <summary>
         /// Create Parts Purchase Order
         /// </summary>

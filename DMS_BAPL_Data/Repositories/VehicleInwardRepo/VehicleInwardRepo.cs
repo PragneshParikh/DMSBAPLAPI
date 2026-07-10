@@ -130,6 +130,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     Dlrprice = vehicleInwardViewModel.dlrprice,
                     Custprice = vehicleInwardViewModel.custprice,
                     PoType = vehicleInwardViewModel.poType,
+                    Ponumber = vehicleInwardViewModel.DMSPoNo,
+                    CreatedBy = "Admin",
+                    CreatedDate = DateTime.Now,
                 };
 
                 _context.VehicleInwards.Add(vehicleInward);
