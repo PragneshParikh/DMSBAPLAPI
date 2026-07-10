@@ -35,6 +35,8 @@ public partial class LedgerMaster
 
     public string? DealerCode { get; set; }
 
+    public bool? D2dprovision { get; set; }
+
     public DateOnly? DateOfBirth { get; set; }
 
     public string CreatedBy { get; set; } = null!;
