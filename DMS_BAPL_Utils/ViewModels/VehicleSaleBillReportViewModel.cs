@@ -93,24 +93,6 @@ namespace DMS_BAPL_Utils.ViewModels
         // Col 28 — PreGST Disc Amnt  (PreGstDiscount)
         public decimal PreGstDiscAmnt { get; set; }
 
-        // Col 29 — SGST%
-        public decimal Sgstper { get; set; }
-
-        // Col 30 — SGST Amnt
-        public decimal Sgstamnt { get; set; }
-
-        // Col 31 — CGST%
-        public decimal Cgstper { get; set; }
-
-        // Col 32 — CGST Amnt
-        public decimal Cgstamnt { get; set; }
-
-        // Col 33 — IGST%
-        public decimal Igstper { get; set; }
-
-        // Col 34 — IGST Amnt
-        public decimal Igstamnt { get; set; }
-
         // Col 35 — Subsidy Amnt  (FameIi / ItemMaster.Fame2amount)
         public decimal SubsidyAmnt { get; set; }
 
@@ -194,6 +176,19 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? ChargerNo { get; set; }
         public string? ControllerNo { get; set; }
         public string? Vcu { get; set; }
+
+        // ── NEW: to match VehicleSaleReportViewModel, so the frontend's
+        // unified model gets the same fields regardless of which source a
+        // row came from.
+        public string? Gender { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? AccountType { get; set; }
+        public string? Occupation { get; set; }
+
+        // ── NEW: Battery Make / Battery Type (VehicleInward.BatteryMake /
+        // VehicleInward.BatteryChemistry).
+        public string? BatteryMake { get; set; }
+        public string? BatteryType { get; set; }
 
     }
 }

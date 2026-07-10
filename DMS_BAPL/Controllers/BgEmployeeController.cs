@@ -19,6 +19,60 @@ namespace DMS_BAPL_API.Controllers
         }
 
         // =====================================================
+        // TSM ERP LOOKUP — NEW
+        // GET api/BgEmployee/TsmLookup/{tsmCode}
+        // Proxies the external ERP TSM API so the browser never calls
+        // that third-party domain directly.
+        // =====================================================
+
+        [HttpGet("TsmLookup/{tsmCode}")]
+        public async Task<IActionResult> TsmLookup(string tsmCode)
+        {
+            try
+            {
+                var result = await _service.FetchTsmDetailsAsync(tsmCode);
+
+                if (result == null)
+                    return NotFound(new { message = $"TSM Code '{tsmCode}' not found." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // ── TEMPORARY DIAGNOSTIC — GET api/BgEmployee/TsmLookupRaw/{tsmCode}
+        // Tries several calling conventions against the external API and
+        // shows every attempt's raw status + body, so we can see which one
+        // (if any) actually works instead of guessing one at a time.
+        // Remove this action once the real convention is confirmed.
+        [HttpGet("TsmLookupRaw/{tsmCode}")]
+        public async Task<IActionResult> TsmLookupRaw(string tsmCode)
+        {
+            try
+            {
+                var attempts = await _service.FetchTsmRawAsync(tsmCode);
+
+                var sb = new System.Text.StringBuilder();
+                foreach (var (label, statusCode, body) in attempts)
+                {
+                    sb.AppendLine($"=== {label} ===");
+                    sb.AppendLine($"Status: {statusCode}");
+                    sb.AppendLine($"Body: {body}");
+                    sb.AppendLine();
+                }
+
+                return Content(sb.ToString(), "text/plain");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // =====================================================
         // GET ALL
         // GET api/BgEmployee/GetAll
         // =====================================================
@@ -173,9 +227,7 @@ namespace DMS_BAPL_API.Controllers
         }
 
         // =====================================================
-        // TOGGLE STATUS — RESTORED. Was missing from this file
-        // entirely, which is why PATCH ToggleStatus/{id} 404'd.
-        // Only touches IsActive — see BgEmployeeMasterRepo.UpdateStatus.
+        // TOGGLE STATUS
         // =====================================================
 
         public class ToggleStatusDto
@@ -253,8 +305,7 @@ namespace DMS_BAPL_API.Controllers
         }
 
         // =====================================================
-        // DOWNLOAD — RESTORED. Was missing from this file entirely,
-        // which is why GET Download 404'd.
+        // DOWNLOAD
         // GET api/BgEmployee/Download
         // =====================================================
 

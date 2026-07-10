@@ -25,15 +25,10 @@ namespace DMS_BAPL_Data.Services.ReportService
         // STOCK REPORT
         // =================================================================
 
-        public async Task<List<StockReportViewModel>>GetDealerWiseStockReportAsync(string? dealerCode)
+        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode)
         {
             return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
         }
-
-        //public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
-        //{
-        //    return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
-        //}
 
         // =================================================================
         // JOB REPORT
@@ -166,6 +161,61 @@ namespace DMS_BAPL_Data.Services.ReportService
             string? dealerCode)
         {
             return await _reportRepo.GetVehicleSaleReportAsync(fromDate, toDate, dealerCode);
+        }
+
+        // =================================================================
+        // TOTAL SALE REPORT (DEALER-WISE MAPPING)
+        // =================================================================
+        public async Task<TotalSaleReportDealerWiseResponse> GetTotalSaleReportDealerWiseAsync(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? dealerCode)
+        {
+            try
+            {
+                return await _reportRepo.GetTotalSaleReportDealerWiseAsync(fromDate, toDate, dealerCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching total sale report (dealer wise)");
+                throw;
+            }
+        }
+
+        // =================================================================
+        // MODEL WISE SALE REPORT (COUNT-WISE)
+        // =================================================================
+        public async Task<ModelWiseSalePivotResponse> GetModelWiseSaleCountReportAsync(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? dealerCode)
+        {
+            try
+            {
+                return await _reportRepo.GetModelWiseSaleCountReportAsync(fromDate, toDate, dealerCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model wise sale count report");
+                throw;
+            }
+        }
+
+        // =================================================================
+        // MODEL-WISE CURRENT STOCK (COUNT-WISE)
+        // =================================================================
+        public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
+            string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                return await _reportRepo.GetModelWiseStockCountReportAsync(dealerCode, fromDate, toDate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model-wise current stock count report");
+                throw;
+            }
         }
 
         public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(
@@ -361,6 +411,26 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        // ── NEW: was on ReportRepo/IReportRepo already, but never wrapped here —
+        // added now so ReportService fully implements IReportService.
+        public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter)
+        {
+            try
+            {
+                filter ??= new VehicleSaleBillReportFilterModel();
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                return await _reportRepo.GetVehicleSaleBillOnlyReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vehicle sale bill only report");
+                throw;
+            }
+        }
+
         // =================================================================
         // VEHICLE INWARD REPORT
         // =================================================================

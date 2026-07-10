@@ -123,6 +123,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddProjectServices();
+builder.Services.AddHttpClient();
 
 
 var app = builder.Build();
