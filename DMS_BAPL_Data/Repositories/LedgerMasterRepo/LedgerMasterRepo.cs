@@ -97,18 +97,18 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
         }
 
-        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize,string dealerCode, string filter)
+        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize, string dealerCode, string filter)
         {
             try
             {
                 var query = _context.LedgerMasters.AsNoTracking();
-                if( dealerCode != null)
+                if (dealerCode != null)
                 {
-                    query = query.Where(i =>i.LedgerVisibility == dealerCode || i.LedgerVisibility.ToLower() =="all");
+                    query = query.Where(i => i.LedgerVisibility == dealerCode || i.LedgerVisibility.ToLower() == "all");
                 }
-                if( filter != null )
+                if (filter != null)
                 {
-                    query =query.Where(i=>i.DealerCode == filter);
+                    query = query.Where(i => i.DealerCode == filter);
                 }
                 if (!string.IsNullOrWhiteSpace(searchTerms))
                 {
@@ -159,17 +159,17 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         CreatedDate = LM.CreatedDate,
                         UpdatedBy = LM.UpdatedBy,
                         UpdatedDate = LM.UpdatedDate,
-                        LedgerVisibility=LM.LedgerVisibility,
+                        LedgerVisibility = LM.LedgerVisibility,
                         cityName = city.CityName,
                         stateName = state.StateName,
                         DealerCode = dealer.Dealercode,
-                        DealerName = dealer.Compname,   
+                        DealerName = dealer.Compname,
                     }
                 )
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-               
+
                 return new PagedResponse<object>
                 {
                     Data = result.Cast<object>().ToList(),
@@ -208,7 +208,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         Pan = LM.Pan,
                         AadharNumber = LM.AadharNumber,
                         MobileNumber = LM.MobileNumber,
-                        AltMobileNumber =LM.AlternateMobileNo,
+                        AltMobileNumber = LM.AlternateMobileNo,
                         Address = LM.Address,
                         City = LM.City,
                         State = LM.State,
@@ -358,20 +358,43 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 throw;
             }
         }
-        public async Task<IEnumerable<LedgerMaster>> GetCompanyLedgers()
+        public async Task<IEnumerable<LedgerDetailViewModel>> GetCompanyLedgers()
         {
             try
             {
-                return await _context.LedgerMasters
-                    .AsNoTracking()
-                    .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
-                    .OrderBy(c => c.LedgerName)
-                    .ToListAsync();
+                var result = await (from L in _context.LedgerMasters
+                                    join S in _context.States
+                                        on L.State equals S.StateId
+
+                                    where L.LedgerType != null && L.LedgerType.ToLower() == "company"
+                                    orderby L.LedgerName
+                                    select new LedgerDetailViewModel
+                                    {
+                                        LedgerCode = L.LedgerCode,
+                                        LedgerName = L.LedgerName,
+                                        DateOfBirth = L.DateOfBirth,
+                                        OccupationId = L.OccupationId,
+                                        Gender = L.Gender,
+                                        EMail = L.EMail,
+                                        Pin = L.Pin,
+                                        State = L.State,
+                                        City = L.City,
+                                        Address = L.Address,
+                                        MobileNumber = L.MobileNumber,
+                                        AadharNumber = L.AadharNumber,
+                                        Pan = L.Pan,
+                                        Gstno = L.Gstno,
+                                        LedgerType = L.LedgerType,
+                                        Id = L.Id,
+                                        stateName = S.StateName
+                                    }).ToListAsync();
+
+                return result;
             }
             catch { throw; }
         }
 
-        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode,bool? IsD2D)
+        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
         {
 
             Console.WriteLine($"IsD2D: {IsD2D}");
@@ -461,14 +484,14 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             }
         }
 
-        public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode,bool isSuperAdmin)
+        public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin)
         {
             try
             {
                 var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "institutional" || i.LedgerType.ToLower() == "party" || i.LedgerType.ToLower() == "dealer").ToListAsync();
-                if(!isSuperAdmin)
+                if (!isSuperAdmin)
                 {
-                    result = result.Where(i=>i.DealerCode ==dealerCode || i.LedgerType.ToLower() =="dealer").ToList();
+                    result = result.Where(i => i.DealerCode == dealerCode || i.LedgerType.ToLower() == "dealer").ToList();
                 }
                 return result;
 

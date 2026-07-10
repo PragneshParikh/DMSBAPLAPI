@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<bool> CheckLedgerExist(string? email, string? mobile);
         Task<LedgerMaster> CreateLedgerFromLead(LmsleadMaster lead, string userId);
         Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile);
-        Task<IEnumerable<LedgerMaster>> GetCompanyLedgers();
+        Task<IEnumerable<LedgerDetailViewModel>> GetCompanyLedgers();
 
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers();
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
