@@ -59,7 +59,11 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<CounterBillDetail> CounterBillDetails { get; set; }
 
+    public virtual DbSet<CounterBillDetailsAuditLog> CounterBillDetailsAuditLogs { get; set; }
+
     public virtual DbSet<CounterBillHeader> CounterBillHeaders { get; set; }
+
+    public virtual DbSet<CounterBillHeaderAuditLog> CounterBillHeaderAuditLogs { get; set; }
 
     public virtual DbSet<DealerMaster> DealerMasters { get; set; }
 
@@ -715,6 +719,8 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC0732BF9CF7");
 
+            entity.ToTable(tb => tb.HasTrigger("trg_countr_bill_details_audit"));
+
             entity.Property(e => e.Cgstamnt)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("CGSTAmnt");
@@ -743,7 +749,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.PartCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.Qty).HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SaleType)
                 .HasMaxLength(20)
@@ -765,11 +770,68 @@ public partial class BapldmsvadContext : DbContext
                 .HasConstraintName("FK_CounterBillDetails_CounterBill");
         });
 
+        modelBuilder.Entity<CounterBillDetailsAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.AuditId).HasName("PK__CounterB__A17F2398FC951189");
+
+            entity.ToTable("CounterBillDetailsAuditLog");
+
+            entity.Property(e => e.AuditAction)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.AuditTimestamp)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.AuditUser)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Cgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTAmnt");
+            entity.Property(e => e.Cgstper)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("CGSTPer");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DiscType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTAmnt");
+            entity.Property(e => e.Igstper)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("IGSTPer");
+            entity.Property(e => e.Mrp)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("MRP");
+            entity.Property(e => e.PartCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SaleType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Sgstamnt)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTAmnt");
+            entity.Property(e => e.Sgstper)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("SGSTPer");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<CounterBillHeader>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC070A322689");
 
-            entity.ToTable("CounterBillHeader");
+            entity.ToTable("CounterBillHeader", tb => tb.HasTrigger("trg_countr_bill_header_audit"));
 
             entity.HasIndex(e => e.BillNo, "UQ__CounterB__11F284187E180751").IsUnique();
 
@@ -811,6 +873,59 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<CounterBillHeaderAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.AuditId).HasName("PK__CounterB__A17F2398935536E3");
+
+            entity.ToTable("CounterBillHeaderAuditLog");
+
+            entity.Property(e => e.AuditAction)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.AuditTimestamp)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.AuditUser)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.BillAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.BillDate).HasColumnType("datetime");
+            entity.Property(e => e.BillNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BillType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CashCreditAcc)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ChassisNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.LocCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.MobileNo)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.PartyName)
+                .HasMaxLength(150)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks).IsUnicode(false);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
@@ -1823,6 +1938,8 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("JobCardHeader");
 
+            entity.HasIndex(e => e.JobNo, "Jobunique").IsUnique();
+
             entity.Property(e => e.Chassisno).HasMaxLength(100);
             entity.Property(e => e.Couponno)
                 .HasMaxLength(100)
@@ -2026,6 +2143,8 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.ToTable("LedgerMaster");
 
+            entity.HasIndex(e => e.LedgerCode, "Ledgerunique").IsUnique();
+
             entity.Property(e => e.AadharNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -2042,6 +2161,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.D2dprovision).HasColumnName("D2DProvision");
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);

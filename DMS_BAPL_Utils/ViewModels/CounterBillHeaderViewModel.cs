@@ -46,7 +46,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? SaleType { get; set; }
 
-        public decimal Qty { get; set; }
+        public int Qty { get; set; }
 
         public decimal Rate { get; set; }
 
@@ -70,7 +70,7 @@ namespace DMS_BAPL_Utils.ViewModels
     }
     public class CounterBillViewModel
     {
-      
+
         public CounterBillHeaderViewModel Header { get; set; } = new();
 
         public List<CounterBillDetailsViewModel> Details { get; set; } = new();
