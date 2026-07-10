@@ -1416,6 +1416,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             select t.TaxRate
                           ).FirstOrDefault()
                         : 0,
+                    
 
                     IssueType = m.IssueType
                 }).ToListAsync();
