@@ -5,10 +5,13 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,11 +21,94 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
     {
         private readonly IBgEmployeeMasterRepo _repo;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-        public BgEmployeeMasterService(IBgEmployeeMasterRepo repo, UserManager<ApplicationUser> userManager)
+        // Now read from appsettings.json ("TsmApi:BaseUrl") instead of being
+        // hardcoded — lets the URL be corrected without a rebuild once the
+        // real path is confirmed. Falls back to the original assumed URL
+        // only if the config key is missing entirely.
+        private string TsmEntryUrl =>
+            _configuration["TsmApi:BaseUrl"]
+            ?? "https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/api/erptsmmaster/TSMEntry";
+
+        public BgEmployeeMasterService(
+            IBgEmployeeMasterRepo repo,
+            UserManager<ApplicationUser> userManager,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _repo = repo;
             _userManager = userManager;
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
+        }
+
+        // =====================================================
+        // TSM ERP LOOKUP — NEW. Proxies the external ERP TSM API so the
+        // frontend never calls a third-party domain directly.
+        // =====================================================
+
+        public async Task<TsmEntryViewModel?> FetchTsmDetailsAsync(string tsmCode)
+        {
+            if (string.IsNullOrWhiteSpace(tsmCode))
+                return null;
+
+            var client = _httpClientFactory.CreateClient();
+
+            var payload = new { tsmcode = tsmCode };
+            var response = await client.PostAsJsonAsync(TsmEntryUrl, payload);
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            return await response.Content.ReadFromJsonAsync<TsmEntryViewModel>();
+        }
+
+        // ── TEMPORARY DIAGNOSTIC — tries several plausible calling
+        // conventions against the external TSM API in one shot, since the
+        // first assumption (POST + {tsmcode} body) came back 404 from
+        // their server directly. Remove once the real convention is confirmed.
+        public async Task<List<(string Attempt, int StatusCode, string Body)>> FetchTsmRawAsync(string tsmCode)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var results = new List<(string, int, string)>();
+
+            async Task TryCall(string label, Func<Task<HttpResponseMessage>> call)
+            {
+                try
+                {
+                    var resp = await call();
+                    var body = await resp.Content.ReadAsStringAsync();
+                    results.Add((label, (int)resp.StatusCode, body));
+                }
+                catch (Exception ex)
+                {
+                    results.Add((label, -1, $"Exception: {ex.Message}"));
+                }
+            }
+
+            // 1. Original assumption: POST with { tsmcode } in the body
+            await TryCall(
+                "POST TSMEntry + {tsmcode} body",
+                () => client.PostAsJsonAsync(TsmEntryUrl, new { tsmcode = tsmCode }));
+
+            // 2. GET with tsmcode as a query string
+            await TryCall(
+                "GET TSMEntry?tsmcode=...",
+                () => client.GetAsync($"{TsmEntryUrl}?tsmcode={Uri.EscapeDataString(tsmCode)}"));
+
+            // 3. GET with the code as part of the URL path
+            await TryCall(
+                "GET TSMEntry/{code}",
+                () => client.GetAsync($"{TsmEntryUrl}/{Uri.EscapeDataString(tsmCode)}"));
+
+            // 4. POST with the code as part of the URL path, empty body
+            await TryCall(
+                "POST TSMEntry/{code} (no body)",
+                () => client.PostAsync($"{TsmEntryUrl}/{Uri.EscapeDataString(tsmCode)}", null));
+
+            return results;
         }
 
         public async Task<IEnumerable<BgEmployeeMaster>> Get()
@@ -215,7 +301,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             => _repo.GetEmployeeListView();
 
         // =====================================================
-        // EXCEL EXPORT — NEW. Uses the same already-resolved
+        // EXCEL EXPORT — Uses the same already-resolved
         // list-view data the grid displays (dealer names, zones,
         // job roles, reporting-to names — not raw ids), same
         // OpenXML approach as DealerMasterController/EmployeeController.

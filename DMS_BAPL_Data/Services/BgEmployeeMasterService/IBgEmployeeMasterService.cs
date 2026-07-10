@@ -27,5 +27,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         Task<IEnumerable<BgEmployeeRoleMapping>> GetRoleMappings(int employeeId);
 
         Task<IEnumerable<BgEmployeeListItemViewModel>> GetEmployeeListView();
+        Task<TsmEntryViewModel?> FetchTsmDetailsAsync(string tsmCode);
+        Task<List<(string Attempt, int StatusCode, string Body)>> FetchTsmRawAsync(string tsmCode);
     }
 }

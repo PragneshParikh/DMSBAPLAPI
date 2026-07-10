@@ -38,20 +38,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                //string? dealerCode = null;
-                // ── Dealer restriction: skip for admin/superadmin ─────────────
-                //bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
-                //if (!isAdmin)
-                //{
-                //    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                //    if (!string.IsNullOrEmpty(tokenDealerCode))
-                //        dealerCode = tokenDealerCode;
-                //}
-                // ─────────────────────────────────────────────────────────────
-
-                //var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
-
-
                 // Dealer users see only their stock
                 if (!User.IsInRole("SuperAdmin"))
                 {
@@ -296,6 +282,109 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get Total Sale Report (Dealer-wise Mapping) — one row per dealer with
+        /// full financial totals. Non-admin/dealer users are always restricted
+        /// to their own dealer's data, regardless of what dealerCode is passed.
+        /// </summary>
+        [HttpGet("total-sale-dealer-wise")]
+        [ProducesResponseType(typeof(TotalSaleReportDealerWiseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetTotalSaleReportDealerWise(
+        [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: this report exists specifically to show
+                // only a dealer's own data, so non-admins can never override it
+                // via the dealerCode query param. ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+
+                var result = await _reportService.GetTotalSaleReportDealerWiseAsync(fromDate, toDate, dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching total sale report (dealer wise)");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Get Model Wise Sale Report (Count-wise) — pivoted Dealer x Model</summary>
+        [HttpGet("model-wise-sale-count")]
+        [ProducesResponseType(typeof(ModelWiseSalePivotResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetModelWiseSaleCountReport(
+        [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins always see only their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+
+                var result = await _reportService.GetModelWiseSaleCountReportAsync(fromDate, toDate, dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model wise sale count report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Get Model-wise Current Stock Report (Count-wise) — pivoted Dealer x Model</summary>
+        [HttpGet("model-wise-stock-count")]
+        [ProducesResponseType(typeof(ModelWiseStockPivotResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetModelWiseStockCountReport(
+        [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins always see only their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+
+                var result = await _reportService.GetModelWiseStockCountReportAsync(dealerCode, fromDate, toDate);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model-wise current stock count report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost("current-stock")]
         [ProducesResponseType(typeof(PagedResponse<CurrentStockReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -341,6 +430,23 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins always see only their own dealer,
+                // overriding whatever DealerCode the client sent in the body ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
                 var result =
                     await _reportService
                     .GetPOTrackingReportAsync(filter);

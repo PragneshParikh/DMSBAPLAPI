@@ -436,6 +436,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     on vi.ColrCode equals clr.Colorcode into clrJoin
                 from clr in clrJoin.DefaultIfEmpty()
 
+                    // NEW: resolves Location Name / Location City properly, instead
+                    // of showing the raw code. Same join key (vi.LocCode ->
+                    // LocationMaster.Loccode) already proven in
+                    // GetCurrentStockReportAsync / GetVehicleInwardReportAsync.
+                join locM in _context.LocationMasters
+                    on vi.LocCode equals locM.Loccode into locMJoin
+                from locM in locMJoin.DefaultIfEmpty()
+
+                    // NEW: resolves the customer's Occupation display name from
+                    // LedgerMaster.OccupationId.
+                join om in _context.OccupationMasters
+                    on lm.OccupationId equals om.Id into omJoin
+                from om in omJoin.DefaultIfEmpty()
+
                 where
                     (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                     && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
@@ -448,7 +462,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ModelDescription = im.Itemname,
                     OemModelName = im.Oemmodelname,
                     VehicleGroup = im.Itemdesc,
-                    ColorCode = clr.Colorname,
+                    // ── FIX: ColorCode was wrongly assigned the colour NAME.
+                    // Colour (new) now carries the name; ColorCode carries the
+                    // actual code.
+                    ColorCode = clr.Colorcode,
+                    Colour = clr.Colorname,
                     ChasisNo = d.ChassisNo,
                     RegNo = d.RegNo,
                     BillingName = h.BillingName,
@@ -460,9 +478,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     DealerName = dm.Compname,
                     DealerCity = dm.City,
                     DealerState = dm.State,
-                    Location = h.Location,
+                    // ── FIX: Location was showing the raw code (e.g. "CUS0487S1").
+                    // Falls back to the raw values only if the LocationMaster
+                    // join doesn't resolve.
+                    Location = locM != null ? locM.Locname : h.Location,
                     LocCode = vi.LocCode,
-                    LocCity = dm.City,
+                    LocCity = locM != null ? locM.City : dm.City,
                     Name = h.CustomerName,
                     Address1 = lm.Address,
                     Address2 = "",
@@ -483,7 +504,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     // FinanceBy resolved below, after materialization, via
                     // GetFinancierNameLookupAsync() — restricted to ledgers where
                     // LedgerType == "Financier", same list the dropdown uses.
-                    FinancierId = h.Financier,          // ← NEW: raw ledger id for diagnostics
+                    FinancierId = h.Financier,          // ← raw ledger id for diagnostics
                     FinancerCode = "",
                     FinancerCategory = "",
                     ExecutiveName = h.SalesExecutive,
@@ -506,12 +527,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ItemRate = d.ItemRate,
                     PreGstDiscount = d.PreGstDiscount ?? 0,
                     TaxableAmount = d.ItemRate - (d.PreGstDiscount ?? 0),
-
-                    // ── FIX: property renamed SgstPer/CgstPer/IgstPer (was
-                    // Sgstper/Cgstper/Igstper) so the JSON key matches the
-                    // frontend's "sgstPer"/"cgstPer"/"igstPer" — previously the
-                    // percentage always rendered blank even when the amount
-                    // calculated fine, because "sgstper" != "sgstPer".
                     SgstPer = d.Sgstper ?? 0,
                     SgstAmount = d.Sgstamnt ?? 0,
                     CgstPer = d.Cgstper ?? 0,
@@ -520,15 +535,30 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     IgstAmount = d.Igstamnt ?? 0,
                     TotalGstAmount = (d.Sgstamnt ?? 0) + (d.Cgstamnt ?? 0) + (d.Igstamnt ?? 0),
                     FinalAmount = d.FinalAmount,
-
-                    // ── NEW: d (VehicleSaleBillDetails) already carries these —
-                    // they just weren't being selected into the view model, so
-                    // they always came through as 0 on this endpoint.
                     FameIIDiscount = d.FameIi ?? 0,
                     RegAmount = d.RegAmount ?? 0,
                     InsuranceAmount = d.InsuranceAmount ?? 0,
                     PostGstDiscount = d.PostGstDisc ?? 0,
-                    Vcu = vi.Vcu
+                    Vcu = vi.Vcu,
+
+                    // ── NEW: previously blank in the report ─────────────────
+                    Gender = lm.Gender,
+                    Dob = lm.DateOfBirth.HasValue
+                        ? lm.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)
+                        : null,
+                    // "Account Type" is the ledger's own account classification
+                    // (LedgerType), distinct from "Type"/CustomerType above
+                    // (B2C/B2B etc. on the sale itself).
+                    AccountType = lm.LedgerType,
+                    PartyEmail = lm.EMail,
+                    Occupation = om != null ? om.OccupationName : null,
+                    ItemCode = d.ItemCode,
+                    // Battery (distinct from BatteryNo) mirrors how the sibling
+                    // VehicleSaleBillReportViewModel populates it: from
+                    // VehicleSaleBillDetails.Battery, not VehicleInward.BatteryNo.
+                    Battery = d.Battery,
+                    BatteryMake = vi.BatteryMake,
+                    BatteryType = vi.BatteryChemistry
                 };
 
             var rows = await query
@@ -545,12 +575,214 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return rows;
         }
 
+        // ═════════════════════════════════════════════════════════════════════
+        // TOTAL SALE REPORT (DEALER-WISE MAPPING)
+        // ═════════════════════════════════════════════════════════════════════
+        public async Task<TotalSaleReportDealerWiseResponse> GetTotalSaleReportDealerWiseAsync(
+            DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            try
+            {
+                var query =
+                    from d in _context.VehicleSaleBillDetails
+
+                    join h in _context.VehicleSaleBillHeaders
+                        on d.VehicleSaleBillId equals h.Id
+
+                    join dm in _context.DealerMasters
+                        on h.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    where
+                        (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
+                        && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
+                        && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+
+                    select new
+                    {
+                        DealerCode = h.DealerCode ?? "Unknown",
+                        DealerName = dm != null ? dm.Compname : (h.DealerCode ?? "Unknown"),
+                        DealerCity = dm != null ? dm.City : null,
+                        DealerState = dm != null ? dm.State : null,
+                        h.SaleType,
+                        d.ItemRate,
+                        PreGstDiscount = d.PreGstDiscount ?? 0,
+                        TaxableAmount = d.ItemRate - (d.PreGstDiscount ?? 0),
+                        SgstAmount = d.Sgstamnt ?? 0,
+                        CgstAmount = d.Cgstamnt ?? 0,
+                        IgstAmount = d.Igstamnt ?? 0,
+                        FameIIDiscount = d.FameIi ?? 0,
+                        RegAmount = d.RegAmount ?? 0,
+                        InsuranceAmount = d.InsuranceAmount ?? 0,
+                        PostGstDiscount = d.PostGstDisc ?? 0,
+                        FinalAmount = d.FinalAmount,
+                        TotalAmount = h.TotalAmount ?? 0
+                    };
+
+                var rawRows = await query.ToListAsync();
+
+                var rows = rawRows
+                    .GroupBy(x => new { x.DealerCode, x.DealerName, x.DealerCity, x.DealerState })
+                    .Select(g => new TotalSaleReportDealerWiseViewModel
+                    {
+                        DealerCode = g.Key.DealerCode,
+                        DealerName = g.Key.DealerName,
+                        DealerCity = g.Key.DealerCity,
+                        DealerState = g.Key.DealerState,
+                        TotalUnitsSold = g.Count(),
+                        CashCount = g.Count(x => string.Equals(x.SaleType, "Cash", StringComparison.OrdinalIgnoreCase)),
+                        CreditCount = g.Count(x => string.Equals(x.SaleType, "Credit", StringComparison.OrdinalIgnoreCase)),
+                        TotalItemRate = g.Sum(x => x.ItemRate),
+                        TotalPreGstDiscount = g.Sum(x => x.PreGstDiscount),
+                        TotalTaxableAmount = g.Sum(x => x.TaxableAmount),
+                        TotalSgstAmount = g.Sum(x => x.SgstAmount),
+                        TotalCgstAmount = g.Sum(x => x.CgstAmount),
+                        TotalIgstAmount = g.Sum(x => x.IgstAmount),
+                        TotalFameIIDiscount = g.Sum(x => x.FameIIDiscount),
+                        TotalRegAmount = g.Sum(x => x.RegAmount),
+                        TotalInsuranceAmount = g.Sum(x => x.InsuranceAmount),
+                        TotalPostGstDiscount = g.Sum(x => x.PostGstDiscount),
+                        TotalFinalAmount = g.Sum(x => x.FinalAmount),
+                        TotalAmount = g.Sum(x => x.TotalAmount)
+                    })
+                    .OrderByDescending(x => x.TotalFinalAmount)
+                    .ToList();
+
+                var grandTotal = new TotalSaleReportDealerWiseViewModel
+                {
+                    DealerCode = "",
+                    DealerName = "Grand Total",
+                    TotalUnitsSold = rows.Sum(x => x.TotalUnitsSold),
+                    CashCount = rows.Sum(x => x.CashCount),
+                    CreditCount = rows.Sum(x => x.CreditCount),
+                    TotalItemRate = rows.Sum(x => x.TotalItemRate),
+                    TotalPreGstDiscount = rows.Sum(x => x.TotalPreGstDiscount),
+                    TotalTaxableAmount = rows.Sum(x => x.TotalTaxableAmount),
+                    TotalSgstAmount = rows.Sum(x => x.TotalSgstAmount),
+                    TotalCgstAmount = rows.Sum(x => x.TotalCgstAmount),
+                    TotalIgstAmount = rows.Sum(x => x.TotalIgstAmount),
+                    TotalFameIIDiscount = rows.Sum(x => x.TotalFameIIDiscount),
+                    TotalRegAmount = rows.Sum(x => x.TotalRegAmount),
+                    TotalInsuranceAmount = rows.Sum(x => x.TotalInsuranceAmount),
+                    TotalPostGstDiscount = rows.Sum(x => x.TotalPostGstDiscount),
+                    TotalFinalAmount = rows.Sum(x => x.TotalFinalAmount),
+                    TotalAmount = rows.Sum(x => x.TotalAmount)
+                };
+
+                return new TotalSaleReportDealerWiseResponse
+                {
+                    Rows = rows,
+                    GrandTotal = grandTotal
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching total sale report (dealer wise): " + ex.Message, ex);
+            }
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // MODEL WISE SALE REPORT (COUNT-WISE) — pivoted Dealer x Model
+        // ═════════════════════════════════════════════════════════════════════
+        public async Task<ModelWiseSalePivotResponse> GetModelWiseSaleCountReportAsync(
+            DateTime? fromDate, DateTime? toDate, string? dealerCode)
+        {
+            try
+            {
+                // Canonical column set — ALL active OEM models, not just ones that
+                // happen to appear in the sale data, so a model with zero sales in
+                // this filter still shows as a 0 column instead of disappearing.
+                var canonicalModels = await _context.OemmodelMasters
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.ModelName)
+                    .Select(x => x.ModelName)
+                    .ToListAsync();
+
+                var query =
+                    from d in _context.VehicleSaleBillDetails
+
+                    join h in _context.VehicleSaleBillHeaders
+                        on d.VehicleSaleBillId equals h.Id
+
+                    join im in _context.ItemMasters
+                        on d.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join dm in _context.DealerMasters
+                        on h.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    where
+                        (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
+                        && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
+                        && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+
+                    select new
+                    {
+                        DealerCode = h.DealerCode ?? "Unknown",
+                        DealerName = dm != null ? dm.Compname : (h.DealerCode ?? "Unknown"),
+                        // Raw OEM name only — matched against the canonical list below.
+                        // No fallback to Itemname/ItemCode here anymore: a value that
+                        // isn't a real OEM model gets bucketed as Unmapped instead of
+                        // leaking a raw item code onto the report as if it were one.
+                        OemModelName = im != null ? im.Oemmodelname : null
+                    };
+
+                var rawRows = await query.ToListAsync();
+
+                const string unmapped = "Unmapped / Missing Model Link";
+
+                var mapped = rawRows.Select(x => new
+                {
+                    x.DealerCode,
+                    x.DealerName,
+                    ModelName = (!string.IsNullOrWhiteSpace(x.OemModelName) && canonicalModels.Contains(x.OemModelName))
+                        ? x.OemModelName
+                        : unmapped
+                }).ToList();
+
+                var modelNames = new List<string>(canonicalModels);
+                if (mapped.Any(x => x.ModelName == unmapped))
+                    modelNames.Add(unmapped);
+
+                var rows = mapped
+                    .GroupBy(x => new { x.DealerCode, x.DealerName })
+                    .Select(g => new ModelWiseSalePivotRow
+                    {
+                        DealerCode = g.Key.DealerCode,
+                        DealerName = g.Key.DealerName,
+                        // Every model gets an entry, 0 where this dealer sold none of it,
+                        // so the frontend never has to guess at a missing key.
+                        ModelCounts = modelNames.ToDictionary(
+                            m => m,
+                            m => g.Count(x => x.ModelName == m)),
+                        Total = g.Count()
+                    })
+                    .OrderByDescending(x => x.Total)
+                    .ToList();
+
+                var columnTotals = modelNames.ToDictionary(
+                    m => m,
+                    m => rows.Sum(r => r.ModelCounts.TryGetValue(m, out var c) ? c : 0));
+
+                return new ModelWiseSalePivotResponse
+                {
+                    ModelNames = modelNames,
+                    Rows = rows,
+                    ColumnTotals = columnTotals,
+                    GrandTotal = rows.Sum(r => r.Total)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching model wise sale count report: " + ex.Message, ex);
+            }
+        }
+
         public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter)
         {
             try
             {
-                // Local rule: how a finalized bill is distinguished from a proforma.
-                // ── Adjust this to match your data (Status / BillType / SaleBillNo) ──
                 static bool IsBilled(VehicleSaleBillHeader hdr) =>
                     hdr != null && hdr.Status == "Billed";
 
@@ -592,8 +824,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         LocationMaster = lm
                     };
 
-                // Filters
-
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                 {
                     query = query.Where(x =>
@@ -621,7 +851,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawData = await query.ToListAsync();
 
-                // ── Condition 3: vehicle billed against chassis → exclude from report ──
                 rawData = rawData
                     .Where(x => !IsBilled(x.SaleHdr))
                     .ToList();
@@ -637,113 +866,62 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                                 .ToDateTime(TimeOnly.MinValue);
                     }
 
-                    // ── Conditions 1 & 2 ──
-                    // A non-billed sale header against the chassis = proforma (Allocated).
-                    // No sale header at all = not yet allocated (Available).
                     string vehicleStatus =
                         x.SaleHdr != null ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
                         SrNo = index + 1,
-
                         DealerCode = x.Vehicle.DealerCode,
-
-                        DealerName = x.Dealer != null
-                            ? x.Dealer.Compname
-                            : "",
-
+                        DealerName = x.Dealer != null ? x.Dealer.Compname : "",
                         ModelCode = x.Vehicle.ItemCode,
-
-                        ModelName = x.Item != null
-                            ? x.Item.Itemname
-                            : "",
-
-                        OEMModelName = x.Item != null
-                            ? x.Item.Oemmodelname
-                            : "",
-
+                        ModelName = x.Item != null ? x.Item.Itemname : "",
+                        OEMModelName = x.Item != null ? x.Item.Oemmodelname : "",
                         ColorCode = x.Vehicle.ColrCode,
-
-                        ColorName = x.Color != null
-                            ? x.Color.Colorname
-                            : "",
-
+                        ColorName = x.Color != null ? x.Color.Colorname : "",
                         ChassisNo = x.Vehicle.ChasisNo,
-
                         MotorNo = x.Vehicle.MotorNo,
-
                         BatteryNo = x.Vehicle.BatteryNo,
                         BatteryNo2 = x.Vehicle.BatteryNo2,
                         BatteryNo3 = x.Vehicle.BatteryNo3,
                         BatteryNo4 = x.Vehicle.BatteryNo4,
                         BatteryNo5 = x.Vehicle.BatteryNo5,
                         BatteryNo6 = x.Vehicle.BatteryNo6,
-
                         ChargerNo = x.Vehicle.ChargerNo,
-
                         ControllerNo = x.Vehicle.ControllerNo,
-
-                        RegisterNo = x.Sale != null
-                            ? x.Sale.RegNo
-                            : "",
-
+                        RegisterNo = x.Sale != null ? x.Sale.RegNo : "",
                         InvoiceNo = x.Vehicle.InvoiceNo,
-
                         DispatchDate = invoiceDate,
-
                         ReceiveDate = invoiceDate,
-
                         VehicleStatus = vehicleStatus,
-
-                        StockStatus = x.SaleHdr != null
-                            ? "Allocated"
-                            : "In Stock",
-
+                        StockStatus = x.SaleHdr != null ? "Allocated" : "In Stock",
                         LocationCode = x.Vehicle.LocCode,
-
-                        LocationName = x.LocationMaster != null
-                                  ? x.LocationMaster.Locname
-                                  : "",
-
-                        CurrentLocation = x.LocationMaster != null
-                                ? x.LocationMaster.Locname
-                                : x.Vehicle.LocCode,
-
+                        LocationName = x.LocationMaster != null ? x.LocationMaster.Locname : "",
+                        CurrentLocation = x.LocationMaster != null ? x.LocationMaster.Locname : x.Vehicle.LocCode,
                         PurchaseRate = 0,
-
                         EstimatedSaleRate = 0,
-
                         IsBilled = false,
-
-                        DaysInStock = invoiceDate.HasValue
-                            ? (DateTime.Now - invoiceDate.Value).Days
-                            : 0
+                        DaysInStock = invoiceDate.HasValue ? (DateTime.Now - invoiceDate.Value).Days : 0
                     };
                 });
 
-                // ── Vehicle Status filter (Available / Allocated) ──
                 if (!string.IsNullOrWhiteSpace(filter.StockStatus))
                 {
                     result = result.Where(x => x.VehicleStatus == filter.StockStatus);
                 }
 
-                // Date Filters after memory conversion
-
                 if (filter.FromDate.HasValue)
                 {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
-                        x.ReceiveDate.Value.Date >=
-                        filter.FromDate.Value.Date);
+                        x.ReceiveDate.Value.Date >= filter.FromDate.Value.Date);
                 }
 
                 if (filter.ToDate.HasValue)
                 {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
-                        x.ReceiveDate.Value.Date <=
-                        filter.ToDate.Value.Date);
+                        x.ReceiveDate.Value.Date <= filter.ToDate.Value.Date);
                 }
 
                 var totalRecords = result.Count();
@@ -765,6 +943,131 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             {
                 throw new Exception(
                     "Error fetching current stock report: "
+                    + ex.Message,
+                    ex);
+            }
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // MODEL-WISE CURRENT STOCK (COUNT-WISE) — pivoted Dealer x Model
+        // ═════════════════════════════════════════════════════════════════════
+        public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
+            string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                static bool IsBilled(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Billed";
+
+                // Canonical column set — ALL active OEM models, not just ones that
+                // happen to appear in current stock, so a model with zero units
+                // still shows as a 0 column instead of disappearing.
+                var canonicalModels = await _context.OemmodelMasters
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.ModelName)
+                    .Select(x => x.ModelName)
+                    .ToListAsync();
+
+                var query =
+                    from vi in _context.VehicleInwards.AsNoTracking()
+
+                    join dm in _context.DealerMasters.AsNoTracking()
+                        on vi.DealerCode equals dm.Dealercode into dmJoin
+                    from dm in dmJoin.DefaultIfEmpty()
+
+                    join im in _context.ItemMasters.AsNoTracking()
+                        on vi.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
+                    from vsd in saleDetailJoin.DefaultIfEmpty()
+
+                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
+                    from vsh in saleHeaderJoin.DefaultIfEmpty()
+
+                    select new { Vehicle = vi, Dealer = dm, Item = im, SaleHdr = vsh };
+
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                    query = query.Where(x => x.Vehicle.DealerCode == dealerCode);
+
+                // Filtered against VehicleInward.InvoiceDate — same field this
+                // report's DispatchDate/ReceiveDate already comes from in
+                // GetCurrentStockReportAsync. Same exclusion rule too: once a
+                // date filter is applied, a record with no InvoiceDate is
+                // excluded rather than assumed to be "in range".
+                if (fromDate.HasValue)
+                {
+                    var fromDateOnly = DateOnly.FromDateTime(fromDate.Value.Date);
+                    query = query.Where(x =>
+                        x.Vehicle.InvoiceDate.HasValue &&
+                        x.Vehicle.InvoiceDate.Value >= fromDateOnly);
+                }
+
+                if (toDate.HasValue)
+                {
+                    var toDateOnly = DateOnly.FromDateTime(toDate.Value.Date);
+                    query = query.Where(x =>
+                        x.Vehicle.InvoiceDate.HasValue &&
+                        x.Vehicle.InvoiceDate.Value <= toDateOnly);
+                }
+
+                var rawRows = await query.ToListAsync();
+
+                // Same billed-exclusion rule as before: a vehicle billed against
+                // its chassis no longer counts as stock at all.
+                rawRows = rawRows.Where(x => !IsBilled(x.SaleHdr)).ToList();
+
+                const string unmapped = "Unmapped / Missing Model Link";
+
+                // Raw OEM name only, matched against the canonical list. No fallback
+                // to ItemCode anymore: an unmatched/blank Oemmodelname is bucketed as
+                // Unmapped instead of leaking a raw item code (e.g. "FCXE1A3250CG")
+                // onto the report as if it were a real model.
+                var mapped = rawRows.Select(x => new
+                {
+                    DealerCode = x.Vehicle.DealerCode ?? "Unknown",
+                    DealerName = x.Dealer != null ? x.Dealer.Compname : (x.Vehicle.DealerCode ?? "Unknown"),
+                    ModelName = (x.Item != null && !string.IsNullOrWhiteSpace(x.Item.Oemmodelname) && canonicalModels.Contains(x.Item.Oemmodelname))
+                        ? x.Item.Oemmodelname
+                        : unmapped
+                }).ToList();
+
+                var modelNames = new List<string>(canonicalModels);
+                if (mapped.Any(x => x.ModelName == unmapped))
+                    modelNames.Add(unmapped);
+
+                var rows = mapped
+                    .GroupBy(x => new { x.DealerCode, x.DealerName })
+                    .Select(g => new ModelWiseStockPivotRow
+                    {
+                        DealerCode = g.Key.DealerCode,
+                        DealerName = g.Key.DealerName,
+                        ModelCounts = modelNames.ToDictionary(
+                            m => m,
+                            m => g.Count(x => x.ModelName == m)),
+                        Total = g.Count()
+                    })
+                    .OrderByDescending(x => x.Total)
+                    .ToList();
+
+                var columnTotals = modelNames.ToDictionary(
+                    m => m,
+                    m => rows.Sum(r => r.ModelCounts.TryGetValue(m, out var c) ? c : 0));
+
+                return new ModelWiseStockPivotResponse
+                {
+                    ModelNames = modelNames,
+                    Rows = rows,
+                    ColumnTotals = columnTotals,
+                    GrandTotal = rows.Sum(r => r.Total)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching model-wise current stock count report: "
                     + ex.Message,
                     ex);
             }
@@ -797,38 +1100,24 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         loc
                     };
 
-                // =====================================================
-                // FILTERS
-                // =====================================================
-
-                if (!string.IsNullOrWhiteSpace(
-                    filter.DealerCode))
+                if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                 {
-                    query = query.Where(x =>
-                        x.po.CustomerCode ==
-                        filter.DealerCode);
+                    query = query.Where(x => x.po.CustomerCode == filter.DealerCode);
                 }
 
                 if (filter.FromDate.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.po.PurchaseDate >=
-                        filter.FromDate.Value);
+                    query = query.Where(x => x.po.PurchaseDate >= filter.FromDate.Value);
                 }
 
                 if (filter.ToDate.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.po.PurchaseDate <=
-                        filter.ToDate.Value);
+                    query = query.Where(x => x.po.PurchaseDate <= filter.ToDate.Value);
                 }
 
-                if (!string.IsNullOrWhiteSpace(
-                    filter.POType))
+                if (!string.IsNullOrWhiteSpace(filter.POType))
                 {
-                    query = query.Where(x =>
-                        x.po.OrderType ==
-                        filter.POType);
+                    query = query.Where(x => x.po.OrderType == filter.POType);
                 }
 
                 if (!string.IsNullOrWhiteSpace(filter.POStatus))
@@ -837,209 +1126,71 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     query = query.Where(x => x.po.Status == isActive);
                 }
 
-                // =====================================================
-                // TOTAL RECORDS
-                // =====================================================
+                var totalRecords = await query.CountAsync();
 
-                var totalRecords =
-                    await query.CountAsync();
-
-                // =====================================================
-                // PAGINATION
-                // =====================================================
-
-                var rawData =
-                    await query
-                    .OrderByDescending(x =>
-                        x.po.PurchaseDate)
-                    .Skip(
-                        (filter.PageIndex - 1)
-                        * filter.PageSize)
+                var rawData = await query
+                    .OrderByDescending(x => x.po.PurchaseDate)
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
                     .Take(filter.PageSize)
                     .ToListAsync();
 
-                int srNo =
-                    ((filter.PageIndex - 1)
-                    * filter.PageSize) + 1;
+                int srNo = ((filter.PageIndex - 1) * filter.PageSize) + 1;
 
-                // =====================================================
-                // FINAL RESULT
-                // =====================================================
+                var result = rawData.Select(x =>
+                {
+                    var poDetails = _context.PurchaseOrderDetails
+                        .Where(d => d.Ponumber == x.po.Ponumber)
+                        .ToList();
 
-                var result =
-                    rawData.Select(x =>
+                    decimal poQty = poDetails.Sum(d => d.Qty ?? 0);
+                    decimal poPrice = poDetails.Sum(d => d.LineAmount ?? 0);
+                    decimal billedQty = 0;
+                    decimal billedPrice = 0;
+                    decimal pendingQty = poQty - billedQty;
+                    decimal pendingPrice = poPrice - billedPrice;
+
+                    return new POTrackingReportViewModel
                     {
-                        // =============================================
-                        // PURCHASE ORDER DETAILS
-                        // =============================================
+                        SrNo = srNo++,
+                        DealerName = x.dealer != null ? x.dealer.Compname : "",
+                        DealerCode = x.po.CustomerCode,
+                        LocationName = x.loc != null ? x.loc.Locname : "",
+                        OrderNumber = x.po.Ponumber,
+                        OrderDate = x.po.PurchaseDate,
+                        SubmitToERPDate = x.po.UpdatedDate,
+                        POType = x.po.OrderType,
+                        POQty = poQty,
+                        BilledQty = billedQty,
+                        PendingQty = pendingQty,
+                        Archived = 0,
+                        POPrice = poPrice,
+                        BilledPrice = billedPrice,
+                        PendingPOPrice = pendingPrice,
+                        ArchivedPriceExclGST = 0,
+                        POStatus = x.po.Status ? "Active" : "Inactive",
+                        UniqueId = x.po.Id.ToString(),
+                        DealerPONo = x.po.Ponumber,
+                        WalletDebit = 0,
+                        PGDebit = 0,
+                        PGStatus = "",
+                        PaymentLink = "",
+                        PaymentType = "",
+                        TempPONo = x.po.Ponumber,
+                        MerchantOrderNo = "",
+                        MerchantOrderStatus = ""
+                    };
+                })
+                .ToList();
 
-                        var poDetails =
-                            _context.PurchaseOrderDetails
-                            .Where(d =>
-                                d.Ponumber ==
-                                x.po.Ponumber)
-                            .ToList();
-
-                        // =============================================
-                        // QTY CALCULATIONS
-                        // =============================================
-
-                        decimal poQty =
-                            poDetails.Sum(d =>
-                                d.Qty ?? 0);
-
-                        // =============================================
-                        // PRICE CALCULATIONS
-                        // =============================================
-
-                        decimal poPrice =
-                            poDetails.Sum(d =>
-                                d.LineAmount ?? 0);
-
-                        // =============================================
-                        // TEMP VALUES
-                        // =============================================
-
-                        decimal billedQty = 0;
-
-                        decimal billedPrice = 0;
-
-                        decimal pendingQty =
-                            poQty - billedQty;
-
-                        decimal pendingPrice =
-                            poPrice - billedPrice;
-
-                        // =============================================
-                        // RETURN VIEWMODEL
-                        // =============================================
-
-                        return new
-                            POTrackingReportViewModel
-                        {
-                            // =========================================
-                            // BASIC DETAILS
-                            // =========================================
-
-                            SrNo = srNo++,
-
-                            DealerName =
-                                x.dealer != null
-                                ? x.dealer.Compname
-                                : "",
-
-                            DealerCode =
-                                x.po.CustomerCode,
-
-                            LocationName =
-                                x.loc != null
-                                ? x.loc.Locname
-                                : "",
-
-                            // =========================================
-                            // ORDER DETAILS
-                            // =========================================
-
-                            OrderNumber =
-                                x.po.Ponumber,
-
-                            OrderDate =
-                                x.po.PurchaseDate,
-
-                            SubmitToERPDate =
-                                x.po.UpdatedDate,
-
-                            POType =
-                                x.po.OrderType,
-
-                            // =========================================
-                            // QUANTITY DETAILS
-                            // =========================================
-
-                            POQty =
-                                poQty,
-
-                            BilledQty =
-                                billedQty,
-
-                            PendingQty =
-                                pendingQty,
-
-                            Archived = 0,
-
-                            // =========================================
-                            // PRICE DETAILS
-                            // =========================================
-
-                            POPrice =
-                                poPrice,
-
-                            BilledPrice =
-                                billedPrice,
-
-                            PendingPOPrice =
-                                pendingPrice,
-
-                            ArchivedPriceExclGST = 0,
-
-                            // =========================================
-                            // STATUS DETAILS
-                            // =========================================
-
-                            POStatus =
-                                x.po.Status
-                                ? "Active"
-                                : "Inactive",
-
-                            UniqueId =
-                                x.po.Id.ToString(),
-
-                            DealerPONo =
-                                x.po.Ponumber,
-
-                            // =========================================
-                            // PAYMENT DETAILS
-                            // =========================================
-
-                            WalletDebit = 0,
-
-                            PGDebit = 0,
-
-                            PGStatus = "",
-
-                            PaymentLink = "",
-
-                            PaymentType = "",
-
-                            TempPONo =
-                                x.po.Ponumber,
-
-                            MerchantOrderNo = "",
-
-                            MerchantOrderStatus = ""
-                        };
-                    })
-                    .ToList();
-
-                // =====================================================
-                // RESPONSE
-                // =====================================================
-
-                return new
-                    PagedResponse<
-                        POTrackingReportViewModel>
+                return new PagedResponse<POTrackingReportViewModel>
                 {
                     Data = result,
-
-                    TotalRecords =
-                        totalRecords
+                    TotalRecords = totalRecords
                 };
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error fetching PO Tracking Report",
-                    ex);
+                throw new Exception("Error fetching PO Tracking Report", ex);
             }
         }
 
@@ -1055,16 +1206,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         public async Task<List<string>> GetPOStatusDropdownAsync()
         {
-
-            // PO Status is derived from bool Status field
-            // Active / Inactive — return fixed meaningful labels
             return await Task.FromResult(new List<string>
                 {
                     "Active",
                     "Inactive"
                 });
         }
-
 
 
         // ═════════════════════════════════════════════════════════════════════
@@ -1154,162 +1301,66 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     select new PartsDispatchReportViewModel
                     {
-                        DealerName = dm != null
-                            ? dm.Compname
-                            : null,
-
-                        DealerCode = dm != null
-                            ? dm.Dealercode
-                            : null,
-
-                        CustomerName = jc != null
-                            ? jc.CustomerName
-                            : null,
-
-                        MobileNo = jc != null
-                            ? jc.CustomerMobile
-                            : null,
-
-                        City = dm != null
-                            ? dm.City
-                            : null,
-
-                        State = dm != null
-                            ? dm.State
-                            : null,
-
-                        VehicleModel = im != null
-                            ? im.Itemname
-                            : null,
-
+                        DealerName = dm != null ? dm.Compname : null,
+                        DealerCode = dm != null ? dm.Dealercode : null,
+                        CustomerName = jc != null ? jc.CustomerName : null,
+                        MobileNo = jc != null ? jc.CustomerMobile : null,
+                        City = dm != null ? dm.City : null,
+                        State = dm != null ? dm.State : null,
+                        VehicleModel = im != null ? im.Itemname : null,
                         VehicleVIN = vd.ChasisNo,
-
                         BatteryMasterName = vd.BatteryMake,
-
-                        DateOfSale = jc != null
-                            ? jc.SaleDate
-                            : null,
-
-                        PartName = im != null
-                            ? im.Itemname
-                            : null,
-
-                        DeviceGroup = im != null
-                            ? im.Itemtype.ToString()
-                            : null,
-
-                        DeviceType = im != null
-                            ? im.Vehtype.ToString()
-                            : null,
-
-                        ItemDescription = im != null
-                            ? im.Itemdesc
-                            : null,
-
+                        DateOfSale = jc != null ? jc.SaleDate : null,
+                        PartName = im != null ? im.Itemname : null,
+                        DeviceGroup = im != null ? im.Itemtype.ToString() : null,
+                        DeviceType = im != null ? im.Vehtype.ToString() : null,
+                        ItemDescription = im != null ? im.Itemdesc : null,
                         VehicleStandardWarrantyMonths = 36,
-
                         VehicleStandardWarrantyODOReading = 30000,
-
                         VehicleExtendedWarrantyMonths = 12,
-
                         VehicleExtendedWarrantyODOReading = 10000,
-
                         StandardWarrantyExpiryDate =
-                            jc != null &&
-                            jc.SaleDate.HasValue
-                                ? jc.SaleDate.Value.AddMonths(36)
-                                : null,
-
+                            jc != null && jc.SaleDate.HasValue ? jc.SaleDate.Value.AddMonths(36) : null,
                         ExtendedWarrantyExpiryDate =
-                            jc != null &&
-                            jc.SaleDate.HasValue
-                                ? jc.SaleDate.Value.AddMonths(48)
-                                : null,
-
-                        LastODOReadingDate =
-                            jh != null
-                                ? jh.CreatedDate
-                                : null,
-
-                        ODOReadingLastDate =
-                            jh != null
-                                ? (jh.Vehiclekms ?? 0)
-                                : 0,
-
+                            jc != null && jc.SaleDate.HasValue ? jc.SaleDate.Value.AddMonths(48) : null,
+                        LastODOReadingDate = jh != null ? jh.CreatedDate : null,
+                        ODOReadingLastDate = jh != null ? (jh.Vehiclekms ?? 0) : 0,
                         CurrentWarrantyStatusDate =
-                            jc != null &&
-                            jc.SaleDate.HasValue &&
-                            jc.SaleDate.Value.AddMonths(36)
-                                >= DateTime.Now
-                                    ? "In Warranty"
-                                    : "Expired",
-
+                            jc != null && jc.SaleDate.HasValue && jc.SaleDate.Value.AddMonths(36) >= DateTime.Now
+                                ? "In Warranty" : "Expired",
                         CurrentWarrantyStatusODO =
-                            jh != null &&
-                            (jh.Vehiclekms ?? 0) <= 30000
-                                ? "In Warranty"
-                                : "Expired",
-
+                            jh != null && (jh.Vehiclekms ?? 0) <= 30000 ? "In Warranty" : "Expired",
                         FinalWarrantyStatus =
-                            jc != null &&
-                            jc.SaleDate.HasValue &&
-                            jc.SaleDate.Value.AddMonths(36)
-                                >= DateTime.Now
-                            &&
-                            jh != null &&
-                            (jh.Vehiclekms ?? 0) <= 30000
-                                ? "Active"
-                                : "Expired"
+                            jc != null && jc.SaleDate.HasValue && jc.SaleDate.Value.AddMonths(36) >= DateTime.Now
+                            && jh != null && (jh.Vehiclekms ?? 0) <= 30000 ? "Active" : "Expired"
                     }).ToListAsync();
 
-                // Dealer Filter
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    query = query
-                        .Where(x => x.DealerCode == dealerCode)
-                        .ToList();
+                    query = query.Where(x => x.DealerCode == dealerCode).ToList();
                 }
 
-                // From Date
                 if (fromDate.HasValue)
                 {
-                    query = query
-                        .Where(x =>
-                            x.DateOfSale.HasValue &&
-                            x.DateOfSale.Value.Date >=
-                            fromDate.Value.Date)
-                        .ToList();
+                    query = query.Where(x => x.DateOfSale.HasValue && x.DateOfSale.Value.Date >= fromDate.Value.Date).ToList();
                 }
 
-                // To Date
                 if (toDate.HasValue)
                 {
-                    query = query
-                        .Where(x =>
-                            x.DateOfSale.HasValue &&
-                            x.DateOfSale.Value.Date <=
-                            toDate.Value.Date)
-                        .ToList();
+                    query = query.Where(x => x.DateOfSale.HasValue && x.DateOfSale.Value.Date <= toDate.Value.Date).ToList();
                 }
 
                 int srNo = 1;
 
-                query = query
-                    .OrderByDescending(x => x.DateOfSale)
-                    .ToList();
+                query = query.OrderByDescending(x => x.DateOfSale).ToList();
 
-                query.ForEach(x =>
-                {
-                    x.SrNo = srNo++;
-                });
+                query.ForEach(x => { x.SrNo = srNo++; });
 
                 return query;
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error while fetching Parts Dispatch Report",
-                    ex);
+                throw new Exception("Error while fetching Parts Dispatch Report", ex);
             }
         }
 
@@ -1329,9 +1380,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error while fetching dealer list",
-                    ex);
+                throw new Exception("Error while fetching dealer list", ex);
             }
         }
 
@@ -1340,17 +1389,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 var data = await (
-
                     from vi in _context.VehicleInwards
-
                     join im in _context.ItemMasters
                         on vi.ItemCode equals im.Itemcode
-
                     where
                         !string.IsNullOrEmpty(im.Itemname)
-
-                        // REMOVE ASSEMBLY / PART ITEMS
-
                         && !im.Itemname.Contains("BRAKE")
                         && !im.Itemname.Contains("LEVER")
                         && !im.Itemname.Contains("BUZZER")
@@ -1363,27 +1406,21 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         && !im.Itemname.Contains("TOOL")
                         && !im.Itemname.Contains("PART")
                         && !im.Itemname.Contains("KIT")
-
                     select new
                     {
                         modelCode = im.Itemcode,
                         modelName = im.Itemname
                     }
-
                 )
                 .Distinct()
                 .OrderBy(x => x.modelName)
                 .ToListAsync();
 
-                return data
-                    .Cast<object>()
-                    .ToList();
+                return data.Cast<object>().ToList();
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error while fetching model list",
-                    ex);
+                throw new Exception("Error while fetching model list", ex);
             }
         }
 
@@ -1392,36 +1429,28 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 var data = await (
-
                     from vi in _context.VehicleInwards
-
                     join im in _context.ItemMasters
                         on vi.ItemCode equals im.Itemcode
-
                     where vi.DealerCode == dealerCode
-
                     select new
                     {
                         modelCode = im.Itemcode,
                         modelName = im.Itemname
                     }
-
                 )
                 .Distinct()
                 .OrderBy(x => x.modelName)
                 .ToListAsync();
 
-                return data
-                    .Cast<object>()
-                    .ToList();
+                return data.Cast<object>().ToList();
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error fetching model list",
-                    ex);
+                throw new Exception("Error fetching model list", ex);
             }
         }
+
         public async Task<List<string>> GetChassisListAsync()
         {
             try
@@ -1436,9 +1465,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error while fetching chassis list",
-                    ex);
+                throw new Exception("Error while fetching chassis list", ex);
             }
         }
 
@@ -1447,115 +1474,44 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 var query =
-
                     from po in _context.PurchaseOrders
-
                     join dealer in _context.DealerMasters
                         on po.CustomerCode equals dealer.Dealercode
                         into dealerGroup
-
                     from dealer in dealerGroup.DefaultIfEmpty()
-
                     where po.Id > 0
-
                     select new PartDispatchKitReportViewModel
                     {
-                        // =====================================
-                        // PO DETAILS
-                        // =====================================
-
                         PONumber = po.Ponumber,
-
                         PODate = po.PurchaseDate,
-
                         SubmitToERPDate = po.UpdatedDate,
-
-                        POType =
-                                (po.TransactionType ?? "") +
-                                "-" +
-                                (po.OrderType ?? ""),
-
-                        // =====================================
-                        // DEALER DETAILS
-                        // =====================================
-
-                        CompanyName = dealer != null
-                            ? dealer.Compname
-                            : "",
-
-                        MobileNo = dealer != null
-                            ? dealer.Mobile
-                            : "",
-
-                        DealerCode = dealer != null
-                            ? dealer.Dealercode
-                            : "",
-
-                        DealerCity = dealer != null
-                            ? dealer.City
-                            : "",
-
-                        DealerState = dealer != null
-                            ? dealer.State
-                            : "",
-
-                        // =====================================
-                        // LOCATION
-                        // =====================================
-
+                        POType = (po.TransactionType ?? "") + "-" + (po.OrderType ?? ""),
+                        CompanyName = dealer != null ? dealer.Compname : "",
+                        MobileNo = dealer != null ? dealer.Mobile : "",
+                        DealerCode = dealer != null ? dealer.Dealercode : "",
+                        DealerCity = dealer != null ? dealer.City : "",
+                        DealerState = dealer != null ? dealer.State : "",
                         LocationCode = po.LocCode,
-
-                        LocationName = dealer != null
-                            ? dealer.Compname
-                            : "",
-
-                        LocationCity = dealer != null
-                            ? dealer.City
-                            : ""
+                        LocationName = dealer != null ? dealer.Compname : "",
+                        LocationCity = dealer != null ? dealer.City : ""
                     };
-
-                // =========================================
-                // DEALER FILTER
-                // =========================================
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    query = query.Where(x =>
-                        x.DealerCode == dealerCode);
+                    query = query.Where(x => x.DealerCode == dealerCode);
                 }
-
-
-                // =========================================
-                // FROM DATE
-                // =========================================
 
                 if (fromDate.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.PODate.HasValue &&
-                        x.PODate.Value.Date >=
-                        fromDate.Value.Date);
+                    query = query.Where(x => x.PODate.HasValue && x.PODate.Value.Date >= fromDate.Value.Date);
                 }
-
-                // =========================================
-                // TO DATE
-                // =========================================
 
                 if (toDate.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.PODate.HasValue &&
-                        x.PODate.Value.Date <=
-                        toDate.Value.Date);
+                    query = query.Where(x => x.PODate.HasValue && x.PODate.Value.Date <= toDate.Value.Date);
                 }
 
-                var result = await query
-                    .OrderByDescending(x => x.PODate)
-                    .ToListAsync();
-
-                // =========================================
-                // SR NO
-                // =========================================
+                var result = await query.OrderByDescending(x => x.PODate).ToListAsync();
 
                 for (int i = 0; i < result.Count; i++)
                 {
@@ -1566,10 +1522,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error fetching Part Dispatch Kit Report",
-                    ex
-                );
+                throw new Exception("Error fetching Part Dispatch Kit Report", ex);
             }
         }
 
@@ -1578,18 +1531,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             try
             {
                 return await _context.PurchaseOrders
-
-                    .Where(x =>
-                        x.TransactionType != null &&
-                        x.OrderType != null)
-
-                    .Select(x =>
-                        x.TransactionType + "-" + x.OrderType)
-
+                    .Where(x => x.TransactionType != null && x.OrderType != null)
+                    .Select(x => x.TransactionType + "-" + x.OrderType)
                     .Distinct()
-
                     .OrderBy(x => x)
-
                     .ToListAsync();
             }
             catch
@@ -1604,39 +1549,26 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             {
                 var data = await (
                     from vi in _context.VehicleInwards
-
                     join im in _context.ItemMasters
                         on vi.ItemCode equals im.Itemcode
-
                     join f2 in _context.Form22Masters
                         on (im.Oemmodelname ?? "").Trim().ToLower()
                         equals (f2.OemModelName ?? "").Trim().ToLower()
                         into formGroup
-
                     from f2 in formGroup.DefaultIfEmpty()
-
                     where vi.ChasisNo == chassisNo
-
                     select new Form22SlipViewModel
                     {
                         ChassisNo = chassisNo,
-
                         TypeApprovalCertNo = f2.ApprovalCertificateNo,
-
                         BrandName = im.Itemname,
-
                         MotorNo = _context.ChassisBatteryDetails
-                            .Where(x =>
-                                x.ChassisNo == vi.ChasisNo &&
-                                x.MotorOrderNo == 1)
+                            .Where(x => x.ChassisNo == vi.ChasisNo && x.MotorOrderNo == 1)
                             .OrderByDescending(x => x.UpdatedDate ?? x.CreatedDate)
                             .Select(x => x.MotorNo)
                             .FirstOrDefault(),
-
                         Emission = "",
-
                         SoundLevelHorn = f2.SoundLevelHorn,
-
                         NoiseLevel = f2.PassbyNoiseLevel
                     }
                 ).FirstOrDefaultAsync();
@@ -1653,12 +1585,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
-                // Step 1: raw joined entities, filters pushed to SQL on real columns.
-                // (Previously this filtered AFTER projecting into VehicleSaleBillReportViewModel,
-                // composing a Where on top of a Select with 6 optional DefaultIfEmpty joins in the
-                // same translated query — a common source of 500s once EF Core can't translate the
-                // combination. Restructured to match GetVehicleSaleBillOnlyReportAsync below:
-                // materialize the raw join first, then project in plain C#.)
                 var baseQuery =
                     from vd in _context.VehicleSaleBillDetails
 
@@ -1697,9 +1623,19 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vd.VehicleSaleBillId equals inv.ReferenceId into invJoin
                     from inv in invJoin.DefaultIfEmpty()
 
-                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv };
+                        // NEW: resolves Location properly instead of the raw code,
+                        // same join key already proven in GetVehicleSaleReportAsync.
+                    join locM in _context.LocationMasters
+                        on vi.LocCode equals locM.Loccode into locMJoin
+                    from locM in locMJoin.DefaultIfEmpty()
 
-                // Step 2: cheap direct-column filters, still SQL-side.
+                        // NEW: resolves Occupation display name from LedgerMaster.OccupationId.
+                    join occ in _context.OccupationMasters
+                        on cust.OccupationId equals occ.Id into occJoin
+                    from occ in occJoin.DefaultIfEmpty()
+
+                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv, locM, occ };
+
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
@@ -1727,7 +1663,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
 
-                // Step 3: materialize NOW — everything below is plain C#, nothing left to mistranslate.
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
 
@@ -1737,7 +1672,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     SaleBillNo = x.vh.SaleBillNo,
                     SaleDate = x.vh.SaleDate,
                     Status = x.vh.Status,
-                    Location = x.vh.Location,
+                    Location = x.locM != null ? x.locM.Locname : x.vh.Location,
                     DealerCode = x.vh.DealerCode,
                     DealerName = x.dm?.Compname,
                     CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
@@ -1745,9 +1680,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     CustomerType = x.vh.CustomerType,
                     SaleType = x.vh.SaleType,
                     BillType = x.vh.BillType,
-                    // Resolved only against ledgers where LedgerType == "Financier" —
-                    // same list GetFinancierLedgers() feeds the dropdown, instead of
-                    // trusting a raw join-by-Id against LedgerMasters of any type.
                     Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
                         ? finName
                         : null,
@@ -1757,7 +1689,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     CustomerCity = x.city?.CityName,
                     CustomerState = x.state?.StateName,
                     InvoiceNo = x.inv?.InvoiceNo,
-
                     ChassisNo = x.vd.ChassisNo,
                     MotorNo = x.vi?.MotorNo,
                     ItemCode = x.vd.ItemCode,
@@ -1768,7 +1699,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     MfgYear = x.vd.MfgYear ?? x.vi?.MfgYear,
                     RegNo = x.vd.RegNo,
                     InsNo = x.vd.InsNo,
-
                     ItemRate = x.vd.ItemRate,
                     PreGstDiscount = x.vd.PreGstDiscount ?? 0,
                     TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
@@ -1783,14 +1713,25 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     InsuranceAmount = x.vd.InsuranceAmount ?? 0,
                     PostGstDiscount = x.vd.PostGstDisc ?? 0,
                     FinalAmount = x.vd.FinalAmount,
-
                     Battery = x.vd.Battery,
                     ChargerNo = x.vd.ChargerNo,
                     ControllerNo = x.vd.ControllerNo,
-                    Vcu = x.vd.Vcu
+                    Vcu = x.vd.Vcu,
+
+                    // NEW: same fields added to VehicleSaleReportViewModel,
+                    // so the unified frontend model gets consistent data
+                    // regardless of which source a row came from.
+                    PartyEmail = x.cust?.EMail,
+                    Gender = x.cust?.Gender,
+                    Dob = x.cust != null && x.cust.DateOfBirth.HasValue
+                        ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)
+                        : null,
+                    AccountType = x.cust?.LedgerType,
+                    Occupation = x.occ != null ? x.occ.OccupationName : null,
+                    BatteryMake = x.vi?.BatteryMake,
+                    BatteryType = x.vi?.BatteryChemistry
                 }).ToList();
 
-                // Step 4: free-text search, unchanged from before.
                 if (!string.IsNullOrWhiteSpace(filter.Search))
                 {
                     var s = filter.Search.Trim().ToLower();
@@ -1814,7 +1755,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     TotalRecords = rows.Count,
                     PageIndex = filter.PageIndex,
                     PageSize = filter.PageSize,
-
                     TotalItemRate = rows.Sum(x => x.ItemRate),
                     TotalTaxable = rows.Sum(x => x.TaxableAmount),
                     TotalSgst = rows.Sum(x => x.SgstAmount),
@@ -1951,26 +1891,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 return new CounterBillPrintViewModel
                 {
                     DealerCode = header.DealerCode,
-
-                    // Dealer Details
                     DealerName = dealer?.Compname,
                     DealerAddress1 = dealer?.Adress1,
                     DealerAddress2 = dealer?.Adress2,
                     Pin = dealer?.Pin,
                     PhoneNo1 = dealer?.Mobile,
                     PhoneNo2 = dealer?.PhoneOff,
-
                     PanNo = dealer?.Pan,
                     GSTNo = dealer?.CompgstinNo,
                     ChassisNo = header?.ChassisNo,
                     BillType = header?.BillType,
                     City = cityName,
                     Remarks = header.Remarks,
-                    // Invoice Details
                     InvoiceNo = header.BillNo,
                     InvoiceDate = header.BillDate,
-
-                    // Customer Details
                     CustomerName = header.PartyName,
                     CustomerMobile = header.MobileNo,
                     CustomerAddress = customer?.Address,
@@ -1987,8 +1921,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                                             ConditionText = i.TermCondition
                                         })
                                         .ToListAsync(),
-
-                    // Items
                     Details = header.CounterBillDetails
                             .Select(d =>
                             {
@@ -2021,11 +1953,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
+
         public async Task<VehicleSaleBillReportResponse> GetVehicleSaleBillOnlyReportAsync(VehicleSaleBillReportFilterModel filter)
         {
             try
             {
-                // Step 1: raw joined entities, filters pushed to SQL on real columns.
                 var baseQuery =
                     from vd in _context.VehicleSaleBillDetails.AsNoTracking()
 
@@ -2064,9 +1996,18 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vd.VehicleSaleBillId equals inv.ReferenceId into invJoin
                     from inv in invJoin.DefaultIfEmpty()
 
-                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv };
+                        // NEW: resolves Location properly instead of the raw code.
+                    join locM in _context.LocationMasters.AsNoTracking()
+                        on vi.LocCode equals locM.Loccode into locMJoin
+                    from locM in locMJoin.DefaultIfEmpty()
 
-                // Step 2: cheap direct-column filters, still SQL-side.
+                        // NEW: resolves Occupation display name from LedgerMaster.OccupationId.
+                    join occ in _context.OccupationMasters.AsNoTracking()
+                        on cust.OccupationId equals occ.Id into occJoin
+                    from occ in occJoin.DefaultIfEmpty()
+
+                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv, locM, occ };
+
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
@@ -2094,7 +2035,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
 
-                // Step 3: materialize NOW — everything below is plain C#, nothing left to mistranslate.
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
 
@@ -2104,7 +2044,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     SaleBillNo = x.vh.SaleBillNo,
                     SaleDate = x.vh.SaleDate,
                     Status = x.vh.Status,
-                    Location = x.vh.Location,
+                    Location = x.locM != null ? x.locM.Locname : x.vh.Location,
                     DealerCode = x.vh.DealerCode,
                     DealerName = x.dm?.Compname,
                     CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
@@ -2121,7 +2061,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     CustomerCity = x.city?.CityName,
                     CustomerState = x.state?.StateName,
                     InvoiceNo = x.inv?.InvoiceNo,
-
                     ChassisNo = x.vd.ChassisNo,
                     MotorNo = x.vi?.MotorNo,
                     ItemCode = x.vd.ItemCode,
@@ -2132,7 +2071,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     MfgYear = x.vd.MfgYear ?? x.vi?.MfgYear,
                     RegNo = x.vd.RegNo,
                     InsNo = x.vd.InsNo,
-
                     ItemRate = x.vd.ItemRate,
                     PreGstDiscount = x.vd.PreGstDiscount ?? 0,
                     TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
@@ -2147,14 +2085,25 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     InsuranceAmount = x.vd.InsuranceAmount ?? 0,
                     PostGstDiscount = x.vd.PostGstDisc ?? 0,
                     FinalAmount = x.vd.FinalAmount,
-
                     Battery = x.vd.Battery,
                     ChargerNo = x.vd.ChargerNo,
                     ControllerNo = x.vd.ControllerNo,
-                    Vcu = x.vd.Vcu
+                    Vcu = x.vd.Vcu,
+
+                    // NEW: same fields added to VehicleSaleReportViewModel,
+                    // so the unified frontend model gets consistent data
+                    // regardless of which source a row came from.
+                    PartyEmail = x.cust?.EMail,
+                    Gender = x.cust?.Gender,
+                    Dob = x.cust != null && x.cust.DateOfBirth.HasValue
+                        ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)
+                        : null,
+                    AccountType = x.cust?.LedgerType,
+                    Occupation = x.occ != null ? x.occ.OccupationName : null,
+                    BatteryMake = x.vi?.BatteryMake,
+                    BatteryType = x.vi?.BatteryChemistry
                 }).ToList();
 
-                // Step 4: free-text search, unchanged from original.
                 if (!string.IsNullOrWhiteSpace(filter.Search))
                 {
                     var s = filter.Search.Trim().ToLower();
@@ -2250,7 +2199,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawData = await query.ToListAsync();
 
-                // InvoiceDate is DateOnly? on VehicleInward — convert & date-filter in memory
                 var withDates = rawData.Select(x => new
                 {
                     x.vi,

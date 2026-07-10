@@ -32,7 +32,6 @@
         public string? InvoiceNo { get; set; }
         public int? BillType { get; set; }
         public string? FinanceBy { get; set; }
-        // ── NEW: raw Financier ledger ID, for diagnosing join-vs-data gaps ──
         public int? FinancierId { get; set; }
         public string? FinancerCode { get; set; }
         public string? FinancerCategory { get; set; }
@@ -75,5 +74,15 @@
         public string? Status { get; set; }
         public string? ChargerNo { get; set; }
         public string? ControllerNo { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? AccountType { get; set; }
+        public string? PartyEmail { get; set; }
+        public string? Occupation { get; set; }
+        public string? ItemCode { get; set; }
+        public string? Colour { get; set; }
+        public string? Battery { get; set; }
+        public string? BatteryMake { get; set; }
+        public string? BatteryType { get; set; }
     }
 }
