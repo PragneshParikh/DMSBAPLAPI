@@ -177,6 +177,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public int? PartItemId { get; set; }
             public string? PartCode { get; set; }
             public string? PartDesc { get; set; }
+            public string? DealerState { get; set; }
 
             public decimal? Cgst { get; set; }
             public decimal? Sgst { get; set; }
@@ -189,6 +190,8 @@ namespace DMS_BAPL_Utils.ViewModels
             public decimal? Rate { get; set; }
 
             public string? LabourHsnCode { get; set; }
+            public string? PartHsnCode { get; set; }
+            public decimal? PartMRP { get; set; }
 
             public decimal? Discount { get; set; }
             public string? DiscountType { get; set; }

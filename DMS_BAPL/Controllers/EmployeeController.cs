@@ -144,7 +144,7 @@ namespace DMS_BAPL_Api.Controllers
 
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
-                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
@@ -169,7 +169,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == 0)
                     return NotFound("Employee Not Found");
 
-                if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Updated Successfully" });

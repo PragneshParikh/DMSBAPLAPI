@@ -328,8 +328,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            PartItemId = d.PartItemId ?? 0,
                            LabourId = d.LabourMasterId ?? 0,
                            PartWiseLabourId = d.PartWiseLabourId ?? 0,
+                           DealerState = dl != null ? dl.State : null,
 
-                          
+
 
                            // NEW
                            PartCode = d.PartItem != null
@@ -377,6 +378,12 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                            Qty = d.LabourQty ?? 0,
                            Rate = d.LabourRate ?? 0,
+                           PartHsnCode = d.PartItem != null
+                           ? d.PartItem.Hsncode
+                           : "",
+                           PartMRP = d.PartItem != null
+                            ? d.PartItem.Custprice
+                            : 0,
                            LabourHsnCode = d.LabourMasterId > 0
                            ? d.LabourMaster.Hsncode
                            : d.PartWiseLabour != null
@@ -384,11 +391,13 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                            PartQty = d.PartQty ?? 0,
                            PartRate = d.PartRate ?? 0,
+                           TotalTaxPer=d.TotalTaxPer ?? 0,
 
                            Discount = d.LabourDiscount ?? 0,
                            DiscountType = d.DiscountType,
 
                            PartDiscount = d.PartDiscount ?? 0,
+                           
 
                            TaxableAmount = d.LabourTaxblAmount ?? 0,
                            NetAmount = d.LabourNetAmount ?? 0,
