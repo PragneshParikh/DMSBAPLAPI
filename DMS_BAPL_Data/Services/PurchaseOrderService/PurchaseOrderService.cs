@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
@@ -53,6 +54,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 await _repo.BeginTransactionAsync();
                 int lineNumber = 1;
                 decimal totalAmount = 0;
+                decimal baseAmount = 0;
 
                 // Get Dealer
                 var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
@@ -105,7 +107,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
-                        LineAmount = lineAmount,
+                        //LineAmount = lineAmount,
                         LineNumber = lineNumber,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
@@ -164,10 +166,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     }
 
                     totalAmount += lineAmount + totalTax;
+                    baseAmount += lineAmount;
                     lineNumber++;
                 }
 
-                await _repo.UpdatePOAmountAsync(model.PONumber, totalAmount);
+                await _repo.UpdatePOAmountAsync(model.PONumber, baseAmount);
 
                 await _repo.CommitTransactionAsync();
                 return true;
