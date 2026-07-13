@@ -118,6 +118,11 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+builder.Services.AddHttpClient("TsmApi", client =>
+{
+    client.BaseAddress = new Uri("https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+}); 
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -19,10 +19,8 @@ namespace DMS_BAPL_API.Controllers
         }
 
         // =====================================================
-        // TSM ERP LOOKUP — NEW
+        // TSM ERP LOOKUP (GET, pull) — proxies external ERP API
         // GET api/BgEmployee/TsmLookup/{tsmCode}
-        // Proxies the external ERP TSM API so the browser never calls
-        // that third-party domain directly.
         // =====================================================
 
         [HttpGet("TsmLookup/{tsmCode}")]
@@ -43,11 +41,7 @@ namespace DMS_BAPL_API.Controllers
             }
         }
 
-        // ── TEMPORARY DIAGNOSTIC — GET api/BgEmployee/TsmLookupRaw/{tsmCode}
-        // Tries several calling conventions against the external API and
-        // shows every attempt's raw status + body, so we can see which one
-        // (if any) actually works instead of guessing one at a time.
-        // Remove this action once the real convention is confirmed.
+        // ── TEMPORARY DIAGNOSTIC — remove once real route confirmed
         [HttpGet("TsmLookupRaw/{tsmCode}")]
         public async Task<IActionResult> TsmLookupRaw(string tsmCode)
         {
@@ -72,9 +66,40 @@ namespace DMS_BAPL_API.Controllers
             }
         }
 
+
+
+        [HttpPost("TsmEntry")]
+        public async Task<IActionResult> ConsumeTsmEntry([FromBody] TsmEntryPayload payload)
+        {
+            try
+            {
+                if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
+                    return BadRequest(new { message = "tsmcode is required." });
+
+                var result = await _service.ConsumeTsmEntryAsync(payload);
+
+                return Ok(new
+                {
+                    message = "TSM entry processed successfully.",
+                    result.Id,
+                    result.TsmCode,
+                    result.FirstName,
+                    result.LastName,
+                    result.EmailId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
         // =====================================================
         // GET ALL
-        // GET api/BgEmployee/GetAll
         // =====================================================
 
         [HttpGet("GetAll")]
@@ -93,7 +118,6 @@ namespace DMS_BAPL_API.Controllers
 
         // =====================================================
         // GET BY ID
-        // GET api/BgEmployee/GetById/{id}
         // =====================================================
 
         [HttpGet("GetById/{id}")]
@@ -112,6 +136,8 @@ namespace DMS_BAPL_API.Controllers
                 {
                     result.Id,
                     result.EmployeeCode,
+                    result.TsmCode,
+                    result.AreaOfficeId,
                     result.FirstName,
                     result.LastName,
                     result.Gender,
@@ -153,7 +179,6 @@ namespace DMS_BAPL_API.Controllers
 
         // =====================================================
         // SAVE (INSERT)
-        // POST api/BgEmployee/Save
         // =====================================================
 
         [HttpPost("Save")]
@@ -167,6 +192,8 @@ namespace DMS_BAPL_API.Controllers
                 {
                     result.Id,
                     result.EmployeeCode,
+                    result.TsmCode,
+                    result.AreaOfficeId,
                     result.FirstName,
                     result.LastName,
                     result.Gender,
@@ -204,7 +231,6 @@ namespace DMS_BAPL_API.Controllers
 
         // =====================================================
         // UPDATE
-        // PUT api/BgEmployee/Update/{id}
         // =====================================================
 
         [HttpPut("Update/{id}")]
@@ -255,7 +281,6 @@ namespace DMS_BAPL_API.Controllers
 
         // =====================================================
         // DELETE
-        // DELETE api/BgEmployee/Delete/{id}
         // =====================================================
 
         [HttpDelete("Delete/{id}")]
@@ -306,7 +331,6 @@ namespace DMS_BAPL_API.Controllers
 
         // =====================================================
         // DOWNLOAD
-        // GET api/BgEmployee/Download
         // =====================================================
 
         [HttpGet("Download")]
