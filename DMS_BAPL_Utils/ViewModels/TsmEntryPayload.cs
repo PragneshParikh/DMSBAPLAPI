@@ -1,10 +1,8 @@
-﻿using System;
-using System.Globalization;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
-    public class TsmEntryViewModel
+    public class TsmEntryPayload
     {
         [JsonPropertyName("tsmcode")]
         public string? TsmCode { get; set; }
@@ -47,19 +45,5 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("tsmheadcode")]
         public string? TsmHeadCode { get; set; }
-
-        public DateTime? ParseDoa() => TryParseDate(Doa);
-        public DateTime? ParseDob() => TryParseDate(Dob);
-        public DateTime? ParseDoe() => TryParseDate(Doe);
-        public bool IsActiveStatus() => !string.Equals(EStatus, "N", StringComparison.OrdinalIgnoreCase);
-
-        private static DateTime? TryParseDate(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-            return DateTime.TryParseExact(value, "dd/MM/yyyy",
-                CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
-                ? result
-                : null;
-        }
     }
 }
