@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.PartsInwardService;
 using DMS_BAPL_Utils.Helpers;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -71,7 +72,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> PartsInward([FromBody] PartsInward partsInward)
+        public async Task<IActionResult> PartsInward([FromBody] PartsInwardViewModel partsInwardViewModel)
         {
             try
             {
@@ -80,7 +81,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var parts = await _partInwardService.PartsInward(partsInward);
+                var parts = await _partInwardService.PartsInward(partsInwardViewModel);
 
                 return Ok(parts);
             }

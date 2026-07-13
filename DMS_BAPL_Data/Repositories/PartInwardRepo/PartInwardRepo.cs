@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.InventoryService;
+using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
@@ -103,12 +104,12 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
         }
 
-        async Task<object> IPartInwardRepo.PartsInward(PartsInward partsInward)
+        async Task<object> IPartInwardRepo.PartsInward(PartsInwardViewModel partsInwardViewModel)
         {
             var exist = await _context.PartsInwards
                 .FirstOrDefaultAsync(x =>
-                    x.InvoiceNo == partsInward.InvoiceNo &&
-                    x.PartNo == partsInward.PartNo);
+                    x.InvoiceNo == partsInwardViewModel.invoice_no &&
+                    x.PartNo == partsInwardViewModel.part_no);
 
             if (exist != null)
             {
@@ -119,7 +120,27 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 };
             }
 
-            await _context.PartsInwards.AddAsync(partsInward);
+            var entity = new PartsInward
+            {
+                DealerCode = partsInwardViewModel.dealer_code,
+                LocCode = partsInwardViewModel.loc_code,
+                InvoiceNo = partsInwardViewModel.invoice_no,
+                PartNo = partsInwardViewModel.part_no,
+                ItemQty = partsInwardViewModel.item_qty,
+                ItemRate = partsInwardViewModel.item_rate,
+                IsAccepted = false,
+                InvoiceDate = Convert.ToDateTime(partsInwardViewModel.invoice_date),
+                ItemIdno = partsInwardViewModel.item_idno,
+                ItemHsncode = partsInwardViewModel.item_hsncode,
+                ItemMrp = partsInwardViewModel.item_mrp,
+                Sgst = partsInwardViewModel.sgst,
+                Cgst = partsInwardViewModel.cgst,
+                Igst = partsInwardViewModel.igst,
+                ItemDisc = partsInwardViewModel.item_disc,
+                DiscountType = partsInwardViewModel.discount_type
+            };
+            
+            await _context.PartsInwards.AddAsync(entity);
 
             var result = await _context.SaveChangesAsync();
 
