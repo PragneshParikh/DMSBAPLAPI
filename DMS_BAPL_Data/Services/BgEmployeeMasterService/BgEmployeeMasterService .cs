@@ -8,10 +8,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,14 +23,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
-
-        // Now read from appsettings.json ("TsmApi:BaseUrl") instead of being
-        // hardcoded — lets the URL be corrected without a rebuild once the
-        // real path is confirmed. Falls back to the original assumed URL
-        // only if the config key is missing entirely.
-        private string TsmEntryUrl =>
-            _configuration["TsmApi:BaseUrl"]
-            ?? "https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/api/erptsmmaster/TSMEntry";
 
         public BgEmployeeMasterService(
             IBgEmployeeMasterRepo repo,
@@ -45,8 +37,9 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         }
 
         // =====================================================
-        // TSM ERP LOOKUP — NEW. Proxies the external ERP TSM API so the
-        // frontend never calls a third-party domain directly.
+        // TSM ERP LOOKUP (GET, pull) — currently 404ing upstream,
+        // route/casing unconfirmed. Kept for once the real route
+        // is found.
         // =====================================================
 
         public async Task<TsmEntryViewModel?> FetchTsmDetailsAsync(string tsmCode)
@@ -54,62 +47,145 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             if (string.IsNullOrWhiteSpace(tsmCode))
                 return null;
 
-            var client = _httpClientFactory.CreateClient();
-
-            var payload = new { tsmcode = tsmCode };
-            var response = await client.PostAsJsonAsync(TsmEntryUrl, payload);
+            var client = _httpClientFactory.CreateClient("TsmApi");
+            var response = await client.GetAsync($"api/erptsmmaster/TSMEntry?tsmcode={Uri.EscapeDataString(tsmCode)}");
 
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            return await response.Content.ReadFromJsonAsync<TsmEntryViewModel>();
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            return System.Text.Json.JsonSerializer.Deserialize<TsmEntryViewModel>(json, options);
         }
 
-        // ── TEMPORARY DIAGNOSTIC — tries several plausible calling
-        // conventions against the external TSM API in one shot, since the
-        // first assumption (POST + {tsmcode} body) came back 404 from
-        // their server directly. Remove once the real convention is confirmed.
         public async Task<List<(string Attempt, int StatusCode, string Body)>> FetchTsmRawAsync(string tsmCode)
         {
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("TsmApi");
             var results = new List<(string, int, string)>();
 
-            async Task TryCall(string label, Func<Task<HttpResponseMessage>> call)
+            var attempts = new (string Label, HttpRequestMessage Request)[]
+            {
+                ("GET-query", new HttpRequestMessage(HttpMethod.Get,
+                    $"api/erptsmmaster/TSMEntry?tsmcode={Uri.EscapeDataString(tsmCode)}")),
+                ("GET-path", new HttpRequestMessage(HttpMethod.Get,
+                    $"api/erptsmmaster/TSMEntry/{Uri.EscapeDataString(tsmCode)}")),
+                ("POST-body", new HttpRequestMessage(HttpMethod.Post, "api/erptsmmaster/TSMEntry")
+                {
+                    Content = new StringContent(
+                        System.Text.Json.JsonSerializer.Serialize(new { tsmcode = tsmCode }),
+                        Encoding.UTF8, "application/json")
+                }),
+            };
+
+            foreach (var (label, request) in attempts)
             {
                 try
                 {
-                    var resp = await call();
-                    var body = await resp.Content.ReadAsStringAsync();
-                    results.Add((label, (int)resp.StatusCode, body));
+                    var response = await client.SendAsync(request);
+                    var body = await response.Content.ReadAsStringAsync();
+                    results.Add((label, (int)response.StatusCode, body));
                 }
                 catch (Exception ex)
                 {
-                    results.Add((label, -1, $"Exception: {ex.Message}"));
+                    results.Add((label, 0, ex.Message));
                 }
             }
 
-            // 1. Original assumption: POST with { tsmcode } in the body
-            await TryCall(
-                "POST TSMEntry + {tsmcode} body",
-                () => client.PostAsJsonAsync(TsmEntryUrl, new { tsmcode = tsmCode }));
-
-            // 2. GET with tsmcode as a query string
-            await TryCall(
-                "GET TSMEntry?tsmcode=...",
-                () => client.GetAsync($"{TsmEntryUrl}?tsmcode={Uri.EscapeDataString(tsmCode)}"));
-
-            // 3. GET with the code as part of the URL path
-            await TryCall(
-                "GET TSMEntry/{code}",
-                () => client.GetAsync($"{TsmEntryUrl}/{Uri.EscapeDataString(tsmCode)}"));
-
-            // 4. POST with the code as part of the URL path, empty body
-            await TryCall(
-                "POST TSMEntry/{code} (no body)",
-                () => client.PostAsync($"{TsmEntryUrl}/{Uri.EscapeDataString(tsmCode)}", null));
-
             return results;
         }
+
+        // =====================================================
+        // TSM ENTRY CONSUMER (POST, push) — external TSM system
+        // sends data here; we upsert BgEmployeeMaster keyed on TsmCode.
+        // =====================================================
+
+        public async Task<BgEmployeeMaster> ConsumeTsmEntryAsync(TsmEntryPayload payload)
+        {
+            if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
+                throw new ArgumentException("tsmcode is required.");
+
+            var existing = (await _repo.Get())
+                .FirstOrDefault(e => e.TsmCode == payload.TsmCode);
+
+            var model = new BgEmployeeViewModel
+            {
+                Id = existing?.Id ?? 0,
+                TsmCode = payload.TsmCode,
+                AreaOfficeId = payload.AreaOfficeId,
+                Gender = payload.Gender,
+                Mobile = payload.MobileNo,
+                EmailId = payload.Email?.Trim().ToLowerInvariant(),
+                ReportingTo = payload.TsmHeadCode,
+                IsActive = payload.EStatus != "N",
+                ProfileImage = string.IsNullOrWhiteSpace(payload.Photo) ? existing?.ProfileImage : payload.Photo,
+                CreatedBy = existing?.CreatedBy ?? "TSM-Sync",
+                UpdatedBy = "TSM-Sync",
+                CreatedDate = existing?.CreatedDate ?? DateTime.Now,
+                UpdatedDate = DateTime.Now,
+                MappedZones = existing?.MappedZones ?? string.Empty,
+                MappedZoneIds = existing?.MappedZoneIds ?? string.Empty,
+                MappedEmployeeIds = existing?.MappedEmployeeIds,
+                MappedEmployees = existing?.MappedEmployees,
+                Pincode = existing?.Pincode,
+                DealerCode = existing?.DealerCode,
+                LocationCode = existing?.LocationCode,
+                Department = existing?.Department,
+                ProfileId = existing?.ProfileId,
+                EmployeeCode = existing?.EmployeeCode,
+                Email = existing?.Email,
+                Password = existing?.Password,
+            };
+
+            // Split tsmname -> firstName/lastName
+            var fullName = (payload.TsmName ?? string.Empty).Trim();
+            var spaceIdx = fullName.IndexOf(' ');
+            if (spaceIdx > -1)
+            {
+                model.FirstName = fullName.Substring(0, spaceIdx);
+                model.LastName = fullName.Substring(spaceIdx + 1);
+            }
+            else
+            {
+                model.FirstName = fullName;
+                model.LastName = string.Empty;
+            }
+
+            // Dates — now safely nullable end-to-end, no sentinel value needed
+            model.DateOfJoin = ParseDate(payload.Doa) ?? existing?.DateOfJoin;
+            model.DateOfBirth = ParseDate(payload.Dob) ?? existing?.DateOfBirth;
+            model.EffectiveDate = ParseDate(payload.Doe) ?? existing?.EffectiveDate;
+
+            // State/City: payload sends names, entity wants int? —
+            // no lookup table wired yet, so preserve existing FK.
+            // TODO: resolve payload.State / payload.City by name once
+            // a State/City lookup service is available.
+            model.State = existing?.State;
+            model.City = existing?.City;
+
+            if (existing != null)
+            {
+                await Update(model);
+                return (await _repo.GetById(existing.Id))!;
+            }
+            else
+            {
+                return await Create(model);
+            }
+        }
+
+        private static DateTime? ParseDate(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            return DateTime.TryParseExact(value, "dd/MM/yyyy",
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+                ? result
+                : (DateTime?)null;
+        }
+
+        // =====================================================
+        // GET / GET BY ID
+        // =====================================================
 
         public async Task<IEnumerable<BgEmployeeMaster>> Get()
         {
@@ -123,24 +199,25 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             catch { throw; }
         }
 
+        // =====================================================
+        // CREATE
+        // =====================================================
+
         public async Task<BgEmployeeMaster> Create(BgEmployeeViewModel model)
         {
             try
             {
                 model.EmailId = model.EmailId?.Trim().ToLowerInvariant();
-
                 var existingEmployee = await _repo.GetByEmail(model.EmailId);
                 if (existingEmployee != null)
                     throw new InvalidOperationException("An employee with this email already exists.");
 
                 await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
-
                 var entity = MapToEntity(model);
                 entity.CreatedBy = model.CreatedBy ?? "admin";
                 entity.CreatedDate = DateTime.Now;
                 entity.UpdatedBy = model.CreatedBy ?? "admin";
                 entity.UpdatedDate = DateTime.Now;
-
                 var savedEmployee = await _repo.Create(entity);
 
                 if (model.RoleMappings?.Any() == true)
@@ -161,7 +238,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                             };
                             var passwordToUse = !string.IsNullOrWhiteSpace(model.Password)
                                 ? model.Password : StringConstants.BgEmployeeDefaultPassword;
-
                             var userResult = await _userManager.CreateAsync(newUser, passwordToUse);
                             if (userResult.Succeeded)
                                 await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
@@ -179,6 +255,10 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             }
             catch { throw; }
         }
+
+        // =====================================================
+        // UPDATE
+        // =====================================================
 
         public async Task<int> Update(BgEmployeeViewModel model)
         {
@@ -199,11 +279,6 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             catch { throw; }
         }
 
-        // =====================================================
-        // UPDATE STATUS ONLY — NEW. Straight passthrough; no role
-        // mapping or entity mapping involved at all.
-        // =====================================================
-
         public async Task<int> UpdateStatus(int id, bool isActive)
             => await _repo.UpdateStatus(id, isActive);
 
@@ -221,6 +296,8 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             {
                 Id = model.Id,
                 EmployeeCode = model.EmployeeCode,
+                TsmCode = model.TsmCode,
+                AreaOfficeId = model.AreaOfficeId,
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 Gender = model.Gender,
@@ -240,6 +317,8 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 Password = model.Password,
                 MappedZones = model.MappedZones,
                 MappedZoneIds = model.MappedZoneIds,
+                MappedEmployeeIds = model.MappedEmployeeIds,
+                MappedEmployees = model.MappedEmployees,
                 ProfileImage = model.ProfileImage,
                 DealerCode = model.DealerCode,
                 LocationCode = model.LocationCode,
@@ -250,7 +329,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             };
         }
 
-        private async Task UnassignConflictingDealers(string dealerCodesCsv, int excludeEmployeeId)
+        private async Task UnassignConflictingDealers(string? dealerCodesCsv, int excludeEmployeeId)
         {
             if (string.IsNullOrWhiteSpace(dealerCodesCsv)) return;
 
@@ -301,10 +380,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             => _repo.GetEmployeeListView();
 
         // =====================================================
-        // EXCEL EXPORT — Uses the same already-resolved
-        // list-view data the grid displays (dealer names, zones,
-        // job roles, reporting-to names — not raw ids), same
-        // OpenXML approach as DealerMasterController/EmployeeController.
+        // EXCEL EXPORT
         // =====================================================
 
         public async Task<byte[]> DownloadBgEmployeeExcel()

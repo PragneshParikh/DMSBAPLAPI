@@ -6,7 +6,8 @@ namespace DMS_BAPL_Data.DBModels;
 public partial class BgEmployeeMaster
 {
     public int Id { get; set; }
-
+    public string? TsmCode { get; set; }
+    public string? AreaOfficeId { get; set; }
     public string? EmployeeCode { get; set; }
 
     public string FirstName { get; set; } = null!;
@@ -17,16 +18,13 @@ public partial class BgEmployeeMaster
 
     public string? Mobile { get; set; }
 
+    // ---- Address -----------------------------------------
     public int? State { get; set; }
-
     public int? City { get; set; }
-
     public string? Pincode { get; set; }
-
+    // ---- Employment --------------------------------------
     public DateTime? DateOfBirth { get; set; }
-
     public DateTime? DateOfJoin { get; set; }
-
     public DateTime? EffectiveDate { get; set; }
 
     public string? ReportingTo { get; set; }
@@ -44,7 +42,6 @@ public partial class BgEmployeeMaster
     public string? MappedZones { get; set; }
 
     public string? MappedEmployeeIds { get; set; }
-
     public string? MappedEmployees { get; set; }
 
     public string? ProfileImage { get; set; }
