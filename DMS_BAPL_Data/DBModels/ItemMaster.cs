@@ -7,6 +7,8 @@ public partial class ItemMaster
 {
     public int Id { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public int Itemtype { get; set; }
 
     public string Itemname { get; set; } = null!;
