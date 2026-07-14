@@ -4,9 +4,11 @@ using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -129,7 +131,7 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 ItemQty = partsInwardViewModel.item_qty,
                 ItemRate = partsInwardViewModel.item_rate,
                 IsAccepted = false,
-                InvoiceDate = Convert.ToDateTime(partsInwardViewModel.invoice_date),
+                InvoiceDate = DateTime.ParseExact(partsInwardViewModel.invoice_date, "dd/MM/yyyy", CultureInfo.InvariantCulture),
                 ItemIdno = partsInwardViewModel.item_idno,
                 ItemHsncode = partsInwardViewModel.item_hsncode,
                 ItemMrp = partsInwardViewModel.item_mrp,
@@ -139,7 +141,7 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 ItemDisc = partsInwardViewModel.item_disc,
                 DiscountType = partsInwardViewModel.discount_type
             };
-            
+
             await _context.PartsInwards.AddAsync(entity);
 
             var result = await _context.SaveChangesAsync();
