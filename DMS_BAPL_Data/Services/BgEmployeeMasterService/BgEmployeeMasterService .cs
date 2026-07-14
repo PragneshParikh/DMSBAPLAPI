@@ -5,6 +5,7 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -100,7 +101,83 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         // sends data here; we upsert BgEmployeeMaster keyed on TsmCode.
         // =====================================================
 
+       
         public async Task<BgEmployeeMaster> ConsumeTsmEntryAsync(TsmEntryPayload payload)
+        {
+            if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
+                throw new ArgumentException("tsmcode is required.");
+
+            var existing = (await _repo.Get())
+                .FirstOrDefault(e => e.TsmCode == payload.TsmCode);
+
+            var model = new BgEmployeeViewModel
+            {
+                Id = existing?.Id ?? 0,
+                TsmCode = payload.TsmCode,
+                AreaOfficeId = payload.AreaOfficeId,
+                Gender = payload.Gender,
+                Mobile = payload.MobileNo,
+                EmailId = payload.Email?.Trim().ToLowerInvariant(),
+                ReportingTo = payload.TsmHeadCode,
+                IsActive = payload.EStatus != "N",
+                ProfileImage = string.IsNullOrWhiteSpace(payload.Photo) ? existing?.ProfileImage : payload.Photo,
+                CreatedBy = existing?.CreatedBy ?? "TSM-Sync",
+                UpdatedBy = "TSM-Sync",
+                CreatedDate = existing?.CreatedDate ?? DateTime.Now,
+                UpdatedDate = DateTime.Now,
+                MappedZones = existing?.MappedZones ?? string.Empty,
+                MappedZoneIds = existing?.MappedZoneIds ?? string.Empty,
+                MappedEmployeeIds = existing?.MappedEmployeeIds,
+                MappedEmployees = existing?.MappedEmployees,
+                Pincode = existing?.Pincode,
+                DealerCode = existing?.DealerCode,
+                LocationCode = existing?.LocationCode,
+                Department = existing?.Department,
+                ProfileId = existing?.ProfileId,
+                EmployeeCode = existing?.EmployeeCode,
+                Email = existing?.Email,
+                Password = existing?.Password,
+            };
+
+            // Split tsmname -> firstName/lastName
+            var fullName = (payload.TsmName ?? string.Empty).Trim();
+            var spaceIdx = fullName.IndexOf(' ');
+            if (spaceIdx > -1)
+            {
+                model.FirstName = fullName.Substring(0, spaceIdx);
+                model.LastName = fullName.Substring(spaceIdx + 1);
+            }
+            else
+            {
+                model.FirstName = fullName;
+                model.LastName = string.Empty;
+            }
+
+            // Dates — now safely nullable end-to-end, no sentinel value needed
+            model.DateOfJoin = ParseDate(payload.Doa) ?? existing?.DateOfJoin;
+            model.DateOfBirth = ParseDate(payload.Dob) ?? existing?.DateOfBirth;
+            model.EffectiveDate = ParseDate(payload.Doe) ?? existing?.EffectiveDate;
+
+            // State/City: payload sends names, entity wants int? —
+            // no lookup table wired yet, so preserve existing FK.
+            // TODO: resolve payload.State / payload.City by name once
+            // a State/City lookup service is available.
+            model.State = existing?.State;
+            model.City = existing?.City;
+
+            if (existing != null)
+            {
+                await Update(model);
+                return (await _repo.GetById(existing.Id))!;
+            }
+            else
+            {
+                return await Create(model);
+            }
+        }
+
+        
+        public async Task<BgEmployeeMaster> UpdateTsmEntryAsync(TsmEntryPayload payload)
         {
             if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
                 throw new ArgumentException("tsmcode is required.");

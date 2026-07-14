@@ -65,6 +65,8 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         // ── VEHICLE INWARD REPORT ──────────────────────────────────────
         Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter);
+
+        Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
     }
 
     public class JobReportSummaryStats

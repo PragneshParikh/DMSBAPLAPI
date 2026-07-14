@@ -23,5 +23,8 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         Task<TsmEntryViewModel?> FetchTsmDetailsAsync(string tsmCode);
         Task<List<(string Attempt, int StatusCode, string Body)>> FetchTsmRawAsync(string tsmCode);
         Task<BgEmployeeMaster> ConsumeTsmEntryAsync(TsmEntryPayload payload);
+
+        Task<BgEmployeeMaster?> UpdateTsmEntryAsync(TsmEntryPayload payload);
+
     }
 }
