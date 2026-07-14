@@ -99,6 +99,45 @@ namespace DMS_BAPL_API.Controllers
         }
 
         // =====================================================
+        // TSM ENTRY UPDATE (strict) — PUT api/BgEmployee/TsmEntry/{tsmCode}
+        // =====================================================
+
+        [HttpPut("TsmEntry/{tsmCode}")]
+        public async Task<IActionResult> UpdateTsmEntry(string tsmCode, [FromBody] TsmEntryPayload payload)
+        {
+            try
+            {
+                if (payload == null || string.IsNullOrWhiteSpace(tsmCode))
+                    return BadRequest(new { message = "tsmcode is required." });
+
+                payload.TsmCode = tsmCode; // route value is source of truth
+
+                var result = await _service.UpdateTsmEntryAsync(payload);
+
+                if (result == null)
+                    return NotFound(new { message = $"TSM Code '{tsmCode}' not found. Use POST TsmEntry to create." });
+
+                return Ok(new
+                {
+                    message = "TSM entry updated successfully.",
+                    result.Id,
+                    result.TsmCode,
+                    result.FirstName,
+                    result.LastName,
+                    result.EmailId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // =====================================================
         // GET ALL
         // =====================================================
 

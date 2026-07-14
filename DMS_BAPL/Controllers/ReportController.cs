@@ -819,5 +819,37 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        /// <summary>Get Model-wise Variant Stock Report (Count-wise) — pivoted Model x Colour Variant</summary>
+        [HttpGet("model-wise-variant-stock-count")]
+        [ProducesResponseType(typeof(ModelWiseVariantStockPivotResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetModelWiseVariantStockCountReport(
+        [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins always see only their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+
+                var result = await _reportService.GetModelWiseVariantStockCountReportAsync(dealerCode, fromDate, toDate);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model-wise variant stock count report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

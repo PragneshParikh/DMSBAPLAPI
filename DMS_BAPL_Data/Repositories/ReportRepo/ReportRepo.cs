@@ -31,6 +31,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .ToDictionary(g => g.Key, g => g.First().LedgerName);
         }
 
+        private static bool HasDealerFilter(string? dealerCode) =>
+                !string.IsNullOrWhiteSpace(dealerCode)
+                && !dealerCode.Equals("undefined", StringComparison.OrdinalIgnoreCase)
+                && !dealerCode.Equals("null", StringComparison.OrdinalIgnoreCase);
         // ═════════════════════════════════════════════════════════════════════
         // STOCK REPORT  (unchanged from StockReportRepo)
         // ═════════════════════════════════════════════════════════════════════
@@ -683,19 +687,18 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         // ═════════════════════════════════════════════════════════════════════
         // MODEL WISE SALE REPORT (COUNT-WISE) — pivoted Dealer x Model
+        // Always shows every active canonical model as a column, even if a
+        // dealer has zero sales for that model in the selected filter range.
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseSalePivotResponse> GetModelWiseSaleCountReportAsync(
-            DateTime? fromDate, DateTime? toDate, string? dealerCode)
+    DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
             try
             {
-                // Canonical column set — ALL active OEM models, not just ones that
-                // happen to appear in the sale data, so a model with zero sales in
-                // this filter still shows as a 0 column instead of disappearing.
                 var canonicalModels = await _context.OemmodelMasters
                     .Where(x => x.IsActive)
-                    .OrderBy(x => x.ModelName)
                     .Select(x => x.ModelName)
+                    .OrderBy(m => m)
                     .ToListAsync();
 
                 var query =
@@ -715,35 +718,34 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     where
                         (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                         && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
-                        && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+                        && (!HasDealerFilter(dealerCode) || h.DealerCode == dealerCode)
 
                     select new
                     {
                         DealerCode = h.DealerCode ?? "Unknown",
                         DealerName = dm != null ? dm.Compname : (h.DealerCode ?? "Unknown"),
-                        // Raw OEM name only — matched against the canonical list below.
-                        // No fallback to Itemname/ItemCode here anymore: a value that
-                        // isn't a real OEM model gets bucketed as Unmapped instead of
-                        // leaking a raw item code onto the report as if it were one.
                         OemModelName = im != null ? im.Oemmodelname : null
                     };
 
                 var rawRows = await query.ToListAsync();
 
-                const string unmapped = "Unmapped / Missing Model Link";
+                var mapped = rawRows
+                    .Where(x =>
+                        !string.IsNullOrWhiteSpace(x.OemModelName) &&
+                        canonicalModels.Contains(x.OemModelName))
+                    .Select(x => new
+                    {
+                        x.DealerCode,
+                        x.DealerName,
+                        ModelName = x.OemModelName!
+                    })
+                    .ToList();
 
-                var mapped = rawRows.Select(x => new
-                {
-                    x.DealerCode,
-                    x.DealerName,
-                    ModelName = (!string.IsNullOrWhiteSpace(x.OemModelName) && canonicalModels.Contains(x.OemModelName))
-                        ? x.OemModelName
-                        : unmapped
-                }).ToList();
-
-                var modelNames = new List<string>(canonicalModels);
-                if (mapped.Any(x => x.ModelName == unmapped))
-                    modelNames.Add(unmapped);
+                // No dealer selected → show every active model. A dealer is selected →
+                // show only the models that actually have data for that dealer/filter.
+                var modelNames = HasDealerFilter(dealerCode)
+                              ? mapped.Select(x => x.ModelName).Distinct().OrderBy(m => m).ToList() 
+                              : canonicalModels;                                                     
 
                 var rows = mapped
                     .GroupBy(x => new { x.DealerCode, x.DealerName })
@@ -751,8 +753,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     {
                         DealerCode = g.Key.DealerCode,
                         DealerName = g.Key.DealerName,
-                        // Every model gets an entry, 0 where this dealer sold none of it,
-                        // so the frontend never has to guess at a missing key.
                         ModelCounts = modelNames.ToDictionary(
                             m => m,
                             m => g.Count(x => x.ModelName == m)),
@@ -950,22 +950,21 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         // ═════════════════════════════════════════════════════════════════════
         // MODEL-WISE CURRENT STOCK (COUNT-WISE) — pivoted Dealer x Model
+        // Always shows every active canonical model as a column, even if a
+        // dealer currently has zero stock of that model.
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
-            string? dealerCode, DateTime? fromDate, DateTime? toDate)
+    string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
                 static bool IsBilled(VehicleSaleBillHeader hdr) =>
                     hdr != null && hdr.Status == "Billed";
 
-                // Canonical column set — ALL active OEM models, not just ones that
-                // happen to appear in current stock, so a model with zero units
-                // still shows as a 0 column instead of disappearing.
                 var canonicalModels = await _context.OemmodelMasters
                     .Where(x => x.IsActive)
-                    .OrderBy(x => x.ModelName)
                     .Select(x => x.ModelName)
+                    .OrderBy(m => m)
                     .ToListAsync();
 
                 var query =
@@ -989,14 +988,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     select new { Vehicle = vi, Dealer = dm, Item = im, SaleHdr = vsh };
 
-                if (!string.IsNullOrWhiteSpace(dealerCode))
+                if (HasDealerFilter(dealerCode))
                     query = query.Where(x => x.Vehicle.DealerCode == dealerCode);
 
-                // Filtered against VehicleInward.InvoiceDate — same field this
-                // report's DispatchDate/ReceiveDate already comes from in
-                // GetCurrentStockReportAsync. Same exclusion rule too: once a
-                // date filter is applied, a record with no InvoiceDate is
-                // excluded rather than assumed to be "in range".
                 if (fromDate.HasValue)
                 {
                     var fromDateOnly = DateOnly.FromDateTime(fromDate.Value.Date);
@@ -1015,28 +1009,25 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawRows = await query.ToListAsync();
 
-                // Same billed-exclusion rule as before: a vehicle billed against
-                // its chassis no longer counts as stock at all.
                 rawRows = rawRows.Where(x => !IsBilled(x.SaleHdr)).ToList();
+                var mapped = rawRows
+                    .Where(x =>
+                        x.Item != null &&
+                        !string.IsNullOrWhiteSpace(x.Item.Oemmodelname) &&
+                        canonicalModels.Contains(x.Item.Oemmodelname))
+                    .Select(x => new
+                    {
+                        DealerCode = x.Vehicle.DealerCode ?? "Unknown",
+                        DealerName = x.Dealer != null ? x.Dealer.Compname : (x.Vehicle.DealerCode ?? "Unknown"),
+                        ModelName = x.Item!.Oemmodelname!
+                    })
+                    .ToList();
 
-                const string unmapped = "Unmapped / Missing Model Link";
-
-                // Raw OEM name only, matched against the canonical list. No fallback
-                // to ItemCode anymore: an unmatched/blank Oemmodelname is bucketed as
-                // Unmapped instead of leaking a raw item code (e.g. "FCXE1A3250CG")
-                // onto the report as if it were a real model.
-                var mapped = rawRows.Select(x => new
-                {
-                    DealerCode = x.Vehicle.DealerCode ?? "Unknown",
-                    DealerName = x.Dealer != null ? x.Dealer.Compname : (x.Vehicle.DealerCode ?? "Unknown"),
-                    ModelName = (x.Item != null && !string.IsNullOrWhiteSpace(x.Item.Oemmodelname) && canonicalModels.Contains(x.Item.Oemmodelname))
-                        ? x.Item.Oemmodelname
-                        : unmapped
-                }).ToList();
-
-                var modelNames = new List<string>(canonicalModels);
-                if (mapped.Any(x => x.ModelName == unmapped))
-                    modelNames.Add(unmapped);
+                // No dealer selected → show every active model. A dealer is selected →
+                // show only the models that dealer actually has in current stock.
+                var modelNames = HasDealerFilter(dealerCode)
+                               ? mapped.Select(x => x.ModelName).Distinct().OrderBy(m => m).ToList()  
+                               : canonicalModels;                                                      
 
                 var rows = mapped
                     .GroupBy(x => new { x.DealerCode, x.DealerName })
@@ -1717,10 +1708,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ChargerNo = x.vd.ChargerNo,
                     ControllerNo = x.vd.ControllerNo,
                     Vcu = x.vd.Vcu,
-
-                    // NEW: same fields added to VehicleSaleReportViewModel,
-                    // so the unified frontend model gets consistent data
-                    // regardless of which source a row came from.
                     PartyEmail = x.cust?.EMail,
                     Gender = x.cust?.Gender,
                     Dob = x.cust != null && x.cust.DateOfBirth.HasValue
@@ -2300,6 +2287,155 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             catch (Exception ex)
             {
                 throw new Exception("Error fetching vehicle inward report: " + ex.Message, ex);
+            }
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // MODEL-WISE VARIANT STOCK (COUNT-WISE) — pivoted Model x Colour Variant
+        // ═════════════════════════════════════════════════════════════════════
+        public async Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                static bool IsBilled(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Billed";
+
+                var canonicalModels = await _context.OemmodelMasters
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.ModelName)
+                    .Select(x => x.ModelName)
+                    .ToListAsync();
+
+                var canonicalVariants = await _context.ColorMasters
+                    .AsNoTracking()
+                    .OrderBy(c => c.Colorname)
+                    .Select(c => c.Colorname)
+                    .ToListAsync();
+
+                var query =
+                    from vi in _context.VehicleInwards.AsNoTracking()
+
+                    join im in _context.ItemMasters.AsNoTracking()
+                        on vi.ItemCode equals im.Itemcode into imJoin
+                    from im in imJoin.DefaultIfEmpty()
+
+                    join cm in _context.ColorMasters.AsNoTracking()
+                        on vi.ColrCode equals cm.Colorcode into cmJoin
+                    from cm in cmJoin.DefaultIfEmpty()
+
+                    join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
+                    from vsd in saleDetailJoin.DefaultIfEmpty()
+
+                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
+                    from vsh in saleHeaderJoin.DefaultIfEmpty()
+
+                    select new { Vehicle = vi, Item = im, Color = cm, SaleHdr = vsh };
+
+                if (HasDealerFilter(dealerCode))
+                    query = query.Where(x => x.Vehicle.DealerCode == dealerCode);
+
+                if (fromDate.HasValue)
+                {
+                    var fromDateOnly = DateOnly.FromDateTime(fromDate.Value.Date);
+                    query = query.Where(x =>
+                        x.Vehicle.InvoiceDate.HasValue &&
+                        x.Vehicle.InvoiceDate.Value >= fromDateOnly);
+                }
+
+                if (toDate.HasValue)
+                {
+                    var toDateOnly = DateOnly.FromDateTime(toDate.Value.Date);
+                    query = query.Where(x =>
+                        x.Vehicle.InvoiceDate.HasValue &&
+                        x.Vehicle.InvoiceDate.Value <= toDateOnly);
+                }
+
+                var rawRows = await query.ToListAsync();
+                rawRows = rawRows.Where(x => !IsBilled(x.SaleHdr)).ToList();
+
+                const string UnmappedVariant = "Unmapped";
+
+                // FIX: a vehicle whose colour can't be resolved to ColorMaster is no
+                // longer dropped from the report — it now falls into an "Unmapped"
+                // column instead. This keeps the grand total (and every model's row
+                // total) consistent with Model-wise Current Stock, which counts the
+                // same underlying inventory without any colour requirement.
+                var mapped = rawRows
+                    .Where(x =>
+                        x.Item != null &&
+                        !string.IsNullOrWhiteSpace(x.Item.Oemmodelname) &&
+                        canonicalModels.Contains(x.Item.Oemmodelname))
+                    .Select(x => new
+                    {
+                        ModelName = x.Item!.Oemmodelname!,
+                        VariantName = (x.Color != null
+                                        && !string.IsNullOrWhiteSpace(x.Color.Colorname)
+                                        && canonicalVariants.Contains(x.Color.Colorname))
+                            ? x.Color.Colorname
+                            : UnmappedVariant
+                    })
+                    .ToList();
+
+                var actualVariants = mapped.Select(x => x.VariantName).Distinct().ToList();
+                bool hasUnmapped = actualVariants.Contains(UnmappedVariant);
+
+                // No dealer selected → show every colour (plus "Unmapped" if any
+                // vehicle needs it). A dealer is selected → only colours actually
+                // present for that dealer (plus "Unmapped" if relevant), Unmapped
+                // always sorted last.
+                var variantNames = HasDealerFilter(dealerCode)
+                    ? actualVariants
+                        .Where(v => v != UnmappedVariant)
+                        .OrderBy(v => v)
+                        .Concat(hasUnmapped ? new[] { UnmappedVariant } : Array.Empty<string>())
+                        .ToList()
+                    : canonicalVariants
+                        .Concat(hasUnmapped ? new[] { UnmappedVariant } : Array.Empty<string>())
+                        .ToList();
+
+                var modelNames = mapped
+                    .Select(x => x.ModelName)
+                    .Distinct()
+                    .OrderBy(m => m)
+                    .ToList();
+
+                var rows = modelNames
+                    .Select(model =>
+                    {
+                        var itemsForModel = mapped.Where(x => x.ModelName == model).ToList();
+                        return new ModelWiseVariantStockPivotRow
+                        {
+                            ModelName = model,
+                            VariantCounts = variantNames.ToDictionary(
+                                v => v,
+                                v => itemsForModel.Count(x => x.VariantName == v)),
+                            Total = itemsForModel.Count
+                        };
+                    })
+                    .Where(r => r.Total > 0)
+                    .OrderByDescending(x => x.Total)
+                    .ToList();
+
+                var columnTotals = variantNames.ToDictionary(
+                    v => v,
+                    v => rows.Sum(r => r.VariantCounts.TryGetValue(v, out var c) ? c : 0));
+
+                return new ModelWiseVariantStockPivotResponse
+                {
+                    VariantNames = variantNames,
+                    Rows = rows,
+                    ColumnTotals = columnTotals,
+                    GrandTotal = rows.Sum(r => r.Total)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Error fetching model-wise variant stock count report: "
+                    + ex.Message,
+                    ex);
             }
         }
     }
