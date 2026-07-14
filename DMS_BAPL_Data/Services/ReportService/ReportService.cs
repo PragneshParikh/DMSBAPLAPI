@@ -451,5 +451,21 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        // =================================================================
+        // MODEL-WISE VARIANT STOCK (COUNT-WISE)
+        // =================================================================
+        public async Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                return await _reportRepo.GetModelWiseVariantStockCountReportAsync(dealerCode, fromDate, toDate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching model-wise variant stock count report");
+                throw;
+            }
+        }
     }
 }

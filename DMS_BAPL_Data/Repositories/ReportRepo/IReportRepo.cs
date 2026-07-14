@@ -65,5 +65,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         // ── VEHICLE INWARD REPORT ── present in the ReportRepo.cs you shared ──
         Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter);
+
+        Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
     }
 }
