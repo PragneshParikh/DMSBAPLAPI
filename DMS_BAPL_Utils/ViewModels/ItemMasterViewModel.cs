@@ -89,6 +89,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Oemmodelname { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
+        public string? Dealercode { get; set; }
+        public int? UOM { get; set; }
+        public int? MinBillQty { get; set; }
+        public int? MinOrderQty { get; set; }
     }
 
     public class ItemPartsByLocationViewModel

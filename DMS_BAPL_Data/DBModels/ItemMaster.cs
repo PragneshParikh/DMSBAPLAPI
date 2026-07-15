@@ -103,6 +103,8 @@ public partial class ItemMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public int? Uom { get; set; }
+
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
 
     public virtual ICollection<KitDetail> KitDetails { get; set; } = new List<KitDetail>();

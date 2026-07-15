@@ -67,11 +67,19 @@ public partial class VehicleQuotation
 
     public bool IsActive { get; set; }
 
-    public long CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
 
     public long? ModifiedBy { get; set; }
 
     public DateTime? ModifiedDate { get; set; }
+
+    public decimal? HypothecationAmount { get; set; }
+
+    public decimal? PlateAmount { get; set; }
+
+    public decimal? HandlingCharges { get; set; }
+
+    public DateOnly? ValidTillDate { get; set; }
 }
