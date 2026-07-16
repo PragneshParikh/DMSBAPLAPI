@@ -60,6 +60,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Compcode = item.Compcode;
                     existingItem.Displayname = item.Displayname;
                     existingItem.Oemmodelname = item.Oemmodelname;
+                    existingItem.SupplierId= item.SupplierId;
+                    existingItem.DealerCode = item.Dealercode;
+                    existingItem.Uom = item.UOM;
+
 
                     existingItem.UpdatedBy = userId;
                     existingItem.UpdatedDate = DateTime.UtcNow;
@@ -99,6 +103,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         Displayname = item.Displayname,
                         Oemmodelname = item.Oemmodelname,
                         DealerCode = item.Dealercode,
+                        SupplierId = item.SupplierId,
                         CreatedBy = userId,
                         CreatedDate = DateTime.UtcNow
                     };
@@ -121,7 +126,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         join c in _context.ColorMasters
                         on i.Colorcode equals c.Colorcode into colorGroup
                         from c in colorGroup.DefaultIfEmpty()
-                        select new { i, c }; //  keep original entity
+                        join l in _context.LedgerMasters
+                        on i.SupplierId equals l.Id into ledgerGroup
+                        from l in ledgerGroup.DefaultIfEmpty()
+                        select new { i, c,l }; //  keep original entity
 
             // Filter by Group Id
             if (grpidno.HasValue)
@@ -190,6 +198,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     IsHelmet = x.i.IsHelmet,
                     IsInventory = x.i.IsInventory,
                     IsInEligibleInput = x.i.IsInEligibleInput,
+                    Uom = x.i.Uom,
+                    Dealercode = x.i.DealerCode,
+                    SupplierId = x.i.SupplierId,
+                    LedgerName = x.l.LedgerName,
                     CreatedBy = x.i.CreatedBy,
                     CreatedDate = x.i.CreatedDate,
                     UpdatedBy = x.i.UpdatedBy,
@@ -272,6 +284,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.Oemmodelname = item.Oemmodelname;
                 existingItem.DealerCode = item.DealerCode;
                 existingItem.Uom = item.Uom;
+                existingItem.SupplierId = item.SupplierId;
                 existingItem.Status = item.Status;
                 existingItem.CreatedBy = item.CreatedBy;
                 existingItem.CreatedDate = item.CreatedDate;
@@ -465,6 +478,9 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     Fame2amount = insertItemMasterViewModel.Fame2amount,
                     Compcode = insertItemMasterViewModel.Compcode,
                     Displayname = insertItemMasterViewModel.Displayname,
+                    DealerCode = insertItemMasterViewModel.Dealercode,
+                    SupplierId = insertItemMasterViewModel.SupplierId,
+                    Uom = insertItemMasterViewModel.UOM,
                     //MinBillQty = insertItemMasterViewModel.MinBillQty;
                     //MinOrderQty = insertItemMasterViewModel.MinOrderQty;
                     //WarrantyPeriod = insertItemMasterViewModel.WarrantyPeriod;
@@ -517,6 +533,9 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Compcode = insertItemMasterViewModel.Compcode;
                     existingItem.Displayname = insertItemMasterViewModel.Displayname;
                     existingItem.Oemmodelname = insertItemMasterViewModel.Oemmodelname;
+                    existingItem.DealerCode = insertItemMasterViewModel.Dealercode;
+                    existingItem.SupplierId = insertItemMasterViewModel.SupplierId;
+                    existingItem.Uom = insertItemMasterViewModel.UOM;
 
                     existingItem.UpdatedBy = userId;
                     existingItem.UpdatedDate = DateTime.UtcNow;

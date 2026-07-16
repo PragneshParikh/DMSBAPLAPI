@@ -25,5 +25,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin);
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D);
         Task<bool?> GetD2DProvision(string? dealerCode);
+
+        Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
     }
 }
