@@ -29,6 +29,8 @@ public partial class RepairBillDetail
 
     public decimal? Fscrate { get; set; }
 
+    public decimal? DiscountValue { get; set; }
+
     public decimal? LabourDiscount { get; set; }
 
     public decimal? PartDiscount { get; set; }

@@ -1804,6 +1804,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Ugst)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("ugst");
+            entity.Property(e => e.Uom).HasColumnName("UOM");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -3255,6 +3256,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DiscountType)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Fscrate).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Igstamount)
                 .HasColumnType("decimal(18, 2)")
@@ -3757,6 +3759,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Amcamount)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("AMCAmount");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -3767,12 +3770,15 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ExShowroomPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ExchangeAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ExtendedWarrantyAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.HypothecationAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.InsuranceAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LoanAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.MobileNo).HasMaxLength(15);
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.OtherCharges).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PlateAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.QuotationDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
