@@ -287,8 +287,6 @@ namespace DMS_BAPL_Api.Controllers
             catch
             {
                 throw;
-
-
             }
         }
 

@@ -31,5 +31,6 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
 
         Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
 
+        Task<bool?> GetD2DProvision(string dealerCode);
     }
 }

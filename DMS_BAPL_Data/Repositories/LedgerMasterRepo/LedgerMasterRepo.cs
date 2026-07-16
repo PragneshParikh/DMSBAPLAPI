@@ -550,5 +550,21 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         //    }
         //}
 
+        public async Task<bool?> GetD2DProvision(string? dealerCode)
+        {
+            try
+            {
+                var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "dealer" && i.DealerCode == dealerCode).FirstOrDefaultAsync();
+                if (result == null || result.D2dprovision == null)
+                {
+                    return false;
+                }
+                return result.D2dprovision;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
