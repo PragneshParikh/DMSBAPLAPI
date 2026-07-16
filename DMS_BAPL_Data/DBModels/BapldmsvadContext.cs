@@ -215,6 +215,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
 
+    public virtual DbSet<ErpVehicleSale> ErpVehicleSales { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -4107,6 +4109,103 @@ public partial class BapldmsvadContext : DbContext
         });
         modelBuilder.HasSequence("cir_no_seq");
         modelBuilder.HasSequence("LotNo_Seq");
+
+        modelBuilder.Entity<ErpVehicleSale>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__ERP_Vehi__3214EC07ERPVSALE");
+
+            entity.ToTable("ERP_VehicleSales");
+
+            entity.HasIndex(e => new { e.DealerCode, e.InvoiceNo })
+                .IsUnique()
+                .HasDatabaseName("UQ_ERP_VehicleSales_DealerInvoice");
+
+            entity.HasIndex(e => e.InvoiceDate).HasDatabaseName("IX_ERP_VehicleSales_InvoiceDate");
+            entity.HasIndex(e => e.DealerCode).HasDatabaseName("IX_ERP_VehicleSales_DealerCode");
+            entity.HasIndex(e => e.ChassisNo).HasDatabaseName("IX_ERP_VehicleSales_ChassisNo");
+            entity.HasIndex(e => e.State).HasDatabaseName("IX_ERP_VehicleSales_State");
+
+            entity.Property(e => e.DealerName).HasMaxLength(500).HasColumnName("DealerName");
+            entity.Property(e => e.DealerCode).HasMaxLength(50).HasColumnName("DealerCode");
+            entity.Property(e => e.InvoiceNo).HasMaxLength(100).HasColumnName("InvoiceNo");
+            entity.Property(e => e.InvoiceDate).HasColumnName("InvoiceDate");
+
+            entity.Property(e => e.Location).HasMaxLength(500).HasColumnName("Location");
+            entity.Property(e => e.LocCode).HasMaxLength(100).HasColumnName("LocCode");
+            entity.Property(e => e.LocationCity).HasMaxLength(200).HasColumnName("LocationCity");
+
+            entity.Property(e => e.CustDob).HasColumnName("CustDOB");
+            entity.Property(e => e.Gender).HasMaxLength(20).HasColumnName("Gender");
+            entity.Property(e => e.SoldTo).HasMaxLength(500).HasColumnName("SoldTo");
+            entity.Property(e => e.AccountType).HasMaxLength(100).HasColumnName("AccountType");
+            entity.Property(e => e.PartyEmail).HasMaxLength(300).HasColumnName("PartyEmail");
+            entity.Property(e => e.CusMob).HasMaxLength(50).HasColumnName("CusMob");
+            entity.Property(e => e.Address1).HasMaxLength(500).HasColumnName("Address1");
+            entity.Property(e => e.Address2).HasMaxLength(500).HasColumnName("Address2");
+            entity.Property(e => e.City).HasMaxLength(200).HasColumnName("City");
+            entity.Property(e => e.State).HasMaxLength(200).HasColumnName("State");
+            entity.Property(e => e.ExecutiveName).HasMaxLength(200).HasColumnName("ExecutiveName");
+            entity.Property(e => e.Pin).HasMaxLength(20).HasColumnName("Pin");
+
+            entity.Property(e => e.ChassisNo).HasMaxLength(100).HasColumnName("ChassisNo");
+            entity.Property(e => e.MotorNo).HasMaxLength(100).HasColumnName("MotorNo");
+            entity.Property(e => e.Remarks).HasMaxLength(500).HasColumnName("Remarks");
+            entity.Property(e => e.ItemModel).HasMaxLength(300).HasColumnName("ItemModel");
+            entity.Property(e => e.Oemmodel).HasMaxLength(300).HasColumnName("OEMModel");
+            entity.Property(e => e.ColorCode).HasMaxLength(50).HasColumnName("ColorCode");
+            entity.Property(e => e.VehicleType).HasMaxLength(100).HasColumnName("VehicleType");
+            entity.Property(e => e.VehicleGroup).HasMaxLength(100).HasColumnName("VehicleGroup");
+            entity.Property(e => e.Hsnsaccode).HasMaxLength(50).HasColumnName("HSNSACCode");
+
+            entity.Property(e => e.SaleType).HasMaxLength(100).HasColumnName("SaleType");
+            entity.Property(e => e.FinancedBy).HasMaxLength(300).HasColumnName("FinancedBy");
+
+            entity.Property(e => e.FinAmount).HasColumnType("decimal(18, 2)").HasColumnName("FinAmount");
+            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)").HasColumnName("ItemRate");
+            entity.Property(e => e.InsuAmount).HasColumnType("decimal(18, 2)").HasColumnName("InsuAmount");
+            entity.Property(e => e.RegnAmount).HasColumnType("decimal(18, 2)").HasColumnName("RegnAmount");
+            entity.Property(e => e.AcsryAmount).HasColumnType("decimal(18, 2)").HasColumnName("AcsryAmount");
+            entity.Property(e => e.PreGstdiscAmount).HasColumnType("decimal(18, 2)").HasColumnName("PreGSTDiscAmount");
+            entity.Property(e => e.DiscTypeName).HasMaxLength(100).HasColumnName("DiscTypeName");
+            entity.Property(e => e.PostGstdisc).HasColumnType("decimal(18, 2)").HasColumnName("PostGSTDisc");
+            entity.Property(e => e.FameIi).HasColumnType("decimal(18, 2)").HasColumnName("FameII");
+            entity.Property(e => e.StateFameIi).HasColumnType("decimal(18, 2)").HasColumnName("StateFameII");
+            entity.Property(e => e.Sgstper).HasColumnType("decimal(8, 2)").HasColumnName("SGSTPer");
+            entity.Property(e => e.Sgstamount).HasColumnType("decimal(18, 2)").HasColumnName("SGSTAmount");
+            entity.Property(e => e.Cgstper).HasColumnType("decimal(8, 2)").HasColumnName("CGSTPer");
+            entity.Property(e => e.Cgstamount).HasColumnType("decimal(18, 2)").HasColumnName("CGSTAmount");
+            entity.Property(e => e.Igstper).HasColumnType("decimal(8, 2)").HasColumnName("IGSTPer");
+            entity.Property(e => e.Igstamount).HasColumnType("decimal(18, 2)").HasColumnName("IGSTAmount");
+            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 2)").HasColumnName("NetAmount");
+
+            entity.Property(e => e.ReferenceNo).HasMaxLength(100).HasColumnName("ReferenceNo");
+            entity.Property(e => e.BookingDate).HasColumnName("BookingDate");
+            entity.Property(e => e.TotalCount).HasMaxLength(50).HasColumnName("TotalCount");
+
+            entity.Property(e => e.Battery).HasMaxLength(200).HasColumnName("Battery");
+            entity.Property(e => e.BatteryChemical).HasMaxLength(200).HasColumnName("BatteryChemical");
+            entity.Property(e => e.BatteryCapacity).HasMaxLength(100).HasColumnName("BatteryCapacity");
+            entity.Property(e => e.BatteryMake).HasMaxLength(200).HasColumnName("BatteryMake");
+            entity.Property(e => e.ChargerNo).HasMaxLength(200).HasColumnName("ChargerNo");
+            entity.Property(e => e.ChargerNo2).HasMaxLength(200).HasColumnName("ChargerNo2");
+            entity.Property(e => e.ControllerNo).HasMaxLength(200).HasColumnName("ControllerNo");
+            //entity.Property(e => e.BatteryChemical).HasMaxLength(200).HasColumnName("Battery_Chemical");
+            //entity.Property(e => e.BatteryCapacity).HasMaxLength(100).HasColumnName("Battery_Capacity");
+            //entity.Property(e => e.BatteryMake).HasMaxLength(200).HasColumnName("Battery_Make");
+            //entity.Property(e => e.ChargerNo).HasMaxLength(200).HasColumnName("Charger_No");
+            //entity.Property(e => e.ChargerNo2).HasMaxLength(200).HasColumnName("Charger_no2");
+            entity.Property(e => e.Converter).HasMaxLength(200).HasColumnName("Converter");
+            entity.Property(e => e.Vcu).HasMaxLength(200).HasColumnName("VCU");
+            //entity.Property(e => e.ControllerNo).HasMaxLength(200).HasColumnName("Controller_No");
+            entity.Property(e => e.FameIirequired).HasMaxLength(10).HasColumnName("FameIIRequired");
+            entity.Property(e => e.SegmentName).HasMaxLength(200).HasColumnName("SegmentName");
+            entity.Property(e => e.InstitutionalName).HasMaxLength(200).HasColumnName("InstitutionalName");
+            entity.Property(e => e.SchemeName).HasMaxLength(200).HasColumnName("SchemeName");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasColumnName("CreatedAt");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasColumnName("UpdatedAt");
+            entity.Property(e => e.LastSyncedAt).HasColumnType("datetime2").HasColumnName("LastSyncedAt");
+        });
 
         OnModelCreatingPartial(modelBuilder);
     }

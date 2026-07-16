@@ -122,7 +122,16 @@ builder.Services.AddHttpClient("TsmApi", client =>
 {
     client.BaseAddress = new Uri("https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/");
     client.Timeout = TimeSpan.FromSeconds(30);
-}); 
+});
+builder.Services.AddHttpClient("ErpApi", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(180);
+});
+
+builder.Services.AddScoped<DMS_BAPL_Data.Services.VehicleSalesService.IErpVsrSyncService,
+                            DMS_BAPL_Data.Services.VehicleSalesService.ErpVsrSyncService>();
+
+builder.Services.AddHostedService<DMS_BAPL_Data.Services.VehicleSalesService.ErpVsrDailySyncHostedService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
