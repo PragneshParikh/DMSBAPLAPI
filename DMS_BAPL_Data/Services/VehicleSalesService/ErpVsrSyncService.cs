@@ -178,6 +178,7 @@ public class ErpVsrSyncService : IErpVsrSyncService
                 }
 
                 await _db.SaveChangesAsync();
+                _db.ChangeTracker.Clear();
                 await Task.Delay(delayMs);
             }
             catch (Exception ex)
