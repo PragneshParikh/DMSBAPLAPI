@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -83,7 +84,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                         Fscrate = item.FscRate,
 
-
+                        DiscountValue = item.DiscountValue,
                         LabourDiscount = item.Discount,
                         DiscountType = item.DiscountType,
                         PartDiscount = item.PartDiscount,
@@ -393,6 +394,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            PartRate = d.PartRate ?? 0,
                            TotalTaxPer=d.TotalTaxPer ?? 0,
 
+                           DiscountValue = d.DiscountValue??0,
                            Discount = d.LabourDiscount ?? 0,
                            DiscountType = d.DiscountType,
 
@@ -498,6 +500,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                             detail.LabourQty = item.Qty;
                             detail.LabourRate = item.Rate;
 
+                            detail.DiscountValue = item.DiscountValue;
                             detail.PartDiscount = item.PartDiscount;
                             detail.LabourDiscount = item.Discount;
 
@@ -538,6 +541,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                             LabourQty = item.Qty,
                             LabourRate = item.Rate,
 
+                            DiscountValue = item.DiscountValue,
                             PartDiscount = item.PartDiscount,
                             LabourDiscount = item.Discount,
 

@@ -76,6 +76,9 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         Hsncode = item.Hsncode,
                         Dlrprice = item.Dlrprice,
                         Custprice = item.Custprice,
+                        Uom = item.UOM,
+                        MinBillQty = item.MinBillQty,
+                        MinOrderQty = item.MinOrderQty,
                         Moq = item.Moq,
                         Boq = item.Boq,
                         Sgst = item.Sgst,
@@ -95,6 +98,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         Compcode = item.Compcode,
                         Displayname = item.Displayname,
                         Oemmodelname = item.Oemmodelname,
+                        DealerCode = item.Dealercode,
                         CreatedBy = userId,
                         CreatedDate = DateTime.UtcNow
                     };
@@ -266,6 +270,9 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.IsInventory = item.IsInventory;
                 existingItem.IsInEligibleInput = item.IsInEligibleInput;
                 existingItem.Oemmodelname = item.Oemmodelname;
+                existingItem.DealerCode = item.DealerCode;
+                existingItem.Uom = item.Uom;
+                existingItem.Status = item.Status;
                 existingItem.CreatedBy = item.CreatedBy;
                 existingItem.CreatedDate = item.CreatedDate;
                 existingItem.UpdatedBy = item.UpdatedBy;
