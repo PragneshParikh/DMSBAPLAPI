@@ -943,6 +943,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         FameIIAmnt = item.FameIIAmnt,
                         ProformaCreated = item.ProformaCreated,
                         LocationCode = item.LocationCode,
+                        IsD2D = item.IsD2D,
 
 
                     };

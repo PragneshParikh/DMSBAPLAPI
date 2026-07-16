@@ -15,6 +15,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LedgerName { get; set; }
 
         public string? LedgerType { get; set; }
+        public string? DealerCode { get; set; }
 
         public string? Gstno { get; set; }
 
@@ -50,6 +51,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? cityName { get; set; }
         public string? stateName { get; set; }
+        public bool? D2DProvision { get; set; }
     }
 
     public class LedgerExcelViewModel
