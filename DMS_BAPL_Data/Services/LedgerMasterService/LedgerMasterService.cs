@@ -146,5 +146,17 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
+
+        public async Task<bool?> GetD2DProvision(string? dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetD2DProvision(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
