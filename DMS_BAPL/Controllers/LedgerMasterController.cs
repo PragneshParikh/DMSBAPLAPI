@@ -47,7 +47,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<object>>> GetLedgerByPagedAsync([FromQuery] string? searchTerm = null, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? dealerCode = null, [FromQuery] string? filter =null)
+        public async Task<ActionResult<IEnumerable<object>>> GetLedgerByPagedAsync([FromQuery] string? searchTerm = null, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? dealerCode = null, [FromQuery] string? filter = null)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var ledger = await _ledgerMasterService.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize,dealerCode,filter);
+                var ledger = await _ledgerMasterService.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize, dealerCode, filter);
 
                 return Ok(ledger);
             }
@@ -292,6 +292,30 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
 
                 var ledgers = await _ledgerMasterService.GetLotRelatedLedgers(dealerCode, IsD2D);
+
+                return Ok(ledgers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting company ledgers");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving data from database");
+            }
+        }
+
+        [HttpGet("GetSupplierLedgers")]
+        [ProducesResponseType(typeof(IEnumerable<LedgerMaster>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<LedgerMaster>>> GetSupplierLedgers(string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var ledgers = await _ledgerMasterService.GetSupplierLedgers(dealerCode);
 
                 return Ok(ledgers);
             }

@@ -56,6 +56,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+        public int? Uom { get; set; }
+        public string? Dealercode { get; set; }
+        public int? SupplierId { get; set; }
+        public string? LedgerName { get; set; }
     }
 
     public class insertItemMasterViewModel
@@ -93,6 +97,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? UOM { get; set; }
         public int? MinBillQty { get; set; }
         public int? MinOrderQty { get; set; }
+        public int? SupplierId { get; set; }
     }
 
     public class ItemPartsByLocationViewModel
