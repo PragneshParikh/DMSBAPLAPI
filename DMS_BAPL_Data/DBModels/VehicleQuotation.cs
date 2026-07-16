@@ -71,7 +71,7 @@ public partial class VehicleQuotation
 
     public DateTime CreatedDate { get; set; }
 
-    public long? ModifiedBy { get; set; }
+    public string? ModifiedBy { get; set; }
 
     public DateTime? ModifiedDate { get; set; }
 
@@ -82,4 +82,8 @@ public partial class VehicleQuotation
     public decimal? HandlingCharges { get; set; }
 
     public DateOnly? ValidTillDate { get; set; }
+
+    public int? StateId { get; set; }
+
+    public int? CityId { get; set; }
 }

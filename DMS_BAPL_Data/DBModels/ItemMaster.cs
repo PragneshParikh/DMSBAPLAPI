@@ -105,6 +105,8 @@ public partial class ItemMaster
 
     public int? Uom { get; set; }
 
+    public int? SupplierId { get; set; }
+
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
 
     public virtual ICollection<KitDetail> KitDetails { get; set; } = new List<KitDetail>();

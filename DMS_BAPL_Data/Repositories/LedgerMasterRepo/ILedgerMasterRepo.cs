@@ -12,7 +12,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
     public interface ILedgerMasterRepo
     {
         Task<IEnumerable<LedgerMaster>> GetAll();
-        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize,string dealerCode,string filter);
+        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize, string dealerCode, string filter);
         Task<LedgerDetailViewModel?> GetLedgerById(int id);
         Task<int> InsertLedgerDetail(LedgerMaster ledgerMaster);
         Task<bool> UpdateLedgerDetail(LedgerMaster ledgerMaster);
@@ -25,9 +25,11 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
         Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);
         Task<string> GetNextLedCode(string dealerCode);
-        Task<IEnumerable<LedgerExcelViewModel>>GetExcelData();
+        Task<IEnumerable<LedgerExcelViewModel>> GetExcelData();
         Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin);
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D);
+
+        Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
 
     }
 }
