@@ -394,6 +394,19 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
+        public async Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode)
+        {
+            try
+            {
+                return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.LedgerType != null && x.DealerCode == dealerCode && x.LedgerType.ToLower() == "Supplier")
+                    .OrderBy(c => c.LedgerName)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
         public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
         {
 

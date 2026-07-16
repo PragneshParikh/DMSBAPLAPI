@@ -146,5 +146,17 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
+
+        public async Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetSupplierLedgers(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
