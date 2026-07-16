@@ -147,6 +147,11 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             }
         }
 
+        public async Task<bool?> GetD2DProvision(string? dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetD2DProvision(dealerCode);
         public async Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode)
         {
             try
