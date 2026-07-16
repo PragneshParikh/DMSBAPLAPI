@@ -8,6 +8,7 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class DealerDropdownViewModel
     {
+        public int Id { get; set; }
         public string DealerCode { get; set; }
         public string DealerName { get; set; }
     }
