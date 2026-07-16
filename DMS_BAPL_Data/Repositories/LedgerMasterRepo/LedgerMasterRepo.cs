@@ -205,7 +205,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         LedgerName = LM.LedgerName,
                         LedgerType = LM.LedgerType,
                         Gstno = LM.Gstno,
-                        DealerCode =LM.DealerCode,
+                        DealerCode = LM.DealerCode,
                         Pan = LM.Pan,
                         AadharNumber = LM.AadharNumber,
                         MobileNumber = LM.MobileNumber,
@@ -224,7 +224,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                         OccupationId = LM.OccupationId,
                         cityName = city.CityName,
                         stateName = state.StateName,
-                        D2DProvision =LM.D2dprovision
+                        D2DProvision = LM.D2dprovision
                     }
                 ).FirstOrDefaultAsync();
 
@@ -522,9 +522,9 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             try
             {
                 var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "dealer" && i.DealerCode == dealerCode).FirstOrDefaultAsync();
-                if(result == null || result.D2dprovision == null)
+                if (result == null || result.D2dprovision == null)
                 {
-                    return false;   
+                    return false;
                 }
                 return result.D2dprovision;
             }
@@ -550,21 +550,5 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         //    }
         //}
 
-        public async Task<bool?> GetD2DProvision(string? dealerCode)
-        {
-            try
-            {
-                var result = await _context.LedgerMasters.Where(i => i.LedgerType.ToLower() == "dealer" && i.DealerCode == dealerCode).FirstOrDefaultAsync();
-                if (result == null || result.D2dprovision == null)
-                {
-                    return false;
-                }
-                return result.D2dprovision;
-            }
-            catch
-            {
-                throw;
-            }
-        }
     }
 }
