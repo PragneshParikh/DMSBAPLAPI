@@ -12,7 +12,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
     public interface IVehicleInwardRepo
     {
         Task<IEnumerable<VehicleInward>> Get();
-        Task<IEnumerable<VehicleInward>> GetVehicleByStatus(string dealerCode, Boolean status);
+        Task<IEnumerable<VehicleInwardD2DViewModel>> GetVehicleByStatus(string dealerCode, bool status);
         Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
         Task<object> InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel);
         Task<List<VehicleInward>> GetByChassisNosAsync(List<string> chassisNos);

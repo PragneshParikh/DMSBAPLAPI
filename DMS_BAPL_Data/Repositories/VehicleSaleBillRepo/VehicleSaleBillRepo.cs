@@ -3,7 +3,9 @@ using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Office2013.Drawing.Chart;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
@@ -34,7 +36,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             _prefixRepo = prefixRepo;
         }
 
-       
+
         public async Task<VehicleSaleBillHeader?> GetByIdAsync(int id)
         {
             try
@@ -73,8 +75,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         Location = h.Location,
                         SaleType = h.SaleType,
                         CashAccount = h.CashAccount,
-                        Financier = h.Financier,                                    
-                        FinancierName = finLed != null ? finLed.LedgerName : null,  
+                        Financier = h.Financier,
+                        FinancierName = finLed != null ? finLed.LedgerName : null,
                         BillType = h.BillType,
                         BillFrom = h.BillFrom,
                         CustomerName = cled.LedgerName,
@@ -92,95 +94,92 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         TotalAmount = h.TotalAmount,
                         Status = h.Status,
                         RefMobile = h.RefMobile,
-                        isTempRegNo =h.TempRegNo,
+                        isTempRegNo = h.TempRegNo,
                         AccessoryAmount = h.AccessoryAmount,
                         AccessoryBillNo = h.AccessoryBillNo,
                         HandlingCharges = h.HandlingCharges,
                         Hpamount = h.Hpamount,
                         NoPlateAmount = h.NoPlateAmount,
                         StateSubsidyAmount = h.StateSubsidyAmount,
-                        
+
                         DealerCode = h.DealerCode,
 
                         Details = (
-                from d in _context.VehicleSaleBillDetails
+                        from d in _context.VehicleSaleBillDetails
 
-                join v in _context.VehicleInwards
-                    on d.ChassisNo equals v.ChasisNo into vinJoin
-                from v in vinJoin.DefaultIfEmpty()
+                        join i in _context.ItemMasters
+                            on d.ItemCode equals i.Itemcode into itemJoin
+                        from i in itemJoin.DefaultIfEmpty()
 
-                join i in _context.ItemMasters
-                    on d.ItemCode equals i.Itemcode into itemJoin
-                from i in itemJoin.DefaultIfEmpty()
+                        join insLed in _context.LedgerMasters
+                            on d.InsuranceLedgerId equals insLed.Id into insLedJoin
+                        from insLed in insLedJoin.DefaultIfEmpty()
 
-                join inv in _context.InvoiceHeaders
-                on d.VehicleSaleBillId equals inv.ReferenceId into InvDetails
-                from inv in InvDetails.DefaultIfEmpty()
+                        where d.VehicleSaleBillId == h.Id
 
-                join insLed in _context.LedgerMasters
-                on d.InsuranceLedgerId equals insLed.Id into insLedJoin
-                from insLed in insLedJoin.DefaultIfEmpty()
+                        select new VehicleSaleBillDetailVM
+                        {
+                            Id = d.Id,
+                            ChassisNo = d.ChassisNo,
+                            ItemRate = d.ItemRate,
+                            ItemCode = d.ItemCode,
+                            PreGstDiscount = d.PreGstDiscount,
+                            RegAmount = d.RegAmount,
+                            InsuranceAmount = d.InsuranceAmount,
+                            HasDevice = d.HasDevice,
+                            HasKit = d.HasKit,
+                            IsDelivered = d.IsDelivered,
+                            Segment = d.Segment,
+                            InstitutionalType = d.InstitutionalType,
+                            SchemeName = d.SchemeName,
+                            Narration = d.Narration,
+                            Sgstper = d.Sgstper,
+                            Sgstamnt = d.Sgstamnt,
+                            Cgstper = d.Cgstper,
+                            Cgstamnt = d.Cgstamnt,
+                            Igstper = d.Igstper,
+                            Igstamnt = d.Igstamnt,
+                            MfgYear = d.MfgYear,
+                            InsNo = d.InsNo,
+                            InsStartDate = d.InsStartDate,
+                            RegNo = d.RegNo,
+                            InsExpDate = d.InsExpDate,
+                            FinalAmount = d.FinalAmount,
+                            IsAgainstExchange = d.IsAgainstExchange,
+                            ModelName = d.ModelName,
+                            Colour = d.Colour,
+                            Battery = d.Battery,
+                            ConvertorNo = d.ConvertorNo,
+                            ChargerNo = d.ChargerNo,
+                            ControllerNo = d.ControllerNo,
+                            Key = d.Key,
+                            BookNo = d.BookNo,
+                            ExtWarranty = d.ExtWarranty,
+                            BatteryChemical = d.BatteryChemical,
+                            BatteryCapacity = d.BatteryCapacity,
+                            BatteryMake = d.BatteryMake,
+                            StockDetailsNo = d.StockDetailsNo,
+                            Vcu = d.Vcu,
+                            HsnCode = i != null ? i.Hsncode : null,
 
+                            MotorNo = _context.VehicleInwards
+                                .Where(x => x.ChasisNo == d.ChassisNo)
+                                .OrderByDescending(x => x.CreatedDate)
+                                .Select(x => x.MotorNo)
+                                .FirstOrDefault(),
 
-                where d.VehicleSaleBillId == h.Id
+                            InvoiceNo = _context.InvoiceHeaders
+                                .Where(x => x.ReferenceId == d.VehicleSaleBillId)
+                                .OrderByDescending(x => x.CreatedDate)
+                                .Select(x => x.InvoiceNo)
+                                .FirstOrDefault(),
 
-                select new VehicleSaleBillDetailVM
-                {
-                    Id = d.Id,
-                    ChassisNo = d.ChassisNo,
-                    ItemRate = d.ItemRate,
-                    ItemCode = d.ItemCode,
-                    PreGstDiscount = d.PreGstDiscount,
-                    RegAmount = d.RegAmount,
-                    InsuranceAmount = d.InsuranceAmount,
-                    HasDevice = d.HasDevice,
-                    HasKit = d.HasKit,
-                    IsDelivered = d.IsDelivered,
-                    Segment = d.Segment,
-                    InstitutionalType = d.InstitutionalType,
-                    SchemeName = d.SchemeName,
-                    Narration = d.Narration,
-                    Sgstper = d.Sgstper,
-                    Sgstamnt = d.Sgstamnt,
-                    Cgstper = d.Cgstper,
-                    Cgstamnt = d.Cgstamnt,
-                    Igstper = d.Igstper,
-                    Igstamnt = d.Igstamnt,
-                    MfgYear = d.MfgYear,
-                    InsNo = d.InsNo,
-                    InsStartDate = d.InsStartDate,
-                    RegNo = d.RegNo,
-                    InsExpDate = d.InsExpDate,
-                    FinalAmount = d.FinalAmount,
-                    IsAgainstExchange = d.IsAgainstExchange,
-                    ModelName = d.ModelName,
-                    Colour = d.Colour,
-                    Battery = d.Battery,
-                    ConvertorNo = d.ConvertorNo,
-                    ChargerNo = d.ChargerNo,
-                    ControllerNo = d.ControllerNo,
-                    Key = d.Key,
-                    BookNo = d.BookNo,
-                    ExtWarranty = d.ExtWarranty,
-
-                    BatteryChemical = d.BatteryChemical,
-
-                    BatteryCapacity = d.BatteryCapacity,
-
-                    BatteryMake = d.BatteryMake,
-
-                    StockDetailsNo = d.StockDetailsNo,
-
-                    Vcu = d.Vcu,
-                    HsnCode = i.Hsncode,
-                    MotorNo = v.MotorNo,
-                    InvoiceNo = inv.InvoiceNo,
-                    FameIIDisc = d.FameIi,
-                    PostGstDiscount = d.PostGstDisc,
-                    InsuranceId = d.InsuranceLedgerId,
-                    InsuranceName = insLed.LedgerName
-                }
-            ).ToList()
+                            FameIIDisc = d.FameIi,
+                            PostGstDiscount = d.PostGstDisc,
+                            InsuranceId = d.InsuranceLedgerId,
+                            InsuranceName = insLed != null ? insLed.LedgerName : null
+                        }
+                            ).ToList()
 
 
                     }).FirstOrDefaultAsync();
@@ -211,7 +210,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 return await _context.VehicleSaleBillHeaders
                     .Include(x => x.VehicleSaleBillDetails)
-                    
+
                     .OrderByDescending(x => x.CreatedDate)
                     .ToListAsync();
             }
@@ -406,53 +405,57 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
 
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-                // var invoiceNo = await _prefixRepo.GetPrefixByDealerCodeModuleName(header.DealerCode, "invoice");
-
-
-                // 2. Create Proforma Invoice Header
-                var invoice = new InvoiceHeader
+                if (header.IsD2d == true)
                 {
-                    InvoiceType = "Proforma Invoice",
-                    ServiceType = "Vehicle Sale Bill",
-                    DocumentNo = header.SaleBillNo,
-                    ReferenceId = header.Id,
-                    CustomerId = header.LedgerId,
-                    CreatedBy = userId,
-                    CreatedDate = DateTime.Now,
-                    Status = "Proforma",
-                    InvoiceNo = "IN-" + header.SaleBillNo,
-                    DealerCode = header.DealerCode,
-                };
-
-                // 3. Add Invoice Details (optional but recommended)
-                foreach (var detail in header.VehicleSaleBillDetails)
+                    await ConfirmInvoiceAndReserveChassis(header.SaleBillNo);
+                }
+                else
                 {
-                    var item = new InvoiceDetail
+                    var invoice = new InvoiceHeader
                     {
-                        ItemId = detail.Id,
-                        Description = detail.ModelName,
-                        Quantity = 1,
-                        Rate = detail.FinalAmount,
-                        TaxPercent = detail.Igstper ?? (detail.Cgstper + detail.Sgstper),
+                        InvoiceType = "Proforma Invoice",
+                        ServiceType = "Vehicle Sale Bill",
+                        DocumentNo = header.SaleBillNo,
+                        ReferenceId = header.Id,
+                        CustomerId = header.LedgerId,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        Status = "Proforma",
+                        InvoiceNo = "IN-" + header.SaleBillNo,
+                        DealerCode = header.DealerCode,
                     };
 
-                    item.Amount = (item.Quantity ?? 0) * (item.Rate ?? 0);
+                    // 3. Add Invoice Details (optional but recommended)
+                    foreach (var detail in header.VehicleSaleBillDetails)
+                    {
+                        var item = new InvoiceDetail
+                        {
+                            ItemId = detail.Id,
+                            Description = detail.ModelName,
+                            Quantity = 1,
+                            Rate = detail.FinalAmount,
+                            TaxPercent = detail.Igstper ?? (detail.Cgstper + detail.Sgstper),
+                        };
 
-                    invoice.InvoiceDetails.Add(item);
+                        item.Amount = (item.Quantity ?? 0) * (item.Rate ?? 0);
+
+                        invoice.InvoiceDetails.Add(item);
+                    }
+
+                    // 4. Calculate totals
+                    decimal total = invoice.InvoiceDetails.Sum(x => x.Amount ?? 0);
+                    decimal tax = invoice.InvoiceDetails.Sum(x => (x.Amount ?? 0) * (x.TaxPercent ?? 0) / 100);
+
+                    invoice.TotalAmount = total;
+                    invoice.TaxAmount = tax;
+                    invoice.NetAmount = total + tax;
+
+                    // 5. Save Invoice
+                    _context.InvoiceHeaders.Add(invoice);
+                    await _context.SaveChangesAsync();
                 }
 
-                // 4. Calculate totals
-                decimal total = invoice.InvoiceDetails.Sum(x => x.Amount ?? 0);
-                decimal tax = invoice.InvoiceDetails.Sum(x => (x.Amount ?? 0) * (x.TaxPercent ?? 0) / 100);
-
-                invoice.TotalAmount = total;
-                invoice.TaxAmount = tax;
-                invoice.NetAmount = total + tax;
-
-                // 5. Save Invoice
-                _context.InvoiceHeaders.Add(invoice);
-
-                await _context.SaveChangesAsync();
+                //await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
 
@@ -485,6 +488,32 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
             try
             {
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+
+                var chassisNos = jobUpdates
+                    .Select(x => x.ChassisNo)
+                    .Concat(deletedChassisList)
+                    .Distinct()
+                    .ToList();
+
+                var chassisDetailsToUpdate = await _context.ChassisDetails
+                    .Where(i => chassisNos.Contains(i.ChassisNo))
+                    .ToListAsync();
+
+                if (chassisDetailsToUpdate.Any())
+                {
+                    foreach (var chassis in chassisDetailsToUpdate)
+                    {
+                        chassis.SaleDate = header.SaleDate;
+                        chassis.RegNo = jobUpdates.Where(i => i.ChassisNo == chassis.ChassisNo).Select(i => i.RegisterNo).FirstOrDefault();
+                        chassis.LedgerId = header.LedgerId;
+                        chassis.UpdatedBy = userId;
+                        chassis.UpdatedDate = DateTime.Now;
+                    }
+
+                    _context.ChassisDetails.UpdateRange(chassisDetailsToUpdate);
+                    //  await _context.SaveChangesAsync();
+                }
                 // 1. Update Header
                 _context.VehicleSaleBillHeaders.Update(header);
 
@@ -533,6 +562,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                                 .ToListAsync();
 
                         _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
+                        await _context.SaveChangesAsync();
 
                     }
                 }
@@ -546,20 +576,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     if (vehiclesToDelete.Any())
                     {
                         _context.VehicleSaleBillDetails.RemoveRange(vehiclesToDelete);
+                        await _context.SaveChangesAsync();
                     }
                 }
 
-
-                //updating JobCardCustomer if any of the Chassis no was deleted
-                //foreach (var item in deletedChassisList)
-                //{
-                //    var deletedJC = jobs.Where(c => c.ChassisNo == item).FirstOrDefault();
-
-                //    if (deletedJC == null) continue;
-                //    deletedJC.InsuranceExpDate = null;
-                //    deletedJC.RegisterNo = null;
-                //    deletedJC.SaleDate = null;
-                //}
 
                 // 3. Save
                 await _context.SaveChangesAsync();
@@ -699,6 +719,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         InvoiceType = "Invoice",
                         ServiceType = "Vehicle Sale Bill",
                         DocumentNo = saleBill.SaleBillNo,
+                        InvoiceNo = "IN" + saleBill.SaleBillNo,
                         ReferenceId = saleBill.Id,
                         CustomerId = saleBill.LedgerId,
                         CreatedBy = userId,
@@ -749,6 +770,89 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                 await _context.SaveChangesAsync();
 
+                if (saleBill.IsD2d == true)
+                {
+                    var chassises = saleBill.VehicleSaleBillDetails.Select(x => x.ChassisNo).ToList();
+                    await updateChassisForD2d(chassises, saleBill?.LedgerId, saleBill.DealerCode, saleBill.Location);
+
+                    var batteryDetails = await _context.ChassisBatteryDetails.Where(x => chassisNos.Contains(x.ChassisNo)).ToListAsync();
+
+                    var vehicleInwards = await _context.VehicleInwards.Where(x => chassisNos.Contains(x.ChasisNo) && x.DealerCode == saleBill.DealerCode).ToListAsync();
+
+                    var receivingDealerCode = await _context.LedgerMasters.Where(x => x.Id == saleBill.LedgerId).Select(x => x.DealerCode).FirstOrDefaultAsync();
+
+                    var gstNo = await _context.DealerMasters.Where(x => x.Dealercode == saleBill.DealerCode).Select(x => x.CompgstinNo).FirstOrDefaultAsync();
+
+                    var vehicleLookup = vehicleInwards.GroupBy(x => x.ChasisNo).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
+
+                    var batteryLookup = batteryDetails.GroupBy(x => x.ChassisNo).ToDictionary(x => x.Key, x => x.ToList());
+
+                    foreach (var item in saleBill.VehicleSaleBillDetails)
+                    {
+                        vehicleLookup.TryGetValue(item.ChassisNo, out var vehicle);
+
+                        batteryLookup.TryGetValue(item.ChassisNo, out var batteries);
+
+                        var vehicleInward = new VehicleInward
+                        {
+                            InvoiceDate = invoice.CreatedDate.HasValue ? DateOnly.FromDateTime(invoice.CreatedDate.Value) : null,
+                            InvoiceNo = invoice.InvoiceNo,
+                            MfgYear = item.MfgYear,
+                            ItemCode = item.ItemCode,
+                            ColrCode = vehicle.ColrCode,
+                            ChasisNo = item.ChassisNo,
+                            MotorNo = batteries?.FirstOrDefault(x => x.MotorOrderNo == 1)?.MotorNo,
+                            BatteryNo = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 1)?.BatteryNo,
+                            BatteryNo2 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 2)?.BatteryNo,
+                            BatteryNo3 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 3)?.BatteryNo,
+                            BatteryNo4 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 4)?.BatteryNo,
+                            BatteryNo5 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 5)?.BatteryNo,
+                            BatteryNo6 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 6)?.BatteryNo,
+                            EcuSerno = vehicle?.EcuSerno,
+                            EcuImEi = vehicle?.EcuImEi,
+                            EcuBalMac = vehicle?.EcuBalMac,
+                            ImmoblizerStatus = vehicle?.ImmoblizerStatus,
+                            ImmoblizerNo = vehicle?.ImmoblizerNo,
+                            BikeSimid = vehicle?.BikeSimid,
+                            BikeMobileno = vehicle?.BikeMobileno,
+                            SoundbarSerno = vehicle?.SoundbarSerno,
+                            SoundbarBalMac = vehicle?.SoundbarBalMac,
+                            Voltage = vehicle?.Voltage,
+                            Validity = vehicle?.Validity,
+                            Startdate = vehicle?.Startdate,
+                            TyreNo1 = vehicle?.TyreNo1,
+                            TyreNo2 = vehicle?.TyreNo2,
+                            BatteryIdno = vehicle?.BatteryIdno,
+                            Dlrprice = vehicle?.Dlrprice,
+                            Custprice = vehicle?.Custprice,
+                            GstIdno = int.TryParse(gstNo, out var gst) ? gst : 0,
+                            DealerCode = receivingDealerCode,
+                            LocCode = $"{receivingDealerCode}S1",
+                            BatteryChemistry = item.BatteryChemical,
+                            BatteryCapacity = item.BatteryCapacity,
+                            BatteryMake = item.BatteryMake,
+                            Fame2Discount = item.FameIi,
+                            Converter = item.ConvertorNo,
+                            Vcu = item.Vcu,
+                            IsAccepted = false,
+                            PoType = saleBill.CustomerType,
+                            IsD2d = true,
+                            InwardType = saleBill.CustomerType,
+                            KeyNo = item.Key,
+                            ServBkno = item.BookNo,
+                            BatteryId = vehicle.BatteryId,
+                            ChargerNo = item.ChargerNo,
+                            ControllerNo = item.ControllerNo,
+                            Regnumber = item.RegNo,
+                            MfgMonth = vehicle.MfgMonth,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+
+                        };
+
+                        _context.VehicleInwards.Add(vehicleInward);
+                    }
+                }
                 return saleBill.Id;
             }
             catch
@@ -757,6 +861,182 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        private async Task updateChassisForD2d(List<string> chassises, int? ledgerId, string dealerCode, string locationCode)
+        {
+            try
+            {
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+
+                var receivingDealer = await _context.LedgerMasters
+                    .FirstOrDefaultAsync(i => i.Id == ledgerId);
+
+                if (receivingDealer == null || chassises == null || !chassises.Any())
+                    return;
+
+                var uniqueChassisNos = chassises
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct()
+                    .ToList();
+
+                var chassisToMove = await _context.ChassisDetails
+                    .Where(x => uniqueChassisNos.Contains(x.ChassisNo))
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.First())
+                    .ToListAsync();
+
+                if (!chassisToMove.Any())
+                    return;
+
+                var historyRecords = chassisToMove.Select(x => new ChassisDetailsD2dhistory
+                {
+                    LedgerId = x.LedgerId,
+                    ChassisNo = x.ChassisNo,
+                    ItemCode = x.ItemCode,
+                    ItemName = x.ItemName,
+                    ItemColor = x.ItemColor,
+                    DealerCode = receivingDealer.DealerCode,
+                    LocationCode = receivingDealer.DealerCode + "S1",
+                    IssueingDealerCode = dealerCode,
+                    IssueingDealerLocation = locationCode,
+                    SaleDate = DateTime.Now,
+                    TransDate = DateTime.Now,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = x.UpdatedBy,
+                    UpdatedDate = x.UpdatedDate
+                }).ToList();
+
+                await _context.ChassisDetailsD2dhistories.AddRangeAsync(historyRecords);
+
+                _context.ChassisDetails.RemoveRange(chassisToMove);
+
+                var newChassisRecords = chassisToMove
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.First())
+                    .Select(x => new ChassisDetail
+                    {
+                        LedgerId = null,
+                        ChassisNo = x.ChassisNo,
+                        ItemCode = x.ItemCode,
+                        ItemName = x.ItemName,
+                        ItemColor = x.ItemColor,
+                        DealerId = receivingDealer.DealerCode,
+                        LocationCode = receivingDealer.DealerCode + "S1",
+                        SaleDate = null,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        UpdatedBy = null,
+                        UpdatedDate = null,
+                        RegNo = null
+                    })
+                    .ToList();
+
+                await _context.ChassisDetails.AddRangeAsync(newChassisRecords);
+
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+        public async Task<bool> UpdateVehicleInward(int saleBillId)
+        {
+            try
+            {
+                var data = await (from d in _context.VehicleSaleBillDetails
+                                  join h in _context.VehicleSaleBillHeaders on d.VehicleSaleBillId equals h.Id
+                                  join i in _context.InvoiceHeaders on d.Id equals i.ReferenceId
+                                  join vi in _context.VehicleInwards on d.ChassisNo equals vi.ChasisNo
+                                  join cbd in _context.ChassisBatteryDetails.Where(x => x.MotorOrderNo == 1 && x.BatteryOrderNo == 1 && x.ChargerOrderNo == 1 && x.ControllerOrderNo == 1 && x.ConverterOrderNo == 1) on d.ChassisNo equals cbd.ChassisNo
+                                  join dlr in _context.DealerMasters on h.DealerCode equals dlr.Dealercode into dealInfo
+                                  join inDelaer in _context.LedgerMasters on h.LedgerId equals inDelaer.Id
+                                  join inDlrCode in _context.DealerMasters on inDelaer.DealerCode equals inDlrCode.Dealercode
+                                  from dlr in dealInfo.DefaultIfEmpty()
+                                  where d.VehicleSaleBillId == saleBillId && vi.DealerCode == h.DealerCode
+                                  select new
+                                  {
+                                      SaleHeader = h,
+                                      Detail = d,
+                                      Invoice = i,
+                                      VehicleInward = vi,
+                                      ChassisBatteryDetail = cbd,
+                                      IssuingDealer = dlr,
+                                      ReceivingDealer = inDlrCode
+                                  }).ToListAsync();
+
+                foreach (var item in data)
+                {
+                    var invoice = item.Invoice;
+                    var vehicleInward = new VehicleInward
+                    {
+                        //Id = -1,
+                        InvoiceDate = invoice.CreatedDate.HasValue ? DateOnly.FromDateTime(invoice.CreatedDate.Value) : null,
+                        InvoiceNo = invoice.InvoiceNo,
+                        MfgYear = item.VehicleInward.MfgYear,
+                        ItemCode = item.VehicleInward.ItemCode,
+                        ColrCode = item.VehicleInward.ColrCode,
+                        ChasisNo = item.Detail.ChassisNo,
+                        MotorNo = item.ChassisBatteryDetail.MotorNo,
+                        KeyNo = item?.Detail.Key,
+                        ServBkno = item?.Detail.BookNo,
+                        BatteryId = item.ChassisBatteryDetail.BatteryNo,
+                        BatteryNo = item.ChassisBatteryDetail.BatteryNo,
+                        BatteryNo2 = "",
+                        BatteryNo3 = "",
+                        BatteryNo4 = "",
+                        BatteryNo5 = item.VehicleInward.BatteryNo5,
+                        BatteryNo6 = item.VehicleInward.BatteryNo6,
+                        EcuSerno = item.VehicleInward.EcuSerno,
+                        EcuImEi = item.VehicleInward.EcuImEi,
+                        EcuBalMac = item.VehicleInward.EcuBalMac,
+                        ImmoblizerStatus = item.VehicleInward.ImmoblizerStatus,
+                        ImmoblizerNo = item.VehicleInward.ImmoblizerNo,
+                        BikeSimid = item.VehicleInward.BikeSimid,
+                        BikeMobileno = item.VehicleInward.BikeMobileno,
+                        ChargerNo = item.Detail.ChargerNo,
+                        ControllerNo = item.Detail.ControllerNo,
+                        SoundbarSerno = item.VehicleInward.SoundbarSerno,
+                        SoundbarBalMac = item.VehicleInward.SoundbarBalMac,
+                        Voltage = item.VehicleInward.Voltage,
+                        Regnumber = item.Detail.RegNo,
+                        Validity = item.VehicleInward.Validity,
+                        Startdate = item.VehicleInward.Startdate,
+                        TyreNo1 = item.VehicleInward.TyreNo1,
+                        TyreNo2 = item.VehicleInward.TyreNo2,
+                        GstIdno = int.Parse(item.IssuingDealer.CompgstinNo),
+                        LocCode = item.ReceivingDealer.Dealercode + "S1",
+                        DealerCode = item.ReceivingDealer.Dealercode,
+                        BatteryChemistry = item.Detail.BatteryChemical,
+                        BatteryCapacity = item.Detail.BatteryCapacity,
+                        BatteryMake = item.Detail.BatteryMake,
+                        BatteryIdno = item.VehicleInward.BatteryIdno,
+                        Fame2Discount = item.Detail.FameIi,
+                        Converter = item.Detail.ConvertorNo,
+                        Vcu = item.Detail.Vcu,
+                        Ordertype = "",
+                        MfgMonth = item.VehicleInward.MfgMonth,
+                        IsAccepted = false,
+                        Dlrprice = item.VehicleInward.Dlrprice,
+                        Custprice = item.VehicleInward.Custprice,
+                        PoType = "D2D",
+                        IsD2d = true,
+                        InwardType = item.SaleHeader.CustomerType
+                    };
+                    _context.VehicleInwards.Add(vehicleInward);
+
+                }
+                var result = await _context.SaveChangesAsync();
+
+                return result > 0;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        //public 
         public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
         {
             try
@@ -790,75 +1070,156 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        //public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode)
+        //{
+        //    try
+        //    {
+        //        var result = await (
+        //        from vi in _context.VehicleInwards
+        //        join ch in _context.ChassisDetails on vi.ChasisNo equals ch.ChassisNo
+        //        join im in _context.ItemMasters on vi.ItemCode equals im.Itemcode
+        //        join clr in _context.ColorMasters on vi.ColrCode equals clr.Colorcode
 
+        //        join jc in _context.JobCardHeaders
+        //            on ch.ChassisNo equals jc.Chassisno into jcGroup
+        //        from jc in jcGroup.DefaultIfEmpty()
+
+        //        join vd in _context.VehicleSaleBillDetails
+        //            on ch.ChassisNo equals vd.ChassisNo into vdGroup
+        //        from vd in vdGroup.DefaultIfEmpty()
+
+        //        join vh in _context.VehicleSaleBillHeaders
+        //            on vd.VehicleSaleBillId equals vh.Id into vhGroup
+        //        from vh in vhGroup.DefaultIfEmpty()
+
+        //        where ch.SaleDate == null && (vh == null || vh.IsD2d == false)
+
+        //        select new
+        //        {
+        //            ch.ChassisNo,
+        //            Data = new ChassisListWithPDIStatus
+        //            {
+        //                ChassisNo = ch.ChassisNo,
+        //                ItemCode = ch.ItemCode,
+        //                ItemColor = clr.Colorname,
+        //                MfgYear = vi.MfgYear,
+        //                ItemName = im.Itemname,
+        //                KeyNo = vi.KeyNo,
+        //                BookNo = vi.ServBkno,
+        //                BatteryNo = vi.BatteryNo,
+        //                BatteryChemical = vi.BatteryChemistry,
+        //                BatteryCapacity = vi.BatteryCapacity,
+        //                BatteryMake = vi.BatteryMake,
+        //                ChargerNo = vi.ChargerNo,
+        //                ControllerNo = vi.ControllerNo,
+        //                FameIIAmnt = vi.Fame2Discount,
+        //                DealerPrice = vi.Dlrprice,
+        //                CustomerPrice = vi.Custprice,
+        //                DealerCode = ch.DealerId,
+        //                CustomerSaleDate = ch.SaleDate,
+        //                ProformaCreated = vd == null ? null : vh.SaleBillNo,
+        //                PDIStatus = jc == null ? "Not Done" : (jc.IsPdiSuccess == true ? "OK" : "Not Done"),
+        //                LocationCode = ch.LocationCode
+        //            }
+        //        })
+        //        .GroupBy(x => x.ChassisNo)
+        //        .Select(g => g.First().Data)
+        //        .ToListAsync();
+
+        //        if (!string.IsNullOrEmpty(dealerCode))
+        //        {
+        //            result = result.Where(i => i.DealerCode == dealerCode).ToList();
+        //        }
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+
+        //}
 
         public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode)
         {
             try
             {
+                // Get latest VehicleInward per ChassisNo + DealerCode
+                var latestVehicleInwardIds = await _context.VehicleInwards
+                    .GroupBy(x => new { x.ChasisNo, x.DealerCode })
+                    .Select(g => g
+                        .OrderByDescending(x => x.CreatedDate)
+                        .Select(x => x.Id)
+                        .First())
+                    .ToListAsync();
+
                 var result = await (
-                from vi in _context.VehicleInwards
-                join ch in _context.ChassisDetails on vi.ChasisNo equals ch.ChassisNo
-                join im in _context.ItemMasters on vi.ItemCode equals im.Itemcode
-                join clr in _context.ColorMasters on vi.ColrCode equals clr.Colorcode
+                    from vi in _context.VehicleInwards
+                    join ch in _context.ChassisDetails
+                        on vi.ChasisNo equals ch.ChassisNo
+                    join im in _context.ItemMasters
+                        on vi.ItemCode equals im.Itemcode
+                    join clr in _context.ColorMasters
+                        on vi.ColrCode equals clr.Colorcode
 
-                join jc in _context.JobCardHeaders
-                    on ch.ChassisNo equals jc.Chassisno into jcGroup
-                from jc in jcGroup.DefaultIfEmpty()
+                    join jc in _context.JobCardHeaders
+                        on ch.ChassisNo equals jc.Chassisno into jcGroup
+                    from jc in jcGroup.DefaultIfEmpty()
 
-                join vd in _context.VehicleSaleBillDetails
-                    on ch.ChassisNo equals vd.ChassisNo into vdGroup
-                from vd in vdGroup.DefaultIfEmpty()
+                    join vd in _context.VehicleSaleBillDetails
+                        on ch.ChassisNo equals vd.ChassisNo into vdGroup
+                    from vd in vdGroup.DefaultIfEmpty()
 
-                join vh in _context.VehicleSaleBillHeaders
-                    on vd.VehicleSaleBillId equals vh.Id into vhGroup
-                from vh in vhGroup.DefaultIfEmpty()
+                    join vh in _context.VehicleSaleBillHeaders
+                        on vd.VehicleSaleBillId equals vh.Id into vhGroup
+                    from vh in vhGroup.DefaultIfEmpty()
 
-                where ch.SaleDate == null
+                    where latestVehicleInwardIds.Contains(vi.Id)
+                          && ch.SaleDate == null
+                          && (vh == null || vh.IsD2d == true || vh.Status == "PerformaCreated")
+                          && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)
 
-                select new
-                {
-                    ch.ChassisNo,
-                    Data = new ChassisListWithPDIStatus
+                    select new
                     {
-                        ChassisNo = ch.ChassisNo,
-                        ItemCode = ch.ItemCode,
-                        ItemColor = clr.Colorname,
-                        MfgYear = vi.MfgYear,
-                        ItemName = im.Itemname,
-                        KeyNo = vi.KeyNo,
-                        BookNo = vi.ServBkno,
-                        BatteryNo = vi.BatteryNo,
-                        BatteryChemical = vi.BatteryChemistry,
-                        BatteryCapacity = vi.BatteryCapacity,
-                        BatteryMake = vi.BatteryMake,
-                        ChargerNo = vi.ChargerNo,
-                        ControllerNo = vi.ControllerNo,
-                        FameIIAmnt = vi.Fame2Discount,
-                        DealerPrice = vi.Dlrprice,
-                        CustomerPrice = vi.Custprice,
-                        DealerCode = ch.DealerId,
-                        CustomerSaleDate = ch.SaleDate,
-                        ProformaCreated = vd == null ? null : vh.SaleBillNo,
-                        PDIStatus = (jc != null && jc.IsPdiSuccess == true) ? "OK" : "Not Done",
-                        LocationCode=ch.LocationCode
-                    }
-                })
-                .GroupBy(x => x.ChassisNo)
-                .Select(g => g.First().Data)
-                .ToListAsync();
+                        ch.ChassisNo,
+                        Data = new ChassisListWithPDIStatus
+                        {
+                            ChassisNo = ch.ChassisNo,
+                            ItemCode = ch.ItemCode,
+                            ItemColor = clr.Colorname,
+                            MfgYear = vi.MfgYear,
+                            ItemName = im.Itemname,
+                            KeyNo = vi.KeyNo,
+                            BookNo = vi.ServBkno,
+                            BatteryNo = vi.BatteryNo,
+                            BatteryChemical = vi.BatteryChemistry,
+                            BatteryCapacity = vi.BatteryCapacity,
+                            BatteryMake = vi.BatteryMake,
+                            ChargerNo = vi.ChargerNo,
+                            ControllerNo = vi.ControllerNo,
+                            FameIIAmnt = vi.Fame2Discount,
+                            DealerPrice = vi.Dlrprice,
+                            CustomerPrice = vi.Custprice,
+                            DealerCode = ch.DealerId,
+                            CustomerSaleDate = ch.SaleDate,
+                            ProformaCreated = vh != null ? vh.SaleBillNo : null,
+                            PDIStatus = jc != null && jc.IsPdiSuccess == true
+                                ? "OK"
+                                : "Not Done",
+                            LocationCode = ch.LocationCode,
+                            IsD2D = vh.IsD2d
 
-                if (!string.IsNullOrEmpty(dealerCode))
-                {
-                    result = result.Where(i => i.DealerCode == dealerCode).ToList();
-                }
+                        }
+                    })
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.First().Data)
+                    .ToListAsync();
+
                 return result;
             }
             catch
             {
                 throw;
             }
-
         }
 
         public async Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id)
@@ -903,7 +1264,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     from f in financierInfo.DefaultIfEmpty()
 
                     where vh.Id == id
-                         
+
 
                     select new
                     {
@@ -941,7 +1302,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         State = first.state?.StateName
                     },
 
-                    Vehicle = data.DistinctBy(x=>x.vi.ChasisNo). Select(x => new VehicleViewModel
+                    Vehicle = data.DistinctBy(x => x.vi.ChasisNo).Select(x => new VehicleViewModel
                     {
                         ChassisNo = x.vi?.ChasisNo,
                         ModelId = x.vd?.ItemCode,
@@ -982,34 +1343,34 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         LocCode = x.location?.Loccode,
                         LocationCity = x.location?.City,
                         Pin = x.location?.Pincode,
-                        
+
 
                         AccountType = x.c?.LedgerType,
                         OEMModel = x.im?.Oemmodelname,
-                        Group1 =x.im?.Grpidno.ToString(),
+                        Group1 = x.im?.Grpidno.ToString(),
                         HSNSACCode = x.im?.Hsncode,
 
                         SaleType = x.vh?.SaleType,
                         FinancedBy = x.f?.LedgerName,
 
 
-                        ItemRate =x.vd?.ItemRate,
-                        InsuAmnt = x.vd ?.InsuranceAmount,
-                        RegnAmnt = x.vd ?.RegAmount,
+                        ItemRate = x.vd?.ItemRate,
+                        InsuAmnt = x.vd?.InsuranceAmount,
+                        RegnAmnt = x.vd?.RegAmount,
                         RegDiscAmnt = x.vd?.PostGstDisc,
                         DiscountType = 0,
 
                         FameII = x.vd?.FameIi,
                         StateFameII = 0,
 
-                        SGSTPer = x.vd ?.Sgstper,
-                        SGSTAmnt = x.vd ?.Sgstamnt,
-                        CGSTPer = x.vd ?.Cgstper,
-                        CGSTAmnt = x.vd ?.Cgstamnt,
-                        IGSTPer = x.vd ?.Igstper,
-                        IGSTAmnt = x.vd ?.Igstamnt,
+                        SGSTPer = x.vd?.Sgstper,
+                        SGSTAmnt = x.vd?.Sgstamnt,
+                        CGSTPer = x.vd?.Cgstper,
+                        CGSTAmnt = x.vd?.Cgstamnt,
+                        IGSTPer = x.vd?.Igstper,
+                        IGSTAmnt = x.vd?.Igstamnt,
 
-                        NetAmnt = x.vd ?.FinalAmount,
+                        NetAmnt = x.vd?.FinalAmount,
 
                         BatteryChemical = x.vi?.BatteryChemistry,
                         BatteryCapacity = x.vi?.BatteryCapacity,
@@ -1020,7 +1381,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         VCU = x.vi?.Vcu,
                         FameIIRequired = x.vi?.Fame2Discount > 0 ? "Yes" : "No",
 
-                        SegmentName =x.vd?.Segment,
+                        SegmentName = x.vd?.Segment,
                         InstitutionalName = x.vd?.InstitutionalType,
                         SchemeName = x.vd?.SchemeName,
                     }).ToList()
@@ -1322,7 +1683,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     model.InsuranceTotal += line.InsuranceAmount;
                 }
 
-                
+
                 var firstLine = model.Lines[0];
                 model.IgstPer = firstLine.IgstPer;
                 model.CgstPer = firstLine.CgstPer;

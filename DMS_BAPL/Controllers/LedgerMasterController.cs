@@ -277,6 +277,18 @@ namespace DMS_BAPL_Api.Controllers
 
             }
         }
+        [HttpGet("getD2DProvision")]
+        public async Task<bool?> GetD2DProvisionAsync(string dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterService.GetD2DProvision(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
         [HttpGet("GetLotRelatedLedgers")]
         [ProducesResponseType(typeof(IEnumerable<LedgerMaster>), StatusCodes.Status200OK)]

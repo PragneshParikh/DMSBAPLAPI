@@ -792,11 +792,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         ItemName = im.Itemname,
 
                         // Latest MRP
-                        ItemMrp = _context.PartsInwards
-                            .Where(p => p.PartNo == im.Itemcode && p.IsAccepted == true)
-                            .OrderByDescending(p => p.Id)
-                            .Select(p => (decimal?)p.ItemMrp)
-                            .FirstOrDefault() ?? 0,
+                        ItemMrp = im.Custprice,
 
                         // Latest Stock
                         ItemStock = _context.PartsInventories
