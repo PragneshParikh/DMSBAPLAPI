@@ -467,11 +467,11 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("GetMaterialedJobCardList/{jobId}")]
+        [HttpGet("GetMaterialedJobCardList/{jobId}/{dealerCode}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMaterialedJobCardList(int jobId)
+        public async Task<IActionResult> GetMaterialedJobCardList(int jobId, string dealerCode)
         {
             try
             {
@@ -480,7 +480,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _jobCardRepo.GetMaterialedJobCardList(jobId);
+                var result = await _jobCardRepo.GetMaterialedJobCardList(jobId, dealerCode);
 
                 return Ok(result);
             }

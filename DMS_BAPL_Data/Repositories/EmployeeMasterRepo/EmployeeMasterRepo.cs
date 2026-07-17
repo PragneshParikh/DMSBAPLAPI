@@ -58,7 +58,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 var result = await _context.SaveChangesAsync();   // employeeMaster.Id is now populated
 
                 // save category/role selections
-                await SaveEmployeeRoleMappings(employeeMaster.Id, employeeMaster.RoleMappings);
+                //await SaveEmployeeRoleMappings(employeeMaster.Id, employeeMaster.RoleMappings);
 
                 return result;
             }
@@ -104,7 +104,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 var result = await _context.SaveChangesAsync();
 
                 // refresh category/role selections (use the incoming payload's lists)
-                await SaveEmployeeRoleMappings(existingEmployee.Id, employeeMaster.RoleMappings);
+                //await SaveEmployeeRoleMappings(existingEmployee.Id, employeeMaster.RoleMappings);
 
                 return result;
             }

@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.PartInventoryRepo;
 using DMS_BAPL_Data.Repositories.PartInwardRepo;
+using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<IEnumerable<PartsInward>> IPartInwardService.Get() => _partInwardRepo.Get();
         Task<IEnumerable<PartsInward>> IPartInwardService.GetPartInwardByDealerAsync(string dealerCode) => _partInwardRepo.GetPartInwardByDealerAsync(dealerCode);
         Task<bool> IPartInwardService.UpdateByInvoice(string invoiceNo, string dealerCode) => _partInwardRepo.UpdateByInvoice(invoiceNo, dealerCode);
-        Task<object> IPartInwardService.PartsInward(PartsInward partsInward) => _partInwardRepo.PartsInward(partsInward);
+        Task<object> IPartInwardService.PartsInward(PartsInwardViewModel partsInwardViewModel) => _partInwardRepo.PartsInward(partsInwardViewModel);
 
     }
 }

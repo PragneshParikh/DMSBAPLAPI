@@ -1,3 +1,4 @@
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
@@ -15,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DMS_BAPL_Data.Services.PurchaseOrder
 {
@@ -52,6 +54,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 await _repo.BeginTransactionAsync();
                 int lineNumber = 1;
                 decimal totalAmount = 0;
+                decimal baseAmount = 0;
 
                 // Get Dealer
                 var dealer = await _dealerRepo.GetDealerByCode(model.CustomerCode);
@@ -104,7 +107,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
-                        LineAmount = lineAmount,
+                        //LineAmount = lineAmount,
                         LineNumber = lineNumber,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
@@ -163,10 +166,11 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     }
 
                     totalAmount += lineAmount + totalTax;
+                    baseAmount += lineAmount;
                     lineNumber++;
                 }
 
-                await _repo.UpdatePOAmountAsync(model.PONumber, totalAmount);
+                await _repo.UpdatePOAmountAsync(model.PONumber, baseAmount);
 
                 await _repo.CommitTransactionAsync();
                 return true;
@@ -331,7 +335,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         /// <summary>
         /// Retrieves all purchase orders.
         /// </summary>
-        public async Task<List<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
+        public async Task<PagedResponse<PurchaseOrderResponseViewModel>> GetPOListAsync(string? dealerCode, string orderType, int pageIndex, int pageSize, PurchaseOrderSearchViewModel purchaseOrderSearchViewModel)
         {
             try
             {
@@ -371,6 +375,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     OrderType = model.POType,
                     SubOrderType = model.SubOrderType,
                     CustomerCode = model.CustomerCode,
+                    ConsigneeCode = model.LocCode,
                     TransactionType = model.TransactionType,
                     Remarks = model.Remarks,
                     LocCode = model.LocCode,

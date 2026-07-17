@@ -7,6 +7,8 @@ public partial class ItemMaster
 {
     public int Id { get; set; }
 
+    public string? DealerCode { get; set; }
+
     public int Itemtype { get; set; }
 
     public string Itemname { get; set; } = null!;
@@ -100,6 +102,10 @@ public partial class ItemMaster
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
+
+    public int? Uom { get; set; }
+
+    public int? SupplierId { get; set; }
 
     public virtual HsncodeMaster? HsncodeNavigation { get; set; }
 

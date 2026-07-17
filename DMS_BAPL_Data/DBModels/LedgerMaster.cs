@@ -35,6 +35,8 @@ public partial class LedgerMaster
 
     public string? DealerCode { get; set; }
 
+    public bool? D2dprovision { get; set; }
+
     public DateOnly? DateOfBirth { get; set; }
 
     public string CreatedBy { get; set; } = null!;
@@ -60,10 +62,6 @@ public partial class LedgerMaster
     public virtual ICollection<JobCardCustomer> JobCardCustomers { get; set; } = new List<JobCardCustomer>();
 
     public virtual ICollection<LotinspectionHeader> LotinspectionHeaders { get; set; } = new List<LotinspectionHeader>();
-
-    public virtual ICollection<QuotationHeader> QuotationHeaderCustomerLedgers { get; set; } = new List<QuotationHeader>();
-
-    public virtual ICollection<QuotationHeader> QuotationHeaderFinancerLedgers { get; set; } = new List<QuotationHeader>();
 
     public virtual ICollection<RepairBillHeader> RepairBillHeaderCustomerLedgers { get; set; } = new List<RepairBillHeader>();
 

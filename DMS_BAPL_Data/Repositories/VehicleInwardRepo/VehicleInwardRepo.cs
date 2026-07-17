@@ -28,19 +28,189 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
-        async Task<IEnumerable<VehicleInward>> IVehicleInwardRepo.GetVehicleByStatus(string dealerCode, bool status)
+        //async Task<IEnumerable<VehicleInward>> IVehicleInwardRepo.GetVehicleByStatus(string dealerCode, bool status)
+        //{
+        //    try
+        //    {
+        //        return await _context.VehicleInwards
+        //            .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
+        //            .ToListAsync();
+
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //}
+
+        public async Task<IEnumerable<VehicleInwardD2DViewModel>> GetVehicleByStatus(string dealerCode, bool status)
         {
             try
             {
-                return await _context.VehicleInwards
+                var vehicles = await _context.VehicleInwards
                     .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
                     .ToListAsync();
+
+                var chassisNos = vehicles
+                    .Where(x => !string.IsNullOrEmpty(x.ChasisNo))
+                    .Select(x => x.ChasisNo!)
+                    .Distinct()
+                    .ToList();
+
+                var latestHistories = await _context.ChassisDetailsD2dhistories
+                    .Where(x => chassisNos.Contains(x.ChassisNo) && x.DealerCode == dealerCode)
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
+                    .ToListAsync();
+
+                var dealerCodes = latestHistories.SelectMany(x => new[] { x.DealerCode, x.IssueingDealerCode }).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+
+                var dealers = await _context.DealerMasters
+                    .Where(x => dealerCodes.Contains(x.Dealercode))
+                    .ToDictionaryAsync(x => x.Dealercode, x => x.Compname);
+
+                return vehicles.Select(vehicle =>
+                {
+                    var history = latestHistories
+                        .FirstOrDefault(x => x.ChassisNo == vehicle.ChasisNo);
+
+                    string? issuedDealerName = null;
+
+                    if (history != null &&
+                        !string.IsNullOrEmpty(history.IssueingDealerCode) &&
+                        dealers.TryGetValue(history.IssueingDealerCode, out var dealerName))
+                    {
+                        issuedDealerName = dealerName;
+                    }
+
+                    return new VehicleInwardD2DViewModel
+                    {
+                        Id = vehicle.Id,
+                        InvoiceDate = vehicle.InvoiceDate,
+                        InvoiceNo = vehicle.InvoiceNo,
+                        MfgYear = vehicle.MfgYear,
+                        ItemCode = vehicle.ItemCode,
+                        ColrCode = vehicle.ColrCode,
+                        ChasisNo = vehicle.ChasisNo,
+                        MotorNo = vehicle.MotorNo,
+                        KeyNo = vehicle.KeyNo,
+                        ServBkno = vehicle.ServBkno,
+                        BatteryId = vehicle.BatteryId,
+                        BatteryNo = vehicle.BatteryNo,
+                        BatteryNo2 = vehicle.BatteryNo2,
+                        BatteryNo3 = vehicle.BatteryNo3,
+                        BatteryNo4 = vehicle.BatteryNo4,
+                        BatteryNo5 = vehicle.BatteryNo5,
+                        BatteryNo6 = vehicle.BatteryNo6,
+                        EcuSerno = vehicle.EcuSerno,
+                        EcuImEi = vehicle.EcuImEi,
+                        EcuBalMac = vehicle.EcuBalMac,
+                        ImmoblizerStatus = vehicle.ImmoblizerStatus,
+                        ImmoblizerNo = vehicle.ImmoblizerNo,
+                        BikeSimid = vehicle.BikeSimid,
+                        BikeMobileno = vehicle.BikeMobileno,
+                        ChargerNo = vehicle.ChargerNo,
+                        ControllerNo = vehicle.ControllerNo,
+                        SoundbarSerno = vehicle.SoundbarSerno,
+                        SoundbarBalMac = vehicle.SoundbarBalMac,
+                        Voltage = vehicle.Voltage,
+                        Regnumber = vehicle.Regnumber,
+                        Validity = vehicle.Validity,
+                        Startdate = vehicle.Startdate,
+                        TyreNo1 = vehicle.TyreNo1,
+                        TyreNo2 = vehicle.TyreNo2,
+                        GstIdno = vehicle.GstIdno,
+                        LocCode = vehicle.LocCode,
+                        DealerCode = vehicle.DealerCode,
+                        BatteryChemistry = vehicle.BatteryChemistry,
+                        BatteryCapacity = vehicle.BatteryCapacity,
+                        BatteryMake = vehicle.BatteryMake,
+                        BatteryIdno = vehicle.BatteryIdno,
+                        Fame2Discount = vehicle.Fame2Discount,
+                        Converter = vehicle.Converter,
+                        Vcu = vehicle.Vcu,
+                        Ordertype = vehicle.Ordertype,
+                        MfgMonth = vehicle.MfgMonth,
+                        IsAccepted = vehicle.IsAccepted,
+                        Dlrprice = vehicle.Dlrprice,
+                        Custprice = vehicle.Custprice,
+                        PoType = vehicle.PoType,
+                        Ponumber = vehicle.Ponumber,
+                        CreatedBy = vehicle.CreatedBy,
+                        CreatedDate = vehicle.CreatedDate,
+                        UpdatedBy = vehicle.UpdatedBy,
+                        UpdatedDate = vehicle.UpdatedDate,
+                        IsD2d = vehicle.IsD2d,
+                        InwardType = vehicle.InwardType,
+                        IssuedDealerName = issuedDealerName,
+                        IssuedDealerCode = history == null ? null : history.IssueingDealerCode
+                    };
+                }).ToList();
             }
             catch (Exception)
             {
                 throw;
             }
         }
+
+        //public async Task<IEnumerable<VehicleInward>> GetVehicleByStatus(string dealerCode, bool status)
+        //{
+        //    try
+        //    {
+        //        var inwards = await _context.VehicleInwards
+        //            .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
+        //            .ToListAsync();
+
+        //        var chassisNos = inwards
+        //            .Where(x => x.IsD2d == true)
+        //            .Select(x => x.ChasisNo)
+        //            .ToList();
+
+        //        var historyLookup = await _context.ChassisDetailsD2dhistories
+        //            .Where(x => chassisNos.Contains(x.ChassisNo))
+        //            .GroupBy(x => x.ChassisNo)
+        //            .Select(g => g.OrderByDescending(x => x.TransDate).First())
+        //            .ToListAsync();
+
+        //        var dealerCodes = historyLookup
+        //            .Select(x => x.DealerCode)
+        //            .Distinct()
+        //            .ToList();
+
+        //        var dealers = await _context.DealerMasters
+        //            .Where(x => dealerCodes.Contains(x.Dealercode))
+        //            .ToDictionaryAsync(x => x.Dealercode, x => x.Compname);
+
+        //        var result = inwards.Select(inward =>
+        //        {
+        //            string? dealerName = null;
+
+        //            if (inward.IsD2d == true)
+        //            {
+        //                var history = historyLookup
+        //                    .FirstOrDefault(x => x.ChassisNo == inward.ChasisNo);
+
+        //                if (history != null &&
+        //                    dealers.TryGetValue(history.DealerCode, out var name))
+        //                {
+        //                    dealerName = name;
+        //                }
+        //            }
+
+        //            return new
+        //            {
+        //                Vehicle = inward,
+        //                DealerName = dealerName
+        //            };
+        //        });
+
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
         async Task<bool> IVehicleInwardRepo.UpdateInvoiceStatus(string invoiceNo, string userId)
         {
             try
@@ -130,6 +300,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     Dlrprice = vehicleInwardViewModel.dlrprice,
                     Custprice = vehicleInwardViewModel.custprice,
                     PoType = vehicleInwardViewModel.poType,
+                    Ponumber = vehicleInwardViewModel.DMSPoNo,
+                    CreatedBy = "Admin",
+                    CreatedDate = DateTime.Now,
                 };
 
                 _context.VehicleInwards.Add(vehicleInward);
@@ -160,5 +333,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 throw;
             }
         }
+
+
     }
 }

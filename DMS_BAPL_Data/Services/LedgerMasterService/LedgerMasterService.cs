@@ -24,7 +24,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         }
 
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetAll() => _ledgerMasterRepo.GetAll();
-        Task<PagedResponse<object>> ILedgerMasterService.GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize, string dealerCode,string filter) => _ledgerMasterRepo.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize,dealerCode,filter);
+        Task<PagedResponse<object>> ILedgerMasterService.GetLedgerByPagedAsync(string? searchTerm, int pageIndex, int pageSize, string dealerCode, string filter) => _ledgerMasterRepo.GetLedgerByPagedAsync(searchTerm, pageIndex, pageSize, dealerCode, filter);
         Task<LedgerDetailViewModel?> ILedgerMasterService.GetLedgerByIdAsync(int id) => _ledgerMasterRepo.GetLedgerById(id);
         Task<int> ILedgerMasterService.InsertLedgerDetail(LedgerMaster ledgerMaster, string userId)
         {
@@ -38,7 +38,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             ledgerMaster.UpdatedDate = DateTime.Now;
             return _ledgerMasterRepo.UpdateLedgerDetail(ledgerMaster);
         }
-        Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetCompanyLedgersAsync() => _ledgerMasterRepo.GetCompanyLedgers();
+        Task<IEnumerable<LedgerDetailViewModel>> ILedgerMasterService.GetCompanyLedgersAsync() => _ledgerMasterRepo.GetCompanyLedgers();
         Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetInsuranceLedgersAsync() => _ledgerMasterRepo.GetInsuranceLedgers();
 
         public async Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType)
@@ -81,9 +81,9 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             try
             {
                 var data = await _ledgerMasterRepo.GetExcelData();
-                if(dealerCode != null)
-                { 
-                 data = data.Where(i => i.DealerCode == dealerCode).ToList();
+                if (dealerCode != null)
+                {
+                    data = data.Where(i => i.DealerCode == dealerCode).ToList();
                 }
 
                 var properties = typeof(LedgerExcelViewModel)
@@ -118,7 +118,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString()); 
+                Console.WriteLine(ex.ToString());
                 throw;
             }
         }
@@ -134,12 +134,36 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
-        
+
         public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
         {
             try
             {
                 return await _ledgerMasterRepo.GetLotRelatedLedgers(dealerCode, IsD2D);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<bool?> GetD2DProvision(string? dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetD2DProvision(dealerCode);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode)
+        {
+            try
+            {
+                return await _ledgerMasterRepo.GetSupplierLedgers(dealerCode);
             }
             catch
             {
