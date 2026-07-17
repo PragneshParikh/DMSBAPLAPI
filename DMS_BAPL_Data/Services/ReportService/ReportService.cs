@@ -467,5 +467,11 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+        public async Task<D2DReportResponse> GetD2DReportAsync(D2DReportFilterModel filter)
+            => await _reportRepo.GetD2DReportAsync(filter);
+
+        public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
+            => await _reportRepo.GetD2DReportForExportAsync(filter);
+
     }
 }

@@ -21,8 +21,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
         Task<bool> IVehicleQuotationRepo.DeleteAsync(long id) => DeleteInternal(id);
 
         Task<string> IVehicleQuotationRepo.GenerateQuotationNo() => GenerateQuotationNoInternal();
-
-        Task<List<VehicleQuotationViewModel>> IVehicleQuotationRepo.GetAllAsync() => GetAllInternal();
+        Task<List<VehicleQuotationViewModel>> IVehicleQuotationRepo.GetAllAsync(string? dealerCode) => GetAllInternal(dealerCode);
 
         Task<VehicleQuotationViewModel> IVehicleQuotationRepo.GetByIdAsync(long id) => GetByIdInternal(id);
 
@@ -56,7 +55,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             catch { throw; }
         }
 
-        private async Task<List<VehicleQuotationViewModel>> GetAllInternal()
+        private async Task<List<VehicleQuotationViewModel>> GetAllInternal(string? dealerCode = null)
         {
             try
             {
@@ -76,6 +75,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                             join city in _context.Cities
                                 on q.CityId equals city.CityId into cityJoin
                             from city in cityJoin.DefaultIfEmpty()
+                            where string.IsNullOrWhiteSpace(dealerCode)
+                                || (dealer != null && dealer.Dealercode == dealerCode)
                             orderby q.CreatedDate descending
                             select new VehicleQuotationViewModel
                             {

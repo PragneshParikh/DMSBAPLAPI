@@ -67,8 +67,12 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter);
 
         Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
-    }
 
+        Task<D2DReportResponse> GetD2DReportAsync(D2DReportFilterModel filter);
+
+        Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter);
+
+    }
     public class JobReportSummaryStats
     {
         public int TotalJobs { get; set; }
@@ -79,3 +83,4 @@ namespace DMS_BAPL_Data.Services.ReportService
         public decimal AverageJobValue { get; set; }
     }
 }
+
