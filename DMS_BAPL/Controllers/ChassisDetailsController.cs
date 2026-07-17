@@ -49,9 +49,9 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateNewLedgerForChassis(
-            [FromBody] int ledgerId,
-            [FromBody] string dealerCode,
-            [FromBody] string chassisNo
+            [FromQuery] string ledgerId,
+             [FromQuery] string dealerCode,
+             [FromQuery] string chassisNo
             )
         {
             try
@@ -61,7 +61,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _chassisDetailService.UpdateNewLedgerForChassis(ledgerId, dealerCode, chassisNo);
+                var result = await _chassisDetailService.UpdateNewLedgerForChassis(Convert.ToInt32(ledgerId), dealerCode, chassisNo, userId);
 
                 return Ok(result);
             }

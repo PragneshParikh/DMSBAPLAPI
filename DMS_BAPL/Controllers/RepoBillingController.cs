@@ -31,7 +31,7 @@ namespace DMS_BAPL_Api.Controllers
 
                 var repoBill = await _repoBillingService.GetRepoBillingByChassis(chassisNo, regNo);
 
-                return Ok(repoBill);
+                return Ok(repoBill.Value);
             }
             catch (Exception ex)
             {

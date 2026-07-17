@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
+using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,12 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
     public partial class ChassisDetailRepo : IChassisDetailRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly ILocationMasterService _locationMasterService;
 
-        public ChassisDetailRepo(BapldmsvadContext context)
+        public ChassisDetailRepo(BapldmsvadContext context, ILocationMasterService locationMasterService)
         {
             _context = context;
+            _locationMasterService = locationMasterService;
         }
 
         async Task<bool> IChassisDetailRepo.InsertChassis(ChassisDetail chassisDetail)
@@ -122,7 +125,7 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
             }
         }
 
-        async Task<bool> IChassisDetailRepo.UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo)
+        async Task<bool> IChassisDetailRepo.UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo, string userId)
         {
             // 1. Added transaction handling inside a try-catch block
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -134,7 +137,14 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                     .Where(i => i.ChassisNo == chassisNo)
                     .FirstOrDefaultAsync();
 
-                //locationCode =
+                var locationDetails = await _locationMasterService.GetDealerPrimaryLocationByAreaId(1, "S1", dealerCode);
+                var primaryLocation = locationDetails.FirstOrDefault();
+
+                string locationCode = string.Empty;
+                if (primaryLocation != null)
+                {
+                    locationCode = ((dynamic)primaryLocation).Loccode;
+                }
 
                 // 2. Handle null protection to prevent NullReferenceException
                 if (chassisDetail == null)
@@ -145,18 +155,18 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                 // 3. Map directly from the single object (No .Select() needed)
                 var historyRecord = new ChassisDetailsD2dhistory
                 {
-                    LedgerId = ledgerId, // Using the parameter passed into the method
+                    LedgerId = chassisDetail.LedgerId, // Using the parameter passed into the method
                     ChassisNo = chassisDetail.ChassisNo,
                     ItemCode = chassisDetail.ItemCode,
                     ItemName = chassisDetail.ItemName,
                     ItemColor = chassisDetail.ItemColor,
-                    DealerCode = dealerCode, // Fixed undefined variable
-                    LocationCode = dealerCode + "S1",
-                    IssueingDealerCode = dealerCode,
-                    //IssueingDealerLocation = locationCode,
-                    SaleDate = DateTime.Now,
+                    DealerCode = chassisDetail.DealerId, // Fixed undefined variable
+                    LocationCode = chassisDetail.LocationCode,
+                    IssueingDealerCode = null,
+                    IssueingDealerLocation = null,
+                    SaleDate = Convert.ToDateTime(chassisDetail.SaleDate),
                     TransDate = DateTime.Now,
-                    //CreatedBy = userId,
+                    CreatedBy = userId,
                     CreatedDate = DateTime.Now,
                     UpdatedBy = chassisDetail.UpdatedBy,
                     UpdatedDate = chassisDetail.UpdatedDate
@@ -164,6 +174,9 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
 
                 // Update the existing chassis record's ledger here if needed!
                 chassisDetail.LedgerId = ledgerId;
+                chassisDetail.DealerId = dealerCode;
+                chassisDetail.LocationCode = locationCode;
+                chassisDetail.SaleDate = DateTime.Now;
 
                 // Add history and save changes
                 await _context.ChassisDetailsD2dhistories.AddAsync(historyRecord);

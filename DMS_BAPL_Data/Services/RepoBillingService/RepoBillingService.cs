@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.Repositories.RepoBillingRepo;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,6 @@ namespace DMS_BAPL_Data.Services.RepoBillingService
             _repoBillingRepo = repoBillingRepo;
         }
 
-        Task<VehicleInfoViewModel> IRepoBillingService.GetRepoBillingByChassis(string chassis, string regNo) => _repoBillingRepo.GetRepoBillingByChassis(chassis, regNo);
+        Task<JsonResult> IRepoBillingService.GetRepoBillingByChassis(string chassis, string regNo) => _repoBillingRepo.GetRepoBillingByChassis(chassis, regNo);
     }
 }

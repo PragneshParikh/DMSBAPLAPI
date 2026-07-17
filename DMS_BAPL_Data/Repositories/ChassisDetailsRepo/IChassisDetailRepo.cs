@@ -14,6 +14,6 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailRepo
         Task<bool> InsertChassis(ChassisDetail chassisDetail);
         Task<List<VehicleStockTransferChassisListViewModel>> GetChassisList(string? locationCode);
         Task<List<ChassisWithRegisterNoViewModel>> GetSoldChassisDetailsList();
-        Task<bool> UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo);
+        Task<bool> UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo, string userId);
     }
 }
