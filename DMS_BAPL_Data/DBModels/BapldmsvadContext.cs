@@ -3714,6 +3714,12 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.BatteryNo)
                 .HasMaxLength(50)
                 .HasColumnName("battery_no");
+            entity.Property(e => e.IsAccepted)
+                .HasDefaultValue(false)
+                .HasColumnName("isAccepted");
+            entity.Property(e => e.IsD2d)
+                .HasDefaultValue(false)
+                .HasColumnName("IsD2D");
             entity.Property(e => e.BatteryNo2)
                 .HasMaxLength(50)
                 .HasColumnName("battery_no2");

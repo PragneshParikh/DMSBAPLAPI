@@ -8,7 +8,7 @@ namespace DMS_BAPL_Data.Services.VehicleQuotationService
     {
         Task<bool> DeleteAsync(long id);
         Task<string> GenerateQuotationNo();
-        Task<List<VehicleQuotationViewModel>> GetAllAsync();
+        Task<List<VehicleQuotationViewModel>> GetAllAsync(string? dealerCode = null);
         Task<VehicleQuotationViewModel> GetByIdAsync(long id);
         Task<long> SaveAsync(AddVehicleQuotationViewModel model);
         Task<bool> UpdateAsync(AddVehicleQuotationViewModel model);

@@ -47,5 +47,7 @@ namespace DMS_BAPL_Data.Services.ChassisDetailsService
                 throw;
             }
         }
+
+        Task<bool> IChassisDetailService.UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo, string userId) => _chassisDetailRepo.UpdateNewLedgerForChassis(ledgerId, dealerCode, chassisNo, userId);
     }
 }

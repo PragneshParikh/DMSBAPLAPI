@@ -43,5 +43,33 @@ namespace DMS_BAPL_Api.Controllers
                 throw ex;
             }
         }
+
+        [HttpPut("UpdateNewLedgerForChassis")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateNewLedgerForChassis(
+            [FromQuery] string ledgerId,
+             [FromQuery] string dealerCode,
+             [FromQuery] string chassisNo
+            )
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _chassisDetailService.UpdateNewLedgerForChassis(Convert.ToInt32(ledgerId), dealerCode, chassisNo, userId);
+
+                return Ok(result);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }

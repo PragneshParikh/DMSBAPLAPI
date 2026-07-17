@@ -9,8 +9,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
     public interface IReportRepo
     {
         // ── STOCK REPORT ──────────────────────────────────────────────
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null);
+        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync( string? dealerCode = null,DateTime? fromDate = null,DateTime? toDate = null);
         Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
+
+
 
         // ── JOB REPORT ────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(JobReportFilterModel filter);
@@ -67,5 +69,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<VehicleInwardReportResponse> GetVehicleInwardReportAsync(VehicleInwardReportFilterModel filter);
 
         Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<D2DReportResponse> GetD2DReportAsync(D2DReportFilterModel filter);
+
+        Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter);
+
+
     }
 }

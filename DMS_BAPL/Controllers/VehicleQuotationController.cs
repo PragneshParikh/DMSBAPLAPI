@@ -15,12 +15,23 @@ namespace DMS_BAPL_Api.Controllers
         {
             _vehicleQuotationService = vehicleQuotationService;
         }
+
+        // FIX: was GetAll() with no parameters at all, so the frontend's
+        // ?dealerCode=... query string was silently dropped before it ever
+        // reached the service layer — every caller, regardless of role, got
+        // GetAllAsync(null) from the service, and a null dealerCode means
+        // "no filter" at the repo level. Now reads it from the query string
+        // and forwards it; the service layer below still independently
+        // overrides this for non-admin callers based on their own token, so
+        // this dealerCode is only ever actually *used* for a SuperAdmin/admin
+        // caller (including null = show every dealer, same as before for
+        // that role).
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? dealerCode)
         {
             try
             {
-                var result = await _vehicleQuotationService.GetAllAsync();
+                var result = await _vehicleQuotationService.GetAllAsync(dealerCode);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -74,7 +85,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (model == null)
                     return BadRequest("Request body cannot be empty.");
                 model.Id = id;
-
                 Console.WriteLine($"Route Id : {id}");
                 Console.WriteLine($"Model Id : {model.Id}");
                 model.Id = id;
