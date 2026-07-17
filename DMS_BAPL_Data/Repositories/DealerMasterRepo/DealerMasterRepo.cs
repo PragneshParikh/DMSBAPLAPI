@@ -255,6 +255,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                     (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
                 .Select(x => new DealerDropdownViewModel
                 {
+                    Id = x.Id,
                     DealerCode = x.Dealercode,
                     DealerName = x.Compname
                 })

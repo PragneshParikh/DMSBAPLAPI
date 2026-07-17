@@ -774,10 +774,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 {
                     var chassises = saleBill.VehicleSaleBillDetails.Select(x => x.ChassisNo).ToList();
                     await updateChassisForD2d(chassises, saleBill?.LedgerId, saleBill.DealerCode, saleBill.Location);
+
                     var batteryDetails = await _context.ChassisBatteryDetails.Where(x => chassisNos.Contains(x.ChassisNo)).ToListAsync();
-                    var vehicleInwards = await _context.VehicleInwards.Where(x => chassisNos.Contains(x.ChasisNo) && x.DealerCode == saleBill.DealerCode).ToListAsync(); var receivingDealerCode = await _context.LedgerMasters.Where(x => x.Id == saleBill.LedgerId).Select(x => x.DealerCode).FirstOrDefaultAsync();
+
+                    var vehicleInwards = await _context.VehicleInwards.Where(x => chassisNos.Contains(x.ChasisNo) && x.DealerCode == saleBill.DealerCode).ToListAsync();
+
+                    var receivingDealerCode = await _context.LedgerMasters.Where(x => x.Id == saleBill.LedgerId).Select(x => x.DealerCode).FirstOrDefaultAsync();
+
                     var gstNo = await _context.DealerMasters.Where(x => x.Dealercode == saleBill.DealerCode).Select(x => x.CompgstinNo).FirstOrDefaultAsync();
-                    var vehicleLookup = vehicleInwards.ToDictionary(x => x.ChasisNo);
+
+                    var vehicleLookup = vehicleInwards.GroupBy(x => x.ChasisNo).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
+
                     var batteryLookup = batteryDetails.GroupBy(x => x.ChassisNo).ToDictionary(x => x.Key, x => x.ToList());
 
                     foreach (var item in saleBill.VehicleSaleBillDetails)
@@ -859,13 +866,22 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             try
             {
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
-                var receivingDealerCode = await _context.LedgerMasters.Where(i => i.Id == ledgerId).FirstOrDefaultAsync();
 
-                if (chassises == null || !chassises.Any())
+                var receivingDealer = await _context.LedgerMasters
+                    .FirstOrDefaultAsync(i => i.Id == ledgerId);
+
+                if (receivingDealer == null || chassises == null || !chassises.Any())
                     return;
 
+                var uniqueChassisNos = chassises
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct()
+                    .ToList();
+
                 var chassisToMove = await _context.ChassisDetails
-                    .Where(x => chassises.Contains(x.ChassisNo))
+                    .Where(x => uniqueChassisNos.Contains(x.ChassisNo))
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.First())
                     .ToListAsync();
 
                 if (!chassisToMove.Any())
@@ -878,8 +894,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     ItemCode = x.ItemCode,
                     ItemName = x.ItemName,
                     ItemColor = x.ItemColor,
-                    DealerCode = receivingDealerCode.DealerCode,
-                    LocationCode = receivingDealerCode.DealerCode + "S1",
+                    DealerCode = receivingDealer.DealerCode,
+                    LocationCode = receivingDealer.DealerCode + "S1",
                     IssueingDealerCode = dealerCode,
                     IssueingDealerLocation = locationCode,
                     SaleDate = DateTime.Now,
@@ -894,22 +910,26 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
                 _context.ChassisDetails.RemoveRange(chassisToMove);
 
-                var newChassisRecords = chassisToMove.Select(x => new ChassisDetail
-                {
-                    LedgerId = null,
-                    ChassisNo = x.ChassisNo,
-                    ItemCode = x.ItemCode,
-                    ItemName = x.ItemName,
-                    ItemColor = x.ItemColor,
-                    DealerId = receivingDealerCode.DealerCode,
-                    LocationCode = receivingDealerCode.DealerCode + "S1",
-                    SaleDate = null,
-                    CreatedBy = userId,
-                    CreatedDate = DateTime.Now,
-                    UpdatedBy = null,
-                    UpdatedDate = null,
-                    RegNo = null
-                }).ToList();
+                var newChassisRecords = chassisToMove
+                    .GroupBy(x => x.ChassisNo)
+                    .Select(g => g.First())
+                    .Select(x => new ChassisDetail
+                    {
+                        LedgerId = null,
+                        ChassisNo = x.ChassisNo,
+                        ItemCode = x.ItemCode,
+                        ItemName = x.ItemName,
+                        ItemColor = x.ItemColor,
+                        DealerId = receivingDealer.DealerCode,
+                        LocationCode = receivingDealer.DealerCode + "S1",
+                        SaleDate = null,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        UpdatedBy = null,
+                        UpdatedDate = null,
+                        RegNo = null
+                    })
+                    .ToList();
 
                 await _context.ChassisDetails.AddRangeAsync(newChassisRecords);
 
