@@ -190,5 +190,18 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? BatteryMake { get; set; }
         public string? BatteryType { get; set; }
 
+
+        public string? DealerCity { get; set; }
+        public string? DealerState { get; set; }
+        public string? LocCode { get; set; }
+        public string? LocCity { get; set; }
+        public string? Pin { get; set; }
+        public string? ColorCode { get; set; }
+        public string? VehicleGroup { get; set; }
+        public bool FameIIRequired { get; set; }
+        public string? ProspectName { get; set; }
+        public DateTime? DispatchDate { get; set; }
+        public decimal TotalAmount { get; set; }
+
     }
 }

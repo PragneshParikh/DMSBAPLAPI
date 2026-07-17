@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace DMS_BAPL_Data.Repositories.ReportRepo
 {
@@ -35,6 +36,40 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 !string.IsNullOrWhiteSpace(dealerCode)
                 && !dealerCode.Equals("undefined", StringComparison.OrdinalIgnoreCase)
                 && !dealerCode.Equals("null", StringComparison.OrdinalIgnoreCase);
+
+
+        private async Task<Dictionary<string, VehicleInward>> GetLatestVehicleInwardByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos.Where(c => !string.IsNullOrEmpty(c)).Cast<string>().Distinct().ToList();
+            if (codes.Count == 0) return new Dictionary<string, VehicleInward>();
+
+            var inwards = await _context.VehicleInwards
+                .AsNoTracking()
+                .Where(vi => vi.ChasisNo != null && codes.Contains(vi.ChasisNo))
+                .ToListAsync();
+
+            return inwards
+                .GroupBy(vi => vi.ChasisNo!)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.InvoiceDate).ThenByDescending(x => x.Id).First());
+        }
+
+      
+        private async Task<Dictionary<string, LocationMaster>> GetLocationLookupAsync()
+        {
+            var locations = await _context.LocationMasters.AsNoTracking().ToListAsync();
+            return locations.Where(l => l.Loccode != null)
+                .GroupBy(l => l.Loccode!)
+                .ToDictionary(g => g.Key, g => g.First());
+        }
+
+        private async Task<Dictionary<string, ColorMaster>> GetColorLookupAsync()
+        {
+            var colors = await _context.ColorMasters.AsNoTracking().ToListAsync();
+            return colors.Where(c => c.Colorcode != null)
+                .GroupBy(c => c.Colorcode!)
+                .ToDictionary(g => g.Key, g => g.First());
+        }
+
         // ═════════════════════════════════════════════════════════════════════
         // STOCK REPORT  (unchanged from StockReportRepo)
         // ═════════════════════════════════════════════════════════════════════
@@ -691,7 +726,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // dealer has zero sales for that model in the selected filter range.
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseSalePivotResponse> GetModelWiseSaleCountReportAsync(
-    DateTime? fromDate, DateTime? toDate, string? dealerCode)
+     DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
             try
             {
@@ -729,23 +764,31 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawRows = await query.ToListAsync();
 
+                const string UnmappedModel = "Unmapped";
+
                 var mapped = rawRows
-                    .Where(x =>
-                        !string.IsNullOrWhiteSpace(x.OemModelName) &&
-                        canonicalModels.Contains(x.OemModelName))
                     .Select(x => new
                     {
                         x.DealerCode,
                         x.DealerName,
-                        ModelName = x.OemModelName!
+                        ModelName = (!string.IsNullOrWhiteSpace(x.OemModelName) && canonicalModels.Contains(x.OemModelName))
+                            ? x.OemModelName!
+                            : UnmappedModel
                     })
                     .ToList();
 
-                // No dealer selected → show every active model. A dealer is selected →
-                // show only the models that actually have data for that dealer/filter.
+                var actualModels = mapped.Select(x => x.ModelName).Distinct().ToList();
+                bool hasUnmapped = actualModels.Contains(UnmappedModel);
+
                 var modelNames = HasDealerFilter(dealerCode)
-                              ? mapped.Select(x => x.ModelName).Distinct().OrderBy(m => m).ToList() 
-                              : canonicalModels;                                                     
+                    ? actualModels
+                        .Where(m => m != UnmappedModel)
+                        .OrderBy(m => m)
+                        .Concat(hasUnmapped ? new[] { UnmappedModel } : Array.Empty<string>())
+                        .ToList()
+                    : canonicalModels
+                        .Concat(hasUnmapped ? new[] { UnmappedModel } : Array.Empty<string>())
+                        .ToList();
 
                 var rows = mapped
                     .GroupBy(x => new { x.DealerCode, x.DealerName })
@@ -1582,17 +1625,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     join vh in _context.VehicleSaleBillHeaders
                         on vd.VehicleSaleBillId equals vh.Id
 
-                    join vi in _context.VehicleInwards
-                        on vd.ChassisNo equals vi.ChasisNo into viJoin
-                    from vi in viJoin.DefaultIfEmpty()
-
                     join im in _context.ItemMasters
                         on vd.ItemCode equals im.Itemcode into imJoin
                     from im in imJoin.DefaultIfEmpty()
-
-                    join clr in _context.ColorMasters
-                        on vi.ColrCode equals clr.Colorcode into clrJoin
-                    from clr in clrJoin.DefaultIfEmpty()
 
                     join dm in _context.DealerMasters
                         on vh.DealerCode equals dm.Dealercode into dmJoin
@@ -1610,24 +1645,19 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on cust.State equals state.StateId into stateJoin
                     from state in stateJoin.DefaultIfEmpty()
 
-                    join inv in _context.InvoiceHeaders
-                        on vd.VehicleSaleBillId equals inv.ReferenceId into invJoin
-                    from inv in invJoin.DefaultIfEmpty()
-
-                        // NEW: resolves Location properly instead of the raw code,
-                        // same join key already proven in GetVehicleSaleReportAsync.
-                    join locM in _context.LocationMasters
-                        on vi.LocCode equals locM.Loccode into locMJoin
-                    from locM in locMJoin.DefaultIfEmpty()
-
-                        // NEW: resolves Occupation display name from LedgerMaster.OccupationId.
                     join occ in _context.OccupationMasters
                         on cust.OccupationId equals occ.Id into occJoin
                     from occ in occJoin.DefaultIfEmpty()
 
-                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv, locM, occ };
+                    select new { vd, vh, im, dm, cust, city, state, occ };
 
-                if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                // FIX: was !string.IsNullOrWhiteSpace(filter.DealerCode). Model-wise
+                // Sale Report already used HasDealerFilter, which also excludes the
+                // literal strings "undefined"/"null" that can leak in from the
+                // frontend. Without this, a stray "undefined" here filtered to zero
+                // rows while Model-wise correctly ignored it — an easy source of the
+                // two reports' totals not matching that had nothing to do with data.
+                if (HasDealerFilter(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
                 if (filter.FromDate.HasValue)
@@ -1657,66 +1687,97 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
 
-                var rows = rawRows.Select(x => new VehicleSaleBillReportViewModel
+                // vi/clr/locM resolved from deduped dictionaries instead of a direct
+                // SQL join — a chassis with more than one VehicleInward record, or a
+                // Loccode with more than one LocationMaster row, used to fan every
+                // sale-bill-detail row out once per match.
+                var chassisNos = rawRows.Select(x => x.vd.ChassisNo).ToList();
+                var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
+                var locationLookup = await GetLocationLookupAsync();
+                var colorLookup = await GetColorLookupAsync();
+            
+
+                var rows = rawRows.Select(x =>
                 {
-                    SaleBillId = x.vh.Id,
-                    SaleBillNo = x.vh.SaleBillNo,
-                    SaleDate = x.vh.SaleDate,
-                    Status = x.vh.Status,
-                    Location = x.locM != null ? x.locM.Locname : x.vh.Location,
-                    DealerCode = x.vh.DealerCode,
-                    DealerName = x.dm?.Compname,
-                    CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
-                    BillingName = x.vh.BillingName,
-                    CustomerType = x.vh.CustomerType,
-                    SaleType = x.vh.SaleType,
-                    BillType = x.vh.BillType,
-                    Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
-                        ? finName
-                        : null,
-                    FinancierId = x.vh.Financier,
-                    SalesExecutive = x.vh.SalesExecutive,
-                    CustomerMobile = x.cust?.MobileNumber,
-                    CustomerCity = x.city?.CityName,
-                    CustomerState = x.state?.StateName,
-                    InvoiceNo = x.inv?.InvoiceNo,
-                    ChassisNo = x.vd.ChassisNo,
-                    MotorNo = x.vi?.MotorNo,
-                    ItemCode = x.vd.ItemCode,
-                    ModelName = x.im?.Itemname ?? x.vd.ModelName,
-                    OemModelName = x.im?.Oemmodelname,
-                    Colour = x.clr?.Colorname ?? x.vd.Colour,
-                    Hsn = x.im?.Hsncode,
-                    MfgYear = x.vd.MfgYear ?? x.vi?.MfgYear,
-                    RegNo = x.vd.RegNo,
-                    InsNo = x.vd.InsNo,
-                    ItemRate = x.vd.ItemRate,
-                    PreGstDiscount = x.vd.PreGstDiscount ?? 0,
-                    TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
-                    SgstPer = x.vd.Sgstper ?? 0,
-                    SgstAmount = x.vd.Sgstamnt ?? 0,
-                    CgstPer = x.vd.Cgstper ?? 0,
-                    CgstAmount = x.vd.Cgstamnt ?? 0,
-                    IgstPer = x.vd.Igstper ?? 0,
-                    IgstAmount = x.vd.Igstamnt ?? 0,
-                    FameIIDiscount = x.vd.FameIi ?? 0,
-                    RegAmount = x.vd.RegAmount ?? 0,
-                    InsuranceAmount = x.vd.InsuranceAmount ?? 0,
-                    PostGstDiscount = x.vd.PostGstDisc ?? 0,
-                    FinalAmount = x.vd.FinalAmount,
-                    Battery = x.vd.Battery,
-                    ChargerNo = x.vd.ChargerNo,
-                    ControllerNo = x.vd.ControllerNo,
-                    Vcu = x.vd.Vcu,
-                    PartyEmail = x.cust?.EMail,
-                    Gender = x.cust?.Gender,
-                    Dob = x.cust != null && x.cust.DateOfBirth.HasValue
-                        ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)
-                        : null,
-                    AccountType = x.cust?.LedgerType,
-                    Occupation = x.occ != null ? x.occ.OccupationName : null,
-                    BatteryMake = x.vi?.BatteryMake,
-                    BatteryType = x.vi?.BatteryChemistry
+                    var vi = x.vd.ChassisNo != null && inwardLookup.TryGetValue(x.vd.ChassisNo, out var vinw) ? vinw : null;
+                    var clr = vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null;
+                    var locM = vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null;
+                    
+
+                    return new VehicleSaleBillReportViewModel
+                    {
+                        SaleBillId = x.vh.Id,
+                        SaleBillNo = x.vh.SaleBillNo,
+                        SaleDate = x.vh.SaleDate,
+                        Status = x.vh.Status,
+                        Location = locM != null ? locM.Locname : x.vh.Location,
+                        DealerCode = x.vh.DealerCode,
+                        DealerName = x.dm?.Compname,
+                        CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
+                        BillingName = x.vh.BillingName,
+                        CustomerType = x.vh.CustomerType,
+                        SaleType = x.vh.SaleType,
+                        BillType = x.vh.BillType,
+                        Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
+                            ? finName : null,
+                        FinancierId = x.vh.Financier,
+                        SalesExecutive = x.vh.SalesExecutive,
+                        CustomerMobile = x.cust?.MobileNumber,
+                        CustomerCity = x.city?.CityName,
+                        CustomerState = x.state?.StateName,
+                        
+                        ChassisNo = x.vd.ChassisNo,
+                        MotorNo = vi?.MotorNo,
+                        ItemCode = x.vd.ItemCode,
+                        ModelName = x.im?.Itemname ?? x.vd.ModelName,
+                        OemModelName = x.im?.Oemmodelname,
+                        Colour = clr?.Colorname ?? x.vd.Colour,
+                        Hsn = x.im?.Hsncode,
+                        MfgYear = x.vd.MfgYear ?? vi?.MfgYear,
+                        RegNo = x.vd.RegNo,
+                        InsNo = x.vd.InsNo,
+                        ItemRate = x.vd.ItemRate,
+                        PreGstDiscount = x.vd.PreGstDiscount ?? 0,
+                        TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
+                        SgstPer = x.vd.Sgstper ?? 0,
+                        SgstAmount = x.vd.Sgstamnt ?? 0,
+                        CgstPer = x.vd.Cgstper ?? 0,
+                        CgstAmount = x.vd.Cgstamnt ?? 0,
+                        IgstPer = x.vd.Igstper ?? 0,
+                        IgstAmount = x.vd.Igstamnt ?? 0,
+                        FameIIDiscount = x.vd.FameIi ?? 0,
+                        RegAmount = x.vd.RegAmount ?? 0,
+                        InsuranceAmount = x.vd.InsuranceAmount ?? 0,
+                        PostGstDiscount = x.vd.PostGstDisc ?? 0,
+                        FinalAmount = x.vd.FinalAmount,
+                        Battery = x.vd.Battery,
+                        ChargerNo = x.vd.ChargerNo,
+                        ControllerNo = x.vd.ControllerNo,
+                        Vcu = x.vd.Vcu,
+                        PartyEmail = x.cust?.EMail,
+                        Gender = x.cust?.Gender,
+                        Dob = x.cust != null && x.cust.DateOfBirth.HasValue
+                            ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null,
+                        AccountType = x.cust?.LedgerType,
+                        Occupation = x.occ != null ? x.occ.OccupationName : null,
+                        BatteryMake = vi?.BatteryMake,
+                        BatteryType = vi?.BatteryChemistry,
+                        DealerCity = x.dm?.City,
+                        DealerState = x.dm?.State,
+                        LocCode = vi?.LocCode,
+                        LocCity = locM != null ? locM.City : x.dm?.City,
+                        Pin = x.cust?.Pin,
+                        PartyAddress = x.cust?.Address,
+                        ColorCode = clr?.Colorcode,
+                        VehicleGroup = x.im?.Itemdesc,
+                        SubsidyAmnt = x.im?.Fame2amount ?? 0,
+                        FameIIRequired = (x.im?.Fame2amount ?? 0) > 0,
+                        ProspectName = x.vh.RefName,
+                        BookingId = x.vh.BookingId,
+                        TotalAmount = x.vh.TotalAmount ?? 0,
+                        DispatchDate = vi != null && vi.InvoiceDate.HasValue
+                            ? vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue) : null
+                    };
                 }).ToList();
 
                 if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -1732,10 +1793,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ).ToList();
                 }
 
-                rows = rows
-                    .OrderByDescending(x => x.SaleDate)
-                    .ThenByDescending(x => x.SaleBillNo)
-                    .ToList();
+                rows = rows.OrderByDescending(x => x.SaleDate).ThenByDescending(x => x.SaleBillNo).ToList();
 
                 var response = new VehicleSaleBillReportResponse
                 {
@@ -1753,14 +1811,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     GrandTotal = rows.Sum(x => x.FinalAmount)
                 };
 
-                var paged = rows
-                    .Skip((filter.PageIndex - 1) * filter.PageSize)
-                    .Take(filter.PageSize)
-                    .ToList();
+                var paged = rows.Skip((filter.PageIndex - 1) * filter.PageSize).Take(filter.PageSize).ToList();
 
                 int srNo = ((filter.PageIndex - 1) * filter.PageSize) + 1;
-                foreach (var r in paged)
-                    r.SrNo = srNo++;
+                foreach (var r in paged) r.SrNo = srNo++;
 
                 response.Data = paged;
                 return response;
@@ -1951,17 +2005,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     join vh in _context.VehicleSaleBillHeaders.AsNoTracking()
                         on vd.VehicleSaleBillId equals vh.Id
 
-                    join vi in _context.VehicleInwards.AsNoTracking()
-                        on vd.ChassisNo equals vi.ChasisNo into viJoin
-                    from vi in viJoin.DefaultIfEmpty()
-
                     join im in _context.ItemMasters.AsNoTracking()
                         on vd.ItemCode equals im.Itemcode into imJoin
                     from im in imJoin.DefaultIfEmpty()
-
-                    join clr in _context.ColorMasters.AsNoTracking()
-                        on vi.ColrCode equals clr.Colorcode into clrJoin
-                    from clr in clrJoin.DefaultIfEmpty()
 
                     join dm in _context.DealerMasters.AsNoTracking()
                         on vh.DealerCode equals dm.Dealercode into dmJoin
@@ -1979,23 +2025,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on cust.State equals state.StateId into stateJoin
                     from state in stateJoin.DefaultIfEmpty()
 
-                    join inv in _context.InvoiceHeaders.AsNoTracking()
-                        on vd.VehicleSaleBillId equals inv.ReferenceId into invJoin
-                    from inv in invJoin.DefaultIfEmpty()
-
-                        // NEW: resolves Location properly instead of the raw code.
-                    join locM in _context.LocationMasters.AsNoTracking()
-                        on vi.LocCode equals locM.Loccode into locMJoin
-                    from locM in locMJoin.DefaultIfEmpty()
-
-                        // NEW: resolves Occupation display name from LedgerMaster.OccupationId.
                     join occ in _context.OccupationMasters.AsNoTracking()
                         on cust.OccupationId equals occ.Id into occJoin
                     from occ in occJoin.DefaultIfEmpty()
 
-                    select new { vd, vh, vi, im, clr, dm, cust, city, state, inv, locM, occ };
+                    select new { vd, vh, im, dm, cust, city, state, occ };
 
-                if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                if (HasDealerFilter(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
                 if (filter.FromDate.HasValue)
@@ -2025,70 +2061,78 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
 
-                var rows = rawRows.Select(x => new VehicleSaleBillReportViewModel
-                {
-                    SaleBillId = x.vh.Id,
-                    SaleBillNo = x.vh.SaleBillNo,
-                    SaleDate = x.vh.SaleDate,
-                    Status = x.vh.Status,
-                    Location = x.locM != null ? x.locM.Locname : x.vh.Location,
-                    DealerCode = x.vh.DealerCode,
-                    DealerName = x.dm?.Compname,
-                    CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
-                    BillingName = x.vh.BillingName,
-                    CustomerType = x.vh.CustomerType,
-                    SaleType = x.vh.SaleType,
-                    BillType = x.vh.BillType,
-                    Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
-                        ? finName
-                        : null,
-                    FinancierId = x.vh.Financier,
-                    SalesExecutive = x.vh.SalesExecutive,
-                    CustomerMobile = x.cust?.MobileNumber,
-                    CustomerCity = x.city?.CityName,
-                    CustomerState = x.state?.StateName,
-                    InvoiceNo = x.inv?.InvoiceNo,
-                    ChassisNo = x.vd.ChassisNo,
-                    MotorNo = x.vi?.MotorNo,
-                    ItemCode = x.vd.ItemCode,
-                    ModelName = x.im?.Itemname ?? x.vd.ModelName,
-                    OemModelName = x.im?.Oemmodelname,
-                    Colour = x.clr?.Colorname ?? x.vd.Colour,
-                    Hsn = x.im?.Hsncode,
-                    MfgYear = x.vd.MfgYear ?? x.vi?.MfgYear,
-                    RegNo = x.vd.RegNo,
-                    InsNo = x.vd.InsNo,
-                    ItemRate = x.vd.ItemRate,
-                    PreGstDiscount = x.vd.PreGstDiscount ?? 0,
-                    TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
-                    SgstPer = x.vd.Sgstper ?? 0,
-                    SgstAmount = x.vd.Sgstamnt ?? 0,
-                    CgstPer = x.vd.Cgstper ?? 0,
-                    CgstAmount = x.vd.Cgstamnt ?? 0,
-                    IgstPer = x.vd.Igstper ?? 0,
-                    IgstAmount = x.vd.Igstamnt ?? 0,
-                    FameIIDiscount = x.vd.FameIi ?? 0,
-                    RegAmount = x.vd.RegAmount ?? 0,
-                    InsuranceAmount = x.vd.InsuranceAmount ?? 0,
-                    PostGstDiscount = x.vd.PostGstDisc ?? 0,
-                    FinalAmount = x.vd.FinalAmount,
-                    Battery = x.vd.Battery,
-                    ChargerNo = x.vd.ChargerNo,
-                    ControllerNo = x.vd.ControllerNo,
-                    Vcu = x.vd.Vcu,
+                var chassisNos = rawRows.Select(x => x.vd.ChassisNo).ToList();
+                var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
+                var locationLookup = await GetLocationLookupAsync();
+                var colorLookup = await GetColorLookupAsync();
+               
 
-                    // NEW: same fields added to VehicleSaleReportViewModel,
-                    // so the unified frontend model gets consistent data
-                    // regardless of which source a row came from.
-                    PartyEmail = x.cust?.EMail,
-                    Gender = x.cust?.Gender,
-                    Dob = x.cust != null && x.cust.DateOfBirth.HasValue
-                        ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue)
-                        : null,
-                    AccountType = x.cust?.LedgerType,
-                    Occupation = x.occ != null ? x.occ.OccupationName : null,
-                    BatteryMake = x.vi?.BatteryMake,
-                    BatteryType = x.vi?.BatteryChemistry
+                var rows = rawRows.Select(x =>
+                {
+                    var vi = x.vd.ChassisNo != null && inwardLookup.TryGetValue(x.vd.ChassisNo, out var vinw) ? vinw : null;
+                    var clr = vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null;
+                    var locM = vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null;
+                   
+
+                    return new VehicleSaleBillReportViewModel
+                    {
+                        SaleBillId = x.vh.Id,
+                        SaleBillNo = x.vh.SaleBillNo,
+                        SaleDate = x.vh.SaleDate,
+                        Status = x.vh.Status,
+                        Location = locM != null ? locM.Locname : x.vh.Location,
+                        DealerCode = x.vh.DealerCode,
+                        DealerName = x.dm?.Compname,
+                        CustomerName = x.vh.CustomerName ?? x.cust?.LedgerName,
+                        BillingName = x.vh.BillingName,
+                        CustomerType = x.vh.CustomerType,
+                        SaleType = x.vh.SaleType,
+                        BillType = x.vh.BillType,
+                        Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
+                            ? finName : null,
+                        FinancierId = x.vh.Financier,
+                        SalesExecutive = x.vh.SalesExecutive,
+                        CustomerMobile = x.cust?.MobileNumber,
+                        CustomerCity = x.city?.CityName,
+                        CustomerState = x.state?.StateName,
+                    
+                        ChassisNo = x.vd.ChassisNo,
+                        MotorNo = vi?.MotorNo,
+                        ItemCode = x.vd.ItemCode,
+                        ModelName = x.im?.Itemname ?? x.vd.ModelName,
+                        OemModelName = x.im?.Oemmodelname,
+                        Colour = clr?.Colorname ?? x.vd.Colour,
+                        Hsn = x.im?.Hsncode,
+                        MfgYear = x.vd.MfgYear ?? vi?.MfgYear,
+                        RegNo = x.vd.RegNo,
+                        InsNo = x.vd.InsNo,
+                        ItemRate = x.vd.ItemRate,
+                        PreGstDiscount = x.vd.PreGstDiscount ?? 0,
+                        TaxableAmount = x.vd.ItemRate - (x.vd.PreGstDiscount ?? 0),
+                        SgstPer = x.vd.Sgstper ?? 0,
+                        SgstAmount = x.vd.Sgstamnt ?? 0,
+                        CgstPer = x.vd.Cgstper ?? 0,
+                        CgstAmount = x.vd.Cgstamnt ?? 0,
+                        IgstPer = x.vd.Igstper ?? 0,
+                        IgstAmount = x.vd.Igstamnt ?? 0,
+                        FameIIDiscount = x.vd.FameIi ?? 0,
+                        RegAmount = x.vd.RegAmount ?? 0,
+                        InsuranceAmount = x.vd.InsuranceAmount ?? 0,
+                        PostGstDiscount = x.vd.PostGstDisc ?? 0,
+                        FinalAmount = x.vd.FinalAmount,
+                        Battery = x.vd.Battery,
+                        ChargerNo = x.vd.ChargerNo,
+                        ControllerNo = x.vd.ControllerNo,
+                        Vcu = x.vd.Vcu,
+                        PartyEmail = x.cust?.EMail,
+                        Gender = x.cust?.Gender,
+                        Dob = x.cust != null && x.cust.DateOfBirth.HasValue
+                            ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null,
+                        AccountType = x.cust?.LedgerType,
+                        Occupation = x.occ != null ? x.occ.OccupationName : null,
+                        BatteryMake = vi?.BatteryMake,
+                        BatteryType = vi?.BatteryChemistry
+                    };
                 }).ToList();
 
                 if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -2104,10 +2148,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     ).ToList();
                 }
 
-                rows = rows
-                    .OrderByDescending(x => x.SaleDate)
-                    .ThenByDescending(x => x.SaleBillNo)
-                    .ToList();
+                rows = rows.OrderByDescending(x => x.SaleDate).ThenByDescending(x => x.SaleBillNo).ToList();
 
                 var response = new VehicleSaleBillReportResponse
                 {
@@ -2125,14 +2166,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     GrandTotal = rows.Sum(x => x.FinalAmount)
                 };
 
-                var paged = rows
-                    .Skip((filter.PageIndex - 1) * filter.PageSize)
-                    .Take(filter.PageSize)
-                    .ToList();
+                var paged = rows.Skip((filter.PageIndex - 1) * filter.PageSize).Take(filter.PageSize).ToList();
 
                 int srNo = ((filter.PageIndex - 1) * filter.PageSize) + 1;
-                foreach (var r in paged)
-                    r.SrNo = srNo++;
+                foreach (var r in paged) r.SrNo = srNo++;
 
                 response.Data = paged;
                 return response;
