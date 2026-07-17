@@ -879,6 +879,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         Itemname = x.Itemname,
                         Itemcode = x.Itemcode,
                         Itemdesc = x.Itemdesc,
+                        ColorName = _context.ColorMasters
+                            .Where(c => c.Colorcode == x.Colorcode)
+                            .Select(c => c.Colorname)
+                            .FirstOrDefault(),
                         Status = x.Status
                     })
                     .ToListAsync();

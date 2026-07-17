@@ -127,6 +127,7 @@ using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using DMS_BAPL_Data.Services.ZoneMasterService;
 using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
+using DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -206,6 +207,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IEmployeeProfileMasterRepo, EmployeeProfileMasterRepo>();
             services.AddScoped<IZoneMasterRepo, ZoneMasterRepo>();
             services.AddScoped<ICounterBillRepo,CounterBillRepo>();
+            services.AddScoped<IVehicleOpeningStock, VehicleOpeningStockRepo>();
 
             #endregion
 

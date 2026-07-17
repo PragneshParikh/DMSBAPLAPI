@@ -4013,6 +4013,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.DealerCode).HasMaxLength(50);
+            entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Hpamount)
                 .HasColumnType("decimal(18, 2)")

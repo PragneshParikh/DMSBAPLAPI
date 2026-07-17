@@ -71,6 +71,12 @@ public partial class VehicleSaleBillHeader
 
     public string? DealerCode { get; set; }
 
+    public bool IsDeleted { get; set; }
+
+    public bool? IsStockAdjusted { get; set; }
+
+    public DateTime? DeletedDate { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
