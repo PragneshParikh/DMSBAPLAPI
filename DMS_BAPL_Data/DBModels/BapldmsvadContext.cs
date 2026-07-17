@@ -217,8 +217,6 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
 
-    public virtual DbSet<VehicleQuotation> VehicleQuotations { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -4015,6 +4013,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.DealerCode).HasMaxLength(50);
+            entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Hpamount)
                 .HasColumnType("decimal(18, 2)")
@@ -4227,46 +4226,6 @@ public partial class BapldmsvadContext : DbContext
         modelBuilder.HasSequence("LotNo_Seq");
 
         OnModelCreatingPartial(modelBuilder);
-
-        modelBuilder.Entity<VehicleQuotation>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-
-            entity.ToTable("VehicleQuotation");
-
-            entity.Property(e => e.QuotationNo)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-
-            entity.Property(e => e.CustomerName).HasMaxLength(150);
-            entity.Property(e => e.MobileNo).HasMaxLength(15);
-            entity.Property(e => e.EmailId).HasMaxLength(150);
-            entity.Property(e => e.Address).HasMaxLength(300);
-            entity.Property(e => e.Status).HasMaxLength(50);
-            entity.Property(e => e.Remarks).HasMaxLength(500);
-            entity.Property(e => e.ExShowroomPrice).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.RTOCharges).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.InsuranceAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.AccessoriesAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.ExtendedWarrantyAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.AMCAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.OtherCharges).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.ExchangeAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.LoanAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.DownPayment).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.HypothecationAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.PlateAmount).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.CreatedBy).HasMaxLength(100);
-            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
-            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
-            entity.Property(e => e.ValidTillDate).HasColumnType("date");
-
-        });
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

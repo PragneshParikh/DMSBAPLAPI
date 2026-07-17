@@ -101,7 +101,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 ColorName = color != null ? color.Colorname : null,
                                 ExShowroomPrice = q.ExShowroomPrice,
                                 InsuranceAmount = q.InsuranceAmount,
-                                RegistrationAmount = q.RTOCharges,
+                                RegistrationAmount = q.Rtocharges,
                                 AccessoriesAmount = q.AccessoriesAmount,
                                 ExtendedWarrantyAmount = q.ExtendedWarrantyAmount,
                                 OtherCharges = q.OtherCharges,
@@ -110,7 +110,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 PlateAmount = q.PlateAmount,
                                 HandlingCharges = q.HandlingCharges,
                                 TotalAmount = q.TotalAmount,
-                                ValidTill = q.ValidTillDate ?? q.QuotationDate,
+                                //ValidTill = q.ValidTillDate ?? q.QuotationDate,
+                                ValidTill = q.ValidTillDate != null
+    ? new DateTime(q.ValidTillDate.Value.Year, q.ValidTillDate.Value.Month, q.ValidTillDate.Value.Day)
+    : q.QuotationDate,
                                 Remarks = q.Remarks,
                                 IsApproved = false, // column no longer exists on VehicleQuotation
                                 IsActive = q.IsActive,
@@ -172,7 +175,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 ColorName = color != null ? color.Colorname : null,
                                 ExShowroomPrice = q.ExShowroomPrice,
                                 InsuranceAmount = q.InsuranceAmount,
-                                RegistrationAmount = q.RTOCharges,
+                                RegistrationAmount = q.Rtocharges,
                                 AccessoriesAmount = q.AccessoriesAmount,
                                 ExtendedWarrantyAmount = q.ExtendedWarrantyAmount,
                                 OtherCharges = q.OtherCharges,
@@ -180,7 +183,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 HypothecationAmount = q.HypothecationAmount,
                                 PlateAmount = q.PlateAmount,
                                 HandlingCharges = q.HandlingCharges,
-                                ValidTill = q.ValidTillDate ?? q.QuotationDate,
+                                //ValidTill = q.ValidTillDate ?? q.QuotationDate,
+                                ValidTill = q.ValidTillDate != null ? new DateTime(q.ValidTillDate.Value.Year, q.ValidTillDate.Value.Month, q.ValidTillDate.Value.Day) : q.QuotationDate,
                                 TotalAmount = q.TotalAmount,
                                 Remarks = q.Remarks,
                                 IsApproved = false, // column no longer exists on VehicleQuotation
@@ -214,11 +218,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 CityId = model.CityId,
                 ColorId = model.ColorId,
                 ExShowroomPrice = model.ExShowroomPrice,
-                RTOCharges = model.RTOCharges,
+                Rtocharges = model.RTOCharges,
                 InsuranceAmount = model.InsuranceAmount,
                 AccessoriesAmount = model.AccessoriesAmount,
                 ExtendedWarrantyAmount = model.ExtendedWarrantyAmount,
-                AMCAmount = model.AMCAmount,
+                Amcamount = model.AMCAmount,
                 OtherCharges = model.OtherCharges,
                 DiscountAmount = model.DiscountAmount,
                 TaxAmount = model.TaxAmount,
@@ -234,7 +238,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 HypothecationAmount = model.HypothecationAmount,
                 PlateAmount = model.PlateAmount,
                 HandlingCharges = model.HandlingCharges,
-                ValidTillDate = model.ValidTillDate,
+                //ValidTillDate = model.ValidTillDate,
+                ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null,
                 IsActive = true,
                 CreatedBy = model.CreatedBy,
                 CreatedDate = DateTime.Now
@@ -264,11 +269,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.VariantId = model.VariantId;
             existing.ColorId = model.ColorId;
             existing.ExShowroomPrice = model.ExShowroomPrice;
-            existing.RTOCharges = model.RTOCharges;
+            existing.Rtocharges = model.RTOCharges;
             existing.InsuranceAmount = model.InsuranceAmount;
             existing.AccessoriesAmount = model.AccessoriesAmount;
             existing.ExtendedWarrantyAmount = model.ExtendedWarrantyAmount;
-            existing.AMCAmount = model.AMCAmount;
+            existing.Amcamount = model.AMCAmount;
             existing.OtherCharges = model.OtherCharges;
             existing.DiscountAmount = model.DiscountAmount;
             existing.TaxAmount = model.TaxAmount;
@@ -284,7 +289,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.HypothecationAmount = model.HypothecationAmount;
             existing.PlateAmount = model.PlateAmount;
             existing.HandlingCharges = model.HandlingCharges;
-            existing.ValidTillDate = model.ValidTillDate;
+            //existing.ValidTillDate = model.ValidTillDate;
+            existing.ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null;
             existing.ModifiedBy = userId;
             existing.ModifiedDate = DateTime.Now;
 
@@ -348,7 +354,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                     QuotationNo = q.QuotationNo,
                     QuotationDate = q.QuotationDate,
-                    ValidTill = q.ValidTillDate,
+                    ValidTill = Convert.ToDateTime(q.ValidTillDate),
                     Status = q.Status,
 
                     DealerId = q.DealerId,
@@ -427,7 +433,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                     ExShowroomPrice = q.ExShowroomPrice,
 
-                    RTOCharges = q.RTOCharges,
+                    RTOCharges = q.Rtocharges,
 
                     InsuranceAmount = q.InsuranceAmount,
 
@@ -435,7 +441,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                     ExtendedWarrantyAmount = q.ExtendedWarrantyAmount,
 
-                    AmcAmount = q.AMCAmount,
+                    AmcAmount = q.Amcamount,
 
                     OtherCharges = q.OtherCharges,
 
@@ -443,11 +449,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                     ExchangeAmount = q.ExchangeAmount,
 
-                    HypothecationAmount = q.HypothecationAmount,
+                    HypothecationAmount = Convert.ToDecimal(q.HypothecationAmount),
 
-                    PlateAmount = q.PlateAmount,
+                    PlateAmount = Convert.ToDecimal(q.PlateAmount),
 
-                    HandlingCharges = q.HandlingCharges,
+                    HandlingCharges = Convert.ToDecimal(q.HandlingCharges),
 
                     //--------------------------------------------------
                     // Finance
@@ -460,9 +466,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                     FinanceCompanyName =
                         finance != null ? finance.LedgerName : "",
 
-                    LoanAmount = q.LoanAmount,
+                    LoanAmount = Convert.ToDecimal(q.LoanAmount),
 
-                    DownPayment = q.DownPayment,
+                    DownPayment = Convert.ToDecimal(q.DownPayment),
 
                     //--------------------------------------------------
 
