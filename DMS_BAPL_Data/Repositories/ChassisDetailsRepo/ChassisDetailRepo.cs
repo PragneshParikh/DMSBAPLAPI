@@ -1,6 +1,8 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
+using DMS_BAPL_Data.Services.LocationMasterService;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -13,10 +15,12 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
     public partial class ChassisDetailRepo : IChassisDetailRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly ILocationMasterService _locationMasterService;
 
-        public ChassisDetailRepo(BapldmsvadContext context)
+        public ChassisDetailRepo(BapldmsvadContext context, ILocationMasterService locationMasterService)
         {
             _context = context;
+            _locationMasterService = locationMasterService;
         }
 
         async Task<bool> IChassisDetailRepo.InsertChassis(ChassisDetail chassisDetail)
@@ -120,6 +124,77 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                 throw;
             }
         }
+
+        async Task<bool> IChassisDetailRepo.UpdateNewLedgerForChassis(int ledgerId, string dealerCode, string chassisNo, string userId)
+        {
+            // 1. Added transaction handling inside a try-catch block
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // Fetch the single chassis record
+                var chassisDetail = await _context.ChassisDetails
+                    .Where(i => i.ChassisNo == chassisNo)
+                    .FirstOrDefaultAsync();
+
+                var locationDetails = await _locationMasterService.GetDealerPrimaryLocationByAreaId(1, "S1", dealerCode);
+                var primaryLocation = locationDetails.FirstOrDefault();
+
+                string locationCode = string.Empty;
+                if (primaryLocation != null)
+                {
+                    locationCode = ((dynamic)primaryLocation).Loccode;
+                }
+
+                // 2. Handle null protection to prevent NullReferenceException
+                if (chassisDetail == null)
+                {
+                    return false;
+                }
+
+                // 3. Map directly from the single object (No .Select() needed)
+                var historyRecord = new ChassisDetailsD2dhistory
+                {
+                    LedgerId = chassisDetail.LedgerId, // Using the parameter passed into the method
+                    ChassisNo = chassisDetail.ChassisNo,
+                    ItemCode = chassisDetail.ItemCode,
+                    ItemName = chassisDetail.ItemName,
+                    ItemColor = chassisDetail.ItemColor,
+                    DealerCode = chassisDetail.DealerId, // Fixed undefined variable
+                    LocationCode = chassisDetail.LocationCode,
+                    IssueingDealerCode = null,
+                    IssueingDealerLocation = null,
+                    SaleDate = Convert.ToDateTime(chassisDetail.SaleDate),
+                    TransDate = DateTime.Now,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = chassisDetail.UpdatedBy,
+                    UpdatedDate = chassisDetail.UpdatedDate
+                };
+
+                // Update the existing chassis record's ledger here if needed!
+                chassisDetail.LedgerId = ledgerId;
+                chassisDetail.DealerId = dealerCode;
+                chassisDetail.LocationCode = locationCode;
+                chassisDetail.SaleDate = DateTime.Now;
+
+                // Add history and save changes
+                await _context.ChassisDetailsD2dhistories.AddAsync(historyRecord);
+                await _context.SaveChangesAsync();
+
+                // 4. Commit the transaction to finalize changes in the DB
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // 5. Rollback if anything goes wrong
+                await transaction.RollbackAsync();
+                // Log your exception here (e.g., _logger.LogError(ex, "Error updating ledger"))
+                return false;
+            }
+        }
+
     }
 }
 

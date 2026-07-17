@@ -15,12 +15,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             _context = context;
         }
-
-        // Resolves Financier -> LedgerName using ONLY ledgers where LedgerType == "Financier" —
-        // same rule as the dropdown. Queries _context directly (rather than going through
-        // ILedgerMasterRepo) — a cross-repo call sharing the same DbContext instance is what
-        // produced "There is already an open DataReader associated with this Connection..."
-        // when this was previously routed through LedgerMasterRepo.GetFinancierLedgers().
         private async Task<Dictionary<int, string>> GetFinancierNameLookupAsync()
         {
             var financiers = await _context.LedgerMasters
@@ -39,32 +33,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 && !dealerCode.Equals("null", StringComparison.OrdinalIgnoreCase);
 
         // ═════════════════════════════════════════════════════════════════════
-        // NORMALIZED NAME MATCHING — shared by every "Model Wise" / "Variant"
-        // pivot report.
-        //
-        // Root cause of persistent "Unmapped" rows: canonical lists
-        // (OemmodelMasters.ModelName, ColorMasters.Colorname) were being matched
-        // against raw values (ItemMasters.Oemmodelname, ColorMasters.Colorname on
-        // the vehicle side) using List<string>.Contains(...), which is an exact,
-        // case-sensitive, whitespace-sensitive comparison. A raw value that only
-        // differs by casing or a trailing/leading space from its canonical
-        // counterpart (e.g. "OOWAH SM PRO " vs "OOWAH SM Pro") was silently
-        // treated as a non-match and bucketed into "Unmapped" (or dropped
-        // entirely, depending on the report) even though it clearly refers to the
-        // same model/colour.
-        //
-        // Fix: build a lookup keyed by Trim().ToUpperInvariant() of the canonical
-        // name, valued by the original canonical spelling (so column headers /
-        // display values are unaffected). Resolve every raw value through this
-        // lookup instead of Contains().
+        // NORMALIZED NAME MATCHING 
         // ═════════════════════════════════════════════════════════════════════
-
-        // Collapses internal whitespace runs (double spaces, tabs, etc.) in addition
-        // to trimming and case-folding. Trim()+ToUpperInvariant() alone still treats
-        // "C12i  MAX 2.0" (double space) as a non-match against canonical
-        // "C12i MAX 2.0", since Trim() only strips leading/trailing whitespace, not
-        // runs in the middle — this was the remaining gap after the first
-        // normalization pass.
         private static string NormalizeForMatch(string value) =>
             Regex.Replace(value.Trim(), @"\s+", " ").ToUpperInvariant();
 
@@ -85,14 +55,30 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 : null;
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // DIAGNOSTIC: lists exactly which sold vehicles are landing in "Unmapped"
-        // on Model Wise Sale Report, and why. Read-only — safe to leave in the
-        // repo. Not wired to a route by default; add a matching signature to
-        // IReportRepo and a throwaway controller action to call it from Swagger,
-        // e.g. GET /api/report/unmapped-model-diagnostics?dealerCode=CUS0435
-        // &fromDate=2026-04-01&toDate=2026-07-17
-        // ═════════════════════════════════════════════════════════════════════
+        private async Task<Dictionary<string, ChassisDetailsD2dhistory>> GetLatestD2dHistoryByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos.Where(c => !string.IsNullOrEmpty(c)).Cast<string>().Distinct().ToList();
+            if (codes.Count == 0) return new Dictionary<string, ChassisDetailsD2dhistory>();
+
+            var histories = await _context.ChassisDetailsD2dhistories
+                .AsNoTracking()
+                .Where(h => codes.Contains(h.ChassisNo) && !h.IsDeleted)
+                .ToListAsync();
+
+            return histories
+                .GroupBy(h => h.ChassisNo)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.CreatedDate).First());
+        }
+
+        private async Task<Dictionary<string, DealerMaster>> GetDealerLookupAsync()
+        {
+            var dealers = await _context.DealerMasters.AsNoTracking().ToListAsync();
+            return dealers
+                .Where(d => d.Dealercode != null)
+                .GroupBy(d => d.Dealercode!)
+                .ToDictionary(g => g.Key, g => g.First());
+        }
+
         public async Task<List<object>> GetUnmappedModelDiagnosticsAsync(
             DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
@@ -104,10 +90,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .Where(x => x.IsActive && !string.IsNullOrWhiteSpace(x.ModelName))
                 .Select(x => NormalizeForMatch(x.ModelName))
                 .ToHashSet();
-
-            // Names that exist in OemmodelMasters but are marked inactive — lets you
-            // tell "needs a spelling fix in ItemMasters" apart from "needs IsActive
-            // flipped to true in OemmodelMasters".
             var inactiveNormalizedSet = allCanonical
                 .Where(x => !x.IsActive && !string.IsNullOrWhiteSpace(x.ModelName))
                 .Select(x => NormalizeForMatch(x.ModelName))
@@ -204,21 +186,63 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .ToDictionary(g => g.Key, g => g.First());
         }
 
+
         // ═════════════════════════════════════════════════════════════════════
-        // STOCK REPORT  (unchanged from StockReportRepo)
+        // STOCK REPORT
         // ═════════════════════════════════════════════════════════════════════
 
-        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null)
+        private async Task<HashSet<string>> GetInvoicedChassisSetAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos.Where(c => !string.IsNullOrEmpty(c)).Cast<string>().Distinct().ToList();
+            if (codes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var saleDetails = await _context.VehicleSaleBillDetails
+                .AsNoTracking()
+                .Where(d => d.ChassisNo != null && codes.Contains(d.ChassisNo))
+                .ToListAsync();
+
+            var saleBillIds = saleDetails.Select(d => d.VehicleSaleBillId).Distinct().ToList();
+
+            var saleHeaders = await _context.VehicleSaleBillHeaders
+                .AsNoTracking()
+                .Where(h => saleBillIds.Contains(h.Id))
+                .ToListAsync();
+
+            var invoicedHeaderIds = saleHeaders
+                .Where(h => h.Status == "Invoiced")
+                .Select(h => h.Id)
+                .ToHashSet();
+
+            return saleDetails
+                .Where(d => d.ChassisNo != null && invoicedHeaderIds.Contains(d.VehicleSaleBillId))
+                .Select(d => d.ChassisNo!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(
+            string? dealerCode = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null)
         {
             try
             {
+                var fromDateOnly = fromDate.HasValue ? DateOnly.FromDateTime(fromDate.Value.Date) : (DateOnly?)null;
+                var toDateOnly = toDate.HasValue ? DateOnly.FromDateTime(toDate.Value.Date) : (DateOnly?)null;
+
                 var vehicleInwards = await _context.VehicleInwards
                     .AsNoTracking()
                     .Where(vi =>
                         vi.DealerCode != null &&
-                        (string.IsNullOrEmpty(dealerCode)
-                            || vi.DealerCode == dealerCode))
+                        (!HasDealerFilter(dealerCode) || vi.DealerCode == dealerCode) &&
+                        (!fromDateOnly.HasValue || (vi.InvoiceDate.HasValue && vi.InvoiceDate.Value >= fromDateOnly.Value)) &&
+                        (!toDateOnly.HasValue || (vi.InvoiceDate.HasValue && vi.InvoiceDate.Value <= toDateOnly.Value)))
                     .ToListAsync();
+
+                var invoicedChassisSet = await GetInvoicedChassisSetAsync(vehicleInwards.Select(vi => vi.ChasisNo));
+
+                vehicleInwards = vehicleInwards
+                    .Where(vi => vi.ChasisNo == null || !invoicedChassisSet.Contains(vi.ChasisNo))
+                    .ToList();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -281,6 +305,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .AsNoTracking()
                     .Where(vi => vi.DealerCode != null)
                     .ToListAsync();
+
+                var invoicedChassisSet = await GetInvoicedChassisSetAsync(vehicleInwards.Select(vi => vi.ChasisNo));
+
+                vehicleInwards = vehicleInwards
+                    .Where(vi => vi.ChasisNo == null || !invoicedChassisSet.Contains(vi.ChasisNo))
+                    .ToList();
 
                 var dealers = await _context.DealerMasters
                     .AsNoTracking()
@@ -571,21 +601,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         // ═════════════════════════════════════════════════════════════════════
         // VEHICLE SALE REPORT
-        //
-        // FIX: vi/clr/locM are now resolved from deduped dictionaries (same
-        // pattern already used by GetVehicleSaleBillReportAsync) instead of raw
-        // 1:many joins against VehicleInwards / LocationMasters / ColorMasters.
-        // A chassis with more than one VehicleInward row (re-inward/correction
-        // entries), or a Loccode/Colorcode matching more than one master row,
-        // used to fan every VehicleSaleBillDetails row out once per match —
-        // inflating this report's row count above Model Wise Sale Report's
-        // Total Units for the same filter, since that report only ever joins
-        // 1:1 tables (Header/Detail/Item/Dealer).
-        //
-        // Also switched from string.IsNullOrEmpty(dealerCode) to
-        // HasDealerFilter(dealerCode), so a stray "undefined"/"null" string
-        // leaking in from the frontend is treated identically to Model Wise
-        // Sale Report instead of being taken as a literal dealer code.
         // ═════════════════════════════════════════════════════════════════════
 
         public async Task<List<VehicleSaleReportViewModel>> GetVehicleSaleReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
@@ -846,16 +861,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // MODEL WISE SALE REPORT (COUNT-WISE) — pivoted Dealer x Model
-        // Always shows every active canonical model as a column, even if a
-        // dealer has zero sales for that model in the selected filter range.
-        //
-        // FIX: model matching now goes through the normalized lookup
-        // (BuildNormalizedLookup / ResolveCanonicalName) instead of
-        // canonicalModels.Contains(rawName), which was an exact/ordinal
-        // comparison. A raw Oemmodelname differing only by casing or a
-        // trailing/leading space from its canonical spelling was previously
-        // bucketed into "Unmapped" even though it was a real match.
+        // MODEL WISE SALE REPORT (COUNT-WISE) 
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseSalePivotResponse> GetModelWiseSaleCountReportAsync(
      DateTime? fromDate, DateTime? toDate, string? dealerCode)
@@ -888,6 +894,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                         && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
                         && (!HasDealerFilter(dealerCode) || h.DealerCode == dealerCode)
+                        && h.Status != null && h.Status.Trim().ToLower() == "invoiced"
 
                     select new
                     {
@@ -958,8 +965,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
-                static bool IsBilled(VehicleSaleBillHeader hdr) =>
-                    hdr != null && hdr.Status == "Billed";
+                static bool IsInvoiced(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Invoiced";
 
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
@@ -1027,7 +1034,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var rawData = await query.ToListAsync();
 
                 rawData = rawData
-                    .Where(x => !IsBilled(x.SaleHdr))
+                    .Where(x => !IsInvoiced(x.SaleHdr))
                     .ToList();
 
                 var result = rawData.Select((x, index) =>
@@ -1124,24 +1131,15 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // MODEL-WISE CURRENT STOCK (COUNT-WISE) — pivoted Dealer x Model
-        // Always shows every active canonical model as a column, even if a
-        // dealer currently has zero stock of that model.
-        //
-        // FIX: model matching now goes through the normalized lookup instead of
-        // canonicalModels.Contains(rawName). Behavior for a genuinely unmatched
-        // model is unchanged (the vehicle is still excluded from this report,
-        // same as before — this report has no "Unmapped" column) — only the
-        // matching itself is fixed, so a casing/whitespace difference no longer
-        // gets misclassified as unmatched.
+        // MODEL-WISE CURRENT STOCK (COUNT-WISE)
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
     string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
-                static bool IsBilled(VehicleSaleBillHeader hdr) =>
-                    hdr != null && hdr.Status == "Billed";
+                static bool IsInvoiced(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Invoiced";
 
                 var canonicalModels = await _context.OemmodelMasters
                     .Where(x => x.IsActive)
@@ -1193,7 +1191,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawRows = await query.ToListAsync();
 
-                rawRows = rawRows.Where(x => !IsBilled(x.SaleHdr)).ToList();
+                rawRows = rawRows.Where(x => !IsInvoiced(x.SaleHdr)).ToList();
 
                 var mapped = rawRows
                     .Where(x => x.Item != null && !string.IsNullOrWhiteSpace(x.Item.Oemmodelname))
@@ -1207,8 +1205,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .Select(x => new { x.DealerCode, x.DealerName, ModelName = x.ModelName! })
                     .ToList();
 
-                // No dealer selected → show every active model. A dealer is selected →
-                // show only the models that dealer actually has in current stock.
                 var modelNames = HasDealerFilter(dealerCode)
                                ? mapped.Select(x => x.ModelName).Distinct().OrderBy(m => m).ToList()
                                : canonicalModels;
@@ -1791,13 +1787,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     from occ in occJoin.DefaultIfEmpty()
 
                     select new { vd, vh, im, dm, cust, city, state, occ };
-
-                // FIX: was !string.IsNullOrWhiteSpace(filter.DealerCode). Model-wise
-                // Sale Report already used HasDealerFilter, which also excludes the
-                // literal strings "undefined"/"null" that can leak in from the
-                // frontend. Without this, a stray "undefined" here filtered to zero
-                // rows while Model-wise correctly ignored it — an easy source of the
-                // two reports' totals not matching that had nothing to do with data.
                 if (HasDealerFilter(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
@@ -1827,11 +1816,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
-
-                // vi/clr/locM resolved from deduped dictionaries instead of a direct
-                // SQL join — a chassis with more than one VehicleInward record, or a
-                // Loccode with more than one LocationMaster row, used to fan every
-                // sale-bill-detail row out once per match.
                 var chassisNos = rawRows.Select(x => x.vd.ChassisNo).ToList();
                 var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
                 var locationLookup = await GetLocationLookupAsync();
@@ -2470,21 +2454,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         // ═════════════════════════════════════════════════════════════════════
         // MODEL-WISE VARIANT STOCK (COUNT-WISE) — pivoted Model x Colour Variant
-        //
-        // FIX: both the model lookup and the colour/variant lookup now go through
-        // the normalized dictionary instead of List<string>.Contains(rawValue).
-        // Model matching keeps its original behavior (a vehicle whose model can't
-        // be resolved is excluded from this report, same as
-        // GetModelWiseStockCountReportAsync — no "Unmapped" bucket for models
-        // here). Colour/variant matching keeps its original "Unmapped" bucket
-        // behavior. Only the string comparison itself is fixed.
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseVariantStockPivotResponse> GetModelWiseVariantStockCountReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
-                static bool IsBilled(VehicleSaleBillHeader hdr) =>
-                    hdr != null && hdr.Status == "Billed";
+                static bool IsInvoiced(VehicleSaleBillHeader hdr) =>
+                    hdr != null && hdr.Status == "Invoiced";
 
                 var canonicalModels = await _context.OemmodelMasters
                     .Where(x => x.IsActive)
@@ -2542,18 +2518,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 }
 
                 var rawRows = await query.ToListAsync();
-                rawRows = rawRows.Where(x => !IsBilled(x.SaleHdr)).ToList();
+                rawRows = rawRows.Where(x => !IsInvoiced(x.SaleHdr)).ToList();
 
                 const string UnmappedVariant = "Unmapped";
 
-                // A vehicle whose colour can't be resolved to ColorMaster still falls
-                // into an "Unmapped" column instead of being dropped — this keeps the
-                // grand total (and every model's row total) consistent with Model-wise
-                // Current Stock, which counts the same underlying inventory without any
-                // colour requirement. Model matching, however, still excludes the
-                // vehicle entirely when unresolved (consistent with Model-wise Current
-                // Stock's behavior) — only the matching logic for both is now
-                // normalized instead of an exact/ordinal Contains() check.
                 var mapped = rawRows
                     .Select(x => new
                     {
@@ -2567,10 +2535,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var actualVariants = mapped.Select(x => x.VariantName).Distinct().ToList();
                 bool hasUnmapped = actualVariants.Contains(UnmappedVariant);
 
-                // No dealer selected → show every colour (plus "Unmapped" if any
-                // vehicle needs it). A dealer is selected → only colours actually
-                // present for that dealer (plus "Unmapped" if relevant), Unmapped
-                // always sorted last.
+
                 var variantNames = HasDealerFilter(dealerCode)
                     ? actualVariants
                         .Where(v => v != UnmappedVariant)
@@ -2622,6 +2587,209 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     "Error fetching model-wise variant stock count report: "
                     + ex.Message,
                     ex);
+            }
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // D2D (DOOR-TO-DOOR) REPORT
+        // ═════════════════════════════════════════════════════════════════════
+        public async Task<D2DReportResponse> GetD2DReportAsync(D2DReportFilterModel filter)
+        {
+            try
+            {
+                var allMapped = await BuildD2DReportRowsAsync(filter);
+
+                var totalRecords = allMapped.Count;
+
+                var paged = allMapped
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
+                foreach (var row in paged) row.SrNo = srNo++;
+
+                return new D2DReportResponse
+                {
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+                    Data = paged
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching D2D report: " + ex.Message, ex);
+            }
+        }
+
+        private async Task<List<D2DReportViewModel>> BuildD2DReportRowsAsync(D2DReportFilterModel filter)
+        {
+            var query =
+                from vi in _context.VehicleInwards.AsNoTracking()
+                where vi.IsD2d == true
+                join dm in _context.DealerMasters.AsNoTracking()
+                    on vi.DealerCode equals dm.Dealercode into dmJoin
+                from dm in dmJoin.DefaultIfEmpty()
+                join loc in _context.LocationMasters.AsNoTracking()
+                    on vi.LocCode equals loc.Loccode into locJoin
+                from loc in locJoin.DefaultIfEmpty()
+                join im in _context.ItemMasters.AsNoTracking()
+                    on vi.ItemCode equals im.Itemcode into imJoin
+                from im in imJoin.DefaultIfEmpty()
+                join clr in _context.ColorMasters.AsNoTracking()
+                    on vi.ColrCode equals clr.Colorcode into clrJoin
+                from clr in clrJoin.DefaultIfEmpty()
+                join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                    on vi.ChasisNo equals vsd.ChassisNo into vsdJoin
+                from vsd in vsdJoin.DefaultIfEmpty()
+                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                    on vsd.VehicleSaleBillId equals vsh.Id into vshJoin
+                from vsh in vshJoin.DefaultIfEmpty()
+                select new { vi, dm, loc, im, clr, vsh };
+
+            if (HasDealerFilter(filter.DealerCode))
+                query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
+
+            if (!string.IsNullOrWhiteSpace(filter.LocationCode))
+                query = query.Where(x => x.vi.LocCode == filter.LocationCode);
+
+            if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                query = query.Where(x => x.vi.ChasisNo != null && x.vi.ChasisNo.Contains(filter.ChassisNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.MotorNo))
+                query = query.Where(x => x.vi.MotorNo != null && x.vi.MotorNo.Contains(filter.MotorNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.BatteryNo))
+                query = query.Where(x => x.vi.BatteryNo != null && x.vi.BatteryNo.Contains(filter.BatteryNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.ChargerNo))
+                query = query.Where(x => x.vi.ChargerNo != null && x.vi.ChargerNo.Contains(filter.ChargerNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.ControllerNo))
+                query = query.Where(x => x.vi.ControllerNo != null && x.vi.ControllerNo.Contains(filter.ControllerNo));
+
+            var rawData = await query.ToListAsync();
+
+            var chassisNosForHistory = rawData.Select(x => x.vi.ChasisNo).ToList();
+            var d2dHistoryLookup = await GetLatestD2dHistoryByChassisAsync(chassisNosForHistory);
+            var dealerLookup = await GetDealerLookupAsync();
+
+            var withDates = rawData.Select(x => new
+            {
+                x.vi,
+                x.dm,
+                x.loc,
+                x.im,
+                x.clr,
+                x.vsh,
+                InvoiceDateTime = x.vi.InvoiceDate.HasValue
+                    ? x.vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
+                    : (DateTime?)null
+            }).AsEnumerable();
+
+            if (filter.FromDate.HasValue)
+                withDates = withDates.Where(x =>
+                    x.InvoiceDateTime.HasValue && x.InvoiceDateTime.Value.Date >= filter.FromDate.Value.Date);
+
+            if (filter.ToDate.HasValue)
+                withDates = withDates.Where(x =>
+                    x.InvoiceDateTime.HasValue && x.InvoiceDateTime.Value.Date <= filter.ToDate.Value.Date);
+
+            var filteredList = withDates
+                .OrderByDescending(x => x.InvoiceDateTime)
+                .ThenByDescending(x => x.vi.Id)
+                .ToList();
+
+            var allMapped = filteredList.Select(x =>
+            {
+                var stockStatus = x.vsh == null
+                    ? "In Stock"
+                    : (x.vsh.Status == "Invoiced" ? "Sold" : "Allocated");
+
+                var history = x.vi.ChasisNo != null && d2dHistoryLookup.TryGetValue(x.vi.ChasisNo, out var hist)
+                    ? hist : null;
+
+                DealerMaster? fromDealer = history?.IssueingDealerCode != null
+                    && dealerLookup.TryGetValue(history.IssueingDealerCode, out var fd)
+                    ? fd : null;
+
+                return new D2DReportViewModel
+                {
+                    ReceivingDate = x.InvoiceDateTime,
+                    InvoiceDate = x.InvoiceDateTime,
+                    DealerCode = x.vi.DealerCode,
+                    DealerName = x.dm != null ? x.dm.Compname : x.vi.DealerCode,
+                    DealerCity = x.dm != null ? x.dm.City : null,
+                    DealerState = x.dm != null ? x.dm.State : null,
+                    FromDealerCode = history?.IssueingDealerCode,
+                    FromDealerName = fromDealer?.Compname,
+                    FromDealerCity = fromDealer?.City,
+                    FromDealerState = fromDealer?.State,
+                    BgInvoiceNo = x.vi.InvoiceNo,
+                    LocationCode = x.vi.LocCode,
+                    PurchaseReceivingLocation = x.loc != null ? x.loc.Locname : x.vi.LocCode,
+                    LocationCity = x.loc != null ? x.loc.City : null,
+                    ModelCode = x.vi.ItemCode,
+                    ModelName = x.im != null
+                        ? (x.im.Oemmodelname ?? x.im.Itemname ?? x.vi.ItemCode)
+                        : x.vi.ItemCode,
+                    OemModelName = x.im != null ? x.im.Oemmodelname : null,
+                    ChassisNo = x.vi.ChasisNo,
+                    MotorNo = x.vi.MotorNo,
+                    Colour = x.clr != null ? x.clr.Colorname : x.vi.ColrCode,
+                    MfgYear = x.vi.MfgYear,
+                    BatteryNo = x.vi.BatteryNo,
+                    BatteryMake = x.vi.BatteryMake,
+                    BatteryCapacity = x.vi.BatteryCapacity,
+                    BatteryChemical = x.vi.BatteryChemistry,
+                    ChargerNo = x.vi.ChargerNo,
+                    ControllerNo = x.vi.ControllerNo,
+                    StockStatus = stockStatus,
+                    IsD2D = x.vi.IsD2d == true
+                };
+            }).ToList();
+            allMapped = allMapped
+                   .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
+                   .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase)) 
+                   .ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.StockStatus))
+            {
+                allMapped = allMapped
+                    .Where(x => string.Equals(x.StockStatus, filter.StockStatus, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var s = filter.Search.Trim().ToLower();
+                allMapped = allMapped.Where(x =>
+                    (x.ChassisNo ?? "").ToLower().Contains(s) ||
+                    (x.MotorNo ?? "").ToLower().Contains(s) ||
+                    (x.DealerName ?? "").ToLower().Contains(s) ||
+                    (x.ModelName ?? "").ToLower().Contains(s) ||
+                    (x.BgInvoiceNo ?? "").ToLower().Contains(s)
+                ).ToList();
+            }
+
+            return allMapped;
+        }
+
+        public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
+        {
+            try
+            {
+                var allMapped = await BuildD2DReportRowsAsync(filter);
+
+                int srNo = 1;
+                foreach (var row in allMapped) row.SrNo = srNo++;
+
+                return allMapped;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting D2D report: " + ex.Message, ex);
             }
         }
     }

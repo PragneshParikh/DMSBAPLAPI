@@ -851,5 +851,83 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        [HttpPost("d2d-report")]
+        [ProducesResponseType(typeof(D2DReportResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetD2DReport([FromBody] D2DReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                // ── Dealer restriction: non-admins are forced to their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("D2D Report API called");
+
+                var result = await _reportService.GetD2DReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching D2D report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Export D2D Report (unpaged, full dataset matching current filters)</summary>
+        [HttpPost("d2d-report/export")]
+        [ProducesResponseType(typeof(List<D2DReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportD2DReport([FromBody] D2DReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins are forced to their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("D2D Report Export API called");
+
+                var result = await _reportService.GetD2DReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting D2D report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }
