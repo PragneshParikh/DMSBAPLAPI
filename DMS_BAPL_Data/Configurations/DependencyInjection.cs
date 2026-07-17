@@ -129,6 +129,8 @@ using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
 using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
 using DMS_BAPL_Data.Services.VehicleQuotationService;
+using DMS_BAPL_Data.Repositories.RepoBillingRepo;
+using DMS_BAPL_Data.Services.RepoBillingService;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -209,6 +211,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IZoneMasterRepo, ZoneMasterRepo>();
             services.AddScoped<ICounterBillRepo,CounterBillRepo>();
             services.AddScoped<IVehicleQuotationRepo, VehicleQuotationRepo>();
+            services.AddScoped<ICounterBillRepo, CounterBillRepo>();
+            services.AddScoped<IRepoBillingRepo, RepoBillingRepo>();
 
             #endregion
 
@@ -265,11 +269,12 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IOccupationMasterService, OccupationMasterService>();
             services.AddScoped<IVehicleInfoService, VehicleInfoService>();
             services.AddScoped<IFreeServiceRateService, FreeServiceRateService>();
-            services.AddScoped<ICounterBillService,CounterBillService>();
+            services.AddScoped<ICounterBillService, CounterBillService>();
             services.AddScoped<IFreeServiceClaimService, FreeServiceClaimService>();
             services.AddScoped<IBgEmployeeMasterService, BgEmployeeMasterService>();
             services.AddScoped<IEmployeeProfileMasterService, EmployeeProfileMasterService>();
             services.AddScoped<IZoneMasterService, ZoneMasterService>();
+            services.AddScoped<IRepoBillingService, RepoBillingService>();
             services.AddScoped<IVehicleQuotationService, VehicleQuotationService>();
 
 
