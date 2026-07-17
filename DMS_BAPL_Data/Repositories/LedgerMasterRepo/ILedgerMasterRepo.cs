@@ -20,7 +20,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<LedgerMaster> CreateLedgerFromLead(LmsleadMaster lead, string userId);
         Task<LedgerMaster> GetLedgerByEmailOrMobile(string? email, string? mobile);
         Task<IEnumerable<LedgerDetailViewModel>> GetCompanyLedgers();
-
+        Task<bool?> GetD2DProvision(string? dealerCode);
         Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers();
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
         Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);
@@ -30,6 +30,5 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? invoiceNo, bool? IsD2D);
 
         Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
-
     }
 }

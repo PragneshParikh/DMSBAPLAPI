@@ -91,7 +91,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
 
                     }
                     ).ToListAsync();
-                return data.OrderByDescending(i=>i.SaleDate).ToList();
+                return data.OrderByDescending(i => i.SaleDate).ToList();
             }
             catch
             {
@@ -119,7 +119,8 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                     join vbd in _context.ChassisBatteryDetails
                                     on vd.ChassisNo equals vbd.ChassisNo into ChassisBatteryDetails
                                     from vbd in ChassisBatteryDetails.DefaultIfEmpty()
-                                    where vh.Status.ToLower() == "invoiced" && vd.Hsrpstatus == null
+                                    where (vh.Status.ToLower() == "invoiced" && vd.Hsrpstatus == null && vh.IsD2d == false) && (ho == null || string.IsNullOrEmpty(ho.Hsrpstatus) || ho.Hsrpstatus.ToLower() == "failed"
+)
 
                                     select new HSRPOrderAddEditViewModel
                                     {
@@ -160,7 +161,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                         .ToList();
                 }
 
-                return result.OrderByDescending(i=>i.OrderDate).ToList();
+                return result.OrderByDescending(i => i.OrderDate).ToList();
 
             }
             catch
@@ -444,11 +445,11 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                     {
                                         id = o.Id,
                                         ChassisNo = o.ChassisNo,
-                                        RegNo =o.RegNo,
+                                        RegNo = o.RegNo,
                                         InvoiceDate = inv.CreatedDate,
                                         InvoiceNo = o.InvoiceNo,
                                         CustomerName = led.LedgerName,
-                                        CustomerMobile=led.MobileNumber,
+                                        CustomerMobile = led.MobileNumber,
                                         OrderDate = o.OrderDate,
                                         OrderNo = o.OrderNo,
                                         CustomerLedgerId = o.CustomerLedgerId,
@@ -485,7 +486,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                   on o.CustomerLedgerId equals cus.Id into customerDetails
                                   from cus in customerDetails.DefaultIfEmpty()
 
-                                  where (o.InwardStatus == null || o.InwardStatus.ToLower() == "pending" || o.InwardStatus.ToLower() == "") && (o.InwardResponse.ToLower() != "success")
+                                  where (o.InwardStatus == null || o.InwardStatus.ToLower() == "pending" || o.InwardStatus.ToLower() == "" || o.InwardStatus.ToLower() == "failed") && (o.InwardResponse.ToLower() != "success")
 
                                   select new HSRPInward
                                   {
@@ -506,7 +507,7 @@ namespace DMS_BAPL_Data.Repositories.HSRPRepo
                                       SupplierLedgerId = o.SupplierLedgerId,
                                       SupplierName = led.LedgerName,
                                       InwardResponse = o.InwardResponse,
-                                      InwardStatus = o.InwardResponse,
+                                      InwardStatus = o.InwardStatus,
 
 
 

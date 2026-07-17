@@ -67,7 +67,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string BatteryChemical { get; set; }
         public string BatteryCapacity { get; set; }
         public string BatteryMake { get; set; }
-        public string? ProformaCreated  { get; set; }
+        public string? ProformaCreated { get; set; }
 
 
         public string StockNo { get; set; }
@@ -81,8 +81,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal CGST { get; set; }
         public decimal IGSTPER { get; set; }
         public decimal IGST { get; set; }
-        public string PDIStatus {  get; set; }
+        public string PDIStatus { get; set; }
         public string? LocationCode { get; set; }
+        public bool? IsD2D { get; set; }
         public DateTime? CustomerSaleDate { get; set; }
     }
 }
