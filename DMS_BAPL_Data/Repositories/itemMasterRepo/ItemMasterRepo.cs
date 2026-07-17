@@ -60,7 +60,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Compcode = item.Compcode;
                     existingItem.Displayname = item.Displayname;
                     existingItem.Oemmodelname = item.Oemmodelname;
-                    existingItem.SupplierId= item.SupplierId;
+                    existingItem.SupplierId = item.SupplierId;
                     existingItem.DealerCode = item.Dealercode;
                     existingItem.Uom = item.UOM;
 
@@ -129,7 +129,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         join l in _context.LedgerMasters
                         on i.SupplierId equals l.Id into ledgerGroup
                         from l in ledgerGroup.DefaultIfEmpty()
-                        select new { i, c,l }; //  keep original entity
+                        select new { i, c, l }; //  keep original entity
 
             // Filter by Group Id
             if (grpidno.HasValue)
@@ -858,6 +858,30 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     CGSTAmount = (item.ItemMrp * cgstPer) / 100,
                     IGSTAmount = (item.ItemMrp * igstPer) / 100
                 }).ToList();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<ItemMasterViewModel>> GetItemModelist()
+        {
+            try
+            {
+                return await _context.ItemMasters
+                    .Where(x => x.Grpidno == 6)
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Select(x => new ItemMasterViewModel
+                    {
+                        Id = x.Id,
+                        Itemtype = x.Itemtype,
+                        Itemname = x.Itemname,
+                        Itemcode = x.Itemcode,
+                        Itemdesc = x.Itemdesc,
+                        Status = x.Status
+                    })
+                    .ToListAsync();
             }
             catch
             {

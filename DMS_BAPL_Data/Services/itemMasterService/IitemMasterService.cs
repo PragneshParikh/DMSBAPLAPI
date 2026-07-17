@@ -21,5 +21,6 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
         Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId);
         Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation);
+        Task<List<ItemMasterViewModel>> GetItemModelist();
     }
 }

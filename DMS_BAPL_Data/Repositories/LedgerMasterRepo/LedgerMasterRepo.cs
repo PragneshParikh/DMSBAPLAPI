@@ -407,34 +407,46 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
-        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
+        public async Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? invoiceNo, bool? isD2D)
         {
-
-            Console.WriteLine($"IsD2D: {IsD2D}");
-            Console.WriteLine($"dealerCode: {dealerCode}");
-
-            try
+            if (isD2D == true)
             {
-                if (IsD2D == true && !string.IsNullOrWhiteSpace(dealerCode))
-                {
-                    return await _context.LedgerMasters
-                    .AsNoTracking()
-                    .Where(x => x.LedgerType != null && x.DealerCode == dealerCode && x.LedgerType.ToLower() == "dealer")
-                    .OrderBy(c => c.LedgerName)
-                    .ToListAsync();
-                }
-                else
-                {
-                    return await _context.LedgerMasters
-                        .AsNoTracking()
-                        .Where(x => x.LedgerType != null && x.LedgerType.ToLower() == "company")
-                        .OrderBy(c => c.LedgerName)
-                        .ToListAsync();
-                }
-            }
-            catch { throw; }
-        }
+               
+                var chassisNo = await _context.VehicleInwards
+                    .Where(x => x.InvoiceNo == invoiceNo)
+                    .Select(x => x.ChasisNo)
+                    .FirstOrDefaultAsync();
 
+                if (string.IsNullOrWhiteSpace(chassisNo))
+                    return Enumerable.Empty<LedgerMaster>();
+
+              
+                var issuingDealerCode = await _context.ChassisDetailsD2dhistories
+                    .Where(x => x.ChassisNo == chassisNo)
+                    .Select(x => x.IssueingDealerCode)
+                    .OrderByDescending(x => x) // Assuming you want the latest issuing dealer code
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrWhiteSpace(issuingDealerCode))
+                    return Enumerable.Empty<LedgerMaster>();
+
+                
+                return await _context.LedgerMasters
+                    .AsNoTracking()
+                    .Where(x => x.DealerCode == issuingDealerCode
+                             && x.LedgerType != null
+                             && x.LedgerType.ToLower() == "dealer")
+                    .OrderBy(x => x.LedgerName)
+                    .ToListAsync();
+            }
+
+            return await _context.LedgerMasters
+                .AsNoTracking()
+                .Where(x => x.LedgerType != null
+                         && x.LedgerType.ToLower() == "company")
+                .OrderBy(x => x.LedgerName)
+                .ToListAsync();
+        }
         public async Task<IEnumerable<LedgerMaster>> GetInsuranceLedgers()
         {
             try

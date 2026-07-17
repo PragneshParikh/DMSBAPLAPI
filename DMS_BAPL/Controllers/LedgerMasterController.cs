@@ -282,7 +282,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<LedgerMaster>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<LedgerMaster>>> GetLotRelatedLedgers(string? dealerCode, bool? IsD2D)
+        public async Task<ActionResult<IEnumerable<LedgerMaster>>> GetLotRelatedLedgers(string? invoiceNo, bool? IsD2D)
         {
             try
             {
@@ -291,7 +291,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var ledgers = await _ledgerMasterService.GetLotRelatedLedgers(dealerCode, IsD2D);
+                var ledgers = await _ledgerMasterService.GetLotRelatedLedgers(invoiceNo, IsD2D);
 
                 return Ok(ledgers);
             }
