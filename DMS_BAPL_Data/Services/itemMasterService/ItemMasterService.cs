@@ -117,7 +117,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         {
             try
             {
-                
+
                 return await _itemMasterRepo.GetItemsByLocation(dealerLocation, customerLocation);
             }
             catch
@@ -125,6 +125,17 @@ namespace DMS_BAPL_Data.Services.itemMasterService
                 throw;
             }
         }
+        public async Task<List<ItemMasterViewModel>> GetItemModelist()
+        {
+            try
+            {
+                return await _itemMasterRepo.GetItemModelist();
+            }
+            catch
+            {
+                throw;
+            }
 
+        }
     }
 }

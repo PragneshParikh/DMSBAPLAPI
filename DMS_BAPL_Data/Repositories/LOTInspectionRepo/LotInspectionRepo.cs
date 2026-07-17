@@ -80,6 +80,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     SupervisorName = null,
                     LocationName = null,
                     IsD2d= invoiceData.IsD2d,
+                    InwardType = invoiceData.InwardType,
                     DealerCode = invoiceData.DealerCode,
                     LocCode = invoiceData.LocCode,
                     CreatedBy = userId,

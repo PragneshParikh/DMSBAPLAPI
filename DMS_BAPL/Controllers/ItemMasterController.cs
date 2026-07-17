@@ -272,5 +272,24 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        [HttpGet("GetItemModelist")]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetItemModelist()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+                var items = await _itemMasterService.GetItemModelist();
+                return Ok(items);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }
