@@ -24,6 +24,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Address { get; set; }
         public string DealerCity { get; set; }
         public string DealerState { get; set; }
+        public string DealerOrder { get; set; }
     }
     public class PartyDetailsViewModel
     {
@@ -36,6 +37,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? City { get; set; }
         public string? Email { get; set; }
         public string? Pin { get; set; }
+        public string OwnerOrder { get; set; }
     }
 
     public class VehicleDetailsViewModel
