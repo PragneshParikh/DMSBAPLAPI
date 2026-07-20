@@ -53,7 +53,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 select new VehicleInfoViewModel
                 {
-                    DealerDetails = new DealerInfoViewMode
+                    DealerDetails = new DealerInfoViewModel
                     {
                         DealerCode = di.Dealercode,
                         DealerName = di.Compname,
