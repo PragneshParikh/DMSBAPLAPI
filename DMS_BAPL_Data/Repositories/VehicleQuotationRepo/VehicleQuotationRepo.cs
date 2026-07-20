@@ -90,16 +90,24 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 MobileNo = q.MobileNo,
                                 EmailId = q.EmailId,
                                 Address = q.Address,
-                                StateId = q.StateId,                                          // add
-                                StateName = state != null ? state.StateName : null,           // add
-                                CityId = q.CityId,                                            // add
-                                CityName = city != null ? city.CityName : null,               // add
+                                CustomerGSTNo = q.CustomerGSTNo,
+                                CustomerPanNo = q.CustomerPanNo,
+                                StateId = q.StateId,
+                                StateName = state != null ? state.StateName : null,
+                                CityId = q.CityId,
+                                CityName = city != null ? city.CityName : null,
                                 ModelId = q.ModelId,
                                 ModelName = model != null ? model.ModelName : null,
                                 VariantId = q.VariantId,
                                 VariantName = null,
                                 ColorId = q.ColorId,
                                 ColorName = color != null ? color.Colorname : null,
+                                CustPrice = q.CustPrice ?? 0,
+                                Fame2Amount = q.Fame2Amount ?? 0,
+                                SgstAmount = q.SgstAmount ?? 0,
+                                CgstAmount = q.CgstAmount ?? 0,
+                                IgstAmount = q.IgstAmount ?? 0,
+                                TaxAmount = q.TaxAmount,
                                 ExShowroomPrice = q.ExShowroomPrice,
                                 InsuranceAmount = q.InsuranceAmount,
                                 RegistrationAmount = q.Rtocharges,
@@ -111,12 +119,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 PlateAmount = q.PlateAmount,
                                 HandlingCharges = q.HandlingCharges,
                                 TotalAmount = q.TotalAmount,
-                                //ValidTill = q.ValidTillDate ?? q.QuotationDate,
                                 ValidTill = q.ValidTillDate != null
-    ? new DateTime(q.ValidTillDate.Value.Year, q.ValidTillDate.Value.Month, q.ValidTillDate.Value.Day)
-    : q.QuotationDate,
+                                    ? new DateTime(q.ValidTillDate.Value.Year, q.ValidTillDate.Value.Month, q.ValidTillDate.Value.Day)
+                                    : q.QuotationDate,
                                 Remarks = q.Remarks,
-                                IsApproved = false, // column no longer exists on VehicleQuotation
+                                IsApproved = false,
                                 IsActive = q.IsActive,
                                 CreatedBy = q.CreatedBy,
                                 CreatedDate = q.CreatedDate,
@@ -155,15 +162,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 VehicleQuotationId = q.Id,
                                 QuotationNo = q.QuotationNo,
                                 QuotationDate = q.QuotationDate,
-                                DealerId = q.DealerId,              // <-- add this
+                                DealerId = q.DealerId,
                                 DealerCode = dealer != null ? dealer.Dealercode : null,
                                 DealerName = dealer != null ? dealer.Compname : null,
-                                Status = q.Status,                  // <-- add this
+                                Status = q.Status,
                                 CustomerId = q.CustomerId,
                                 CustomerName = q.CustomerName,
                                 MobileNo = q.MobileNo,
                                 EmailId = q.EmailId,
                                 Address = q.Address,
+                                CustomerGSTNo = q.CustomerGSTNo,
+                                CustomerPanNo = q.CustomerPanNo,
                                 StateId = q.StateId,
                                 StateName = state != null ? state.StateName : null,
                                 CityId = q.CityId,
@@ -171,9 +180,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 ModelId = q.ModelId,
                                 ModelName = model != null ? model.ModelName : null,
                                 VariantId = q.VariantId,
-                                VariantName = null, // TODO: join Variant table once entity/DbSet is available
+                                VariantName = null,
                                 ColorId = q.ColorId,
                                 ColorName = color != null ? color.Colorname : null,
+                                CustPrice = q.CustPrice ?? 0,
+                                Fame2Amount = q.Fame2Amount ?? 0,
+                                SgstAmount = q.SgstAmount ?? 0,
+                                CgstAmount = q.CgstAmount ?? 0,
+                                IgstAmount = q.IgstAmount ?? 0,
+                                TaxAmount = q.TaxAmount,
                                 ExShowroomPrice = q.ExShowroomPrice,
                                 InsuranceAmount = q.InsuranceAmount,
                                 RegistrationAmount = q.Rtocharges,
@@ -184,11 +199,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 HypothecationAmount = q.HypothecationAmount,
                                 PlateAmount = q.PlateAmount,
                                 HandlingCharges = q.HandlingCharges,
-                                //ValidTill = q.ValidTillDate ?? q.QuotationDate,
                                 ValidTill = q.ValidTillDate != null ? new DateTime(q.ValidTillDate.Value.Year, q.ValidTillDate.Value.Month, q.ValidTillDate.Value.Day) : q.QuotationDate,
                                 TotalAmount = q.TotalAmount,
                                 Remarks = q.Remarks,
-                                IsApproved = false, // column no longer exists on VehicleQuotation
+                                IsApproved = false,
                                 IsActive = q.IsActive,
                                 CreatedBy = q.CreatedBy,
                                 CreatedDate = q.CreatedDate,
@@ -213,11 +227,18 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 MobileNo = model.MobileNo,
                 EmailId = model.EmailId,
                 Address = model.Address,
+                CustomerGSTNo = model.CustomerGSTNo,
+                CustomerPanNo = model.CustomerPanNo,
                 ModelId = model.ModelId,
                 VariantId = model.VariantId,
                 StateId = model.StateId,
                 CityId = model.CityId,
                 ColorId = model.ColorId,
+                CustPrice = model.CustPrice,
+                Fame2Amount = model.Fame2Amount,
+                SgstAmount = model.SgstAmount,
+                CgstAmount = model.CgstAmount,
+                IgstAmount = model.IgstAmount,
                 ExShowroomPrice = model.ExShowroomPrice,
                 Rtocharges = model.RTOCharges,
                 InsuranceAmount = model.InsuranceAmount,
@@ -239,7 +260,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 HypothecationAmount = model.HypothecationAmount,
                 PlateAmount = model.PlateAmount,
                 HandlingCharges = model.HandlingCharges,
-                //ValidTillDate = model.ValidTillDate,
                 ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null,
                 IsActive = true,
                 CreatedBy = model.CreatedBy,
@@ -264,11 +284,18 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.MobileNo = model.MobileNo;
             existing.EmailId = model.EmailId;
             existing.Address = model.Address;
+            existing.CustomerGSTNo = model.CustomerGSTNo;
+            existing.CustomerPanNo = model.CustomerPanNo;
             existing.ModelId = model.ModelId;
             existing.StateId = model.StateId;
             existing.CityId = model.CityId;
             existing.VariantId = model.VariantId;
             existing.ColorId = model.ColorId;
+            existing.CustPrice = model.CustPrice;
+            existing.Fame2Amount = model.Fame2Amount;
+            existing.SgstAmount = model.SgstAmount;
+            existing.CgstAmount = model.CgstAmount;
+            existing.IgstAmount = model.IgstAmount;
             existing.ExShowroomPrice = model.ExShowroomPrice;
             existing.Rtocharges = model.RTOCharges;
             existing.InsuranceAmount = model.InsuranceAmount;
@@ -290,7 +317,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.HypothecationAmount = model.HypothecationAmount;
             existing.PlateAmount = model.PlateAmount;
             existing.HandlingCharges = model.HandlingCharges;
-            //existing.ValidTillDate = model.ValidTillDate;
             existing.ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null;
             existing.ModifiedBy = userId;
             existing.ModifiedDate = DateTime.Now;
@@ -315,172 +341,169 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             catch { throw; }
         }
 
+        // =====================================
+        // PRINT QUOTATION
+        // =====================================
         public async Task<VehicleQuotationPrintViewModel> GetPrintQuotationAsync(long quotationId)
         {
-            var result = await
-            (
-                from q in _context.VehicleQuotations.AsNoTracking()
+            var quotation = await _context.VehicleQuotations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == quotationId);
 
-                join dealer in _context.DealerMasters.AsNoTracking()
-                    on q.DealerId equals dealer.Id
+            if (quotation == null) return null;
 
-                join model in _context.OemmodelMasters.AsNoTracking()
-                    on q.ModelId equals model.Id
+            var dealer = await _context.DealerMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == quotation.DealerId);
 
-                join item in _context.ItemMasters.AsNoTracking()
-                    on q.VariantId equals item.Id into itemJoin
-                from item in itemJoin.DefaultIfEmpty()
+            var model = await _context.OemmodelMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == quotation.ModelId);
 
-                join color in _context.ColorMasters.AsNoTracking()
-                    on q.ColorId equals color.Id into colorJoin
-                from color in colorJoin.DefaultIfEmpty()
+            var item = await _context.ItemMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == quotation.VariantId);
 
-                join state in _context.States.AsNoTracking()
-                    on q.StateId equals state.StateId into stateJoin
-                from state in stateJoin.DefaultIfEmpty()
+            var color = quotation.ColorId.HasValue
+                ? await _context.ColorMasters.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == quotation.ColorId.Value)
+                : null;
 
-                join city in _context.Cities.AsNoTracking()
-                    on q.CityId equals city.CityId into cityJoin
-                from city in cityJoin.DefaultIfEmpty()
+            var state = quotation.StateId.HasValue
+                ? await _context.States.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.StateId == quotation.StateId.Value)
+                : null;
 
-                join finance in _context.LedgerMasters.AsNoTracking()
-                    on q.FinanceCompanyId equals finance.Id into financeJoin
-                from finance in financeJoin.DefaultIfEmpty()
+            var city = quotation.CityId.HasValue
+                ? await _context.Cities.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.CityId == quotation.CityId.Value)
+                : null;
 
-                where q.Id == quotationId
+            var finance = quotation.FinanceCompanyId.HasValue
+                ? await _context.LedgerMasters.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == quotation.FinanceCompanyId.Value)
+                : null;
 
-                select new VehicleQuotationPrintViewModel
-                {
-                    Id = q.Id,
+            decimal custPrice = quotation.CustPrice ?? 0;
+            decimal fame2Amount = quotation.Fame2Amount ?? 0;
+            decimal sgstAmount = quotation.SgstAmount ?? 0;
+            decimal cgstAmount = quotation.CgstAmount ?? 0;
+            decimal igstAmount = quotation.IgstAmount ?? 0;
 
-                    QuotationNo = q.QuotationNo,
-                    QuotationDate = q.QuotationDate,
-                    ValidTill = Convert.ToDateTime(q.ValidTillDate),
-                    Status = q.Status,
+            decimal PercentOf(decimal amount) =>
+                custPrice > 0 ? Math.Round(amount / custPrice * 100, 2) : 0;
 
-                    DealerId = q.DealerId,
-                    DealerCode = dealer.Dealercode,
-                    DealerName = dealer.Compname,
+            return new VehicleQuotationPrintViewModel
+            {
+                Id = quotation.Id,
 
-                    DealerAddress =
-                        (dealer.Adress1 ?? "") + " " +
-                        (dealer.Adress2 ?? "") + ", " +
-                        (dealer.City ?? "") + ", " +
-                        (dealer.State ?? "") + " - " +
-                        (dealer.Pin ?? ""),
+                QuotationNo = quotation.QuotationNo,
+                QuotationDate = quotation.QuotationDate,
+                ValidTill = quotation.ValidTillDate.HasValue
+                    ? quotation.ValidTillDate.Value.ToDateTime(TimeOnly.MinValue)
+                    : (DateTime?)null,
+                Status = quotation.Status,
 
-                    DealerMobile = dealer.Mobile,
-                    DealerEmail = dealer.Email,
-                    DealerGSTNo = dealer.CompgstinNo,
+                DealerId = quotation.DealerId,
+                DealerCode = dealer?.Dealercode,
+                DealerName = dealer?.Compname,
 
-                    CustomerId = q.CustomerId,
-                    CustomerName = q.CustomerName,
-                    MobileNo = q.MobileNo,
-                    EmailId = q.EmailId,
-                    Address = q.Address,
+                DealerAddress = dealer == null ? "" :
+                    (dealer.Adress1 ?? "") + " " +
+                    (dealer.Adress2 ?? "") + ", " +
+                    (dealer.City ?? "") + ", " +
+                    (dealer.State ?? "") + " - " +
+                    (dealer.Pin ?? ""),
 
-                    StateId = q.StateId,
-                    StateName = state != null ? state.StateName : "",
+                DealerMobile = dealer?.Mobile,
+                DealerEmail = dealer?.Email,
+                DealerGSTNo = dealer?.CompgstinNo,
 
-                    CityId = q.CityId,
-                    CityName = city != null ? city.CityName : "",
+                CustomerId = quotation.CustomerId,
+                CustomerName = quotation.CustomerName,
+                MobileNo = quotation.MobileNo,
+                EmailId = quotation.EmailId,
+                Address = quotation.Address,
 
-                    ModelId = q.ModelId,
-                    ModelName = model.ModelName,
+                StateId = quotation.StateId,
+                StateName = state?.StateName ?? "",
 
-                    // Variant from Item Master
-                    VariantId = q.VariantId,
-                    VariantName = item != null ? item.Itemdesc : "",
+                CityId = quotation.CityId,
+                CityName = city?.CityName ?? "",
 
-                    ColorId = q.ColorId,
-                    ColorName = color != null ? color.Colorname : "",
+                CustomerGSTNo = quotation.CustomerGSTNo,
+                CustomerPanNo = quotation.CustomerPanNo,
 
-                    //--------------------------------------------------
-                    // Item Master
-                    //--------------------------------------------------
+                ModelId = quotation.ModelId,
+                ModelName = model?.ModelName,
 
-                    CustPrice = item != null ? item.Custprice : 0,
+                VariantId = quotation.VariantId,
+                VariantName = item?.Itemname ?? "",
 
-                    Fame2Amount = item != null ? item.Fame2amount : 0,
+                ColorId = quotation.ColorId,
+                ColorName = color?.Colorname ?? "",
 
-                    SGST = item != null ? item.Sgst : 0,
+                CustPrice = custPrice,
+                Fame2Amount = fame2Amount,
 
-                    CGST = item != null ? item.Cgst : 0,
+                SGST = PercentOf(sgstAmount),
+                CGST = PercentOf(cgstAmount),
+                IGST = PercentOf(igstAmount),
 
-                    IGST = item != null ? item.Igst : 0,
+                SGSTAmount = sgstAmount,
+                CGSTAmount = cgstAmount,
+                IGSTAmount = igstAmount,
 
-                    SGSTAmount = item != null
-                        ? (item.Custprice * item.Sgst) / 100
-                        : 0,
+                TaxAmount = quotation.TaxAmount,
 
-                    CGSTAmount = item != null
-                        ? (item.Custprice * item.Cgst) / 100
-                        : 0,
+                //--------------------------------------------------
+                // Charges
+                //--------------------------------------------------
 
-                    IGSTAmount = item != null
-                        ? (item.Custprice * item.Igst) / 100
-                        : 0,
+                ExShowroomPrice = quotation.ExShowroomPrice,
 
-                    TaxAmount =
-                        item != null
-                        ? ((item.Custprice * item.Sgst) / 100)
-                        + ((item.Custprice * item.Cgst) / 100)
-                        + ((item.Custprice * item.Igst) / 100)
-                        : 0,
+                RTOCharges = quotation.Rtocharges,
 
-                    //--------------------------------------------------
-                    // Charges
-                    //--------------------------------------------------
+                InsuranceAmount = quotation.InsuranceAmount,
 
-                    ExShowroomPrice = q.ExShowroomPrice,
+                AccessoriesAmount = quotation.AccessoriesAmount,
 
-                    RTOCharges = q.Rtocharges,
+                ExtendedWarrantyAmount = quotation.ExtendedWarrantyAmount,
 
-                    InsuranceAmount = q.InsuranceAmount,
+                AmcAmount = quotation.Amcamount,
 
-                    AccessoriesAmount = q.AccessoriesAmount,
+                OtherCharges = quotation.OtherCharges,
 
-                    ExtendedWarrantyAmount = q.ExtendedWarrantyAmount,
+                DiscountAmount = quotation.DiscountAmount,
 
-                    AmcAmount = q.Amcamount,
+                ExchangeAmount = quotation.ExchangeAmount,
 
-                    OtherCharges = q.OtherCharges,
+                HypothecationAmount = quotation.HypothecationAmount ?? 0,
 
-                    DiscountAmount = q.DiscountAmount,
+                PlateAmount = quotation.PlateAmount ?? 0,
 
-                    ExchangeAmount = q.ExchangeAmount,
+                HandlingCharges = quotation.HandlingCharges ?? 0,
 
-                    HypothecationAmount = Convert.ToDecimal(q.HypothecationAmount),
+                //--------------------------------------------------
+                // Finance
+                //--------------------------------------------------
 
-                    PlateAmount = Convert.ToDecimal(q.PlateAmount),
+                IsFinance = quotation.IsFinance,
 
-                    HandlingCharges = Convert.ToDecimal(q.HandlingCharges),
+                FinanceCompanyId = quotation.FinanceCompanyId,
 
-                    //--------------------------------------------------
-                    // Finance
-                    //--------------------------------------------------
+                FinanceCompanyName = finance?.LedgerName ?? "",
 
-                    IsFinance = q.IsFinance,
+                LoanAmount = quotation.LoanAmount ?? 0,
 
-                    FinanceCompanyId = q.FinanceCompanyId,
+                DownPayment = quotation.DownPayment ?? 0,
 
-                    FinanceCompanyName =
-                        finance != null ? finance.LedgerName : "",
+                //--------------------------------------------------
 
-                    LoanAmount = Convert.ToDecimal(q.LoanAmount),
+                TotalAmount = quotation.TotalAmount,
 
-                    DownPayment = Convert.ToDecimal(q.DownPayment),
-
-                    //--------------------------------------------------
-
-                    TotalAmount = q.TotalAmount,
-
-                    Remarks = q.Remarks
-                }
-
-            ).FirstOrDefaultAsync();
-
-            return result;
+                Remarks = quotation.Remarks
+            };
         }
     }
 }

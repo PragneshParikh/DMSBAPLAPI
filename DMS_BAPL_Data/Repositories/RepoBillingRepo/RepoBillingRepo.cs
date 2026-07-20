@@ -73,7 +73,7 @@ namespace DMS_BAPL_Data.Repositories.RepoBillingRepo
                 select new
                 {
                     ChassisNo = cd.ChassisNo,
-                    CurrentDealer = di != null ? new DealerInfoViewMode
+                    CurrentDealer = di != null ? new DealerInfoViewModel
                     {
                         DealerCode = di.Dealercode,
                         DealerName = di.Compname,
@@ -119,7 +119,7 @@ namespace DMS_BAPL_Data.Repositories.RepoBillingRepo
             {
                 return new JsonResult(new
                 {
-                    DealerDetails = new List<DealerInfoViewMode>(),
+                    DealerDetails = new List<DealerInfoViewModel>(),
                     PartyDetails = new List<PartyDetailsViewModel>(),
                     VehicleDetails = (VehicleDetailsViewModel)null
                 });
@@ -145,7 +145,7 @@ namespace DMS_BAPL_Data.Repositories.RepoBillingRepo
 
                 select new
                 {
-                    DealerDetails = di != null ? new DealerInfoViewMode
+                    DealerDetails = di != null ? new DealerInfoViewModel
                     {
                         //DealerCode = di.Dealercode,
                         DealerCode = locdealer != null && !string.IsNullOrWhiteSpace(locdealer.Dealercode)
