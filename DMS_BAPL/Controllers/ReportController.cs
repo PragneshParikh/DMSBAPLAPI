@@ -940,5 +940,85 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // MATERIAL TRANSFER REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("material-transfer")]
+        [ProducesResponseType(typeof(MaterialTransferReportPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetMaterialTransferReport([FromBody] MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                // ── Dealer restriction: non-admins are forced to their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("Material Transfer Report API called");
+
+                var result = await _reportService.GetMaterialTransferReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching material transfer report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Export Material Transfer Report (unpaged, full dataset matching current filters)</summary>
+        [HttpPost("material-transfer/export")]
+        [ProducesResponseType(typeof(List<MaterialTransferReportRowViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportMaterialTransferReport([FromBody] MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Material Transfer Report Export API called");
+
+                var result = await _reportService.GetMaterialTransferReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting material transfer report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

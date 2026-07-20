@@ -122,4 +122,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? InvoiceNo { get; set; }
 
     }
+
+    public class VehicleSaleBillDeletionChecksViewModel
+    {
+        public string? JobCardNumber { get; set; }
+        public bool IsJobCardOpened { get; set; }
+        public bool IsVDNDone { get; set; }
+        public bool IsAccepted { get; set; }
+        public string ChassisNo { get; set; }
+    }
 }

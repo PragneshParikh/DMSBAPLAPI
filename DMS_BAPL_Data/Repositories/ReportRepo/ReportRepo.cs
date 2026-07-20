@@ -2904,5 +2904,227 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error exporting D2D report: " + ex.Message, ex);
             }
         }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // MATERIAL TRANSFER REPORT
+        // ═════════════════════════════════════════════════════════════════════
+
+        // Carries the raw joined entities through filtering/paging before any
+        // C# mapping happens — same two-phase pattern used for the D2D and
+        // print-quotation methods, to avoid in-query conversions EF Core
+        // can't translate.
+        private class MaterialTransferRawRow
+        {
+            public MaterialTransfer Mt { get; set; } = null!;
+            public ItemMaster? Im { get; set; }
+            public JobCardHeader Jh { get; set; } = null!;
+            public JobCardCustomer? Jc { get; set; }
+            public DealerMaster? Dm { get; set; }
+            public LocationMaster? Loc { get; set; }
+        }
+
+        private IQueryable<MaterialTransferRawRow> BuildMaterialTransferFilteredQuery(MaterialTransferReportFilterModel filter)
+        {
+            var query =
+                from mt in _context.MaterialTransfers.AsNoTracking()
+                join im in _context.ItemMasters.AsNoTracking()
+                    on mt.ItemId equals im.Id into imJoin
+                from im in imJoin.DefaultIfEmpty()
+                join jh in _context.JobCardHeaders.AsNoTracking()
+                    on mt.JobId equals jh.Id
+                join jc in _context.JobCardCustomers.AsNoTracking()
+                    on jh.Id equals jc.JobCardHeaderId into jcJoin
+                from jc in jcJoin.DefaultIfEmpty()
+                join dm in _context.DealerMasters.AsNoTracking()
+                    on jh.DealerCode equals dm.Dealercode into dmJoin
+                from dm in dmJoin.DefaultIfEmpty()
+                join loc in _context.LocationMasters.AsNoTracking()
+                    on jh.Serviceloc equals loc.Loccode into locJoin
+                from loc in locJoin.DefaultIfEmpty()
+                select new MaterialTransferRawRow { Mt = mt, Im = im, Jh = jh, Jc = jc, Dm = dm, Loc = loc };
+
+            if (HasDealerFilter(filter.DealerCode))
+                query = query.Where(x => x.Jh.DealerCode == filter.DealerCode);
+
+            if (filter.FromDate.HasValue)
+                query = query.Where(x => x.Mt.CreatedDate.Date >= filter.FromDate.Value.Date);
+
+            if (filter.ToDate.HasValue)
+                query = query.Where(x => x.Mt.CreatedDate.Date <= filter.ToDate.Value.Date);
+
+            if (filter.JobNo.HasValue)
+                query = query.Where(x => x.Jh.JobNo == filter.JobNo.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                query = query.Where(x => x.Jh.Chassisno != null && x.Jh.Chassisno.Contains(filter.ChassisNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.PartyName))
+                query = query.Where(x => x.Jc != null && x.Jc.CustomerName != null && x.Jc.CustomerName.Contains(filter.PartyName));
+
+            if (!string.IsNullOrWhiteSpace(filter.ItemCode))
+                query = query.Where(x => x.Im != null && x.Im.Itemcode == filter.ItemCode);
+
+            // NEW — filter by Issue Type (raw numeric code; no lookup table exists
+            // anywhere in the codebase to translate this to a label).
+            if (filter.IssueType.HasValue)
+                query = query.Where(x => x.Mt.IssueType == filter.IssueType.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var s = filter.Search.Trim();
+                query = query.Where(x =>
+                    (x.Jh.Chassisno != null && x.Jh.Chassisno.Contains(s)) ||
+                    (x.Im != null && x.Im.Itemname != null && x.Im.Itemname.Contains(s)) ||
+                    (x.Im != null && x.Im.Itemcode != null && x.Im.Itemcode.Contains(s)) ||
+                    (x.Jc != null && x.Jc.CustomerName != null && x.Jc.CustomerName.Contains(s)) ||
+                    (x.Jh.JobNo != null && x.Jh.JobNo.ToString().Contains(s))
+                );
+            }
+
+            return query;
+        }
+
+        public async Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                var baseQuery = BuildMaterialTransferFilteredQuery(filter);
+
+                var totalRecords = await baseQuery.CountAsync();
+
+                var pagedRaw = await baseQuery
+                    .OrderByDescending(x => x.Mt.CreatedDate)
+                    .ThenByDescending(x => x.Mt.Id)
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToListAsync();
+
+                var data = await MapMaterialTransferRowsAsync(pagedRaw, (filter.PageIndex - 1) * filter.PageSize + 1);
+
+                return new MaterialTransferReportPagedResponse
+                {
+                    Data = data,
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+                    TotalQuantity = data.Sum(x => x.Quantity),
+                    TotalAmount = data.Sum(x => x.Amount)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching material transfer report: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                var baseQuery = BuildMaterialTransferFilteredQuery(filter);
+
+                var allRaw = await baseQuery
+                    .OrderByDescending(x => x.Mt.CreatedDate)
+                    .ThenByDescending(x => x.Mt.Id)
+                    .ToListAsync();
+
+                return await MapMaterialTransferRowsAsync(allRaw, 1);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting material transfer report: " + ex.Message, ex);
+            }
+        }
+
+        private async Task<List<MaterialTransferReportRowViewModel>> MapMaterialTransferRowsAsync(List<MaterialTransferRawRow> rows, int startingSrNo)
+        {
+            if (rows.Count == 0) return new List<MaterialTransferReportRowViewModel>();
+
+            var headerIds = rows.Select(r => r.Jh.Id).Distinct().ToList();
+
+            var repairBillRows = await _context.RepairBillHeaders
+                .AsNoTracking()
+                .Where(r => headerIds.Contains(r.JobId))
+                .ToListAsync();
+            var repairBillLookup = repairBillRows
+                .GroupBy(r => r.JobId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
+
+            var userIds = rows
+                .SelectMany(r => new[] { r.Mt.CreatedBy, r.Mt.UpdatedBy })
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            var userLookup = await _context.AspNetUsers
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.DealerCode);
+
+            int srNo = startingSrNo;
+
+            return rows.Select(r =>
+            {
+                var rb = repairBillLookup.TryGetValue(r.Jh.Id, out var rbVal) ? rbVal : null;
+
+                // Same status rule already used for this exact join in
+                // MaterialTransferRepo.GetMaterialTransferDetailsByDealer.
+                var jobCardStatus = rb != null && rb.RepairbillStatus == "Billed" ? "Closed" : "Open";
+
+                var preparedBy = !string.IsNullOrEmpty(r.Mt.CreatedBy) && userLookup.TryGetValue(r.Mt.CreatedBy, out var createdDealer)
+                    ? createdDealer : null;
+
+                var modifiedBy = !string.IsNullOrEmpty(r.Mt.UpdatedBy) && userLookup.TryGetValue(r.Mt.UpdatedBy, out var updatedDealer)
+                    ? updatedDealer : null;
+
+                return new MaterialTransferReportRowViewModel
+                {
+                    SrNo = srNo++,
+
+                    DealerCode = r.Jh.DealerCode,
+                    DealerName = r.Dm != null ? r.Dm.Compname : r.Jh.DealerCode,
+                    DealerCity = r.Dm?.City,
+                    DealerState = r.Dm?.State,
+
+                    JobId = r.Jh.Id,
+                    JobNo = r.Jh.JobNo,
+                    JobInvoiceNo = r.Jh.InvoiceNo,
+                    ChassisNo = r.Jh.Chassisno,
+                    RegisterNo = r.Jc?.RegisterNo,
+                    CustomerName = r.Jc?.CustomerName,
+                    CustomerMobile = r.Jc?.CustomerMobile,
+                    ServiceLocationCode = r.Jh.Serviceloc,
+                    ServiceLocationName = r.Loc != null ? r.Loc.Locname : r.Jh.Serviceloc,
+
+                    MaterialPrefix = r.Mt.MaterialPrefix,
+                    MaterialIssueNumber = (int)r.Mt.MaterialIssueNumber,
+                    TransferDate = r.Mt.CreatedDate,
+
+                    ItemCode = r.Im?.Itemcode,
+                    ItemName = r.Im?.Itemname,
+                    ItemDesc = r.Im?.Itemdesc,
+                    Hsncode = r.Im?.Hsncode,
+
+                    Quantity = r.Mt.Quantity,
+                    ItemRate = r.Mt.ItemRate,
+                    Amount = r.Mt.Quantity * r.Mt.ItemRate,
+
+                    SerialNo = r.Mt.SerialNo,
+                    Remarks = r.Mt.Remarks,
+                    ItemReceived = r.Mt.ItemReceived,
+                    ValidDays = r.Mt.ValidDays,
+                    RackNo = r.Mt.RackNo,
+                    Bin = r.Mt.Bin,
+
+                    TechnicianId = r.Mt.Technician,
+                    IssueType = r.Mt.IssueType,
+
+                    JobCardStatus = jobCardStatus,
+
+                    PreparedByDealerCode = preparedBy,
+                    ModifiedByDealerCode = modifiedBy
+                };
+            }).ToList();
+        }
     }
 }

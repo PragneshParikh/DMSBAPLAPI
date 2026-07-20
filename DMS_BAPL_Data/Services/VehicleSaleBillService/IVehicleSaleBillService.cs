@@ -27,11 +27,11 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<byte[]> DownloadSaleBillExcel(DateTime? dateFrom = null, DateTime? dateTo = null);
 
         Task<IEnumerable<string>> GetPolicyNo(string chassisNo);
-        Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId);
+        Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode,int ledgerId,string locCode);
         Task<VehicleSaleExportViewModel?> GetExportDetails(string dealerCode, int id);
         Task<byte[]> DownloadSaleBillPdf(int id);
         Task<byte[]> DownloadForm22Pdf(int id);
-
+        Task<List<VehicleSaleBillDeletionChecksViewModel>> GetVehicleDeletionPreRequisiteCheck(int saleBillId);
         Task<byte[]> DownloadExShowroomInvoicePdf(int id);
         Task<byte[]> DownloadMultipleSaleBills(List<int> ids);
 

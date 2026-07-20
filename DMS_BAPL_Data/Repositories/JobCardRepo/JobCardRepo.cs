@@ -78,6 +78,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return result;
         }
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
+        
         {
             try
             {
@@ -111,6 +112,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
 
                         where h.IsLotInspected == true
+                                    && h.IsD2d == null
                               && h.DealerCode == dealerCode
                               && v.SaleDate == null
                               && dealerLg.LedgerType == "Dealer"
@@ -387,6 +389,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     query = query.Where(x =>
                         x.c != null &&
                         x.c.RegisterNo.Contains(search.RegisterNo));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search.serviceLocation))
+                {
+                    query = query.Where(x =>
+                        x.loc != null &&
+                        x.loc.Locname.Contains(search.serviceLocation));
                 }
 
                 // Chassis No

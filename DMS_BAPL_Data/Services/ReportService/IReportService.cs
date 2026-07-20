@@ -72,6 +72,10 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter);
 
+
+        Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter);
+        Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter);
+
     }
     public class JobReportSummaryStats
     {
