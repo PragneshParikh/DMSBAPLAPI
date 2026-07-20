@@ -471,6 +471,7 @@ namespace DMS_BAPL_Data.Repositories.CounterBillRepo
                             ItemCode = detail.PartCode,
                             TransType = "TI",
                             BatchTransQty = (int)detail.Qty,
+                            DealerLocation=header.LocCode,
                             VendorCode = header.DealerCode,
                             CreatedBy = userName,
                             CreatedDate = DateTime.Now

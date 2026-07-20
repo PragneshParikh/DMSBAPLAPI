@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 {
@@ -209,8 +210,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             try
             {
                 return await _context.VehicleSaleBillHeaders
+                    .Where(x => x.IsDeleted == false)
                     .Include(x => x.VehicleSaleBillDetails)
-
                     .OrderByDescending(x => x.CreatedDate)
                     .ToListAsync();
             }
@@ -241,11 +242,79 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         {
             try
             {
-                var data = await _context.VehicleSaleBillHeaders.FindAsync(id);
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+                var data = await _context.VehicleSaleBillHeaders.Include(i => i.VehicleSaleBillDetails).Where(i => i.Id == id).FirstOrDefaultAsync();
+
                 if (data != null)
                 {
-                    _context.VehicleSaleBillHeaders.Remove(data);
+
+                    if (data.Status == "Invoiced")
+                    {
+                        var chassisNos = data.VehicleSaleBillDetails.Select(d => d.ChassisNo).ToList();
+                        var vehicleItemCodes = await _context.ChassisDetails.Where(v => v.ChassisNo != null && chassisNos.Contains(v.ChassisNo)).Select(v => v.ItemCode).ToListAsync();
+                        var groupedItems = vehicleItemCodes.GroupBy(x => x).Select(g => new
+                        {
+                            ItemCode = g.Key,
+                            Qty = g.Count()
+                        }).ToList();
+                        var invoice = await _context.InvoiceHeaders.Where(i => i.DocumentNo == data.SaleBillNo && i.ReferenceId == data.Id).FirstOrDefaultAsync();
+                        var ChassisList = await _context.VehicleSaleBillDetails.Where(i => i.VehicleSaleBillId == id).Select(i => i.ChassisNo).ToListAsync();
+                        var ChassisDetails = await _context.ChassisDetails.Where(i => (ChassisList).Contains(i.ChassisNo)).ToListAsync();
+                        foreach (var chassis in ChassisDetails)
+                        {
+                            chassis.SaleDate = null;
+                            chassis.LedgerId = null;
+                            chassis.RegNo = null;
+                            chassis.UpdatedDate = DateTime.Now;
+                            chassis.UpdatedBy = userId;
+                            if (data.IsD2d == true)
+                            {
+                                var receivingDealerCode = await _context.LedgerMasters.Where(i => i.Id == data.LedgerId).Select(i => i.DealerCode).FirstOrDefaultAsync();
+                                var ChassisD2DHistory = await _context.ChassisDetailsD2dhistories.Where(i => i.ChassisNo == chassis.ChassisNo && i.IssueingDealerCode == data.DealerCode && i.DealerCode == receivingDealerCode).OrderByDescending(i => i.CreatedDate).FirstOrDefaultAsync();
+                                var ChassisInward = await _context.VehicleInwards.Where(i => i.ChasisNo == chassis.ChassisNo && i.InvoiceNo == invoice.InvoiceNo).ToListAsync();
+                                foreach (var inward in ChassisInward)
+                                {
+                                    if (inward.IsAccepted == false)
+                                    {
+                                        foreach (var chassisDetailsToUpdate in ChassisDetails)
+                                        {
+                                            chassisDetailsToUpdate.DealerId = data.DealerCode;
+                                            chassisDetailsToUpdate.LocationCode = data.Location;
+                                        }
+                                        _context.VehicleInwards.RemoveRange(inward);
+                                    }
+                                    else
+                                    {
+                                        throw new Exception("Already Accepted by Dealer");
+                                    }
+                                }
+                                ChassisD2DHistory.IsDeleted = true;
+
+                            }
+
+                        }
+                        foreach (var item in groupedItems)
+                        {
+                            await _partInventoryService.UpdateIncoming(new PartsInventory
+                            {
+                                ItemCode = item.ItemCode,
+                                TransType = "SD",
+                                BatchTransQty = item.Qty,
+                                VendorCode = data.DealerCode,
+                                DealerLocation = data.Location,
+                                CreatedBy = userId,
+                                CreatedDate = DateTime.Now
+                            });
+                        }
+                    }
+                    data.Status = "Deleted";
+                    data.IsDeleted = true;
+                   
+                    data.DeletedDate = DateTime.Now;
+                    data.UpdatedDate = DateTime.Now;
+                    data.UpdatedBy = userId;
                     await _context.SaveChangesAsync();
+
                 }
             }
             catch
@@ -613,8 +682,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .ToList();
 
                 // Get ItemCodes from VehicleInward using chassis
-                var vehicleItemCodes = await _context.VehicleInwards
-                    .Where(v => v.ChasisNo != null && chassisNos.Contains(v.ChasisNo))
+                var vehicleItemCodes = await _context.ChassisDetails
+                    .Where(v => v.ChassisNo != null && chassisNos.Contains(v.ChassisNo))
                     .Select(v => v.ItemCode)
                     .ToListAsync();
                 var groupedItems = vehicleItemCodes
@@ -861,6 +930,73 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        //private async Task updateChassisForD2d(List<string> chassises, int? ledgerId, string dealerCode, string locationCode)
+        //{
+        //    try
+        //    {
+        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+        //        var receivingDealerCode = await _context.LedgerMasters.Where(i => i.Id == ledgerId).FirstOrDefaultAsync();
+
+        //        if (chassises == null || !chassises.Any())
+        //            return;
+
+        //        var chassisToMove = await _context.ChassisDetails
+        //            .Where(x => chassises.Contains(x.ChassisNo))
+        //            .ToListAsync();
+
+        //        if (!chassisToMove.Any())
+        //            return;
+
+        //        var historyRecords = chassisToMove.Select(x => new ChassisDetailsD2dhistory
+        //        {
+        //            LedgerId = x.LedgerId,
+        //            ChassisNo = x.ChassisNo,
+        //            ItemCode = x.ItemCode,
+        //            ItemName = x.ItemName,
+        //            ItemColor = x.ItemColor,
+        //            DealerCode = receivingDealerCode.DealerCode,
+        //            LocationCode = receivingDealerCode.DealerCode + "S1",
+        //            IssueingDealerCode = dealerCode,
+        //            IssueingDealerLocation = locationCode,
+        //            SaleDate = DateTime.Now,
+        //            TransDate = DateTime.Now,
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now,
+        //            UpdatedBy = x.UpdatedBy,
+        //            UpdatedDate = x.UpdatedDate
+        //        }).ToList();
+
+        //        await _context.ChassisDetailsD2dhistories.AddRangeAsync(historyRecords);
+
+        //        _context.ChassisDetails.RemoveRange(chassisToMove);
+
+        //        var newChassisRecords = chassisToMove.Select(x => new ChassisDetail
+        //        {
+        //            LedgerId = null,
+        //            ChassisNo = x.ChassisNo,
+        //            ItemCode = x.ItemCode,
+        //            ItemName = x.ItemName,
+        //            ItemColor = x.ItemColor,
+        //            DealerId = receivingDealerCode.DealerCode,
+        //            LocationCode = receivingDealerCode.DealerCode + "S1",
+        //            SaleDate = null,
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now,
+        //            UpdatedBy = null,
+        //            UpdatedDate = null,
+        //            RegNo = null
+        //        }).ToList();
+
+        //        await _context.ChassisDetails.AddRangeAsync(newChassisRecords);
+
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
         private async Task updateChassisForD2d(List<string> chassises, int? ledgerId, string dealerCode, string locationCode)
         {
             try
@@ -1036,7 +1172,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
-        //public 
         public async Task<VehicleSaleBillHeader> UpdateRegistrationAndReserveChassis(string? saleBillNo, List<UpdateSaleDetailsVM> updateSaleDetails)
         {
             try
@@ -1156,14 +1291,21 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     from vi in _context.VehicleInwards
                     join ch in _context.ChassisDetails
                         on vi.ChasisNo equals ch.ChassisNo
+                     join li in _context.LotinspectionHeaders
+                        on vi.InvoiceNo equals li.InvoiceNo 
                     join im in _context.ItemMasters
                         on vi.ItemCode equals im.Itemcode
+                   
                     join clr in _context.ColorMasters
                         on vi.ColrCode equals clr.Colorcode
 
                     join jc in _context.JobCardHeaders
                         on ch.ChassisNo equals jc.Chassisno into jcGroup
                     from jc in jcGroup.DefaultIfEmpty()
+
+                    join rp in _context.RepairBillHeaders
+                       on jc.Id equals rp.JobId into repairGroup
+                    from rp in repairGroup.DefaultIfEmpty()
 
                     join vd in _context.VehicleSaleBillDetails
                         on ch.ChassisNo equals vd.ChassisNo into vdGroup
@@ -1174,8 +1316,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     from vh in vhGroup.DefaultIfEmpty()
 
                     where latestVehicleInwardIds.Contains(vi.Id)
-                          && ch.SaleDate == null
-                          && (vh == null || vh.IsD2d == true || vh.Status == "PerformaCreated")
+                          && ch.SaleDate == null && li.IsLotInspected == true
+                          && (vh == null || vh.IsD2d == true || vh.Status == "PerformaCreated" || vh.IsDeleted == true)
                           && (string.IsNullOrEmpty(dealerCode) || vi.DealerCode == dealerCode)
 
                     select new
@@ -1201,10 +1343,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             CustomerPrice = vi.Custprice,
                             DealerCode = ch.DealerId,
                             CustomerSaleDate = ch.SaleDate,
-                            ProformaCreated = vh != null ? vh.SaleBillNo : null,
-                            PDIStatus = jc != null && jc.IsPdiSuccess == true
-                                ? "OK"
-                                : "Not Done",
+                            ProformaCreated = vh != null && !vh.IsDeleted ? vh.SaleBillNo : null,
+                            PDIStatus = jc != null && jc.IsPdiSuccess == true ? "OK" : "Not Done",
+                            RepairBillStatus = rp != null && rp.RepairbillStatus == "Billed"? "OK" : "Not Done",
                             LocationCode = ch.LocationCode,
                             IsD2D = vh.IsD2d
 
@@ -1393,7 +1534,60 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        public async Task<List<VehicleSaleBillDeletionChecksViewModel>> GetVehicleDeletionPreRequisiteCheck(int saleBillId)
+        {
+            try
+            {
+                var saleBill = await _context.VehicleSaleBillHeaders
+                    .Include(x => x.VehicleSaleBillDetails)
+                    .FirstOrDefaultAsync(x => x.Id == saleBillId);
+                InvoiceHeader? invoice = null;
+                VehicleInward? inward = null;
 
+                if (saleBill == null)
+                    return new List<VehicleSaleBillDeletionChecksViewModel>();
+                if (saleBill.IsD2d == true)
+                {
+                    invoice = await _context.InvoiceHeaders.Where(i => i.DocumentNo == saleBill.SaleBillNo && i.ReferenceId == saleBill.Id).FirstOrDefaultAsync();
+                    inward = await _context.VehicleInwards.Where(i => i.InvoiceNo == invoice.InvoiceNo).FirstOrDefaultAsync();
+                }
+
+                var chassisList = saleBill.VehicleSaleBillDetails
+                    .Select(x => x.ChassisNo)
+                    .Distinct()
+                    .ToList();
+
+                var jobCards = await _context.JobCardHeaders
+                    .Where(x => chassisList.Contains(x.Chassisno) && x.Jobtype != 1)
+                    .ToListAsync();
+
+                var chassisDetails = await _context.ChassisDetails
+                    .Where(x => chassisList.Contains(x.ChassisNo))
+                    .ToListAsync();
+
+                var result = chassisList.Select(chassis =>
+                {
+                    var jobCard = jobCards.FirstOrDefault(x => x.Chassisno == chassis);
+                    var chassisDetail = chassisDetails.FirstOrDefault(x => x.ChassisNo == chassis);
+
+
+                    return new VehicleSaleBillDeletionChecksViewModel
+                    {
+                        ChassisNo = chassis,
+                        JobCardNumber = jobCard != null ? $"{jobCard.Jobprefix}{jobCard.JobNo}" : null,
+                        IsJobCardOpened = jobCard != null,
+                        IsVDNDone = !string.IsNullOrEmpty(chassisDetail?.RegNo),
+                        IsAccepted = inward?.IsAccepted ?? false,
+                    };
+                }).ToList();
+
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
         public async Task<IEnumerable<string>> GetPolicyNo(string chassisNo)
         {
             try

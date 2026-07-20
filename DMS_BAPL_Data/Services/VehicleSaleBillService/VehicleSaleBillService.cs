@@ -20,6 +20,7 @@ using System.IO.Compression;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using DMS_BAPL_Data.Repositories.LocationMasterRepo;
 
 namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 {
@@ -31,6 +32,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         private readonly ILedgerMasterRepo _ledgerRepo;
         private readonly ITaxServices _taxService;
         private readonly IStateRepo _stateRepo;
+        private readonly ILocationMasterRepo _locationRepo;
         private readonly ICityRepo _cityRepo;
         private readonly IJobCardRepo _jobCardRepo;
         private readonly IHttpContextAccessor _contextAccessor;
@@ -42,7 +44,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         public VehicleSaleBillService(IVehicleSaleBillRepo repo, ILedgerMasterRepo ledgerRepo,
             IHttpContextAccessor contextAccessor, ITaxServices taxServices, ICityRepo cityRepo,
             IStateRepo stateRepo, IJobCardRepo jobCardRepo, IDealerMasterRepo dealerMaster,
-            IExcelService excelService, IPrefixRepo prefixRepo)
+            IExcelService excelService, IPrefixRepo prefixRepo, ILocationMasterRepo locationRepo)
         {
             _repo = repo;
             _ledgerRepo = ledgerRepo;
@@ -54,6 +56,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             _dealerRepo = dealerMaster;
             _excelService = excelService;
             _prefixRepo = prefixRepo;
+            _locationRepo = locationRepo;
         }
 
         public async Task<int> CreateAsync(VehicleSaleBillEditCreateViewModel model)
@@ -886,7 +889,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
-        public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId)
+        public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId, string locCode)
         {
             try
             {
@@ -895,8 +898,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 var rawData = await _repo.GetAllChassissListWithPDISatatus(dealerCode);
                 customer = await _ledgerRepo.GetLedgerById(ledgerId);
 
-                var dealerLocation = await _dealerRepo.GetDealerByCode(dealerCode);
-
+                var dealerLocation = await _locationRepo.GetLocationByCode(locCode);
+               // var dealerLocation = dealer.Where(i=>i.Loccode == locCode).Select(i=>i.Locname).FirstOrDefault();
                 var result = new List<ChassisListWithPDIStatus>();
 
                 //  group by ItemCode
@@ -944,6 +947,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         ProformaCreated = item.ProformaCreated,
                         LocationCode = item.LocationCode,
                         IsD2D = item.IsD2D,
+                        RepairBillStatus=item.RepairBillStatus,
 
 
                     };
@@ -1827,6 +1831,18 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     });
                 });
             }).GeneratePdf();
+        }
+
+        public async Task<List<VehicleSaleBillDeletionChecksViewModel>> GetVehicleDeletionPreRequisiteCheck(int saleBillId)
+        {
+            try
+            {
+                return await _repo.GetVehicleDeletionPreRequisiteCheck(saleBillId);
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }
