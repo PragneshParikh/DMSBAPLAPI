@@ -32,6 +32,17 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 && !dealerCode.Equals("undefined", StringComparison.OrdinalIgnoreCase)
                 && !dealerCode.Equals("null", StringComparison.OrdinalIgnoreCase);
 
+        private static int SafeParseInvoiceNo(string? documentNo)
+        {
+            if (string.IsNullOrWhiteSpace(documentNo))
+                return 0;
+
+            if (int.TryParse(documentNo, out var direct))
+                return direct;
+
+            var digitsOnly = new string(documentNo.Where(char.IsDigit).ToArray());
+            return int.TryParse(digitsOnly, out var parsed) ? parsed : 0;
+        }
         // ═════════════════════════════════════════════════════════════════════
         // NORMALIZED NAME MATCHING 
         // ═════════════════════════════════════════════════════════════════════
@@ -371,7 +382,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // ═════════════════════════════════════════════════════════════════════
 
         public async Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(
-            JobReportFilterModel filter)
+    JobReportFilterModel filter)
         {
             try
             {
@@ -384,21 +395,31 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                                     on jh.Servicehead equals sh.Id
                                 join st in _context.ServiceTypes
                                     on jh.Servicetype equals st.Id
-                                join inv in _context.InvoiceHeaders
-                                    on jh.Id equals inv.ReferenceId into invGroup
-                                from invoice in invGroup.DefaultIfEmpty()
-                                select new { jh, jc, jt, sh, st, invoice };
+                                join dm in _context.DealerMasters
+                                    on jh.DealerCode equals dm.Dealercode into dmGroup
+                                from dm in dmGroup.DefaultIfEmpty()
+                                join loc in _context.LocationMasters
+                                    on jh.Serviceloc equals loc.Loccode into locGroup
+                                from loc in locGroup.DefaultIfEmpty()
+                                join js in _context.JobSources
+                                    on jh.JobSource equals js.Id into jsGroup
+                                from js in jsGroup.DefaultIfEmpty()
+                                select new { jh, jc, jt, sh, st, dm, loc, js };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.jh.DealerCode == filter.DealerCode);
 
                 if (filter.FromDate.HasValue)
-                    baseQuery = baseQuery.Where(x =>
-                        (x.invoice != null ? x.invoice.CreatedDate : x.jh.CreatedDate) >= filter.FromDate.Value.Date);
+                {
+                    var from = DateOnly.FromDateTime(filter.FromDate.Value.Date);
+                    baseQuery = baseQuery.Where(x => x.jh.JobinDate >= from);
+                }
 
                 if (filter.ToDate.HasValue)
-                    baseQuery = baseQuery.Where(x =>
-                        (x.invoice != null ? x.invoice.CreatedDate : x.jh.CreatedDate) <= filter.ToDate.Value.Date.AddDays(1));
+                {
+                    var to = DateOnly.FromDateTime(filter.ToDate.Value.Date);
+                    baseQuery = baseQuery.Where(x => x.jh.JobinDate <= to);
+                }
 
                 if (!string.IsNullOrWhiteSpace(filter.ServiceLocation))
                     baseQuery = baseQuery.Where(x => x.jh.Serviceloc == filter.ServiceLocation);
@@ -418,63 +439,97 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var totalRecords = await baseQuery.CountAsync();
 
                 var pagedRows = await baseQuery
-                    .OrderByDescending(x => x.invoice != null ? x.invoice.CreatedDate : x.jh.CreatedDate)
+                    .OrderByDescending(x => x.jh.JobinDate)
                     .ThenByDescending(x => x.jh.JobNo)
                     .Skip((filter.PageIndex - 1) * filter.PageSize)
                     .Take(filter.PageSize)
                     .ToListAsync();
 
-                var invoiceIds = pagedRows
-                    .Where(r => r.invoice != null)
-                    .Select(r => r.invoice!.Id)
-                    .Distinct()
-                    .ToList();
+                var headerIds = pagedRows.Select(r => r.jh.Id).ToList();
+                var chassisNos = pagedRows.Select(r => r.jh.Chassisno).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
 
-                var invoiceDetails = await _context.InvoiceDetails
-                    .Where(d => invoiceIds.Contains(d.InvoiceId))
+                var batteryRows = await _context.JobCardBatteryDetails
+                    .Where(b => headerIds.Contains(b.JobCardHeaderId))
                     .ToListAsync();
+                var batteryLookup = batteryRows
+                    .GroupBy(b => b.JobCardHeaderId)
+                    .ToDictionary(g => g.Key, g => g.First().ChargerNo);
+
+                var complaintRows = await _context.JobCardComplaints
+                    .Where(c => headerIds.Contains(c.JobCardHeaderId))
+                    .ToListAsync();
+                var complaintLookup = complaintRows
+                    .GroupBy(c => c.JobCardHeaderId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var repairBillRows = await _context.RepairBillHeaders
+                    .Where(r => headerIds.Contains(r.JobId))
+                    .ToListAsync();
+                var repairBillLookup = repairBillRows
+                    .GroupBy(r => r.JobId)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
+
+                var ffirRows = await _context.Ffirheaders
+                    .Where(f => chassisNos.Contains(f.FfirchassisNo))
+                    .ToListAsync();
+                var ffirLookup = ffirRows
+                    .GroupBy(f => f.FfirchassisNo)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(f => f.CreatedDate).First());
 
                 int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
                 var data = pagedRows.Select(r =>
                 {
-                    var details = r.invoice != null
-                        ? invoiceDetails.Where(d => d.InvoiceId == r.invoice.Id).ToList()
-                        : new List<InvoiceDetail>();
+                    var complaints = complaintLookup.TryGetValue(r.jh.Id, out var cList) ? cList : new List<JobCardComplaint>();
+                    var rb = repairBillLookup.TryGetValue(r.jh.Id, out var rbVal) ? rbVal : null;
+                    var fr = r.jh.Chassisno != null && ffirLookup.TryGetValue(r.jh.Chassisno, out var frVal) ? frVal : null;
 
-                    var sparesAmount = details.Sum(d => (d.Quantity ?? 0) * (d.Rate ?? 0));
-                    var taxAmount = r.invoice?.TaxAmount ?? 0;
-                    var totalAmount = r.invoice?.TotalAmount ?? 0;
+                    string jobStatus =
+                        rb != null && rb.RepairbillStatus == "Billed" ? "Closed"
+                        : rb != null && rb.TotalNetAmount > 0 ? "Complete"
+                        : r.jh.IsMaterialTransfer == true ? "Material Transfer"
+                        : fr != null && fr.Ffirstatus == "Closed" ? "FFIR Closed"
+                        : fr != null ? "FFIR Created"
+                        : "Open";
 
                     return new JobReportViewModel
                     {
                         SrNo = srNo++,
-                        InvoiceNo = r.invoice != null ? Convert.ToInt32(r.invoice.DocumentNo) : 0,
-                        InvoiceDate = r.invoice != null ? r.invoice.CreatedDate : r.jh.CreatedDate,
                         JobNo = r.jh.JobNo ?? 0,
                         PartyName = r.jc.CustomerName,
                         PartyMobileNo = r.jc.CustomerMobile,
                         RegNo = r.jc.RegisterNo,
                         MechanicName = r.jh.Technician,
-                        InvoiceType = r.invoice?.InvoiceType ?? r.jt.JobTypeName,
-                        InvoiceMode = r.invoice?.ServiceType ?? r.sh.ServiceHeadName,
                         JobType = r.jt.JobTypeName,
                         ServiceHead = r.sh.ServiceHeadName,
                         ServiceType = r.st.ServiceTypeName,
                         ChassisNo = r.jh.Chassisno,
                         DealerCode = r.jh.DealerCode,
                         ServiceLocation = r.jh.Serviceloc,
-                        SparesAmount = sparesAmount,
-                        AcsrAmount = 0,
-                        OilAmount = 0,
-                        LabourAmount = 0,
-                        OutsideWorkAmount = 0,
-                        TaxableAmount = totalAmount,
-                        SGSTAmount = taxAmount / 2,
-                        CGSTAmount = taxAmount / 2,
                         JobInDate = r.jh.JobinDate.HasValue
                             ? r.jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
                         EstimatedDeliveryDate = r.jh.EstdelDate.HasValue
-                            ? r.jh.EstdelDate.Value.ToDateTime(TimeOnly.MinValue) : null
+                            ? r.jh.EstdelDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+
+                        DealerName = r.dm != null ? r.dm.Compname : null,
+                        DealerLocation = r.loc != null ? r.loc.Locname : r.jh.Serviceloc,
+                        City = r.dm != null ? r.dm.City : null,
+                        State = r.dm != null ? r.dm.State : null,
+                        Kms = r.jh.Vehiclekms,
+                        MotorNo = r.jc.MotorNo,
+                        BatteryNo = r.jc.BatteryNo,
+                        ChargerNo = batteryLookup.TryGetValue(r.jh.Id, out var chargerNo) ? chargerNo : null,
+                        CustomerVoice = complaints.Any()
+                            ? string.Join(", ", complaints.Select(c => c.CustomerVoice).Where(v => !string.IsNullOrWhiteSpace(v)))
+                            : null,
+                        CustomerCode = complaints.Any()
+                            ? string.Join(", ", complaints.Select(c => c.ComplaintCode).Where(v => !string.IsNullOrWhiteSpace(v)))
+                            : null,
+                        Observation = r.jh.Observation,
+                        SupervisorComment = r.jh.SupervisorComment,
+                        JobStatus = jobStatus,
+                        SaleDate = r.jc.SaleDate,
+                        SupervisorName = r.jh.Supervisor,
+                        JobCreationSource = r.js != null ? r.js.JobSourceName : null
                     };
                 }).ToList();
 
@@ -483,16 +538,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Data = data,
                     TotalRecords = totalRecords,
                     PageIndex = filter.PageIndex,
-                    PageSize = filter.PageSize,
-                    TotalSpares = data.Sum(x => x.SparesAmount),
-                    TotalAcsr = data.Sum(x => x.AcsrAmount),
-                    TotalOil = data.Sum(x => x.OilAmount),
-                    TotalLabour = data.Sum(x => x.LabourAmount),
-                    TotalOutsideWork = data.Sum(x => x.OutsideWorkAmount),
-                    TotalTaxable = data.Sum(x => x.TaxableAmount),
-                    TotalSGST = data.Sum(x => x.SGSTAmount),
-                    TotalCGST = data.Sum(x => x.CGSTAmount),
-                    GrandTotal = data.Sum(x => x.TaxableAmount + x.SGSTAmount + x.CGSTAmount)
+                    PageSize = filter.PageSize
                 };
             }
             catch (Exception ex)
@@ -508,43 +554,40 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
-                var query = BuildJobReportQuery();
+                var allData = await BuildJobReportQueryAsync();
+
+                IEnumerable<JobReportViewModel> query = allData;
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                     query = query.Where(x => x.DealerCode == dealerCode);
 
                 if (fromDate.HasValue)
-                    query = query.Where(x => x.InvoiceDate >= fromDate.Value.Date);
+                    query = query.Where(x => x.JobInDate >= fromDate.Value.Date);
 
                 if (toDate.HasValue)
-                    query = query.Where(x => x.InvoiceDate <= toDate.Value.Date.AddDays(1));
+                    query = query.Where(x => x.JobInDate <= toDate.Value.Date.AddDays(1));
 
-                var data = await query.ToListAsync();
+                var data = query.ToList();
 
                 return data
                     .GroupBy(x => x.DealerCode)
                     .Select(g => new DealerWiseJobReportSummary
                     {
                         DealerCode = g.Key,
-                        DealerName = g.First().PartyName,
+                        DealerName = g.First().DealerName,
                         TotalJobs = g.Count(),
-                        TotalSpares = g.Sum(x => x.SparesAmount),
-                        TotalLabour = g.Sum(x => x.LabourAmount),
-                        TotalTaxable = g.Sum(x => x.TaxableAmount),
-                        TotalSGST = g.Sum(x => x.SGSTAmount),
-                        TotalCGST = g.Sum(x => x.CGSTAmount),
-                        GrandTotal = g.Sum(x => x.TaxableAmount + x.SGSTAmount + x.CGSTAmount),
                         JobDetails = g.ToList()
                     })
-                    .OrderByDescending(x => x.GrandTotal)
+                    .OrderByDescending(x => x.TotalJobs)
                     .ToList();
             }
             catch (Exception ex)
             {
-                throw new Exception("Error fetching dealer wise job report", ex);
+                throw new Exception("Error fetching dealer wise job report: " + ex.Message, ex);
             }
         }
 
+        // ── RESTORED — pure wrapper, unchanged from the original file ──
         public async Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportByDealerAsync(
             string dealerCode,
             int pageIndex,
@@ -564,6 +607,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return await GetJobReportAsync(filter);
         }
 
+        // ── RESTORED — pure wrapper, unchanged from the original file ──
         public async Task<JobReportPagedResponse<JobReportViewModel>> GetFilteredJobReportAsync(
             JobReportFilterModel filter)
         {
@@ -577,26 +621,143 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         {
             try
             {
-                var query = BuildJobReportQuery();
+                var allData = await BuildJobReportQueryAsync();
+
+                IEnumerable<JobReportViewModel> query = allData;
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                     query = query.Where(x => x.DealerCode == dealerCode);
 
                 if (fromDate.HasValue)
-                    query = query.Where(x => x.InvoiceDate >= fromDate.Value.Date);
+                    query = query.Where(x => x.JobInDate >= fromDate.Value.Date);
 
                 if (toDate.HasValue)
-                    query = query.Where(x => x.InvoiceDate <= toDate.Value.Date.AddDays(1));
+                    query = query.Where(x => x.JobInDate <= toDate.Value.Date.AddDays(1));
 
-                return await query
-                    .OrderByDescending(x => x.InvoiceDate)
+                return query
+                    .OrderByDescending(x => x.JobInDate)
                     .ThenByDescending(x => x.JobNo)
-                    .ToListAsync();
+                    .ToList();
             }
             catch (Exception ex)
             {
-                throw new Exception("Error exporting report", ex);
+                throw new Exception("Error exporting report: " + ex.Message, ex);
             }
+        }
+
+        private async Task<List<JobReportViewModel>> BuildJobReportQueryAsync()
+        {
+            var query =
+                from jh in _context.JobCardHeaders
+                join jc in _context.JobCardCustomers
+                    on jh.Id equals jc.JobCardHeaderId
+                join jt in _context.JobTypes
+                    on jh.Jobtype equals jt.Id
+                join sh in _context.ServiceHeads
+                    on jh.Servicehead equals sh.Id
+                join st in _context.ServiceTypes
+                    on jh.Servicetype equals st.Id
+                join dm in _context.DealerMasters
+                    on jh.DealerCode equals dm.Dealercode into dmGroup
+                from dm in dmGroup.DefaultIfEmpty()
+                join loc in _context.LocationMasters
+                    on jh.Serviceloc equals loc.Loccode into locGroup
+                from loc in locGroup.DefaultIfEmpty()
+                join js in _context.JobSources
+                    on jh.JobSource equals js.Id into jsGroup
+                from js in jsGroup.DefaultIfEmpty()
+                select new { jh, jc, jt, sh, st, dm, loc, js };
+
+            var rows = await query.ToListAsync();
+
+            var headerIds = rows.Select(r => r.jh.Id).ToList();
+            var chassisNos = rows.Select(r => r.jh.Chassisno).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
+
+            var batteryRows = await _context.JobCardBatteryDetails
+                .Where(b => headerIds.Contains(b.JobCardHeaderId))
+                .ToListAsync();
+            var batteryLookup = batteryRows
+                .GroupBy(b => b.JobCardHeaderId)
+                .ToDictionary(g => g.Key, g => g.First().ChargerNo);
+
+            var complaintRows = await _context.JobCardComplaints
+                .Where(c => headerIds.Contains(c.JobCardHeaderId))
+                .ToListAsync();
+            var complaintLookup = complaintRows
+                .GroupBy(c => c.JobCardHeaderId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var repairBillRows = await _context.RepairBillHeaders
+                .Where(r => headerIds.Contains(r.JobId))
+                .ToListAsync();
+            var repairBillLookup = repairBillRows
+                .GroupBy(r => r.JobId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
+
+            var ffirRows = await _context.Ffirheaders
+                .Where(f => chassisNos.Contains(f.FfirchassisNo))
+                .ToListAsync();
+            var ffirLookup = ffirRows
+                .GroupBy(f => f.FfirchassisNo)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(f => f.CreatedDate).First());
+
+            var result = rows.Select(x =>
+            {
+                var complaints = complaintLookup.TryGetValue(x.jh.Id, out var cList) ? cList : new List<JobCardComplaint>();
+                var rb = repairBillLookup.TryGetValue(x.jh.Id, out var rbVal) ? rbVal : null;
+                var fr = x.jh.Chassisno != null && ffirLookup.TryGetValue(x.jh.Chassisno, out var frVal) ? frVal : null;
+
+                string jobStatus =
+                    rb != null && rb.RepairbillStatus == "Billed" ? "Closed"
+                    : rb != null && rb.TotalNetAmount > 0 ? "Complete"
+                    : x.jh.IsMaterialTransfer == true ? "Material Transfer"
+                    : fr != null && fr.Ffirstatus == "Closed" ? "FFIR Closed"
+                    : fr != null ? "FFIR Created"
+                    : "Open";
+
+                return new JobReportViewModel
+                {
+                    SrNo = x.jh.Id,
+                    JobNo = x.jh.JobNo ?? 0,
+                    PartyName = x.jc.CustomerName,
+                    PartyMobileNo = x.jc.CustomerMobile,
+                    RegNo = x.jc.RegisterNo,
+                    MechanicName = x.jh.Technician,
+                    JobType = x.jt.JobTypeName,
+                    ServiceHead = x.sh.ServiceHeadName,
+                    ServiceType = x.st.ServiceTypeName,
+                    ChassisNo = x.jh.Chassisno,
+                    DealerCode = x.jh.DealerCode,
+                    ServiceLocation = x.jh.Serviceloc,
+                    JobInDate = x.jh.JobinDate.HasValue
+                        ? x.jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    EstimatedDeliveryDate = x.jh.EstdelDate.HasValue
+                        ? x.jh.EstdelDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+
+                    DealerName = x.dm != null ? x.dm.Compname : null,
+                    DealerLocation = x.loc != null ? x.loc.Locname : x.jh.Serviceloc,
+                    City = x.dm != null ? x.dm.City : null,
+                    State = x.dm != null ? x.dm.State : null,
+                    Kms = x.jh.Vehiclekms,
+                    MotorNo = x.jc.MotorNo,
+                    BatteryNo = x.jc.BatteryNo,
+                    ChargerNo = batteryLookup.TryGetValue(x.jh.Id, out var chargerNo) ? chargerNo : null,
+                    CustomerVoice = complaints.Any()
+                        ? string.Join(", ", complaints.Select(c => c.CustomerVoice).Where(v => !string.IsNullOrWhiteSpace(v)))
+                        : null,
+                    CustomerCode = complaints.Any()
+                        ? string.Join(", ", complaints.Select(c => c.ComplaintCode).Where(v => !string.IsNullOrWhiteSpace(v)))
+                        : null,
+                    Observation = x.jh.Observation,
+                    SupervisorComment = x.jh.SupervisorComment,
+                    JobStatus = jobStatus,
+                    SaleDate = x.jc.SaleDate,
+                    SupervisorName = x.jh.Supervisor,
+                    JobCreationSource = x.js != null ? x.js.JobSourceName : null
+                };
+            }).ToList();
+
+            return result;
         }
 
         // ═════════════════════════════════════════════════════════════════════
@@ -1388,65 +1549,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // ═════════════════════════════════════════════════════════════════════
         // PRIVATE HELPERS
         // ═════════════════════════════════════════════════════════════════════
-
-        private IQueryable<JobReportViewModel> BuildJobReportQuery()
-        {
-            var query =
-                from jh in _context.JobCardHeaders
-                join jc in _context.JobCardCustomers
-                    on jh.Id equals jc.JobCardHeaderId
-                join jt in _context.JobTypes
-                    on jh.Jobtype equals jt.Id
-                join sh in _context.ServiceHeads
-                    on jh.Servicehead equals sh.Id
-                join st in _context.ServiceTypes
-                    on jh.Servicetype equals st.Id
-                join inv in _context.InvoiceHeaders
-                    on jh.Id equals inv.ReferenceId into invGroup
-                from invoice in invGroup.DefaultIfEmpty()
-                select new { jh, jc, jt, sh, st, invoice };
-
-            var result = query
-                .AsEnumerable()
-                .Select(x => new JobReportViewModel
-                {
-                    SrNo = x.jh.Id,
-                    InvoiceNo = x.invoice != null ? Convert.ToInt32(x.invoice.DocumentNo) : 0,
-                    InvoiceDate = x.invoice != null ? x.invoice.CreatedDate : x.jh.CreatedDate,
-                    JobNo = x.jh.JobNo ?? 0,
-                    PartyName = x.jc.CustomerName,
-                    PartyMobileNo = x.jc.CustomerMobile,
-                    RegNo = x.jc.RegisterNo,
-                    MechanicName = x.jh.Technician,
-                    InvoiceType = x.invoice != null ? x.invoice.InvoiceType : x.jt.JobTypeName,
-                    InvoiceMode = x.invoice != null ? x.invoice.ServiceType : x.sh.ServiceHeadName,
-                    JobType = x.jt.JobTypeName,
-                    ServiceHead = x.sh.ServiceHeadName,
-                    ServiceType = x.st.ServiceTypeName,
-                    ChassisNo = x.jh.Chassisno,
-                    DealerCode = x.jh.DealerCode,
-                    ServiceLocation = x.jh.Serviceloc,
-                    SparesAmount = x.invoice != null
-                        ? _context.InvoiceDetails
-                            .Where(d => d.InvoiceId == x.invoice.Id)
-                            .Sum(d => ((d.Quantity ?? 0) * (d.Rate ?? 0)))
-                        : 0,
-                    AcsrAmount = 0,
-                    OilAmount = 0,
-                    LabourAmount = 0,
-                    OutsideWorkAmount = 0,
-                    TaxableAmount = x.invoice != null ? x.invoice.TotalAmount ?? 0 : 0,
-                    SGSTAmount = x.invoice != null ? (x.invoice.TaxAmount ?? 0) / 2 : 0,
-                    CGSTAmount = x.invoice != null ? (x.invoice.TaxAmount ?? 0) / 2 : 0,
-                    JobInDate = x.jh.JobinDate.HasValue
-                        ? x.jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
-                    EstimatedDeliveryDate = x.jh.EstdelDate.HasValue
-                        ? x.jh.EstdelDate.Value.ToDateTime(TimeOnly.MinValue) : null
-                });
-
-            return result.AsQueryable();
-        }
-
         public async Task<List<PartsDispatchReportViewModel>> GetPartsDispatchReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode)
         {
             try

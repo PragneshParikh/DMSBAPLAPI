@@ -100,13 +100,23 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter == null)
                     return BadRequest(new { success = false, message = "Filter model is null" });
 
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                // ── Dealer restriction: override whatever the client sent ─────────
-                string dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                if (!string.IsNullOrEmpty(dealerCode))
-                    filter.DealerCode = dealerCode;
+                // ── Dealer restriction: non-admins are forced to their own dealer;
+                // SuperAdmin/Admin keep whatever the client actually selected
+                // (including empty = "All Dealers"). ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
                 // ─────────────────────────────────────────────────────────────────
 
                 _logger.LogInformation("Job Card Report API Called");
@@ -199,24 +209,25 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Export Job Card Report</summary>
         [HttpGet("job-card/export")]
         [ProducesResponseType(typeof(List<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportJobCardReport([FromQuery] string dealerCode,
-        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> ExportJobCardReport([FromQuery] string? dealerCode,
+                    [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-
-                // ── Dealer restriction ────────────────────────────────────────────
-                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                if (!string.IsNullOrEmpty(tokenDealerCode))
-                    dealerCode = tokenDealerCode;
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
                 // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetJobReportForExportAsync(dealerCode, fromDate, toDate);

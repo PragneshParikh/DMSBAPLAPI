@@ -115,9 +115,9 @@ namespace DMS_BAPL_Data.Services.ReportService
         }
 
         public async Task<JobReportSummaryStats> GetReportSummaryStatsAsync(
-            string dealerCode,
-            DateTime? fromDate,
-            DateTime? toDate)
+           string dealerCode,
+           DateTime? fromDate,
+           DateTime? toDate)
         {
             try
             {
@@ -127,21 +127,19 @@ namespace DMS_BAPL_Data.Services.ReportService
                     FromDate = fromDate,
                     ToDate = toDate,
                     PageIndex = 1,
-                    PageSize = 10000
+                    PageSize = 100000
                 };
 
                 var reportData = await _reportRepo.GetJobReportAsync(filter);
+                var completedStatuses = new[] { "Closed", "Complete", "FFIR Closed" };
+                var completedJobs = reportData.Data.Count(x => completedStatuses.Contains(x.JobStatus));
+                var pendingJobs = reportData.TotalRecords - completedJobs;
 
                 return new JobReportSummaryStats
                 {
                     TotalJobs = reportData.TotalRecords,
-                    TotalRevenue = reportData.GrandTotal,
-                    TotalTaxes = reportData.TotalSGST + reportData.TotalCGST,
-                    CompletedJobs = reportData.TotalRecords,
-                    PendingJobs = 0,
-                    AverageJobValue = reportData.TotalRecords > 0
-                        ? reportData.GrandTotal / reportData.TotalRecords
-                        : 0
+                    CompletedJobs = completedJobs,
+                    PendingJobs = pendingJobs
                 };
             }
             catch (Exception ex)
