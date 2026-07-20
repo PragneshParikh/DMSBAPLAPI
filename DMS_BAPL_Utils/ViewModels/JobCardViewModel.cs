@@ -288,6 +288,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateOnly? DateFrom { get; set; }
         public DateOnly? DateTo { get; set; }
         public int? JobNo { get; set; }
+        public string? serviceLocation { get; set; }
         public string? RegisterNo { get; set; }
         public string? ChassisNo { get; set; }
     }
