@@ -41,11 +41,12 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
 
                 int closingQty = partsInventory.TransType switch
                 {
-                    "P" => openingQty + partsInventory.BatchTransQty,
-                    "S" => openingQty - partsInventory.BatchTransQty,
-                    "TI" => openingQty + partsInventory.BatchTransQty,
-                    "TO" => openingQty - partsInventory.BatchTransQty,
-                    "PI" => openingQty - partsInventory.BatchTransQty,
+                    "P" => openingQty + partsInventory.BatchTransQty, // Purchase
+                    "S" => openingQty - partsInventory.BatchTransQty, // Sell
+                    "TI" => openingQty + partsInventory.BatchTransQty, // Touch point inward/CounterBill delete
+                    "TO" => openingQty - partsInventory.BatchTransQty, // Touch point out
+                    "PI" => openingQty - partsInventory.BatchTransQty, // Return the Parts,
+                    "SD" => openingQty + partsInventory.BatchTransQty, // Sale Bill is deleted
                     _ => throw new Exception("Invalid transaction type")
                 };
 

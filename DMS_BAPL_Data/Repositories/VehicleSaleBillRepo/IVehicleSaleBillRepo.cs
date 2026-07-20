@@ -33,5 +33,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         Task<Form22PdfModel?> GetForm22DataAsync(int id);
 
         Task<ProformaInvoicePdfModel?> GetProformaInvoiceDataAsync(int id);
+        Task<List<VehicleSaleBillDeletionChecksViewModel>> GetVehicleDeletionPreRequisiteCheck(int saleBillId);
     }
 }
