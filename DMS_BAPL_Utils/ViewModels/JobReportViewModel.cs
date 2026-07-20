@@ -7,15 +7,11 @@ using System.Threading.Tasks;
 namespace DMS_BAPL_Utils.ViewModels
 {
     /// <summary>
-    /// Job Card Report - Dealer Wise Table Format
+    /// Job Card Report — operational/customer view. No invoice or financial data.
     /// </summary>
     public class JobReportViewModel
     {
         public int SrNo { get; set; }
-
-        public int InvoiceNo { get; set; }
-
-        public DateTime? InvoiceDate { get; set; }
 
         public int JobNo { get; set; }
 
@@ -26,26 +22,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? RegNo { get; set; }
 
         public string? MechanicName { get; set; }
-
-        public string? InvoiceType { get; set; }
-
-        public string? InvoiceMode { get; set; }
-
-        public decimal SparesAmount { get; set; }
-
-        public decimal AcsrAmount { get; set; }
-
-        public decimal OilAmount { get; set; }
-
-        public decimal LabourAmount { get; set; }
-
-        public decimal OutsideWorkAmount { get; set; }
-
-        public decimal TaxableAmount { get; set; }
-
-        public decimal SGSTAmount { get; set; }
-
-        public decimal CGSTAmount { get; set; }
 
         public string? ChassisNo { get; set; }
 
@@ -62,6 +38,38 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? JobInDate { get; set; }
 
         public DateTime? EstimatedDeliveryDate { get; set; }
+
+        public string? DealerName { get; set; }
+
+        public string? DealerLocation { get; set; }
+
+        public string? City { get; set; }
+
+        public string? State { get; set; }
+
+        public int? Kms { get; set; }
+
+        public string? MotorNo { get; set; }
+
+        public string? BatteryNo { get; set; }
+
+        public string? ChargerNo { get; set; }
+
+        public string? CustomerVoice { get; set; }
+
+        public string? CustomerCode { get; set; }
+
+        public string? Observation { get; set; }
+
+        public string? SupervisorComment { get; set; }
+
+        public string? JobStatus { get; set; }
+
+        public DateTime? SaleDate { get; set; }
+
+        public string? SupervisorName { get; set; }
+
+        public string? JobCreationSource { get; set; }
     }
 
     /// <summary>
@@ -76,24 +84,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public int PageIndex { get; set; }
 
         public int PageSize { get; set; }
-
-        public decimal TotalSpares { get; set; }
-
-        public decimal TotalAcsr { get; set; }
-
-        public decimal TotalOil { get; set; }
-
-        public decimal TotalLabour { get; set; }
-
-        public decimal TotalOutsideWork { get; set; }
-
-        public decimal TotalTaxable { get; set; }
-
-        public decimal TotalSGST { get; set; }
-
-        public decimal TotalCGST { get; set; }
-
-        public decimal GrandTotal { get; set; }
     }
 
     /// <summary>
@@ -123,7 +113,7 @@ namespace DMS_BAPL_Utils.ViewModels
     }
 
     /// <summary>
-    /// Dealer Wise Summary Report
+    /// Dealer Wise Summary Report — job counts only, no financial data
     /// </summary>
     public class DealerWiseJobReportSummary
     {
@@ -132,18 +122,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerName { get; set; }
 
         public int TotalJobs { get; set; }
-
-        public decimal TotalSpares { get; set; }
-
-        public decimal TotalLabour { get; set; }
-
-        public decimal TotalTaxable { get; set; }
-
-        public decimal TotalSGST { get; set; }
-
-        public decimal TotalCGST { get; set; }
-
-        public decimal GrandTotal { get; set; }
 
         public List<JobReportViewModel> JobDetails { get; set; } = new List<JobReportViewModel>();
     }
