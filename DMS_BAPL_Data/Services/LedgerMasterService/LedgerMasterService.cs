@@ -170,5 +170,7 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
                 throw;
             }
         }
+
+        Task<IEnumerable<LedgerMaster>> ILedgerMasterService.GetLedgerByLedgerTypes(string[] ledgerTypes) => _ledgerMasterRepo.GetLedgerByLedgerTypes(ledgerTypes);
     }
 }

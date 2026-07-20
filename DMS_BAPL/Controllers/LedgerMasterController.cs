@@ -261,8 +261,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-
-
         [HttpGet("getLedgerForSale")]
         public async Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin)
         {
@@ -277,6 +275,7 @@ namespace DMS_BAPL_Api.Controllers
 
             }
         }
+
         [HttpGet("getD2DProvision")]
         public async Task<bool?> GetD2DProvisionAsync(string dealerCode)
         {
@@ -338,6 +337,32 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetLedgerByLedgerTypes")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLedgerByLedgerTypes([FromQuery] string[] ledgerTypes)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                string[] parsedTypes = ledgerTypes
+                    .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    .ToArray();
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var ledgers = await _ledgerMasterService.GetLedgerByLedgerTypes(parsedTypes);
+
+                return Ok(ledgers);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
     }
 }

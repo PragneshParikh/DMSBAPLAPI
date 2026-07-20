@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO.Hashing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -151,6 +152,14 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 Success = result > 0,
                 Message = result > 0 ? "Part inward saved successfully." : "Failed to save part inward."
             };
+        }
+
+        async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetPendingPartInwardDetailByLocation(string locationCode)
+        {
+            return await _context.PartsInwards
+                .AsNoTracking()
+                .Where(x => x.LocCode == locationCode && x.IsAccepted == false)
+                .ToListAsync();
         }
     }
 }

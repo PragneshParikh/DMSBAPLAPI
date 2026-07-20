@@ -23,6 +23,7 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<IEnumerable<PartsInward>> IPartInwardService.GetPartInwardByDealerAsync(string dealerCode) => _partInwardRepo.GetPartInwardByDealerAsync(dealerCode);
         Task<bool> IPartInwardService.UpdateByInvoice(string invoiceNo, string dealerCode) => _partInwardRepo.UpdateByInvoice(invoiceNo, dealerCode);
         Task<object> IPartInwardService.PartsInward(PartsInwardViewModel partsInwardViewModel) => _partInwardRepo.PartsInward(partsInwardViewModel);
+        Task<IEnumerable<PartsInward>> IPartInwardService.GetPendingPartInwardDetailByLocation(string locationCode) => _partInwardRepo.GetPendingPartInwardDetailByLocation(locationCode);
 
     }
 }

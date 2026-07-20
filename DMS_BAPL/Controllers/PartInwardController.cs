@@ -67,6 +67,29 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetPendingPartInwardDetailByLocation")]
+        [ProducesResponseType(typeof(IEnumerable<PartsInward>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPendingPartInwardDetailByLocation([FromQuery] string locationCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var parts = await _partInwardService.GetPendingPartInwardDetailByLocation(locationCode);
+
+                return Ok(parts);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         [HttpPost]
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
