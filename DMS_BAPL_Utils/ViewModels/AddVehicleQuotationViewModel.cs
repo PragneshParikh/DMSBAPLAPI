@@ -15,9 +15,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Address { get; set; }
         public int? StateId { get; set; }
         public int? CityId { get; set; }
+        public string? CustomerGSTNo { get; set; }
+        public string? CustomerPanNo { get; set; }
         public long ModelId { get; set; }
         public long VariantId { get; set; }
         public long? ColorId { get; set; }
+        public decimal CustPrice { get; set; }
+        public decimal Fame2Amount { get; set; }
+        public decimal SgstAmount { get; set; }
+        public decimal CgstAmount { get; set; }
+        public decimal IgstAmount { get; set; }
         public decimal ExShowroomPrice { get; set; }
         public decimal RTOCharges { get; set; }
         public decimal InsuranceAmount { get; set; }
