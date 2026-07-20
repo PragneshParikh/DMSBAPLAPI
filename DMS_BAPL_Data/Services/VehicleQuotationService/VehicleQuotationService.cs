@@ -18,18 +18,14 @@ namespace DMS_BAPL_Data.Services.VehicleQuotationService
             _vehicleQuotationRepo = vehicleQuotationRepo;
             _httpContextAccessor = httpContextAccessor;
         }
-
         public async Task<List<VehicleQuotationViewModel>> GetAllAsync(string? dealerCode = null)
         {
             var isAdmin = GetUserInfoFromToken.GetUserGroup(_httpContextAccessor.HttpContext);
-
             var effectiveDealerCode = isAdmin
                 ? dealerCode
                 : GetUserInfoFromToken.GetDealerCodeFromToken(_httpContextAccessor.HttpContext);
-
             return await _vehicleQuotationRepo.GetAllAsync(effectiveDealerCode);
         }
-
         public async Task<VehicleQuotationViewModel> GetByIdAsync(long id)
         {
             return await _vehicleQuotationRepo.GetByIdAsync(id);
@@ -52,6 +48,10 @@ namespace DMS_BAPL_Data.Services.VehicleQuotationService
         public async Task<bool> DeleteAsync(long id)
         {
             return await _vehicleQuotationRepo.DeleteAsync(id);
+        }
+        public async Task<VehicleQuotationPrintViewModel> GetPrintQuotationAsync(long quotationId)
+        {
+            return await _vehicleQuotationRepo.GetPrintQuotationAsync(quotationId);
         }
     }
 }

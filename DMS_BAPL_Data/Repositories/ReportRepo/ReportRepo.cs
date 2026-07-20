@@ -2749,10 +2749,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     IsD2D = x.vi.IsD2d == true
                 };
             }).ToList();
+
             allMapped = allMapped
                    .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
-                   .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase)) 
+                   .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase))
                    .ToList();
+
+            // NEW — "From Dealer" filter: the dealer that originally issued/sent the vehicle,
+            // independent of filter.DealerCode (which only matches the current/receiving dealer).
+            if (HasDealerFilter(filter.FromDealerCode))
+            {
+                allMapped = allMapped
+                    .Where(x => string.Equals(x.FromDealerCode, filter.FromDealerCode, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
 
             if (!string.IsNullOrWhiteSpace(filter.StockStatus))
             {
