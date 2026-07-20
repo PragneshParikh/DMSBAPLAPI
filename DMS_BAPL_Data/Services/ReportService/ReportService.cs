@@ -471,5 +471,33 @@ namespace DMS_BAPL_Data.Services.ReportService
         public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
             => await _reportRepo.GetD2DReportForExportAsync(filter);
 
+        // =================================================================
+        // MATERIAL TRANSFER REPORT
+        // =================================================================
+        public async Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetMaterialTransferReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching material transfer report");
+                throw;
+            }
+        }
+
+        public async Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetMaterialTransferReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting material transfer report");
+                throw;
+            }
+        }
     }
 }
