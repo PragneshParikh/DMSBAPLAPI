@@ -72,9 +72,13 @@ namespace DMS_BAPL_Data.Services.ReportService
 
         Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter);
 
-
+        // ── MATERIAL TRANSFER REPORT ──────────────────────────────────
         Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter);
         Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter);
+
+        // ── REPAIR BILL REPORT ────────────────────────────────────────
+        Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter);
+        Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter);
 
     }
     public class JobReportSummaryStats
@@ -87,4 +91,3 @@ namespace DMS_BAPL_Data.Services.ReportService
         public decimal AverageJobValue { get; set; }
     }
 }
-

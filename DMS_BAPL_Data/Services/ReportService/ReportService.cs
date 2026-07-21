@@ -499,5 +499,34 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        // =================================================================
+        // REPAIR BILL REPORT
+        // =================================================================
+        public async Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetRepairBillReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching repair bill report");
+                throw;
+            }
+        }
+
+        public async Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetRepairBillReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting repair bill report");
+                throw;
+            }
+        }
     }
 }

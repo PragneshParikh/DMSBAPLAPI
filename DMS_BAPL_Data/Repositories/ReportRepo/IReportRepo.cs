@@ -77,6 +77,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter);
         Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter);
 
+        // ── REPAIR BILL REPORT ────────────────────────────────────────
+        Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter);
+        Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter);
 
     }
 }

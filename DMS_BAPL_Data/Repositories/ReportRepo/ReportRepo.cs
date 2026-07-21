@@ -1,8 +1,7 @@
-﻿using DMS_BAPL_Data.CustomModel;
-using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Utils.ViewModels;
+﻿using DMS_BAPL_Data.DBModels;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
+using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Utils.ViewModels;
 using System.Text.RegularExpressions;
 
 namespace DMS_BAPL_Data.Repositories.ReportRepo
@@ -3123,6 +3122,303 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     PreparedByDealerCode = preparedBy,
                     ModifiedByDealerCode = modifiedBy
+                };
+            }).ToList();
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // REPAIR BILL REPORT — LINE-ITEM grain (one row per Part or Labour
+        // line on a bill). Part Code, Labour Code, Item Rate, GST and
+        // Discount are all per-line fields, not per-bill aggregates, so this
+        // report can't be built at the bill-header level.
+        // ═════════════════════════════════════════════════════════════════════
+
+        private class RepairBillDetailRawRow
+        {
+            public RepairBillDetail D { get; set; } = null!;
+            public RepairBillHeader Rbh { get; set; } = null!;
+            public JobCardHeader? Jh { get; set; }
+            public JobCardCustomer? Jc { get; set; }
+            public DealerMaster? Dm { get; set; }
+            public LocationMaster? Loc { get; set; }
+            public JobType? Jt { get; set; }
+            public ServiceHead? Sh { get; set; }
+            public ServiceType? St { get; set; }
+            public LedgerMaster? Cl { get; set; }
+            public ItemMaster? Pi { get; set; }
+            public LabourMaster? Lm { get; set; }
+            public PartWiseLabourMaster? Pwl { get; set; }
+        }
+
+        private IQueryable<RepairBillDetailRawRow> BuildRepairBillFilteredQuery(RepairBillReportFilterModel filter)
+        {
+            var query =
+                from d in _context.RepairBillDetails.AsNoTracking()
+                where d.RepairBillId.HasValue
+                join rbh in _context.RepairBillHeaders.AsNoTracking()
+                    on d.RepairBillId!.Value equals rbh.Id
+                join jh in _context.JobCardHeaders.AsNoTracking()
+                    on rbh.JobId equals jh.Id into jhJoin
+                from jh in jhJoin.DefaultIfEmpty()
+                join jc in _context.JobCardCustomers.AsNoTracking()
+                    on jh.Id equals jc.JobCardHeaderId into jcJoin
+                from jc in jcJoin.DefaultIfEmpty()
+                join dm in _context.DealerMasters.AsNoTracking()
+                    on rbh.DealerCode equals dm.Dealercode into dmJoin
+                from dm in dmJoin.DefaultIfEmpty()
+                join loc in _context.LocationMasters.AsNoTracking()
+                    on jh.Serviceloc equals loc.Loccode into locJoin
+                from loc in locJoin.DefaultIfEmpty()
+                join jt in _context.JobTypes.AsNoTracking()
+                    on jh.Jobtype equals jt.Id into jtJoin
+                from jt in jtJoin.DefaultIfEmpty()
+                join sh in _context.ServiceHeads.AsNoTracking()
+                    on jh.Servicehead equals sh.Id into shJoin
+                from sh in shJoin.DefaultIfEmpty()
+                join st in _context.ServiceTypes.AsNoTracking()
+                    on jh.Servicetype equals st.Id into stJoin
+                from st in stJoin.DefaultIfEmpty()
+                join cl in _context.LedgerMasters.AsNoTracking()
+                    on rbh.CustomerLedgerId equals cl.Id into clJoin
+                from cl in clJoin.DefaultIfEmpty()
+                select new RepairBillDetailRawRow
+                {
+                    D = d,
+                    Rbh = rbh,
+                    Jh = jh,
+                    Jc = jc,
+                    Dm = dm,
+                    Loc = loc,
+                    Jt = jt,
+                    Sh = sh,
+                    St = st,
+                    Cl = cl,
+                    Pi = d.PartItem,
+                    Lm = d.LabourMaster,
+                    Pwl = d.PartWiseLabour
+                };
+
+            if (HasDealerFilter(filter.DealerCode))
+                query = query.Where(x => x.Rbh.DealerCode == filter.DealerCode);
+
+            if (filter.FromDate.HasValue)
+                query = query.Where(x => x.Rbh.CreatedDate.HasValue && x.Rbh.CreatedDate.Value.Date >= filter.FromDate.Value.Date);
+
+            if (filter.ToDate.HasValue)
+                query = query.Where(x => x.Rbh.CreatedDate.HasValue && x.Rbh.CreatedDate.Value.Date <= filter.ToDate.Value.Date);
+
+            if (filter.BillNo.HasValue)
+                query = query.Where(x => x.Rbh.BillNo == filter.BillNo.Value);
+
+            if (filter.JobNo.HasValue)
+                query = query.Where(x => x.Jh != null && x.Jh.JobNo == filter.JobNo.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                query = query.Where(x => x.Jc != null && x.Jc.ChassisNo != null && x.Jc.ChassisNo.Contains(filter.ChassisNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.PartCode))
+                query = query.Where(x => x.Pi != null && x.Pi.Itemcode != null && x.Pi.Itemcode.Contains(filter.PartCode));
+
+            if (!string.IsNullOrWhiteSpace(filter.LabourCode))
+                query = query.Where(x =>
+                    (x.Lm != null && x.Lm.LabourCode != null && x.Lm.LabourCode.Contains(filter.LabourCode)) ||
+                    (x.Pwl != null && x.Pwl.LabourCode != null && x.Pwl.LabourCode.Contains(filter.LabourCode)));
+
+            if (!string.IsNullOrWhiteSpace(filter.JobStatus))
+            {
+                bool wantClosed = filter.JobStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase);
+                query = wantClosed
+                    ? query.Where(x => x.Rbh.RepairbillStatus == "Billed")
+                    : query.Where(x => x.Rbh.RepairbillStatus != "Billed");
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.PartyName))
+            {
+                // Same PDI-vs-ledger customer rule already used in GetRepairBillById.
+                query = query.Where(x =>
+                    (x.Jh != null && x.Jh.Jobtype == 1 && x.Jc != null && x.Jc.CustomerName != null && x.Jc.CustomerName.Contains(filter.PartyName)) ||
+                    ((x.Jh == null || x.Jh.Jobtype != 1) && x.Cl != null && x.Cl.LedgerName != null && x.Cl.LedgerName.Contains(filter.PartyName))
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var s = filter.Search.Trim();
+                query = query.Where(x =>
+                    (x.Jc != null && x.Jc.ChassisNo != null && x.Jc.ChassisNo.Contains(s)) ||
+                    (x.Rbh.BillNo.ToString().Contains(s)) ||
+                    (x.Jh != null && x.Jh.JobNo != null && x.Jh.JobNo.ToString().Contains(s)) ||
+                    (x.Pi != null && x.Pi.Itemcode != null && x.Pi.Itemcode.Contains(s)) ||
+                    (x.Lm != null && x.Lm.LabourCode != null && x.Lm.LabourCode.Contains(s)) ||
+                    (x.Pwl != null && x.Pwl.LabourCode != null && x.Pwl.LabourCode.Contains(s)) ||
+                    (x.Cl != null && x.Cl.LedgerName != null && x.Cl.LedgerName.Contains(s)) ||
+                    (x.Jc != null && x.Jc.CustomerName != null && x.Jc.CustomerName.Contains(s))
+                );
+            }
+
+            return query;
+        }
+
+        public async Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                var baseQuery = BuildRepairBillFilteredQuery(filter);
+
+                var totalRecords = await baseQuery.CountAsync();
+
+                var pagedRaw = await baseQuery
+                    .OrderByDescending(x => x.Rbh.CreatedDate)
+                    .ThenByDescending(x => x.Rbh.Id)
+                    .ThenBy(x => x.D.Id)
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToListAsync();
+
+                var data = MapRepairBillDetailRows(pagedRaw, (filter.PageIndex - 1) * filter.PageSize + 1);
+
+                return new RepairBillReportPagedResponse
+                {
+                    Data = data,
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+                    TotalItemRate = data.Sum(x => x.ItemRate),
+                    TotalCgstAmount = data.Sum(x => x.CgstAmount),
+                    TotalSgstAmount = data.Sum(x => x.SgstAmount),
+                    TotalIgstAmount = data.Sum(x => x.IgstAmount),
+                    TotalGstAmount = data.Sum(x => x.TotalGstAmount),
+                    TotalDiscount = data.Sum(x => x.Discount)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching repair bill report: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                var baseQuery = BuildRepairBillFilteredQuery(filter);
+
+                var allRaw = await baseQuery
+                    .OrderByDescending(x => x.Rbh.CreatedDate)
+                    .ThenByDescending(x => x.Rbh.Id)
+                    .ThenBy(x => x.D.Id)
+                    .ToListAsync();
+
+                return MapRepairBillDetailRows(allRaw, 1);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting repair bill report: " + ex.Message, ex);
+            }
+        }
+
+        private List<RepairBillReportRowViewModel> MapRepairBillDetailRows(List<RepairBillDetailRawRow> rows, int startingSrNo)
+        {
+            int srNo = startingSrNo;
+
+            return rows.Select(r =>
+            {
+                var isPart = string.Equals(r.D.ItemType, "Part", StringComparison.OrdinalIgnoreCase);
+                var isPdi = r.Jh != null && r.Jh.Jobtype == 1;
+
+                var customerName = isPdi ? r.Jc?.CustomerName : r.Cl?.LedgerName;
+                var customerMobile = isPdi ? r.Jc?.CustomerMobile : r.Cl?.MobileNumber;
+
+                decimal itemRate;
+                decimal discount;
+                string? partCode = null;
+                string? partDesc = null;
+                string? labourCode = null;
+                string? labourDesc = null;
+                decimal cgstPercent, sgstPercent, igstPercent;
+
+                if (isPart)
+                {
+                    itemRate = r.D.PartRate ?? 0;
+                    discount = r.D.PartDiscount ?? 0;
+                    partCode = r.Pi?.Itemcode;
+                    partDesc = r.Pi?.Itemdesc;
+                    // Deviates from GetRepairBillById, which leaves Part-row GST%
+                    // at 0 (it only resolves % from Labour/PartWiseLabour). This
+                    // uses ItemMaster's own Cgst/Sgst/Igst fields instead — see
+                    // the flag in the accompanying reply.
+                    cgstPercent = r.Pi?.Cgst ?? 0;
+                    sgstPercent = r.Pi?.Sgst ?? 0;
+                    igstPercent = r.Pi?.Igst ?? 0;
+                }
+                else
+                {
+                    itemRate = r.D.LabourRate ?? 0;
+                    discount = r.D.LabourDiscount ?? 0;
+                    labourCode = r.Lm?.LabourCode ?? r.Pwl?.LabourCode;
+                    labourDesc = r.Lm?.LabourDescription ?? r.Pwl?.LabourName;
+                    cgstPercent = r.Lm?.Cgst ?? r.Pwl?.Cgst ?? 0;
+                    sgstPercent = r.Lm?.Sgst ?? r.Pwl?.Sgst ?? 0;
+                    igstPercent = r.Lm?.Igst ?? r.Pwl?.Igst ?? 0;
+                }
+
+                var cgstAmount = r.D.Cgstamount ?? 0;
+                var sgstAmount = r.D.Sgstamount ?? 0;
+                var igstAmount = r.D.Igstamount ?? 0;
+
+                return new RepairBillReportRowViewModel
+                {
+                    SrNo = srNo++,
+
+                    RepairBillDetailId = r.D.Id,
+                    RepairBillId = r.Rbh.Id,
+
+                    DealerCode = r.Rbh.DealerCode,
+                    DealerName = r.Dm != null ? r.Dm.Compname : r.Rbh.DealerCode,
+                    DealerLocation = r.Loc != null ? r.Loc.Locname : r.Jh?.Serviceloc,
+                    City = r.Dm?.City,
+                    State = r.Dm?.State,
+
+                    JobDate = r.Jh != null && r.Jh.JobinDate.HasValue
+                        ? r.Jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    JobType = r.Jt?.JobTypeName,
+                    ServiceHead = r.Sh?.ServiceHeadName,
+                    ServiceType = r.St?.ServiceTypeName,
+
+                    CustomerName = customerName,
+                    CustomerMobile = customerMobile,
+                    ChassisNo = r.Jc?.ChassisNo,
+                    ModelDetails = r.Jc?.ModelName,
+
+                    JobStatus = r.Rbh.RepairbillStatus == "Billed" ? "Closed" : "Open",
+
+                    RepairBillNo = (r.Rbh.Prefix ?? "") + r.Rbh.BillNo,
+                    RepairBillDate = r.Rbh.CreatedDate,
+
+                    PartCode = partCode,
+                    PartCodeDescription = partDesc,
+
+                    IssueType = r.D.IssutypeId,
+
+                    ItemRate = itemRate,
+
+                    CgstPercent = cgstPercent,
+                    CgstAmount = cgstAmount,
+                    SgstPercent = sgstPercent,
+                    SgstAmount = sgstAmount,
+                    IgstPercent = igstPercent,
+                    IgstAmount = igstAmount,
+                    TotalGstAmount = cgstAmount + sgstAmount + igstAmount,
+
+                    Discount = discount,
+                    DiscountType = r.D.DiscountType,
+
+                    LabourCode = labourCode,
+                    LabourDescription = labourDesc,
+
+                    TechnicianName = r.Jh?.Technician,
+
+                    ItemType = r.D.ItemType
                 };
             }).ToList();
         }

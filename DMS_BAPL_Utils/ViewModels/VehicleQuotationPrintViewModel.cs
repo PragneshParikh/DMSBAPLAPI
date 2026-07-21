@@ -27,8 +27,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string StateName { get; set; }
         public int? CityId { get; set; }
         public string CityName { get; set; }
-        public string CustomerGSTNo { get; set; }   // NEW
-        public string CustomerPanNo { get; set; }   // NEW
+        public string? CustomerGSTNo { get; set; }
+        public string? CustomerPanNo { get; set; }
         // Vehicle
         public long ModelId { get; set; }
         public string ModelName { get; set; }
@@ -58,6 +58,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal OtherCharges { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal ExchangeAmount { get; set; }
+        // NEW
+        public string? OldCompanyName { get; set; }
+        public string? OldModelName { get; set; }
         public decimal HypothecationAmount { get; set; }
         public decimal PlateAmount { get; set; }
         public decimal HandlingCharges { get; set; }
