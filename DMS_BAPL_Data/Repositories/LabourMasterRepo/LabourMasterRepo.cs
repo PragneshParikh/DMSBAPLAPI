@@ -592,6 +592,73 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
             )).ToList();
             return labourRateDropDowns.Concat(partWiseLabourRateDropDowns).ToList();
         }
+
+        public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourRateMasterExportDataAsync(
+            string? oemModelName = null,
+            int? cityTier = null)
+        {
+            var query =
+                from p in _context.PartWiseLabourMasters.AsNoTracking()
+                join jt in _context.JobTypes.AsNoTracking()
+                    on p.JobType equals jt.Id into jtJoin
+                from jt in jtJoin.DefaultIfEmpty()
+                join sh in _context.ServiceHeads.AsNoTracking()
+                    on p.ServiceHead equals sh.Id into shJoin
+                from sh in shJoin.DefaultIfEmpty()
+                join st in _context.ServiceTypes.AsNoTracking()
+                    on p.ServiceType equals st.Id into stJoin
+                from st in stJoin.DefaultIfEmpty()
+                select new PartWiseLabourMasterRateViewModel
+                {
+                    Id = p.Id,
+                    LabourCode = p.LabourCode,
+                    LabourName = p.LabourName,
+                    PartCode = p.PartCode,
+                    PartDescription = p.PartDescription,
+
+                    // FIX: entity property is ModelName, ViewModel is oemModelName
+                    oemModelName = p.ModelName,
+
+                    CityTier = p.CityTier,
+                    LabourRate = p.LabourRate,
+
+                    // FIX: entity property is LabourHrs, ViewModel is LabourHours
+                    LabourHours = p.LabourHrs,
+
+                    Cgst = p.Cgst,
+                    Sgst = p.Sgst,
+                    Igst = p.Igst,
+                    JobType = p.JobType,
+                    DealerCode = p.DealerCode,
+
+                    // FIX: entity property is Hsncode, ViewModel is HSNCode
+                    HSNCode = p.Hsncode,
+
+                    EffectiveDate = p.EffectiveDate,
+                    ServiceHead = p.ServiceHead,
+                    Servicetype = p.ServiceType,
+                    IsActive = p.IsActive,
+
+                    JobTypeName = jt != null ? jt.JobTypeName : null,
+                    ServiceHeadName = sh != null ? sh.ServiceHeadName : null,
+                    ServicetypeName = st != null ? st.ServiceTypeName : null,
+
+                    CreatedDate = p.CreatedDate,
+                    UpdatedBy = p.UpdatedBy,
+                    UpdatedDate = p.UpdatedDate ?? p.CreatedDate ?? DateTime.MinValue
+                };
+
+            if (!string.IsNullOrWhiteSpace(oemModelName))
+                query = query.Where(x => x.oemModelName == oemModelName);
+
+            if (cityTier.HasValue)
+                query = query.Where(x => x.CityTier == cityTier.Value);
+
+            return await query
+                .OrderBy(x => x.oemModelName)
+                .ThenBy(x => x.LabourCode)
+                .ToListAsync();
+        }
     }
 }
 
