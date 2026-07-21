@@ -3653,5 +3653,186 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
             }).ToList();
         }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // COMPARISON REPORT — Performa vs Sale Bill, derived entirely from
+        // ═════════════════════════════════════════════════════════════════════
+
+        private class ComparisonRawRow
+        {
+            public string ChassisNo { get; set; } = null!;
+            public VehicleSaleBillHeader Header { get; set; } = null!;
+            public DealerMaster? Dm { get; set; }
+            public LocationMaster? Loc { get; set; }
+            public LedgerMaster? Lm { get; set; }
+        }
+
+        private async Task<List<ComparisonRawRow>> BuildComparisonRawRowsAsync(ComparisonReportFilterModel filter)
+        {
+            var query =
+                from d in _context.VehicleSaleBillDetails.AsNoTracking()
+                join h in _context.VehicleSaleBillHeaders.AsNoTracking()
+                    on d.VehicleSaleBillId equals h.Id
+                where !h.IsDeleted && (h.BillType == 1 || h.BillType == 2)
+                join dm in _context.DealerMasters.AsNoTracking()
+                    on h.DealerCode equals dm.Dealercode into dmJoin
+                from dm in dmJoin.DefaultIfEmpty()
+                join loc in _context.LocationMasters.AsNoTracking()
+                    on h.Location equals loc.Loccode into locJoin
+                from loc in locJoin.DefaultIfEmpty()
+                join lm in _context.LedgerMasters.AsNoTracking()
+                    on h.LedgerId equals lm.Id into lmJoin
+                from lm in lmJoin.DefaultIfEmpty()
+                select new ComparisonRawRow
+                {
+                    ChassisNo = d.ChassisNo,
+                    Header = h,
+                    Dm = dm,
+                    Loc = loc,
+                    Lm = lm
+                };
+
+            if (HasDealerFilter(filter.DealerCode))
+                query = query.Where(x => x.Header.DealerCode == filter.DealerCode);
+
+            if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                query = query.Where(x => x.ChassisNo.Contains(filter.ChassisNo));
+
+            if (!string.IsNullOrWhiteSpace(filter.CustomerName))
+                query = query.Where(x => x.Header.CustomerName != null && x.Header.CustomerName.Contains(filter.CustomerName));
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                var data = await BuildComparisonRowsAsync(filter);
+
+                var totalRecords = data.Count;
+
+                var paged = data
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
+                foreach (var row in paged) row.SrNo = srNo++;
+
+                return new ComparisonReportPagedResponse
+                {
+                    Data = paged,
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize,
+                    TotalWithPerforma = data.Count(x => x.IsPerformaCreated),
+                    TotalSaleBillCreated = data.Count(x => x.IsSaleBillCreated)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching comparison report: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                var data = await BuildComparisonRowsAsync(filter);
+
+                int srNo = 1;
+                foreach (var row in data) row.SrNo = srNo++;
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting comparison report: " + ex.Message, ex);
+            }
+        }
+        private async Task<List<ComparisonReportRowViewModel>> BuildComparisonRowsAsync(ComparisonReportFilterModel filter)
+        {
+            var rawRows = await BuildComparisonRawRowsAsync(filter);
+
+            var grouped = rawRows
+                .Where(x => !string.IsNullOrWhiteSpace(x.ChassisNo))
+                .GroupBy(x => x.ChassisNo)
+                .Select(g =>
+                {
+                    var performa = g.Where(x => x.Header.BillType == 1)
+                                     .OrderByDescending(x => x.Header.CreatedDate)
+                                     .FirstOrDefault();
+
+                    var saleBill = g.Where(x => x.Header.BillType == 2)
+                                     .OrderByDescending(x => x.Header.CreatedDate)
+                                     .FirstOrDefault();
+
+                    // Prefer the Sale Bill row for display fields (dealer/customer/etc.);
+                    // fall back to the Performa row if no Sale Bill exists yet.
+                    var primary = saleBill ?? performa!;
+
+                    return new
+                    {
+                        ChassisNo = g.Key,
+                        Performa = performa,
+                        SaleBill = saleBill,
+                        Primary = primary
+                    };
+                })
+                .ToList();
+
+            // Date range filters apply against whichever row is "current" for that
+            // deal (Sale Bill date if it exists, else the Performa date), so a
+            // Performa-only deal isn't silently dropped just because its Performa
+            // date falls outside a range meant for the invoice date.
+            if (filter.FromDate.HasValue)
+                grouped = grouped.Where(x => x.Primary.Header.SaleDate.Date >= filter.FromDate.Value.Date).ToList();
+
+            if (filter.ToDate.HasValue)
+                grouped = grouped.Where(x => x.Primary.Header.SaleDate.Date <= filter.ToDate.Value.Date).ToList();
+
+            if (filter.PerformaCreated.HasValue)
+                grouped = filter.PerformaCreated.Value
+                    ? grouped.Where(x => x.Performa != null).ToList()
+                    : grouped.Where(x => x.Performa == null).ToList();
+
+            var mapped = grouped.Select(x => new ComparisonReportRowViewModel
+            {
+                VehicleSaleBillId = x.Primary.Header.Id,
+
+                DealerCode = x.Primary.Header.DealerCode,
+                DealerName = x.Primary.Dm != null ? x.Primary.Dm.Compname : x.Primary.Header.DealerCode,
+                DealerLocation = x.Primary.Loc != null ? x.Primary.Loc.Locname : x.Primary.Header.Location,
+                City = x.Primary.Dm?.City,
+                State = x.Primary.Dm?.State,
+
+                CustomerName = x.Primary.Header.CustomerName,
+                CustomerMobile = x.Primary.Lm?.MobileNumber,
+                ChassisNo = x.ChassisNo,
+
+                IsPerformaCreated = x.Performa != null,
+                PerformaCreatedDate = x.Performa?.Header.SaleDate,
+
+                IsSaleBillCreated = x.SaleBill != null,
+                SaleBillCreatedDate = x.SaleBill?.Header.SaleDate
+            }).ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var s = filter.Search.Trim().ToLower();
+                mapped = mapped.Where(x =>
+                    (x.ChassisNo ?? "").ToLower().Contains(s) ||
+                    (x.CustomerName ?? "").ToLower().Contains(s) ||
+                    (x.DealerCode ?? "").ToLower().Contains(s) ||
+                    (x.DealerName ?? "").ToLower().Contains(s)
+                ).ToList();
+            }
+
+            return mapped
+                .OrderByDescending(x => x.SaleBillCreatedDate ?? x.PerformaCreatedDate)
+                .ToList();
+        }
     }
 }
