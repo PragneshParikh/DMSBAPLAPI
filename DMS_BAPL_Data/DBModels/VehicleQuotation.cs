@@ -45,17 +45,16 @@ public partial class VehicleQuotation
     public int? StateId { get; set; }
     public int? CityId { get; set; }
 
-    // NEW — persisted pricing breakdown, captured at save time. Printing
-    // reads these instead of re-joining ItemMaster, so a reprinted
-    // quotation always matches what the customer actually agreed to, even
-    // if the item's price/GST rate/FAME2 amount changes later in master data.
     public decimal? CustPrice { get; set; }
     public decimal? Fame2Amount { get; set; }
     public decimal? SgstAmount { get; set; }
     public decimal? CgstAmount { get; set; }
     public decimal? IgstAmount { get; set; }
 
-    // NEW — customer tax identifiers, captured directly on the quotation form
     public string? CustomerGSTNo { get; set; }
     public string? CustomerPanNo { get; set; }
+
+    // NEW — captured inside the Exchange section of the quotation form
+    public string? OldCompanyName { get; set; }
+    public string? OldModelName { get; set; }
 }
