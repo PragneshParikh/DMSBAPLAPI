@@ -53,5 +53,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+
+        // FIX: these were never returned by GetAll/GetById at all — meaning
+        // reopening a saved quotation for edit silently blanked out Exchange
+        // Amount and the entire Finance section, even though both were
+        // correctly persisted. The Angular edit-load code was already
+        // written expecting financeCompanyId; it just never received it.
+        public bool IsExchange { get; set; }
+        public decimal ExchangeAmount { get; set; }
+        public bool IsFinance { get; set; }
+        public long? FinanceCompanyId { get; set; }
+        public decimal? LoanAmount { get; set; }
+        public decimal? DownPayment { get; set; }
+
+        // NEW — captured inside the Exchange section
+        public string? OldCompanyName { get; set; }
+        public string? OldModelName { get; set; }
     }
 }
