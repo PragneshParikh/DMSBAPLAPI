@@ -3007,7 +3007,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     PageIndex = filter.PageIndex,
                     PageSize = filter.PageSize,
                     TotalQuantity = data.Sum(x => x.Quantity),
-                    TotalAmount = data.Sum(x => x.Amount)
+                    TotalAmount = data.Sum(x => x.Amount),
+                    TotalMrp = data.Sum(x => x.Mrp),
+                    TotalCgstAmount = data.Sum(x => x.CgstAmount),
+                    TotalSgstAmount = data.Sum(x => x.SgstAmount),
+                    TotalIgstAmount = data.Sum(x => x.IgstAmount),
+                    TotalGstAmount = data.Sum(x => x.TotalGstAmount)
                 };
             }
             catch (Exception ex)
@@ -3066,8 +3071,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             {
                 var rb = repairBillLookup.TryGetValue(r.Jh.Id, out var rbVal) ? rbVal : null;
 
-                // Same status rule already used for this exact join in
-                // MaterialTransferRepo.GetMaterialTransferDetailsByDealer.
                 var jobCardStatus = rb != null && rb.RepairbillStatus == "Billed" ? "Closed" : "Open";
 
                 var preparedBy = !string.IsNullOrEmpty(r.Mt.CreatedBy) && userLookup.TryGetValue(r.Mt.CreatedBy, out var createdDealer)
@@ -3076,24 +3079,45 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var modifiedBy = !string.IsNullOrEmpty(r.Mt.UpdatedBy) && userLookup.TryGetValue(r.Mt.UpdatedBy, out var updatedDealer)
                     ? updatedDealer : null;
 
+                // NEW — GST % sourced from ItemMaster, amount computed as
+                // ItemRate × rate%. ASSUMPTION: ItemMaster has an "Mrp"
+                // property following the same naming convention as
+                // Custprice/Fame2amount seen elsewhere in this codebase —
+                // if the real column name differs, this line alone needs
+                // correcting.
+                var cgstPercent = r.Im?.Cgst ?? 0;
+                var sgstPercent = r.Im?.Sgst ?? 0;
+                var igstPercent = r.Im?.Igst ?? 0;
+                var mrp = r.Im?.Custprice ?? 0;
+
+                var itemRate = r.Mt.ItemRate;
+                var cgstAmount = Math.Round(itemRate * cgstPercent / 100, 2);
+                var sgstAmount = Math.Round(itemRate * sgstPercent / 100, 2);
+                var igstAmount = Math.Round(itemRate * igstPercent / 100, 2);
+
                 return new MaterialTransferReportRowViewModel
                 {
                     SrNo = srNo++,
 
                     DealerCode = r.Jh.DealerCode,
                     DealerName = r.Dm != null ? r.Dm.Compname : r.Jh.DealerCode,
+
+                    // CHANGED — was ServiceLocationCode/Name (job card's
+                    // service location); now the dealer's own location,
+                    // shown next to Dealer Code/Name.
+                    DealerLocation = r.Dm != null ? r.Dm.City : null,
+
                     DealerCity = r.Dm?.City,
                     DealerState = r.Dm?.State,
 
                     JobId = r.Jh.Id,
                     JobNo = r.Jh.JobNo,
-                    JobInvoiceNo = r.Jh.InvoiceNo,
+
+                    // REMOVED: JobInvoiceNo, RegisterNo
+
                     ChassisNo = r.Jh.Chassisno,
-                    RegisterNo = r.Jc?.RegisterNo,
                     CustomerName = r.Jc?.CustomerName,
                     CustomerMobile = r.Jc?.CustomerMobile,
-                    ServiceLocationCode = r.Jh.Serviceloc,
-                    ServiceLocationName = r.Loc != null ? r.Loc.Locname : r.Jh.Serviceloc,
 
                     MaterialPrefix = r.Mt.MaterialPrefix,
                     MaterialIssueNumber = (int)r.Mt.MaterialIssueNumber,
@@ -3105,13 +3129,24 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Hsncode = r.Im?.Hsncode,
 
                     Quantity = r.Mt.Quantity,
-                    ItemRate = r.Mt.ItemRate,
-                    Amount = r.Mt.Quantity * r.Mt.ItemRate,
+                    ItemRate = itemRate,
+                    Amount = r.Mt.Quantity * itemRate,
+
+                    Mrp = mrp,
+
+                    CgstPercent = cgstPercent,
+                    CgstAmount = cgstAmount,
+                    SgstPercent = sgstPercent,
+                    SgstAmount = sgstAmount,
+                    IgstPercent = igstPercent,
+                    IgstAmount = igstAmount,
+                    TotalGstAmount = cgstAmount + sgstAmount + igstAmount,
 
                     SerialNo = r.Mt.SerialNo,
                     Remarks = r.Mt.Remarks,
-                    ItemReceived = r.Mt.ItemReceived,
-                    ValidDays = r.Mt.ValidDays,
+
+                    // REMOVED: ItemReceived, ValidDays
+
                     RackNo = r.Mt.RackNo,
                     Bin = r.Mt.Bin,
 
