@@ -413,7 +413,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         {
             if (isD2D == true)
             {
-               
+
                 var chassisNo = await _context.VehicleInwards
                     .Where(x => x.InvoiceNo == invoiceNo)
                     .Select(x => x.ChasisNo)
@@ -422,7 +422,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 if (string.IsNullOrWhiteSpace(chassisNo))
                     return Enumerable.Empty<LedgerMaster>();
 
-              
+
                 var issuingDealerCode = await _context.ChassisDetailsD2dhistories
                     .Where(x => x.ChassisNo == chassisNo)
                     .Select(x => x.IssueingDealerCode)
@@ -432,7 +432,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 if (string.IsNullOrWhiteSpace(issuingDealerCode))
                     return Enumerable.Empty<LedgerMaster>();
 
-                
+
                 return await _context.LedgerMasters
                     .AsNoTracking()
                     .Where(x => x.DealerCode == issuingDealerCode
@@ -562,5 +562,12 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         //    }
         //}
 
+        async Task<IEnumerable<LedgerMaster>> ILedgerMasterRepo.GetLedgerByLedgerTypes(string[] ledgerTypes)
+        {
+            return await _context.LedgerMasters
+                .AsNoTracking()
+                .Where(x => ledgerTypes.Contains(x.LedgerType))
+                .ToListAsync();
+        }
     }
 }

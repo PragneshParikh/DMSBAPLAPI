@@ -92,7 +92,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 MobileNo = q.MobileNo,
                                 EmailId = q.EmailId,
                                 Address = q.Address,
-                                CustomerGSTNo = q.CustomerGSTNo,
+                                CustomerGSTNo = q.CustomerGstno,
                                 CustomerPanNo = q.CustomerPanNo,
                                 StateId = q.StateId,
                                 StateName = state != null ? state.StateName : null,
@@ -185,7 +185,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 MobileNo = q.MobileNo,
                                 EmailId = q.EmailId,
                                 Address = q.Address,
-                                CustomerGSTNo = q.CustomerGSTNo,
+                                CustomerGSTNo = q.CustomerGstno,
                                 CustomerPanNo = q.CustomerPanNo,
                                 StateId = q.StateId,
                                 StateName = state != null ? state.StateName : null,
@@ -253,7 +253,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 MobileNo = model.MobileNo,
                 EmailId = model.EmailId,
                 Address = model.Address,
-                CustomerGSTNo = model.CustomerGSTNo,
+                CustomerGstno = model.CustomerGSTNo,
                 CustomerPanNo = model.CustomerPanNo,
                 ModelId = model.ModelId,
                 VariantId = model.VariantId,
@@ -313,7 +313,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.MobileNo = model.MobileNo;
             existing.EmailId = model.EmailId;
             existing.Address = model.Address;
-            existing.CustomerGSTNo = model.CustomerGSTNo;
+            existing.CustomerGstno = model.CustomerGSTNo;
             existing.CustomerPanNo = model.CustomerPanNo;
             existing.ModelId = model.ModelId;
             existing.StateId = model.StateId;
@@ -460,7 +460,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 CityId = quotation.CityId,
                 CityName = city?.CityName ?? "",
 
-                CustomerGSTNo = quotation.CustomerGSTNo,
+                CustomerGSTNo = quotation.CustomerGstno,
                 CustomerPanNo = quotation.CustomerPanNo,
 
                 ModelId = quotation.ModelId,

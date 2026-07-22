@@ -26,5 +26,6 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? invoiceNo, bool? IsD2D);
         Task<bool?> GetD2DProvision(string? dealerCode);
         Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
+        Task<IEnumerable<LedgerMaster>> GetLedgerByLedgerTypes(string[] ledgerTypes);
     }
 }

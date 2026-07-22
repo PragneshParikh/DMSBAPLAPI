@@ -81,5 +81,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter);
         Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter);
 
+        // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
+        Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
+        Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
     }
 }

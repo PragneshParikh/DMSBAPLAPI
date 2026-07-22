@@ -435,44 +435,55 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
             }
         }
 
-        public async Task<List<LabourMasteUpdateViewModel>> GetLabourMasterModelwiseList()
+        public async Task<List<LabourMasteUpdateViewModel>> GetLabourMasterModelwiseList(string? searchText)
         {
-            var LaboorRateModelwiseListingdata = await (from labour in _context.LabourMasters
-                                                        join jobType in _context.JobTypes on labour.Jobtype equals jobType.Id into jobTypeJoin
-                                                        from jobType in jobTypeJoin.DefaultIfEmpty()
-                                                        join serviceHead in _context.ServiceHeads on labour.ServiceHead equals serviceHead.Id into serviceHeadJoin
-                                                        from serviceHead in serviceHeadJoin.DefaultIfEmpty()
-                                                        join serviceType in _context.ServiceTypes on labour.ServiceType equals serviceType.Id into serviceTypeJoin
-                                                        from serviceType in serviceTypeJoin.DefaultIfEmpty()
+            var LaboorRateModelwiseListingdata = from labour in _context.LabourMasters
+                                                 join jobType in _context.JobTypes on labour.Jobtype equals jobType.Id into jobTypeJoin
+                                                 from jobType in jobTypeJoin.DefaultIfEmpty()
+                                                 join serviceHead in _context.ServiceHeads on labour.ServiceHead equals serviceHead.Id into serviceHeadJoin
+                                                 from serviceHead in serviceHeadJoin.DefaultIfEmpty()
+                                                 join serviceType in _context.ServiceTypes on labour.ServiceType equals serviceType.Id into serviceTypeJoin
+                                                 from serviceType in serviceTypeJoin.DefaultIfEmpty()
 
-                                                        select new LabourMasteUpdateViewModel
-                                                        {
-                                                            Id = labour.Id,
-                                                            LabourCode = labour.LabourCode,
-                                                            LabourDescription = labour.LabourDescription,
-                                                            LabourRate = labour.LabourRate,
-                                                            HSNCode = labour.Hsncode,
-                                                            Cgst = labour.Cgst,
-                                                            Sgst = labour.Sgst,
-                                                            Igst = labour.Igst,
-                                                            EffectiveDate = labour.EffectiveDate,
-                                                            CreatedDate = labour.CreatedDate,
-                                                            OemModelName = labour.Oemmodelname,
-                                                            CityTier = labour.CityTier,
-                                                            JobTypeName = jobType != null ? jobType.JobTypeName : null,
-                                                            ServiceHeadName = serviceHead != null ? serviceHead.ServiceHeadName : null,
-                                                            ServicetypeName = serviceType != null ? serviceType.ServiceTypeName : null,
-                                                            IsLabourRateActive = labour.IsLabourActive
-                                                        }).ToListAsync();
-
-            return LaboorRateModelwiseListingdata;
+                                                 select new LabourMasteUpdateViewModel
+                                                 {
+                                                     Id = labour.Id,
+                                                     LabourCode = labour.LabourCode,
+                                                     LabourDescription = labour.LabourDescription,
+                                                     LabourRate = labour.LabourRate,
+                                                     HSNCode = labour.Hsncode,
+                                                     Cgst = labour.Cgst,
+                                                     Sgst = labour.Sgst,
+                                                     Igst = labour.Igst,
+                                                     EffectiveDate = labour.EffectiveDate,
+                                                     CreatedDate = labour.CreatedDate,
+                                                     OemModelName = labour.Oemmodelname,
+                                                     CityTier = labour.CityTier,
+                                                     JobTypeName = jobType != null ? jobType.JobTypeName : null,
+                                                     ServiceHeadName = serviceHead != null ? serviceHead.ServiceHeadName : null,
+                                                     ServicetypeName = serviceType != null ? serviceType.ServiceTypeName : null,
+                                                     IsLabourRateActive = labour.IsLabourActive
+                                                 };
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                searchText = searchText.Trim().ToLower();
+                LaboorRateModelwiseListingdata = LaboorRateModelwiseListingdata.Where(x =>
+                    (x.LabourCode != null && x.LabourCode.ToLower().Contains(searchText)) ||
+                    (x.LabourDescription != null && x.LabourDescription.ToLower().Contains(searchText)) ||
+                    (x.OemModelName != null && x.OemModelName.ToLower().Contains(searchText)) ||
+                    (x.JobTypeName != null && x.JobTypeName.ToLower().Contains(searchText)) ||
+                    (x.ServiceHeadName != null && x.ServiceHeadName.ToLower().Contains(searchText)) ||
+                    (x.ServicetypeName != null && x.ServicetypeName.ToLower().Contains(searchText))
+                );
+            }
+            return await LaboorRateModelwiseListingdata.ToListAsync();
 
 
         }
 
-        public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourMasterPartwiseList()
+        public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourMasterPartwiseList(string? searchText)
         {
-            var LaboorRatePartwiseListingdata = await (from partwiselabour in _context.PartWiseLabourMasters
+            var LaboorRatePartwiseListingdata = from partwiselabour in _context.PartWiseLabourMasters
                                                        join jobType in _context.JobTypes on partwiselabour.JobType equals jobType.Id into jobTypeJoin
                                                        from jobType in jobTypeJoin.DefaultIfEmpty()
                                                        join serviceHead in _context.ServiceHeads on partwiselabour.ServiceHead equals serviceHead.Id into serviceHeadJoin
@@ -501,8 +512,23 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                                                            EffectiveDate = partwiselabour.EffectiveDate,
                                                            CreatedDate = partwiselabour.CreatedDate,
                                                            IsActive = partwiselabour.IsActive
-                                                       }).ToListAsync();
-            return LaboorRatePartwiseListingdata;
+                                                       };
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                searchText = searchText.Trim();
+                LaboorRatePartwiseListingdata = LaboorRatePartwiseListingdata.Where(x =>
+                    (x.LabourCode != null && x.LabourCode.ToLower().Contains(searchText)) ||
+                    (x.LabourName != null && x.LabourName.ToLower().Contains(searchText)) ||
+                    (x.PartCode != null && x.PartCode.ToLower().Contains(searchText)) ||
+                    (x.PartDescription != null && x.PartDescription.ToLower().Contains(searchText)) ||
+                    (x.oemModelName != null && x.oemModelName.ToLower().Contains(searchText)) ||
+                    (x.JobTypeName != null && x.JobTypeName.ToLower().Contains(searchText)) ||
+                    (x.ServiceHeadName != null && x.ServiceHeadName.ToLower().Contains(searchText)) ||
+                    (x.ServicetypeName != null && x.ServicetypeName.ToLower().Contains(searchText))
+                );
+            }
+
+                return await LaboorRatePartwiseListingdata.ToListAsync();
 
 
         }
@@ -591,6 +617,73 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                 x.OemModelName.Trim().Contains(modelName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
             )).ToList();
             return labourRateDropDowns.Concat(partWiseLabourRateDropDowns).ToList();
+        }
+
+        public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourRateMasterExportDataAsync(
+            string? oemModelName = null,
+            int? cityTier = null)
+        {
+            var query =
+                from p in _context.PartWiseLabourMasters.AsNoTracking()
+                join jt in _context.JobTypes.AsNoTracking()
+                    on p.JobType equals jt.Id into jtJoin
+                from jt in jtJoin.DefaultIfEmpty()
+                join sh in _context.ServiceHeads.AsNoTracking()
+                    on p.ServiceHead equals sh.Id into shJoin
+                from sh in shJoin.DefaultIfEmpty()
+                join st in _context.ServiceTypes.AsNoTracking()
+                    on p.ServiceType equals st.Id into stJoin
+                from st in stJoin.DefaultIfEmpty()
+                select new PartWiseLabourMasterRateViewModel
+                {
+                    Id = p.Id,
+                    LabourCode = p.LabourCode,
+                    LabourName = p.LabourName,
+                    PartCode = p.PartCode,
+                    PartDescription = p.PartDescription,
+
+                    // FIX: entity property is ModelName, ViewModel is oemModelName
+                    oemModelName = p.ModelName,
+
+                    CityTier = p.CityTier,
+                    LabourRate = p.LabourRate,
+
+                    // FIX: entity property is LabourHrs, ViewModel is LabourHours
+                    LabourHours = p.LabourHrs,
+
+                    Cgst = p.Cgst,
+                    Sgst = p.Sgst,
+                    Igst = p.Igst,
+                    JobType = p.JobType,
+                    DealerCode = p.DealerCode,
+
+                    // FIX: entity property is Hsncode, ViewModel is HSNCode
+                    HSNCode = p.Hsncode,
+
+                    EffectiveDate = p.EffectiveDate,
+                    ServiceHead = p.ServiceHead,
+                    Servicetype = p.ServiceType,
+                    IsActive = p.IsActive,
+
+                    JobTypeName = jt != null ? jt.JobTypeName : null,
+                    ServiceHeadName = sh != null ? sh.ServiceHeadName : null,
+                    ServicetypeName = st != null ? st.ServiceTypeName : null,
+
+                    CreatedDate = p.CreatedDate,
+                    UpdatedBy = p.UpdatedBy,
+                    UpdatedDate = p.UpdatedDate ?? p.CreatedDate ?? DateTime.MinValue
+                };
+
+            if (!string.IsNullOrWhiteSpace(oemModelName))
+                query = query.Where(x => x.oemModelName == oemModelName);
+
+            if (cityTier.HasValue)
+                query = query.Where(x => x.CityTier == cityTier.Value);
+
+            return await query
+                .OrderBy(x => x.oemModelName)
+                .ThenBy(x => x.LabourCode)
+                .ToListAsync();
         }
     }
 }

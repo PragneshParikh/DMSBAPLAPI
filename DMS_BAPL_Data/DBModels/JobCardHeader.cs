@@ -55,9 +55,13 @@ public partial class JobCardHeader
 
     public string? SupervisorComment { get; set; }
 
+    public string? InwardType { get; set; }
+
     public bool? IsPdiSuccess { get; set; }
 
     public bool? IsMaterialTransfer { get; set; }
+
+    public bool? IsDelete { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 

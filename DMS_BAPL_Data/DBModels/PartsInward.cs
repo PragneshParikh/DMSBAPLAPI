@@ -40,4 +40,24 @@ public partial class PartsInward
     public string DealerCode { get; set; } = null!;
 
     public bool? IsAccepted { get; set; }
+
+    public string? CreatedBy { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    public DateTime? UpdatedDate { get; set; }
+
+    public DateTime? ReceiptDate { get; set; }
+
+    public string? PrefixNo { get; set; }
+
+    public string? DocumentNo { get; set; }
+
+    public string? PartyName { get; set; }
+
+    public string? SourceType { get; set; }
+
+    public string? PoType { get; set; }
 }

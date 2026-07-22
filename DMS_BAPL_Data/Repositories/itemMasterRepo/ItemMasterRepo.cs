@@ -754,6 +754,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         IM.Custprice,
                         IM.Grpidno,
                         IM.Colorcode,
+                        IM.MinOrderQty,
 
                         BatchClosingQty = PI != null
                             ? PI.BatchClosingQty
