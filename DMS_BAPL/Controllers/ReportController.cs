@@ -100,13 +100,23 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter == null)
                     return BadRequest(new { success = false, message = "Filter model is null" });
 
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                // ── Dealer restriction: override whatever the client sent ─────────
-                string dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                if (!string.IsNullOrEmpty(dealerCode))
-                    filter.DealerCode = dealerCode;
+                // ── Dealer restriction: non-admins are forced to their own dealer;
+                // SuperAdmin/Admin keep whatever the client actually selected
+                // (including empty = "All Dealers"). ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
                 // ─────────────────────────────────────────────────────────────────
 
                 _logger.LogInformation("Job Card Report API Called");
@@ -199,24 +209,25 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Export Job Card Report</summary>
         [HttpGet("job-card/export")]
         [ProducesResponseType(typeof(List<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportJobCardReport([FromQuery] string dealerCode,
-        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> ExportJobCardReport([FromQuery] string? dealerCode,
+                    [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-
-                // ── Dealer restriction ────────────────────────────────────────────
-                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                if (!string.IsNullOrEmpty(tokenDealerCode))
-                    dealerCode = tokenDealerCode;
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
                 // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetJobReportForExportAsync(dealerCode, fromDate, toDate);
@@ -926,6 +937,241 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error exporting D2D report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // MATERIAL TRANSFER REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("material-transfer")]
+        [ProducesResponseType(typeof(MaterialTransferReportPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetMaterialTransferReport([FromBody] MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                // ── Dealer restriction: non-admins are forced to their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("Material Transfer Report API called");
+
+                var result = await _reportService.GetMaterialTransferReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching material transfer report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Export Material Transfer Report (unpaged, full dataset matching current filters)</summary>
+        [HttpPost("material-transfer/export")]
+        [ProducesResponseType(typeof(List<MaterialTransferReportRowViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportMaterialTransferReport([FromBody] MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Material Transfer Report Export API called");
+
+                var result = await _reportService.GetMaterialTransferReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting material transfer report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // REPAIR BILL REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("repair-bill")]
+        [ProducesResponseType(typeof(RepairBillReportPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetRepairBillReport([FromBody] RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Repair Bill Report API called");
+
+                var result = await _reportService.GetRepairBillReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching repair bill report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Export Repair Bill Report (unpaged, full dataset matching current filters)</summary>
+        [HttpPost("repair-bill/export")]
+        [ProducesResponseType(typeof(List<RepairBillReportRowViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportRepairBillReport([FromBody] RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Repair Bill Report Export API called");
+
+                var result = await _reportService.GetRepairBillReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting repair bill report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // COMPARISON REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("comparison-report")]
+        [ProducesResponseType(typeof(ComparisonReportPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetComparisonReport([FromBody] ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Comparison Report API called");
+
+                var result = await _reportService.GetComparisonReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching comparison report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("comparison-report/export")]
+        [ProducesResponseType(typeof(List<ComparisonReportRowViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportComparisonReport([FromBody] ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Comparison Report Export API called");
+
+                var result = await _reportService.GetComparisonReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting comparison report");
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }

@@ -2,6 +2,7 @@
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.InkML;
+using MailKit.Search;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -120,7 +121,8 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                 //  Search filter
                 if (!string.IsNullOrWhiteSpace(pdicheckName))
                 {
-                    query = query.Where(x => x.PdicheckName.Contains(pdicheckName));
+                    query = query.Where(x => x.PdicheckName.Contains(pdicheckName) ||
+                    (x.OemModel != null && x.OemModel.ModelName.ToLower().Contains(pdicheckName.ToLower())));
                 }
 
                 //  Select projection

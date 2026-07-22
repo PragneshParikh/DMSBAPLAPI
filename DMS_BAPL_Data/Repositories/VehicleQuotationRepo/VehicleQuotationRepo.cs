@@ -83,8 +83,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 VehicleQuotationId = q.Id,
                                 QuotationNo = q.QuotationNo,
                                 QuotationDate = q.QuotationDate,
+                                DealerId = q.DealerId,
                                 DealerCode = dealer != null ? dealer.Dealercode : null,
                                 DealerName = dealer != null ? dealer.Compname : null,
+                                Status = q.Status,
                                 CustomerId = q.CustomerId,
                                 CustomerName = q.CustomerName,
                                 MobileNo = q.MobileNo,
@@ -128,7 +130,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 CreatedBy = q.CreatedBy,
                                 CreatedDate = q.CreatedDate,
                                 UpdatedBy = q.ModifiedBy,
-                                UpdatedDate = q.ModifiedDate
+                                UpdatedDate = q.ModifiedDate,
+
+                                // FIX: previously missing — see class-level comment
+                                IsExchange = q.IsExchange,
+                                ExchangeAmount = q.ExchangeAmount,
+                                IsFinance = q.IsFinance,
+                                FinanceCompanyId = q.FinanceCompanyId,
+                                LoanAmount = q.LoanAmount,
+                                DownPayment = q.DownPayment,
+
+                                // NEW
+                                OldCompanyName = q.OldCompanyName,
+                                OldModelName = q.OldModelName
                             };
 
                 return await query.ToListAsync();
@@ -180,7 +194,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 ModelId = q.ModelId,
                                 ModelName = model != null ? model.ModelName : null,
                                 VariantId = q.VariantId,
-                                VariantName = null,
+                                VariantName = null, // TODO: join Variant table once entity/DbSet is available
                                 ColorId = q.ColorId,
                                 ColorName = color != null ? color.Colorname : null,
                                 CustPrice = q.CustPrice ?? 0,
@@ -207,7 +221,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 CreatedBy = q.CreatedBy,
                                 CreatedDate = q.CreatedDate,
                                 UpdatedBy = q.ModifiedBy,
-                                UpdatedDate = q.ModifiedDate
+                                UpdatedDate = q.ModifiedDate,
+
+                                // FIX: previously missing — see class-level comment
+                                IsExchange = q.IsExchange,
+                                ExchangeAmount = q.ExchangeAmount,
+                                IsFinance = q.IsFinance,
+                                FinanceCompanyId = q.FinanceCompanyId,
+                                LoanAmount = q.LoanAmount,
+                                DownPayment = q.DownPayment,
+
+                                // NEW
+                                OldCompanyName = q.OldCompanyName,
+                                OldModelName = q.OldModelName
                             };
 
                 return await query.FirstOrDefaultAsync();
@@ -251,6 +277,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 TotalAmount = model.TotalAmount,
                 IsExchange = model.IsExchange,
                 ExchangeAmount = model.ExchangeAmount,
+                // NEW
+                OldCompanyName = model.OldCompanyName,
+                OldModelName = model.OldModelName,
                 IsFinance = model.IsFinance,
                 FinanceCompanyId = model.FinanceCompanyId,
                 LoanAmount = model.LoanAmount,
@@ -308,6 +337,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.TotalAmount = model.TotalAmount;
             existing.IsExchange = model.IsExchange;
             existing.ExchangeAmount = model.ExchangeAmount;
+            // NEW
+            existing.OldCompanyName = model.OldCompanyName;
+            existing.OldModelName = model.OldModelName;
             existing.IsFinance = model.IsFinance;
             existing.FinanceCompanyId = model.FinanceCompanyId;
             existing.LoanAmount = model.LoanAmount;
@@ -341,9 +373,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             catch { throw; }
         }
 
-        // =====================================
-        // PRINT QUOTATION
-        // =====================================
         public async Task<VehicleQuotationPrintViewModel> GetPrintQuotationAsync(long quotationId)
         {
             var quotation = await _context.VehicleQuotations
@@ -456,10 +485,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                 TaxAmount = quotation.TaxAmount,
 
-                //--------------------------------------------------
-                // Charges
-                //--------------------------------------------------
-
                 ExShowroomPrice = quotation.ExShowroomPrice,
 
                 RTOCharges = quotation.Rtocharges,
@@ -478,15 +503,15 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
                 ExchangeAmount = quotation.ExchangeAmount,
 
+                // NEW
+                OldCompanyName = quotation.OldCompanyName,
+                OldModelName = quotation.OldModelName,
+
                 HypothecationAmount = quotation.HypothecationAmount ?? 0,
 
                 PlateAmount = quotation.PlateAmount ?? 0,
 
                 HandlingCharges = quotation.HandlingCharges ?? 0,
-
-                //--------------------------------------------------
-                // Finance
-                //--------------------------------------------------
 
                 IsFinance = quotation.IsFinance,
 
@@ -497,8 +522,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 LoanAmount = quotation.LoanAmount ?? 0,
 
                 DownPayment = quotation.DownPayment ?? 0,
-
-                //--------------------------------------------------
 
                 TotalAmount = quotation.TotalAmount,
 

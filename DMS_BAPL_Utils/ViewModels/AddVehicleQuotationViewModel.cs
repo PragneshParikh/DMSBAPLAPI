@@ -37,6 +37,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal TotalAmount { get; set; }
         public bool IsExchange { get; set; }
         public decimal ExchangeAmount { get; set; }
+        // NEW — captured inside the Exchange section
+        public string? OldCompanyName { get; set; }
+        public string? OldModelName { get; set; }
         public bool IsFinance { get; set; }
         public long? FinanceCompanyId { get; set; }
         public decimal LoanAmount { get; set; }

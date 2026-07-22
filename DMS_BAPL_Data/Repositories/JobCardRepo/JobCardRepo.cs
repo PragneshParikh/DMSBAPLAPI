@@ -3,7 +3,10 @@ using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Crypto.Engines;
 using QuestPDF.Infrastructure;
@@ -75,9 +78,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return result;
         }
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
+
         {
             try
             {
+                Console.WriteLine("Dealer Code: {0}", dealerCode);
                 if (jobTypeId == 1)
                 {
                     // ===================== PDI =====================
@@ -108,9 +113,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
 
                         where h.IsLotInspected == true
-                              && h.DealerCode == dealerCode
-                              && v.SaleDate == null
-                              && dealerLg.LedgerType == "Dealer"
+                                    && h.IsD2d == null
+                                    && v.SaleDate == null
+                                    && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+                                    && dealerLg.LedgerType == "Dealer"
 
                         select new LotInspectionChassisVM
                         {
@@ -143,65 +149,65 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 {
                     // ===================== SALE / SERVICE =====================
                     var data = await (
-                        from h in _context.LotinspectionHeaders
+                    from h in _context.LotinspectionHeaders
 
-                        join d in _context.LotinspectionDetails
-                            on h.Id equals d.LotHeaderId
+                    join d in _context.LotinspectionDetails
+                    on h.Id equals d.LotHeaderId
 
-                        join v in _context.ChassisDetails
-                            on d.ChassisNo equals v.ChassisNo
+                    join v in _context.ChassisDetails
+                    on d.ChassisNo equals v.ChassisNo
 
-                        join i in _context.ItemMasters
-                            on v.ItemCode equals i.Itemcode
+                    join i in _context.ItemMasters
+                    on v.ItemCode equals i.Itemcode
 
-                        join vc in _context.VehicleInwards
-                            on v.ChassisNo equals vc.ChasisNo
+                    join vsd in _context.VehicleSaleBillDetails
+                    on d.ChassisNo equals vsd.ChassisNo
 
-                        join vsd in _context.VehicleSaleBillDetails
-                            on d.ChassisNo equals vsd.ChassisNo
+                    join vsh in _context.VehicleSaleBillHeaders
+                    on vsd.VehicleSaleBillId equals vsh.Id
 
-                        join vsh in _context.VehicleSaleBillHeaders
-                            on vsd.VehicleSaleBillId equals vsh.Id
+                    join custLg in _context.LedgerMasters
+                    on v.LedgerId equals custLg.Id
 
-                        join custLg in _context.LedgerMasters
-                            on vsh.LedgerId equals custLg.Id
+                    join o in _context.OemmodelMasters
+                    on i.Oemmodelname.Trim().ToLower()
+                    equals o.ModelName.Trim().ToLower()
+                    into oGroup
 
-                        join o in _context.OemmodelMasters
-                            on i.Oemmodelname.Trim().ToLower()
-                            equals o.ModelName.Trim().ToLower()
-                            into oGroup
-                        from o in oGroup.DefaultIfEmpty()
+                    from o in oGroup.DefaultIfEmpty()
 
-                            //join sch in _context.ModelwiseServiceSchedules
-                            // on o.Id equals sch.OemmodelId
-                            // into schgroup
-                            //from sch in schgroup.DefaultIfEmpty()
+                    let vc = _context.ChassisBatteryDetails
+                    .Where(x => x.ChassisNo == v.ChassisNo)
+                    .OrderByDescending(x => x.CreatedDate)
+                    .FirstOrDefault()
 
-                        where h.IsLotInspected == true
-                              && h.DealerCode == dealerCode && v.SaleDate != null
+                    where h.IsLotInspected == true
+                    && h.DealerCode == dealerCode || h.DealerCode == "null" || h.DealerCode == null
+                    && v.SaleDate != null
 
-                        select new LotInspectionChassisVM
-                        {
-                            InvoiceNo = h.InvoiceNo,
-                            ChassisNumber = d.ChassisNo,
-                            CustomerLedgerId = custLg.Id,
-                            CustomerName = custLg.LedgerName,
-                            CustomerMobile = custLg.MobileNumber,
-                            SaleDate = v.SaleDate,
-                            //NextserviceDueDate = v.SaleDate.Value.Date.AddDays(sch.DaysFrom),
-                            ModelName = i.Itemname,
-                            RegisterNo = vc.Regnumber,
-                            BatteryNumber = vc.BatteryNo,
-                            ChargerNumber = vc.ChargerNo,
-                            ControllerNo = vc.ControllerNo,
-                            BatteryMake = vc.BatteryMake,
-                            BatteryCapacity = vc.BatteryCapacity,
-                            BatteryChemestry = vc.BatteryChemistry,
-                            ConverterNo = vc.Converter,
-                            MotorNo = vc.MotorNo,
+                    select new LotInspectionChassisVM
+                    {
+                        InvoiceNo = h.InvoiceNo,
+                        ChassisNumber = d.ChassisNo,
+                        CustomerLedgerId = custLg.Id,
+                        CustomerName = custLg.LedgerName,
+                        CustomerMobile = custLg.MobileNumber,
+                        SaleDate = v.SaleDate,
+                        ModelName = i.Itemname,
+                        RegisterNo = v.RegNo,
 
-                            oemModelId = o != null ? o.Id : 0
-                        }
+                        // Latest Battery Details
+                        BatteryNumber = vc != null ? vc.BatteryNo : null,
+                        ChargerNumber = vc != null ? vc.ChargerNo : null,
+                        ControllerNo = vc != null ? vc.ControllerNo : null,
+                        BatteryMake = vc != null ? vc.BatteryMake : null,
+                        BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
+                        BatteryChemestry = vc != null ? vc.BatteryChemical : null,
+                        ConverterNo = vc != null ? vc.ConverterNo : null,
+                        MotorNo = vc != null ? vc.MotorNo : null,
+
+                        oemModelId = o != null ? o.Id : 0
+                    }
                     ).Distinct().ToListAsync();
 
                     foreach (var item in data)
@@ -209,29 +215,28 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         if (!item.SaleDate.HasValue)
                             continue;
 
-                        // Is chassis ke kitne service jobcards ban chuke hain
                         var completedServiceCount = await (
-                            from jh in _context.JobCardHeaders
-                            join jc in _context.JobCardCustomers
-                                on jh.Id equals jc.JobCardHeaderId
-                            where jc.ChassisNo == item.ChassisNumber
-                                  && jh.Jobtype != 1   // PDI ignore
-                            select jh.Id
+                        from jh in _context.JobCardHeaders
+                        join jc in _context.JobCardCustomers
+                        on jh.Id equals jc.JobCardHeaderId
+                        where jc.ChassisNo == item.ChassisNumber
+                        && jh.Jobtype != 1
+                        select jh.Id
                         ).CountAsync();
 
-                        // Next pending schedule
                         var nextSchedule = await _context.ModelwiseServiceSchedules
-                            .Where(x => x.OemmodelId == item.oemModelId)
-                            .OrderBy(x => x.Seqno)
-                            .Skip(completedServiceCount)
-                            .FirstOrDefaultAsync();
+                        .Where(x => x.OemmodelId == item.oemModelId)
+                        .OrderBy(x => x.Seqno)
+                        .Skip(completedServiceCount)
+                        .FirstOrDefaultAsync();
 
                         if (nextSchedule != null)
                         {
                             item.NextserviceDueDate =
-                                item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
+                            item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
                         }
                     }
+
                     var warranties = await _context.OemmodelWarranties
                     .GroupBy(x => x.OemmodelId)
                     .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
@@ -240,7 +245,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     foreach (var item in data)
                     {
                         var warranty = warranties
-                            .FirstOrDefault(x => x.OemmodelId == item.oemModelId);
+                        .FirstOrDefault(x => x.OemmodelId == item.oemModelId);
 
                         if (warranty != null)
                         {
@@ -250,13 +255,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             item.EffectiveDate = warranty.EffectiveDate;
 
                             item.ExpireWarrentyDate =
-                                warranty.EffectiveDate == null
-                                    ? null
-                                    : warranty.DurationType == "MONTH"
-                                        ? warranty.EffectiveDate.Value.AddMonths((int)(warranty.Duration ?? 0))
-                                        : warranty.DurationType == "YEAR"
-                                            ? warranty.EffectiveDate.Value.AddYears((int)(warranty.Duration ?? 0))
-                                            : warranty.EffectiveDate;
+                            warranty.EffectiveDate == null
+                            ? null
+                            : warranty.DurationType == "MONTH"
+                            ? warranty.EffectiveDate.Value.AddMonths((int)(warranty.Duration ?? 0))
+                            : warranty.DurationType == "YEAR"
+                            ? warranty.EffectiveDate.Value.AddYears((int)(warranty.Duration ?? 0))
+                            : warranty.EffectiveDate;
                         }
                     }
 
@@ -385,6 +390,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     query = query.Where(x =>
                         x.c != null &&
                         x.c.RegisterNo.Contains(search.RegisterNo));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search.serviceLocation))
+                {
+                    query = query.Where(x =>
+                        x.loc != null &&
+                        x.loc.Locname.Contains(search.serviceLocation));
                 }
 
                 // Chassis No
@@ -1357,7 +1369,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
             // Material Transfer + Item Details
-            var stateFlag = custState == DealerState ? "S" : "O";
+            var stateFlag = string.Equals(custState,DealerState,StringComparison.OrdinalIgnoreCase) ? "S" : "O";
 
             var data = await (
                 from m in _context.MaterialTransfers
@@ -1416,7 +1428,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             select t.TaxRate
                           ).FirstOrDefault()
                         : 0,
-                    
+
 
                     IssueType = m.IssueType
                 }).ToListAsync();
@@ -2169,6 +2181,43 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
+        }
+    
+
+    public async Task<int> DeleteJobCardDetails(int jobCardHeaderId)
+        {
+            var jobCardHeader = await _context.JobCardHeaders.FindAsync(jobCardHeaderId);
+            if (jobCardHeader == null)
+            {
+                throw new Exception("Job card header not found");
+            }
+            // Delete related JobCardBatteryDetails
+            var batteryDetails = await _context.JobCardBatteryDetails
+                .Where(b => b.JobCardHeaderId == jobCardHeaderId)
+                .ToListAsync();
+            if (batteryDetails.Any())
+            {
+                _context.JobCardBatteryDetails.RemoveRange(batteryDetails);
+            }
+            // Delete related JobCardCustomer
+            var jobCardCustomer = await _context.JobCardCustomers
+                .FirstOrDefaultAsync(c => c.JobCardHeaderId == jobCardHeaderId);
+            if (jobCardCustomer != null)
+            {
+                _context.JobCardCustomers.Remove(jobCardCustomer);
+            }
+            
+            // Delete related JobCardComplaints
+            var complaints = await _context.JobCardComplaints
+                .Where(c => c.JobCardHeaderId == jobCardHeaderId)
+                .ToListAsync();
+            if (complaints.Any())
+            {
+                _context.JobCardComplaints.RemoveRange(complaints);
+            }
+            // Finally, delete the JobCardHeader
+            _context.JobCardHeaders.Remove(jobCardHeader);
+            return await _context.SaveChangesAsync();
         }
     }
 }
