@@ -199,8 +199,8 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (isModelWise)
                 {
-                    var result = await _labourMasterRepo.GetLabourMasterModelwiseList();
-                    var data = (result?? new List<LabourMasteUpdateViewModel>())
+                    var result = await _labourMasterRepo.GetLabourMasterModelwiseList(null);
+                    var data = (result ?? new List<LabourMasteUpdateViewModel>())
                         .Where(x => oemModelName == null || x.OemModelName == oemModelName)
                         .Where(x => cityTier == null || x.CityTier == cityTier)
                         .ToList();
@@ -259,9 +259,9 @@ namespace DMS_BAPL_Api.Controllers
                         "Service Type", "Service Type Name",
                         "Is Active", "Created Date", "Updated By", "Updated Date"
                     };
-                            for (int i = 0; i < headers.Length; i++)
-                                sheet.Cell(1, i + 1).Value = headers[i];
-                                sheet.Row(1).Style.Font.Bold = true;
+                    for (int i = 0; i < headers.Length; i++)
+                        sheet.Cell(1, i + 1).Value = headers[i];
+                    sheet.Row(1).Style.Font.Bold = true;
 
                     int row = 2;
                     foreach (var item in data)
