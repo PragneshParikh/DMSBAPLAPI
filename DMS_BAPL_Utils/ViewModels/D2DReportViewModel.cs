@@ -5,7 +5,8 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class D2DReportFilterModel
     {
-        public string? DealerCode { get; set; }
+        public string? DealerCode { get; set; }          // "To Dealer" — dealer currently holding the vehicle
+        public string? FromDealerCode { get; set; }
         public string? LocationCode { get; set; }
         public string? ChassisNo { get; set; }
         public string? MotorNo { get; set; }

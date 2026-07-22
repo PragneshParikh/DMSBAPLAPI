@@ -113,5 +113,21 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
+        [HttpGet("{id}/print")]
+        public async Task<IActionResult> GetPrintQuotation(long id)
+        {
+            try
+            {
+                var result = await _vehicleQuotationService.GetPrintQuotationAsync(id);
+                if (result == null)
+                    return NotFound($"Vehicle quotation with id {id} was not found.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
     }
 }

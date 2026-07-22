@@ -113,7 +113,12 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 await _vehicleSaleBillService.DeleteAsync(id);
-                return Ok("Deleted Successfully");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Deleted Successfully"
+                });
             }
             catch (Exception ex)
             {
@@ -195,16 +200,33 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+        [HttpGet("PreCheckDelete")]
+        public async Task<IActionResult> GetAllChassisListWithPDIOK(int saleBillId)
+        {
+            try
+            {
+                var result = await _vehicleSaleBillService.GetVehicleDeletionPreRequisiteCheck(saleBillId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
 
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("ChassisList")]
-        public async Task<IActionResult> GetAllChassisList(string dealerCode, int ledgerId)
+        public async Task<IActionResult> GetAllChassisList(string? dealerCode, int ledgerId,string locCode)
         {
             try
             {
-                return Ok(await _vehicleSaleBillService.GetAllChassissListWithPDISatatus(dealerCode, ledgerId));
+                return Ok(await _vehicleSaleBillService.GetAllChassissListWithPDISatatus(dealerCode, ledgerId,locCode));
             }
             catch (Exception ex)
             {

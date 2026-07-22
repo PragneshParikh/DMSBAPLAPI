@@ -15,9 +15,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? Address { get; set; }
         public int? StateId { get; set; }
         public int? CityId { get; set; }
+        public string? CustomerGSTNo { get; set; }
+        public string? CustomerPanNo { get; set; }
         public long ModelId { get; set; }
         public long VariantId { get; set; }
         public long? ColorId { get; set; }
+        public decimal CustPrice { get; set; }
+        public decimal Fame2Amount { get; set; }
+        public decimal SgstAmount { get; set; }
+        public decimal CgstAmount { get; set; }
+        public decimal IgstAmount { get; set; }
         public decimal ExShowroomPrice { get; set; }
         public decimal RTOCharges { get; set; }
         public decimal InsuranceAmount { get; set; }
@@ -30,6 +37,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal TotalAmount { get; set; }
         public bool IsExchange { get; set; }
         public decimal ExchangeAmount { get; set; }
+        // NEW — captured inside the Exchange section
+        public string? OldCompanyName { get; set; }
+        public string? OldModelName { get; set; }
         public bool IsFinance { get; set; }
         public long? FinanceCompanyId { get; set; }
         public decimal LoanAmount { get; set; }

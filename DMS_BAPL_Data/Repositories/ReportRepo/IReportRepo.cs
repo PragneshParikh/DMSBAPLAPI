@@ -73,6 +73,16 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter);
 
+        // ── MATERIAL TRANSFER REPORT ──────────────────────────────────
+        Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter);
+        Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter);
 
+        // ── REPAIR BILL REPORT ────────────────────────────────────────
+        Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter);
+        Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter);
+
+        // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
+        Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
+        Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
     }
 }
