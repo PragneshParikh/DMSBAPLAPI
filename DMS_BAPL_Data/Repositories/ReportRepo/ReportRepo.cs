@@ -1756,6 +1756,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into dealerGroup
                     from dealer in dealerGroup.DefaultIfEmpty()
                     where po.Id > 0
+                       && po.IsAgainstKit == true   // ← NEW: only kit-linked POs
                     select new PartDispatchKitReportViewModel
                     {
                         PONumber = po.Ponumber,
@@ -3138,6 +3139,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     // shown next to Dealer Code/Name.
                     DealerLocation = r.Dm != null ? r.Dm.City : null,
 
+                    LocationName = r.Loc != null ? r.Loc.Locname : null,
+
                     DealerCity = r.Dm?.City,
                     DealerState = r.Dm?.State,
 
@@ -3533,55 +3536,81 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var billNet = r.Rbh.TotalNetAmount ?? 0;
                 var billReceived = r.Rbh.AmountReceived ?? 0;
                 var billBalance = billNet - billReceived;
-                bool isPart;
-                if (r.D.PartItemId.HasValue && r.D.PartItemId.Value > 0)
+
+                // CHANGED — Part and Labour are no longer treated as mutually
+                // exclusive. A single detail row can legitimately have BOTH a
+                // linked part AND a linked labour master (e.g. "replace X" =
+                // part cost + install labour recorded on one line). Each side is
+                // now detected independently instead of an either/or switch, so
+                // neither side's rate/code/GST is silently dropped when both apply.
+                bool hasPart = r.D.PartItemId.HasValue && r.D.PartItemId.Value > 0;
+                bool hasLabour = r.D.LabourMasterId.HasValue && r.D.LabourMasterId.Value > 0;
+
+                // Legacy fallback — only when NEITHER FK is populated (manually
+                // entered row, never linked to a master record). ItemType is a
+                // single string and can't express "both", so this path only ever
+                // resolves to one side, same as the original behavior.
+                if (!hasPart && !hasLabour)
                 {
-                    isPart = true;
-                }
-                else if (r.D.LabourMasterId.HasValue && r.D.LabourMasterId.Value > 0)
-                {
-                    isPart = false;
-                }
-                else
-                {
-                    // Neither FK populated — fall back to the old string
-                    // check, kept only for any manually-entered rows never
-                    // linked to a master record.
-                    isPart = string.Equals(r.D.ItemType, "Part", StringComparison.OrdinalIgnoreCase);
+                    if (string.Equals(r.D.ItemType, "Part", StringComparison.OrdinalIgnoreCase))
+                        hasPart = true;
+                    else
+                        hasLabour = true;
                 }
 
-                decimal itemRate;
-                decimal discount;
-                string? partCode = null;
-                string? partDesc = null;
-                string? labourCode = null;
-                string? labourDesc = null;
-                decimal cgstPercent, sgstPercent, igstPercent;
+                // ── Part side ──
+                decimal itemRateForRow = hasPart ? (r.D.PartRate ?? 0) : 0;
+                decimal partDiscount = hasPart ? (r.D.PartDiscount ?? 0) : 0;
+                string? partCode = hasPart ? r.Pi?.Itemcode : null;
+                string? partDesc = hasPart ? r.Pi?.Itemdesc : null;
+                decimal partCgstPercent = hasPart ? (r.Pi?.Cgst ?? 0) : 0;
+                decimal partSgstPercent = hasPart ? (r.Pi?.Sgst ?? 0) : 0;
+                decimal partIgstPercent = hasPart ? (r.Pi?.Igst ?? 0) : 0;
 
-                if (isPart)
-                {
-                    itemRate = r.D.PartRate ?? 0;
-                    discount = r.D.PartDiscount ?? 0;
-                    partCode = r.Pi?.Itemcode;
-                    partDesc = r.Pi?.Itemdesc;
-                    cgstPercent = r.Pi?.Cgst ?? 0;
-                    sgstPercent = r.Pi?.Sgst ?? 0;
-                    igstPercent = r.Pi?.Igst ?? 0;
-                }
-                else
-                {
-                    itemRate = r.D.LabourRate ?? 0;
-                    discount = r.D.LabourDiscount ?? 0;
-                    labourCode = r.Lm?.LabourCode ?? r.Pwl?.LabourCode;
-                    labourDesc = r.Lm?.LabourDescription ?? r.Pwl?.LabourName;
-                    cgstPercent = r.Lm?.Cgst ?? r.Pwl?.Cgst ?? 0;
-                    sgstPercent = r.Lm?.Sgst ?? r.Pwl?.Sgst ?? 0;
-                    igstPercent = r.Lm?.Igst ?? r.Pwl?.Igst ?? 0;
-                }
+                // ── Labour side ──
+                decimal labourRateForRow = hasLabour ? (r.D.LabourRate ?? 0) : 0;
+                decimal labourDiscount = hasLabour ? (r.D.LabourDiscount ?? 0) : 0;
+                string? labourCode = hasLabour ? (r.Lm?.LabourCode ?? r.Pwl?.LabourCode) : null;
+                string? labourDesc = hasLabour ? (r.Lm?.LabourDescription ?? r.Pwl?.LabourName) : null;
+                decimal labourCgstPercent = hasLabour ? (r.Lm?.Cgst ?? r.Pwl?.Cgst ?? 0) : 0;
+                decimal labourSgstPercent = hasLabour ? (r.Lm?.Sgst ?? r.Pwl?.Sgst ?? 0) : 0;
+                decimal labourIgstPercent = hasLabour ? (r.Lm?.Igst ?? r.Pwl?.Igst ?? 0) : 0;
 
-                var cgstAmount = Round2(itemRate * cgstPercent / 100);
-                var sgstAmount = Round2(itemRate * sgstPercent / 100);
-                var igstAmount = Round2(itemRate * igstPercent / 100);
+                // GST amounts computed per-side against each side's own rate/%,
+                // then summed — correct even when the two sides carry different
+                // tax rates (goods vs. services commonly differ).
+                var cgstAmount = Round2(itemRateForRow * partCgstPercent / 100)
+                                + Round2(labourRateForRow * labourCgstPercent / 100);
+                var sgstAmount = Round2(itemRateForRow * partSgstPercent / 100)
+                                + Round2(labourRateForRow * labourSgstPercent / 100);
+                var igstAmount = Round2(itemRateForRow * partIgstPercent / 100)
+                                + Round2(labourRateForRow * labourIgstPercent / 100);
+
+                // Display % columns: unambiguous when only one side applies; when
+                // BOTH apply and the two rates genuinely differ, there's no single
+                // correct number for one column — shown here as the part's rate
+                // (ASSUMPTION — flag if you'd rather see the labour rate, or blank,
+                // in that mixed case; the underlying Amount columns are correct
+                // either way since they're computed per-side, not from this %).
+                decimal cgstPercent = hasPart ? partCgstPercent : labourCgstPercent;
+                decimal sgstPercent = hasPart ? partSgstPercent : labourSgstPercent;
+                decimal igstPercent = hasPart ? partIgstPercent : labourIgstPercent;
+
+                // Discount: single output column, so combine both sides when both
+                // apply (matches how the other combined totals already work).
+                decimal discount = partDiscount + labourDiscount;
+
+                // Part Code / Part Code Description: show real part data whenever
+                // a part exists on this row. Only reuse these columns for labour
+                // info (per the earlier "don't add a new column" request) when
+                // there's NO part on the row at all — so a genuine part's code
+                // is never overwritten by labour info just because labour is
+                // also present.
+                if (!hasPart && hasLabour)
+                {
+                    partCode = labourCode;
+                    partDesc = labourDesc;
+                }
 
                 return new RepairBillReportRowViewModel
                 {
@@ -3596,6 +3625,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     JobDate = r.Jh != null && r.Jh.JobinDate.HasValue
                         ? r.Jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    JobNo = r.Jh?.JobNo,
                     JobType = r.Jt?.JobTypeName,
                     ServiceHead = r.Sh?.ServiceHeadName,
                     ServiceType = r.St?.ServiceTypeName,
@@ -3615,8 +3645,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     IssueType = r.D.IssutypeId,
 
-                    ItemRate = itemRate,
-                    LabourRateRaw = r.D.LabourRate ?? 0,
+                    ItemRate = itemRateForRow,
+                    LabourRateRaw = labourRateForRow,
 
                     CgstPercent = cgstPercent,
                     CgstAmount = cgstAmount,
@@ -3644,7 +3674,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
             }).ToList();
         }
-        
+
 
         private List<RepairBillReportRowViewModel> MapRepairBillHeaderOnlyRows(List<RepairBillHeaderOnlyRawRow> rows)
         {
@@ -3673,6 +3703,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     JobDate = r.Jh != null && r.Jh.JobinDate.HasValue
                         ? r.Jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    JobNo = r.Jh?.JobNo,
                     JobType = r.Jt?.JobTypeName,
                     ServiceHead = r.Sh?.ServiceHeadName,
                     ServiceType = r.St?.ServiceTypeName,
