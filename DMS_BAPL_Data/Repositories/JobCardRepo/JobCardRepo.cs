@@ -4,10 +4,12 @@ using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using Org.BouncyCastle.Crypto.Engines;
 using QuestPDF.Infrastructure;
 using System;
@@ -82,46 +84,56 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
-                Console.WriteLine("Dealer Code: {0}", dealerCode);
+                Console.WriteLine($"Dealer Code: [{dealerCode}]");
+                Console.WriteLine($"Is Null: {dealerCode == null}");
+                Console.WriteLine($"Is Empty: {string.IsNullOrEmpty(dealerCode)}");
+
+                if (dealerCode?.Trim().ToLower() == "null")
+                {
+                    dealerCode = null;
+                }
+
+                bool isSuperAdmin = string.IsNullOrWhiteSpace(dealerCode);
                 if (jobTypeId == 1)
                 {
                     // ===================== PDI =====================
                     var data = await (
                         from h in _context.LotinspectionHeaders
 
-                        join dealerLg in _context.LedgerMasters
-                            on h.DealerCode equals dealerLg.DealerCode
-
                         join d in _context.LotinspectionDetails
-                           on h.Id equals d.LotHeaderId
-
+                          on h.Id equals d.LotHeaderId
                         join v in _context.ChassisDetails
-                            on d.ChassisNo equals v.ChassisNo
+                          on d.ChassisNo equals v.ChassisNo
+
+                        join dealerLg in _context.LedgerMasters.Where(x => x.LedgerType == "Dealer")
+                        on v.DealerId equals dealerLg.DealerCode
 
                         join i in _context.ItemMasters
                             on v.ItemCode equals i.Itemcode
 
-                        join vc in _context.VehicleInwards
-                            on v.ChassisNo equals vc.ChasisNo
+                        let vc = _context.ChassisBatteryDetails
+                         .Where(x => x.ChassisNo == v.ChassisNo)
+                         .OrderByDescending(x => x.CreatedDate)
+                         .FirstOrDefault()
 
 
                         join o in _context.OemmodelMasters
                             on i.Oemmodelname.Trim().ToLower()
                             equals o.ModelName.Trim().ToLower()
                             into oGroup
+
                         from o in oGroup.DefaultIfEmpty()
 
 
                         where h.IsLotInspected == true
-                                    && h.IsD2d == null
-                                    && v.SaleDate == null
-                                    && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
-                                    && dealerLg.LedgerType == "Dealer"
+                         && v.SaleDate == null
+                        //&& (h.IsD2d == true || h.IsD2d == null) 
+                        && (isSuperAdmin || v.DealerId == dealerCode)
 
                         select new LotInspectionChassisVM
                         {
                             InvoiceNo = h.InvoiceNo,
-                            ChassisNumber = d.ChassisNo,
+                            ChassisNumber = v.ChassisNo,
 
                             CustomerLedgerId = dealerLg.Id,
                             CustomerName = dealerLg.LedgerName,
@@ -129,14 +141,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
 
                             ModelName = i.Itemname,
-                            RegisterNo = vc.Regnumber,
+                            RegisterNo = v.RegNo,
                             BatteryNumber = vc.BatteryNo,
                             ChargerNumber = vc.ChargerNo,
                             ControllerNo = vc.ControllerNo,
                             BatteryMake = vc.BatteryMake,
                             BatteryCapacity = vc.BatteryCapacity,
-                            BatteryChemestry = vc.BatteryChemistry,
-                            ConverterNo = vc.Converter,
+                            BatteryChemestry = vc.BatteryChemical,
+                            ConverterNo = vc.ConverterNo,
                             MotorNo = vc.MotorNo,
 
                             oemModelId = o != null ? o.Id : 0
@@ -182,7 +194,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .FirstOrDefault()
 
                     where h.IsLotInspected == true
-                    && h.DealerCode == dealerCode || h.DealerCode == "null" || h.DealerCode == null
+                    && (isSuperAdmin || v.DealerId == dealerCode)
                     && v.SaleDate != null
 
                     select new LotInspectionChassisVM
@@ -1369,7 +1381,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
             // Material Transfer + Item Details
-            var stateFlag = string.Equals(custState,DealerState,StringComparison.OrdinalIgnoreCase) ? "S" : "O";
+            var stateFlag = string.Equals(custState, DealerState, StringComparison.OrdinalIgnoreCase) ? "S" : "O";
 
             var data = await (
                 from m in _context.MaterialTransfers
@@ -2182,9 +2194,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
         }
-    
 
-    public async Task<int> DeleteJobCardDetails(int jobCardHeaderId)
+
+        public async Task<int> DeleteJobCardDetails(int jobCardHeaderId)
         {
             var jobCardHeader = await _context.JobCardHeaders.FindAsync(jobCardHeaderId);
             if (jobCardHeader == null)
@@ -2206,7 +2218,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             {
                 _context.JobCardCustomers.Remove(jobCardCustomer);
             }
-            
+
             // Delete related JobCardComplaints
             var complaints = await _context.JobCardComplaints
                 .Where(c => c.JobCardHeaderId == jobCardHeaderId)
