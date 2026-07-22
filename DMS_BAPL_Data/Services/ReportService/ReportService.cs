@@ -115,9 +115,9 @@ namespace DMS_BAPL_Data.Services.ReportService
         }
 
         public async Task<JobReportSummaryStats> GetReportSummaryStatsAsync(
-            string dealerCode,
-            DateTime? fromDate,
-            DateTime? toDate)
+           string dealerCode,
+           DateTime? fromDate,
+           DateTime? toDate)
         {
             try
             {
@@ -127,21 +127,19 @@ namespace DMS_BAPL_Data.Services.ReportService
                     FromDate = fromDate,
                     ToDate = toDate,
                     PageIndex = 1,
-                    PageSize = 10000
+                    PageSize = 100000
                 };
 
                 var reportData = await _reportRepo.GetJobReportAsync(filter);
+                var completedStatuses = new[] { "Closed", "Complete", "FFIR Closed" };
+                var completedJobs = reportData.Data.Count(x => completedStatuses.Contains(x.JobStatus));
+                var pendingJobs = reportData.TotalRecords - completedJobs;
 
                 return new JobReportSummaryStats
                 {
                     TotalJobs = reportData.TotalRecords,
-                    TotalRevenue = reportData.GrandTotal,
-                    TotalTaxes = reportData.TotalSGST + reportData.TotalCGST,
-                    CompletedJobs = reportData.TotalRecords,
-                    PendingJobs = 0,
-                    AverageJobValue = reportData.TotalRecords > 0
-                        ? reportData.GrandTotal / reportData.TotalRecords
-                        : 0
+                    CompletedJobs = completedJobs,
+                    PendingJobs = pendingJobs
                 };
             }
             catch (Exception ex)
@@ -473,5 +471,91 @@ namespace DMS_BAPL_Data.Services.ReportService
         public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
             => await _reportRepo.GetD2DReportForExportAsync(filter);
 
+        // =================================================================
+        // MATERIAL TRANSFER REPORT
+        // =================================================================
+        public async Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetMaterialTransferReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching material transfer report");
+                throw;
+            }
+        }
+
+        public async Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetMaterialTransferReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting material transfer report");
+                throw;
+            }
+        }
+
+        // =================================================================
+        // REPAIR BILL REPORT
+        // =================================================================
+        public async Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetRepairBillReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching repair bill report");
+                throw;
+            }
+        }
+
+        public async Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetRepairBillReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting repair bill report");
+                throw;
+            }
+        }
+
+        // =================================================================
+        // COMPARISON REPORT
+        // =================================================================
+        public async Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetComparisonReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching comparison report");
+                throw;
+            }
+        }
+
+        public async Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetComparisonReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting comparison report");
+                throw;
+            }
+        }
     }
 }

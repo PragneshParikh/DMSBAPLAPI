@@ -43,6 +43,116 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         //    }
         //}
 
+        //public async Task<IEnumerable<VehicleInwardD2DViewModel>> GetVehicleByStatus(string dealerCode, bool status)
+        //{
+        //    try
+        //    {
+        //        var vehicles = await _context.VehicleInwards
+        //            .Where(x => x.IsAccepted == status && x.DealerCode == dealerCode)
+        //            .ToListAsync();
+
+        //        var chassisNos = vehicles
+        //            .Where(x => !string.IsNullOrEmpty(x.ChasisNo))
+        //            .Select(x => x.ChasisNo!)
+        //            .Distinct()
+        //            .ToList();
+
+        //        var latestHistories = await _context.ChassisDetailsD2dhistories
+        //            .Where(x => chassisNos.Contains(x.ChassisNo) && x.DealerCode == dealerCode)
+        //            .GroupBy(x => x.ChassisNo)
+        //            .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
+        //            .ToListAsync();
+
+        //        var dealerCodes = latestHistories.SelectMany(x => new[] { x.DealerCode, x.IssueingDealerCode }).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+
+        //        var dealers = await _context.DealerMasters
+        //            .Where(x => dealerCodes.Contains(x.Dealercode))
+        //            .ToDictionaryAsync(x => x.Dealercode, x => x.Compname);
+
+        //        return vehicles.Select(vehicle =>
+        //        {
+        //            var history = latestHistories
+        //                .FirstOrDefault(x => x.ChassisNo == vehicle.ChasisNo);
+
+        //            string? issuedDealerName = null;
+
+        //            if (history != null &&
+        //                !string.IsNullOrEmpty(history.IssueingDealerCode) &&
+        //                dealers.TryGetValue(history.IssueingDealerCode, out var dealerName))
+        //            {
+        //                issuedDealerName = dealerName;
+        //            }
+
+        //            return new VehicleInwardD2DViewModel
+        //            {
+        //                Id = vehicle.Id,
+        //                InvoiceDate = vehicle.InvoiceDate,
+        //                InvoiceNo = vehicle.InvoiceNo,
+        //                MfgYear = vehicle.MfgYear,
+        //                ItemCode = vehicle.ItemCode,
+        //                ColrCode = vehicle.ColrCode,
+        //                ChasisNo = vehicle.ChasisNo,
+        //                MotorNo = vehicle.MotorNo,
+        //                KeyNo = vehicle.KeyNo,
+        //                ServBkno = vehicle.ServBkno,
+        //                BatteryId = vehicle.BatteryId,
+        //                BatteryNo = vehicle.BatteryNo,
+        //                BatteryNo2 = vehicle.BatteryNo2,
+        //                BatteryNo3 = vehicle.BatteryNo3,
+        //                BatteryNo4 = vehicle.BatteryNo4,
+        //                BatteryNo5 = vehicle.BatteryNo5,
+        //                BatteryNo6 = vehicle.BatteryNo6,
+        //                EcuSerno = vehicle.EcuSerno,
+        //                EcuImEi = vehicle.EcuImEi,
+        //                EcuBalMac = vehicle.EcuBalMac,
+        //                ImmoblizerStatus = vehicle.ImmoblizerStatus,
+        //                ImmoblizerNo = vehicle.ImmoblizerNo,
+        //                BikeSimid = vehicle.BikeSimid,
+        //                BikeMobileno = vehicle.BikeMobileno,
+        //                ChargerNo = vehicle.ChargerNo,
+        //                ControllerNo = vehicle.ControllerNo,
+        //                SoundbarSerno = vehicle.SoundbarSerno,
+        //                SoundbarBalMac = vehicle.SoundbarBalMac,
+        //                Voltage = vehicle.Voltage,
+        //                Regnumber = vehicle.Regnumber,
+        //                Validity = vehicle.Validity,
+        //                Startdate = vehicle.Startdate,
+        //                TyreNo1 = vehicle.TyreNo1,
+        //                TyreNo2 = vehicle.TyreNo2,
+        //                GstIdno = vehicle.GstIdno,
+        //                LocCode = vehicle.LocCode,
+        //                DealerCode = vehicle.DealerCode,
+        //                BatteryChemistry = vehicle.BatteryChemistry,
+        //                BatteryCapacity = vehicle.BatteryCapacity,
+        //                BatteryMake = vehicle.BatteryMake,
+        //                BatteryIdno = vehicle.BatteryIdno,
+        //                Fame2Discount = vehicle.Fame2Discount,
+        //                Converter = vehicle.Converter,
+        //                Vcu = vehicle.Vcu,
+        //                Ordertype = vehicle.Ordertype,
+        //                MfgMonth = vehicle.MfgMonth,
+        //                IsAccepted = vehicle.IsAccepted,
+        //                Dlrprice = vehicle.Dlrprice,
+        //                Custprice = vehicle.Custprice,
+        //                PoType = vehicle.PoType,
+        //                Ponumber = vehicle.Ponumber,
+        //                CreatedBy = vehicle.CreatedBy,
+        //                CreatedDate = vehicle.CreatedDate,
+        //                UpdatedBy = vehicle.UpdatedBy,
+        //                UpdatedDate = vehicle.UpdatedDate,
+        //                IsD2d = vehicle.IsD2d,
+        //                InwardType = vehicle.InwardType,
+        //                IssuedDealerName = issuedDealerName,
+        //                IssuedDealerCode = history == null ? null : history.IssueingDealerCode
+        //            };
+        //        }).ToList();
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //}
+
         public async Task<IEnumerable<VehicleInwardD2DViewModel>> GetVehicleByStatus(string dealerCode, bool status)
         {
             try
@@ -58,7 +168,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     .ToList();
 
                 var latestHistories = await _context.ChassisDetailsD2dhistories
-                    .Where(x => chassisNos.Contains(x.ChassisNo) && x.DealerCode == dealerCode)
+                    .Where(x => chassisNos.Contains(x.ChassisNo) && x.DealerCode == dealerCode && !x.IsDeleted)
                     .GroupBy(x => x.ChassisNo)
                     .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
                     .ToListAsync();

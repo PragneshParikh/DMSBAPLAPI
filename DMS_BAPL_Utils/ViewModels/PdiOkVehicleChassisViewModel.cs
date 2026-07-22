@@ -82,6 +82,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal IGSTPER { get; set; }
         public decimal IGST { get; set; }
         public string PDIStatus { get; set; }
+        public string RepairBillStatus { get; set; }
         public string? LocationCode { get; set; }
         public bool? IsD2D { get; set; }
         public DateTime? CustomerSaleDate { get; set; }

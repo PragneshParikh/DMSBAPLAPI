@@ -53,7 +53,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 select new VehicleInfoViewModel
                 {
-                    DealerDetails = new DealerInfoViewMode
+                    DealerDetails = new DealerInfoViewModel
                     {
                         DealerCode = di.Dealercode,
                         DealerName = di.Compname,
@@ -204,6 +204,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                     row.BatteryNo = battery.BatteryNo;
                     row.BatteryCapacity = battery.BatteryCapacity;
                     row.BatteryChemical = battery.BatteryChemical;
+                    row.BatteryOrderNo =battery.OrderNo;
                     row.BatteryMake = battery.BatteryMake;
                     row.UpdatedDate = DateTime.Now;
                     row.UpdatedBy = "Admin";
@@ -239,6 +240,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 if (row != null)
                 {
+                    row.MotorOrderNo = motor.OrderNo;
                     row.MotorNo = motor.ComponentNo;
                     row.UpdatedDate = DateTime.Now;
                     row.UpdatedBy = "Admin";
@@ -268,6 +270,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 if (row != null)
                 {
+                    row.ChargerOrderNo = charger.OrderNo;
                     row.ChargerNo = charger.ComponentNo;
                     row.UpdatedDate = DateTime.Now;
                     row.UpdatedBy = "Admin";
@@ -297,6 +300,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 if (row != null)
                 {
+                    row.ControllerOrderNo = controller.OrderNo;
                     row.ControllerNo = controller.ComponentNo;
                     row.UpdatedDate = DateTime.Now;
                     row.UpdatedBy = "Admin";
@@ -326,6 +330,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
 
                 if (row != null)
                 {
+                    row.ControllerOrderNo = converter.OrderNo;
                     row.ConverterNo = converter.ComponentNo;
                     row.UpdatedDate = DateTime.Now;
                     row.UpdatedBy = "Admin";

@@ -16,6 +16,6 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
         Task<List<LabourMasteUpdateViewModel>> GetLabourMasterModelwiseList(string? searchText);
         Task<List<PartWiseLabourMasterRateViewModel>> GetLabourMasterPartwiseList(string? searchText);
         Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName,int customerLedgerId,string dealerCode);
-
+        Task<List<PartWiseLabourMasterRateViewModel>> GetLabourRateMasterExportDataAsync(string? oemModelName = null, int? cityTier = null);
     }
 }

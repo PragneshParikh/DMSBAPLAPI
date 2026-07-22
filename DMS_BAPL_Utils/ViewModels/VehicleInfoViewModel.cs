@@ -9,11 +9,11 @@ namespace DMS_BAPL_Utils.ViewModels
     public class VehicleInfoViewModel
     {
         public PartyDetailsViewModel PartyDetails { get; set; } = new();
-        public DealerInfoViewMode DealerDetails { get; set; } = new();
+        public DealerInfoViewModel DealerDetails { get; set; } = new();
         public VehicleDetailsViewModel VehicleDetails { get; set; } = new();
     }
 
-    public class DealerInfoViewMode
+    public class DealerInfoViewModel
     {
         public string DealerCode { get; set; }
         public string DealerName { get; set; }
@@ -24,6 +24,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Address { get; set; }
         public string DealerCity { get; set; }
         public string DealerState { get; set; }
+        public string DealerOrder { get; set; }
     }
     public class PartyDetailsViewModel
     {
@@ -36,6 +37,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? City { get; set; }
         public string? Email { get; set; }
         public string? Pin { get; set; }
+        public string OwnerOrder { get; set; }
     }
 
     public class VehicleDetailsViewModel

@@ -12,5 +12,7 @@ namespace DMS_BAPL_Data.Services.VehicleQuotationService
         Task<VehicleQuotationViewModel> GetByIdAsync(long id);
         Task<long> SaveAsync(AddVehicleQuotationViewModel model);
         Task<bool> UpdateAsync(AddVehicleQuotationViewModel model);
+        Task<VehicleQuotationPrintViewModel> GetPrintQuotationAsync(long quotationId);
+
     }
 }
