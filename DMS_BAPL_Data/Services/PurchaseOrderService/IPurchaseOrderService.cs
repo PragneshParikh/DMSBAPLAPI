@@ -22,5 +22,6 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         Task<decimal> GetSubsidyValueAsync();
         Task<byte[]> DownloadPurchaseOrderExcel(PurchaseOrderSearchViewModel filter);
         Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel);
+        Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode);
     }
 }

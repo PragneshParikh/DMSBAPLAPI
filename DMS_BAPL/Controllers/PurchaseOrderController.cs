@@ -371,5 +371,28 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
             }
         }
+
+        [HttpGet("GetItemDetailsByItemCode")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetOrderDetailsByItemCode([FromQuery] string itemCode, string dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrWhiteSpace(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _purchaseOrderService.GetOrderDetailsByItemCode(itemCode, dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }

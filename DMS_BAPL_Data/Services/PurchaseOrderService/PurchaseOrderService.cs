@@ -620,5 +620,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 throw;
             }
         }
+
+        public Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode) => _repo.GetOrderDetailsByItemCode(itemCode, dealerCode);
     }
 }
