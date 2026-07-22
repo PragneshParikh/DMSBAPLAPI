@@ -2096,8 +2096,6 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("JobCardHeader");
 
-            entity.HasIndex(e => e.JobNo, "Jobunique").IsUnique();
-
             entity.Property(e => e.Chassisno).HasMaxLength(100);
             entity.Property(e => e.Couponno)
                 .HasMaxLength(100)
@@ -2113,6 +2111,7 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+            entity.Property(e => e.IsDelete).HasDefaultValue(false);
             entity.Property(e => e.JobStatus)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -3714,12 +3713,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.BatteryNo)
                 .HasMaxLength(50)
                 .HasColumnName("battery_no");
-            entity.Property(e => e.IsAccepted)
-                .HasDefaultValue(false)
-                .HasColumnName("isAccepted");
-            entity.Property(e => e.IsD2d)
-                .HasDefaultValue(false)
-                .HasColumnName("IsD2D");
             entity.Property(e => e.BatteryNo2)
                 .HasMaxLength(50)
                 .HasColumnName("battery_no2");
@@ -3874,19 +3867,27 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Amcamount)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("AMCAmount");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.CustPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CustomerGstno)
+                .HasMaxLength(20)
+                .HasColumnName("CustomerGSTNo");
             entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.CustomerPanNo).HasMaxLength(15);
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DownPayment).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.EmailId).HasMaxLength(100);
             entity.Property(e => e.ExShowroomPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ExchangeAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ExtendedWarrantyAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Fame2Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.HypothecationAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.InsuranceAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LoanAmount).HasColumnType("decimal(18, 2)");
@@ -3903,6 +3904,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Rtocharges)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("RTOCharges");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Status)
                 .HasMaxLength(30)
                 .HasDefaultValue("Draft");

@@ -37,5 +37,5 @@ public partial class ChassisDetailsD2dhistory
 
     public DateTime? UpdatedDate { get; set; }
 
-    public bool IsDeleted { get; set; }   // NEW
+    public bool IsDeleted { get; set; }
 }

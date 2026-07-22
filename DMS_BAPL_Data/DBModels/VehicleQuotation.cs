@@ -86,4 +86,18 @@ public partial class VehicleQuotation
     public int? StateId { get; set; }
 
     public int? CityId { get; set; }
+
+    public decimal? CustPrice { get; set; }
+
+    public decimal? Fame2Amount { get; set; }
+
+    public decimal? SgstAmount { get; set; }
+
+    public decimal? CgstAmount { get; set; }
+
+    public decimal? IgstAmount { get; set; }
+
+    public string? CustomerGstno { get; set; }
+
+    public string? CustomerPanNo { get; set; }
 }

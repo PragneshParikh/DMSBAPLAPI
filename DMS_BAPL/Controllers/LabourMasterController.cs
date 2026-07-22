@@ -119,11 +119,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<List<LabourMasteUpdateViewModel>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLabourMasterModelwiseListApi()
+        public async Task<IActionResult> GetLabourMasterModelwiseListApi(string? searchText)
         {
             try
             {
-                var result = await _labourMasterRepo.GetLabourMasterModelwiseList();
+                var result = await _labourMasterRepo.GetLabourMasterModelwiseList(searchText);
                 return Ok(result);
 
             }
@@ -142,11 +142,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<List<PartWiseLabourMasterRateViewModel>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLabourMasterPartwiseListApi()
+        public async Task<IActionResult> GetLabourMasterPartwiseListApi(string? searchText)
         {
             try
             {
-                var result = await _labourMasterRepo.GetLabourMasterPartwiseList();
+                var result = await _labourMasterRepo.GetLabourMasterPartwiseList(searchText);
                 return Ok(result);
             }
             catch (Exception ex)
