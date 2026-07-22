@@ -28,7 +28,7 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<IEnumerable<LedgerExcelViewModel>> GetExcelData();
         Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin);
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? invoiceNo, bool? IsD2D);
-
         Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
+        Task<IEnumerable<LedgerMaster>> GetLedgerByLedgerTypes(string[] ledgerTypes);
     }
 }
