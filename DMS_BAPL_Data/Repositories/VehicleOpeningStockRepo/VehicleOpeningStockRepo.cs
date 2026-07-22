@@ -18,12 +18,14 @@ namespace DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo
             _context = context;
         }
 
-        public async Task<List<VehicleOpeningDetailsVM>> GetVehicleSaleDetailsByModelAsync(string modelName)
+        public async Task<List<VehicleOpeningDetailsVM>> GetVehicleSaleDetailsByModelAsync(string modelName, string dealerCode)
         {
-            var saleDetail = await _context.VehicleSaleBillDetails
-                .Where(x => x.ModelName == modelName)
-                .OrderByDescending(x => x.VehicleSaleBillId)
-                .FirstOrDefaultAsync();
+            var saleDetail = await(from d in  _context.VehicleSaleBillDetails
+                join h in _context.VehicleSaleBillHeaders
+                on d.VehicleSaleBillId equals h.Id
+                                   where d.ModelName == modelName && h.DealerCode == dealerCode
+                orderby d.VehicleSaleBillId descending
+                select d).FirstOrDefaultAsync();
 
             if (saleDetail == null)
                 return new List<VehicleOpeningDetailsVM>();
@@ -39,6 +41,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo
                 .Where(x => x.ChasisNo == saleDetail.ChassisNo)
                 .OrderByDescending(x => x.CreatedDate)
                 .FirstOrDefaultAsync();
+            
 
 
             return new List<VehicleOpeningDetailsVM>

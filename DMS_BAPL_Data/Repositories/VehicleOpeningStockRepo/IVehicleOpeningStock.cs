@@ -9,6 +9,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo
 {
     public interface IVehicleOpeningStock
     {
-        Task<List<VehicleOpeningDetailsVM?>> GetVehicleSaleDetailsByModelAsync(string modelName);
+        Task<List<VehicleOpeningDetailsVM?>> GetVehicleSaleDetailsByModelAsync(string modelName,string dealerCode);
     }
 }

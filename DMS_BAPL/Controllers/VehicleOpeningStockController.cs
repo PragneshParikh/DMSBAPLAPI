@@ -20,15 +20,15 @@ namespace DMS_BAPL_Api.Controllers
         }
 
 
-        [HttpGet("GetVehicleSaleDetailsByModel")]
+        [HttpGet("GetVehicleSaleDetailsByModel/{modelName}/{dealerCode}")]
         [ProducesResponseType(typeof(List<VehicleOpeningDetailsVM>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> VehicleOpeningStockDetails(string? modelName)
+        public async Task<IActionResult> VehicleOpeningStockDetails(string? modelName,string? dealerCode)
         {
             try
             {
-                var result = await _vehicleOpeningStock.GetVehicleSaleDetailsByModelAsync(modelName);
+                var result = await _vehicleOpeningStock.GetVehicleSaleDetailsByModelAsync(modelName,dealerCode);
                 return Ok(result);
             }
             catch (Exception ex)

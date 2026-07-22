@@ -78,10 +78,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return result;
         }
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
-        
+
         {
             try
             {
+                Console.WriteLine("Dealer Code: {0}", dealerCode);
                 if (jobTypeId == 1)
                 {
                     // ===================== PDI =====================
@@ -113,9 +114,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                         where h.IsLotInspected == true
                                     && h.IsD2d == null
-                              && h.DealerCode == dealerCode
-                              && v.SaleDate == null
-                              && dealerLg.LedgerType == "Dealer"
+                                    && v.SaleDate == null
+                                    && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+                                    && dealerLg.LedgerType == "Dealer"
 
                         select new LotInspectionChassisVM
                         {
@@ -181,7 +182,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .FirstOrDefault()
 
                     where h.IsLotInspected == true
-                    && h.DealerCode == dealerCode
+                    && h.DealerCode == dealerCode || h.DealerCode == "null" || h.DealerCode == null
                     && v.SaleDate != null
 
                     select new LotInspectionChassisVM
@@ -1368,7 +1369,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
             // Material Transfer + Item Details
-            var stateFlag = custState == DealerState ? "S" : "O";
+            var stateFlag = string.Equals(custState,DealerState,StringComparison.OrdinalIgnoreCase) ? "S" : "O";
 
             var data = await (
                 from m in _context.MaterialTransfers
@@ -2180,6 +2181,43 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
+        }
+    
+
+    public async Task<int> DeleteJobCardDetails(int jobCardHeaderId)
+        {
+            var jobCardHeader = await _context.JobCardHeaders.FindAsync(jobCardHeaderId);
+            if (jobCardHeader == null)
+            {
+                throw new Exception("Job card header not found");
+            }
+            // Delete related JobCardBatteryDetails
+            var batteryDetails = await _context.JobCardBatteryDetails
+                .Where(b => b.JobCardHeaderId == jobCardHeaderId)
+                .ToListAsync();
+            if (batteryDetails.Any())
+            {
+                _context.JobCardBatteryDetails.RemoveRange(batteryDetails);
+            }
+            // Delete related JobCardCustomer
+            var jobCardCustomer = await _context.JobCardCustomers
+                .FirstOrDefaultAsync(c => c.JobCardHeaderId == jobCardHeaderId);
+            if (jobCardCustomer != null)
+            {
+                _context.JobCardCustomers.Remove(jobCardCustomer);
+            }
+            
+            // Delete related JobCardComplaints
+            var complaints = await _context.JobCardComplaints
+                .Where(c => c.JobCardHeaderId == jobCardHeaderId)
+                .ToListAsync();
+            if (complaints.Any())
+            {
+                _context.JobCardComplaints.RemoveRange(complaints);
+            }
+            // Finally, delete the JobCardHeader
+            _context.JobCardHeaders.Remove(jobCardHeader);
+            return await _context.SaveChangesAsync();
         }
     }
 }
