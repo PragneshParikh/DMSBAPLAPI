@@ -528,5 +528,34 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        // =================================================================
+        // COMPARISON REPORT
+        // =================================================================
+        public async Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetComparisonReportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching comparison report");
+                throw;
+            }
+        }
+
+        public async Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                return await _reportRepo.GetComparisonReportForExportAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting comparison report");
+                throw;
+            }
+        }
     }
 }

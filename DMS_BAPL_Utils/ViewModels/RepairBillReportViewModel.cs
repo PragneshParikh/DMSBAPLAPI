@@ -14,7 +14,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? PartyName { get; set; }
         public string? PartCode { get; set; }
         public string? LabourCode { get; set; }
-        public string? JobStatus { get; set; }   // "Open" | "Closed"
+        public string? JobStatus { get; set; }
         public string? Search { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 20;
@@ -47,15 +47,13 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? RepairBillNo { get; set; }
         public DateTime? RepairBillDate { get; set; }
-
-        // Populated only when ItemType == "Part"
         public string? PartCode { get; set; }
         public string? PartCodeDescription { get; set; }
 
         public int? IssueType { get; set; }
 
         public decimal ItemRate { get; set; }
-
+        public decimal LabourRateRaw { get; set; }
         public decimal CgstPercent { get; set; }
         public decimal CgstAmount { get; set; }
         public decimal SgstPercent { get; set; }
@@ -63,19 +61,17 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal IgstPercent { get; set; }
         public decimal IgstAmount { get; set; }
         public decimal TotalGstAmount { get; set; }
-
         public decimal Discount { get; set; }
         public string? DiscountType { get; set; }
-
-        // Populated only when ItemType == "Labour"
         public string? LabourCode { get; set; }
         public string? LabourDescription { get; set; }
-
         public string? TechnicianName { get; set; }
-
-        // "Part" or "Labour" — tells the frontend which set of fields above
-        // is actually populated for this row.
         public string? ItemType { get; set; }
+        public decimal BillTotalTaxableAmount { get; set; }
+        public decimal BillTotalDiscount { get; set; }
+        public decimal BillTotalNetAmount { get; set; }
+        public decimal BillAmountReceived { get; set; }
+        public decimal BillBalanceAmount { get; set; }
     }
 
     public class RepairBillReportPagedResponse
@@ -86,10 +82,17 @@ namespace DMS_BAPL_Utils.ViewModels
         public int PageSize { get; set; }
 
         public decimal TotalItemRate { get; set; }
+
+        public decimal TotalLabourRate { get; set; }
         public decimal TotalCgstAmount { get; set; }
         public decimal TotalSgstAmount { get; set; }
         public decimal TotalIgstAmount { get; set; }
         public decimal TotalGstAmount { get; set; }
         public decimal TotalDiscount { get; set; }
+        public decimal TotalBillTaxableAmount { get; set; }
+        public decimal TotalBillDiscount { get; set; }
+        public decimal TotalBillNetAmount { get; set; }
+        public decimal TotalBillAmountReceived { get; set; }
+        public decimal TotalBillBalanceAmount { get; set; }
     }
 }

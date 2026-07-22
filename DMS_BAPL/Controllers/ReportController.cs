@@ -1098,5 +1098,82 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // COMPARISON REPORT
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpPost("comparison-report")]
+        [ProducesResponseType(typeof(ComparisonReportPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetComparisonReport([FromBody] ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Comparison Report API called");
+
+                var result = await _reportService.GetComparisonReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching comparison report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("comparison-report/export")]
+        [ProducesResponseType(typeof(List<ComparisonReportRowViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportComparisonReport([FromBody] ComparisonReportFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+
+                _logger.LogInformation("Comparison Report Export API called");
+
+                var result = await _reportService.GetComparisonReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting comparison report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }
