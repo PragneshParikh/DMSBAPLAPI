@@ -790,15 +790,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     .Select(im => new
                     {
                         ItemCode = im.Itemcode,
-                        ItemName = im.Itemname,
-
-                        // Latest MRP
+                        HSNCode =im.Hsncode,
+                        ItemName = im.Itemdesc,
                         ItemMrp = im.Custprice,
-
-                        // Latest Stock
-                        ItemStock = _context.PartsInventories
-                            .Where(p =>
-                                p.ItemCode == im.Itemcode &&
+                        ItemStock = _context.PartsInventories.Where(p => p.ItemCode == im.Itemcode &&
                                 p.DealerLocation == dealerLocation &&
                                 p.FinalStockFlag == "Y")
                             .OrderByDescending(p => p.Id)
@@ -846,7 +841,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     ItemName = item.ItemName,
                     ItemMrp = item.ItemMrp,
                     ItemStock = item.ItemStock,
-
+                    HsnCode =item.HSNCode,
                     SGSTPer = sgstPer,
                     CGSTPer = cgstPer,
                     IGSTPer = igstPer,

@@ -471,7 +471,7 @@ namespace DMS_BAPL_Data.Repositories.CounterBillRepo
                             ItemCode = detail.PartCode,
                             TransType = "TI",
                             BatchTransQty = (int)detail.Qty,
-                            DealerLocation=header.LocCode,
+                            DealerLocation = header.LocCode,
                             VendorCode = header.DealerCode,
                             CreatedBy = userName,
                             CreatedDate = DateTime.Now
@@ -513,8 +513,9 @@ namespace DMS_BAPL_Data.Repositories.CounterBillRepo
                     .SelectMany(h => h.CounterBillDetails.Select(d =>
                         new CounterBillExcelViewModel
                         {
+
                             DealerCode = h.DealerCode,
-                            DealerName =_context.DealerMasters.Where(i=>i.Dealercode ==h.DealerCode).Select(i=>i.Compname).FirstOrDefault(),
+                            DealerName = _context.DealerMasters.Where(i => i.Dealercode == h.DealerCode).Select(i => i.Compname).FirstOrDefault(),
                             BillNo = h.BillNo,
                             BillDate = h.BillDate,
                             BillType = h.BillType,
@@ -536,13 +537,15 @@ namespace DMS_BAPL_Data.Repositories.CounterBillRepo
                             Rate = d.Rate,
                             DiscType = d.DiscType,
                             Discount = d.Discount,
+                            DiscountAmount = d.DiscType == "%" ? (d.Rate * d.Discount / 100) : d.Discount,
                             Mrp = d.Mrp,
                             Igstper = d.Igstper,
                             Igstamnt = d.Igstamnt,
                             Cgstper = d.Cgstper,
                             Cgstamnt = d.Cgstamnt,
                             Sgstper = d.Sgstper,
-                            Sgstamnt = d.Sgstamnt
+                            Sgstamnt = d.Sgstamnt,
+                            Amount = ((d.Qty * d.Rate) - (d.DiscType == "%" ? ((d.Qty * d.Rate) * d.Discount / 100) : d.Discount)) * (1 + ((d.Igstper + d.Cgstper + d.Sgstper) / 100m)),
                         }))
                     .ToListAsync();
 

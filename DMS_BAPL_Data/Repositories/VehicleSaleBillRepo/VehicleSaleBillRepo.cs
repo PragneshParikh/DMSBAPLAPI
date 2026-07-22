@@ -281,7 +281,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                                             chassisDetailsToUpdate.DealerId = data.DealerCode;
                                             chassisDetailsToUpdate.LocationCode = data.Location;
                                         }
-                                        _context.VehicleInwards.RemoveRange(inward);
+                                        _context.VehicleInwards.Remove(inward);
                                     }
                                     else
                                     {
@@ -749,17 +749,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             x.VehicleSaleBillDetails.Any(c => chassisNos.Contains(c.ChassisNo)))
                 .ToListAsync();
 
-                foreach (var bill in invalidSalesBills)
-                {
-                    //bill.Erpstatus = "Invalid";
+                //foreach (var bill in invalidSalesBills)
+                //{
+                //    //bill.Erpstatus = "Invalid";
 
-                    var detailsToRemove = await _context.VehicleSaleBillDetails
-                         .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
-                            .ToListAsync();
+                //    var detailsToRemove = await _context.VehicleSaleBillDetails
+                //         .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
+                //            .ToListAsync();
 
-                    _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
+                //    _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
 
-                }
+                //}
                 var existingInvoice = _context.InvoiceHeaders
                     .FirstOrDefault(x => x.DocumentNo == saleBill.SaleBillNo);
 
