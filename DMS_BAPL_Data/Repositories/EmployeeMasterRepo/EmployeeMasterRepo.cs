@@ -67,6 +67,11 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
 
         // =====================================================
         // UPDATE
+        // FIX: LocationCode was missing from this field-by-field copy, so
+        // changing an employee's dealer location(s) in the UI never made it
+        // into the tracked entity — SaveChangesAsync() had nothing new to
+        // persist for that column, no matter what the payload contained.
+        // Every other field was already being copied; this was the one gap.
         // =====================================================
 
         async Task<int> IEmployeeMasterRepo.UpdateEmployee(EmployeeMaster employeeMaster)
@@ -94,6 +99,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 existingEmployee.Designation = employeeMaster.Designation;
                 existingEmployee.Department = employeeMaster.Department;
                 existingEmployee.DealerCode = employeeMaster.DealerCode;
+                existingEmployee.LocationCode = employeeMaster.LocationCode;
                 existingEmployee.Supervisor = employeeMaster.Supervisor;
                 existingEmployee.IsActive = employeeMaster.IsActive;
                 existingEmployee.ProfileImage = employeeMaster.ProfileImage;

@@ -67,17 +67,19 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         private async Task<Dictionary<string, ChassisDetailsD2dhistory>> GetLatestD2dHistoryByChassisAsync(IEnumerable<string?> chassisNos)
         {
-            var codes = chassisNos.Where(c => !string.IsNullOrEmpty(c)).Cast<string>().Distinct().ToList();
+            var codes = chassisNos.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().ToList();
             if (codes.Count == 0) return new Dictionary<string, ChassisDetailsD2dhistory>();
 
-            var histories = await _context.ChassisDetailsD2dhistories
+            var allHistories = await _context.ChassisDetailsD2dhistories
                 .AsNoTracking()
-                .Where(h => codes.Contains(h.ChassisNo) && !h.IsDeleted)
+                .Where(h => codes.Contains(h.ChassisNo))
                 .ToListAsync();
 
-            return histories
+            return allHistories
                 .GroupBy(h => h.ChassisNo)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.CreatedDate).First());
+                .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
+                .Where(latest => !latest.IsDeleted)
+                .ToDictionary(x => x.ChassisNo, x => x);
         }
 
         private async Task<Dictionary<string, DealerMaster>> GetDealerLookupAsync()
@@ -1121,13 +1123,44 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        private class LiveSaleMatch
+        {
+            public VehicleSaleBillHeader Header { get; set; } = null!;
+            public VehicleSaleBillDetail Detail { get; set; } = null!;
+        }
+
+        private async Task<Dictionary<string, LiveSaleMatch>> GetLatestLiveSaleByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim().ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            if (codes.Count == 0) return new Dictionary<string, LiveSaleMatch>();
+
+            var saleRows = await (
+                from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                where vsd.ChassisNo != null && codes.Contains(vsd.ChassisNo.Trim().ToUpper())
+                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
+                    on vsd.VehicleSaleBillId equals vsh.Id
+                select new { vsd, vsh }
+            ).ToListAsync();
+
+            return saleRows
+                .GroupBy(x => x.vsd.ChassisNo!.Trim().ToUpperInvariant())
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var latest = g.OrderByDescending(x => x.vsh.CreatedDate).First();
+                        return new LiveSaleMatch { Header = latest.vsh, Detail = latest.vsd };
+                    });
+        }
         public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter)
         {
             try
             {
-                static bool IsInvoiced(VehicleSaleBillHeader hdr) =>
-                    hdr != null && hdr.Status == "Invoiced";
-
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
 
@@ -1147,69 +1180,44 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vi.LocCode equals lm.Loccode into lmJoin
                     from lm in lmJoin.DefaultIfEmpty()
 
-                    join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
-                    from vsd in saleDetailJoin.DefaultIfEmpty()
-
-                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
-                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
-                    from vsh in saleHeaderJoin.DefaultIfEmpty()
-
-                    select new
-                    {
-                        Vehicle = vi,
-                        Dealer = dm,
-                        Item = im,
-                        Color = cm,
-                        Sale = vsd,
-                        SaleHdr = vsh,
-                        LocationMaster = lm
-                    };
+                    select new { Vehicle = vi, Dealer = dm, Item = im, Color = cm, LocationMaster = lm };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.DealerCode == filter.DealerCode);
-                }
+                    query = query.Where(x => x.Vehicle.DealerCode == filter.DealerCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ModelCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.ItemCode == filter.ModelCode);
-                }
+                    query = query.Where(x => x.Vehicle.ItemCode == filter.ModelCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ColorCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.ColrCode == filter.ColorCode);
-                }
+                    query = query.Where(x => x.Vehicle.ColrCode == filter.ColorCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
-                {
                     query = query.Where(x =>
                         x.Vehicle.ChasisNo != null &&
                         x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
-                }
 
                 var rawData = await query.ToListAsync();
+                var saleLookup = await GetLatestLiveSaleByChassisAsync(rawData.Select(x => x.Vehicle.ChasisNo));
 
-                rawData = rawData
-                    .Where(x => !IsInvoiced(x.SaleHdr))
-                    .ToList();
-
-                var result = rawData.Select((x, index) =>
+                var mappedRows = rawData.Select((x, index) =>
                 {
-                    DateTime? invoiceDate = null;
+                    DateTime? invoiceDate = x.Vehicle.InvoiceDate.HasValue
+                        ? x.Vehicle.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
+                        : null;
 
-                    if (x.Vehicle.InvoiceDate.HasValue)
-                    {
-                        invoiceDate =
-                            x.Vehicle.InvoiceDate.Value
-                                .ToDateTime(TimeOnly.MinValue);
-                    }
+                    LiveSaleMatch? match = !string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+                        && saleLookup.TryGetValue(x.Vehicle.ChasisNo.Trim().ToUpperInvariant(), out var m)
+                        ? m
+                        : null;
 
-                    string vehicleStatus =
-                        x.SaleHdr != null ? "Allocated" : "Available";
+                    // NEW RULE:
+                    //   Invoiced           -> Allocated
+                    //   Anything else
+                    //   (PerformaCreated,
+                    //    Pending, Invalid,
+                    //    or no sale at all) -> Available
+                    bool isInvoiced = match?.Header.Status == "Invoiced";
+                    string vehicleStatus = isInvoiced ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
@@ -1231,44 +1239,43 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         BatteryNo6 = x.Vehicle.BatteryNo6,
                         ChargerNo = x.Vehicle.ChargerNo,
                         ControllerNo = x.Vehicle.ControllerNo,
-                        RegisterNo = x.Sale != null ? x.Sale.RegNo : "",
+                        RegisterNo = match?.Detail.RegNo ?? "",
                         InvoiceNo = x.Vehicle.InvoiceNo,
                         DispatchDate = invoiceDate,
                         ReceiveDate = invoiceDate,
                         VehicleStatus = vehicleStatus,
-                        StockStatus = x.SaleHdr != null ? "Allocated" : "In Stock",
+                        StockStatus = vehicleStatus,   // ← mirrors VehicleStatus now; see note below
                         LocationCode = x.Vehicle.LocCode,
                         LocationName = x.LocationMaster != null ? x.LocationMaster.Locname : "",
                         CurrentLocation = x.LocationMaster != null ? x.LocationMaster.Locname : x.Vehicle.LocCode,
                         PurchaseRate = 0,
                         EstimatedSaleRate = 0,
-                        IsBilled = false,
+                        IsBilled = isInvoiced,
                         DaysInStock = invoiceDate.HasValue ? (DateTime.Now - invoiceDate.Value).Days : 0
                     };
-                });
+                }).ToList();
+
+                // No exclusion step anymore — Invoiced vehicles are shown as "Allocated"
+                // instead of being filtered out entirely.
+                IEnumerable<CurrentStockReportViewModel> result = mappedRows;
 
                 if (!string.IsNullOrWhiteSpace(filter.StockStatus))
-                {
                     result = result.Where(x => x.VehicleStatus == filter.StockStatus);
-                }
 
                 if (filter.FromDate.HasValue)
-                {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
                         x.ReceiveDate.Value.Date >= filter.FromDate.Value.Date);
-                }
 
                 if (filter.ToDate.HasValue)
-                {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
                         x.ReceiveDate.Value.Date <= filter.ToDate.Value.Date);
-                }
 
-                var totalRecords = result.Count();
+                var resultList = result.ToList();
+                var totalRecords = resultList.Count;
 
-                var data = result
+                var data = resultList
                     .OrderByDescending(x => x.ReceiveDate)
                     .ThenBy(x => x.DealerName)
                     .Skip((filter.PageIndex - 1) * filter.PageSize)
@@ -1283,10 +1290,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error fetching current stock report: "
-                    + ex.Message,
-                    ex);
+                throw new Exception("Error fetching current stock report: " + ex.Message, ex);
             }
         }
 
@@ -1294,7 +1298,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // MODEL-WISE CURRENT STOCK (COUNT-WISE)
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
-    string? dealerCode, DateTime? fromDate, DateTime? toDate)
+                 string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -2741,13 +2745,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 join clr in _context.ColorMasters.AsNoTracking()
                     on vi.ColrCode equals clr.Colorcode into clrJoin
                 from clr in clrJoin.DefaultIfEmpty()
-                join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                    on vi.ChasisNo equals vsd.ChassisNo into vsdJoin
-                from vsd in vsdJoin.DefaultIfEmpty()
-                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
-                    on vsd.VehicleSaleBillId equals vsh.Id into vshJoin
-                from vsh in vshJoin.DefaultIfEmpty()
-                select new { vi, dm, loc, im, clr, vsh };
+                    //join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                    //    on vi.ChasisNo equals vsd.ChassisNo into vsdJoin
+                    //from vsd in vsdJoin.DefaultIfEmpty()
+                    //join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
+                    //    on vsd.VehicleSaleBillId equals vsh.Id into vshJoin
+                    //from vsh in vshJoin.DefaultIfEmpty()
+                select new { vi, dm, loc, im, clr };
 
             if (HasDealerFilter(filter.DealerCode))
                 query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
@@ -2774,6 +2778,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             var chassisNosForHistory = rawData.Select(x => x.vi.ChasisNo).ToList();
             var d2dHistoryLookup = await GetLatestD2dHistoryByChassisAsync(chassisNosForHistory);
+            var stockStatusLookup = await GetLatestStockStatusByChassisAsync(chassisNosForHistory);
             var dealerLookup = await GetDealerLookupAsync();
 
             var withDates = rawData.Select(x => new
@@ -2783,7 +2788,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 x.loc,
                 x.im,
                 x.clr,
-                x.vsh,
+                //x.vsh,
                 InvoiceDateTime = x.vi.InvoiceDate.HasValue
                     ? x.vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
                     : (DateTime?)null
@@ -2804,12 +2809,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             var allMapped = filteredList.Select(x =>
             {
-                var stockStatus = x.vsh == null
-                    ? "In Stock"
-                    : (x.vsh.Status == "Invoiced" ? "Sold" : "Allocated");
+                var stockStatus = x.vi.ChasisNo != null && stockStatusLookup.TryGetValue(x.vi.ChasisNo, out var liveStatus)
+                                          ? liveStatus
+                                          : "In Stock";
 
                 var history = x.vi.ChasisNo != null && d2dHistoryLookup.TryGetValue(x.vi.ChasisNo, out var hist)
-                    ? hist : null;
+                            ? hist : null;
 
                 DealerMaster? fromDealer = history?.IssueingDealerCode != null
                     && dealerLookup.TryGetValue(history.IssueingDealerCode, out var fd)
@@ -2852,12 +2857,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }).ToList();
 
             allMapped = allMapped
-                   .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
-                   .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase))
-                   .ToList();
+                       .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
+                       .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase))
+                       .ToList();
 
-            // NEW — "From Dealer" filter: the dealer that originally issued/sent the vehicle,
-            // independent of filter.DealerCode (which only matches the current/receiving dealer).
             if (HasDealerFilter(filter.FromDealerCode))
             {
                 allMapped = allMapped
@@ -2887,6 +2890,34 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return allMapped;
         }
 
+        // Returns one entry per chassis — the status from its single most recent
+        // LIVE (non-deleted) sale bill, if any. Deliberately excludes deleted
+        // headers entirely (not just filters them at read time), so a chassis
+        // with both a deleted bill and a live bill is never ambiguous, and never
+        // produces more than one row in the report.
+        private async Task<Dictionary<string, string>> GetLatestStockStatusByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().ToList();
+            if (codes.Count == 0) return new Dictionary<string, string>();
+
+            var saleRows = await (
+                from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                    on vsd.VehicleSaleBillId equals vsh.Id
+                where codes.Contains(vsd.ChassisNo) && !vsh.IsDeleted
+                select new { vsd.ChassisNo, vsh.Status, vsh.CreatedDate }
+            ).ToListAsync();
+
+            return saleRows
+                .GroupBy(x => x.ChassisNo)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var latest = g.OrderByDescending(x => x.CreatedDate).First();
+                        return latest.Status == "Invoiced" ? "Sold" : "Allocated";
+                    });
+        }
         public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
         {
             try
@@ -3203,8 +3234,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             public LedgerMaster? Cl { get; set; }
         }
 
-        // Query A — bills that DO have Part/Labour lines. Root = RepairBillDetails,
-        // matching the version that already produced correct GST values.
+
         private IQueryable<RepairBillDetailRawRow> BuildRepairBillDetailQuery(RepairBillReportFilterModel filter)
         {
             var query =
@@ -3313,10 +3343,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return query;
         }
 
-        // Query B — bills with ZERO detail lines at all. Simple NOT EXISTS;
-        // no navigation-property risk since there's no d.PartItem etc. here.
-        // Returns nothing at all if a Part/Labour filter is active, since a
-        // bill with no lines can never satisfy that kind of filter.
+ 
         private IQueryable<RepairBillHeaderOnlyRawRow> BuildRepairBillHeaderOnlyQuery(RepairBillReportFilterModel filter)
         {
             bool hasDetailFilter = !string.IsNullOrWhiteSpace(filter.PartCode) || !string.IsNullOrWhiteSpace(filter.LabourCode);
