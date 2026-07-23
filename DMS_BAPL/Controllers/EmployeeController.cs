@@ -134,6 +134,12 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         // INSERT EMPLOYEE
+        // FIX: EnsureEmployeeLogin now only runs when an EmailId was actually
+        // supplied. It used to run unconditionally, so once Email/Password
+        // stopped being mandatory on the front end, a blank EmailId reached
+        // _userManager.FindByEmailAsync(...)/CreateAsync(...) and threw,
+        // failing the whole request. Guarding here (and again inside
+        // EnsureEmployeeLogin as a backstop) fixes that.
         [HttpPost]
         public async Task<ActionResult> CreateNewUser([FromBody] EmployeeMaster employeeMaster)
         {
@@ -144,7 +150,7 @@ namespace DMS_BAPL_Api.Controllers
 
                 var saved = await _employeeService.CreateNewUser(employeeMaster);
 
-                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Saved Successfully", data = saved });
@@ -169,7 +175,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == 0)
                     return NotFound("Employee Not Found");
 
-                //if (employeeMaster.CreateLogin && !string.IsNullOrWhiteSpace(employeeMaster.EmailId))
+                if (!string.IsNullOrWhiteSpace(employeeMaster.EmailId))
                     await EnsureEmployeeLogin(employeeMaster);
 
                 return Ok(new { message = "Employee Updated Successfully" });
@@ -237,8 +243,16 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        // FIX: added an early-out guard. EmailId is now optional on the
+        // incoming payload (Email/Password/Category are no longer mandatory
+        // when creating/updating an employee), so this method must not
+        // assume a non-null EmailId. Everything below this guard is
+        // unchanged from before.
         private async Task EnsureEmployeeLogin(EmployeeMaster emp)
         {
+            if (string.IsNullOrWhiteSpace(emp.EmailId))
+                return;
+
             if (!await _roleManager.RoleExistsAsync("Employee"))
                 await _roleManager.CreateAsync(new IdentityRole("Employee"));
 

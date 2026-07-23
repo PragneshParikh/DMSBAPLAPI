@@ -5,31 +5,33 @@ namespace DMS_BAPL_Data.DBModels;
 
 public partial class EstimateHeader
 {
-    public int Id { get; set; }
+    public class EstimateHeader
+    {
+        public int Id { get; set; }
 
-    public string? EstimationNo { get; set; }
+        public string? EstimationNo { get; set; }
 
     public DateOnly EstimateDate { get; set; }
 
-    public string? ChassisNo { get; set; }
+        public string? ChassisNo { get; set; }
 
-    public string? CustomerName { get; set; }
+        public string? CustomerName { get; set; }
 
-    public string? CustomerMobile { get; set; }
+        public string? CustomerMobile { get; set; }
 
-    public string? CustomerAddress { get; set; }
+        public string? CustomerAddress { get; set; }
 
-    public string? CustomerPin { get; set; }
+        public string? CustomerPin { get; set; }
 
-    public string? CustomerEmail { get; set; }
+        public string? CustomerEmail { get; set; }
 
-    public string? CustomerCity { get; set; }
+        public string? CustomerCity { get; set; }
 
-    public string? CustomerState { get; set; }
+        public string? CustomerState { get; set; }
 
-    public int? Kms { get; set; }
+        public int? Kms { get; set; }
 
-    public int? JobTypeId { get; set; }
+        public int? JobTypeId { get; set; }
 
     public string? DealerCode { get; set; }
 
@@ -45,19 +47,19 @@ public partial class EstimateHeader
 
     public DateTime? UpdatedDate { get; set; }
 
-    public int? InsuranceId { get; set; }
+        public int? InsuranceId { get; set; }
 
-    public string? InsDescription { get; set; }
+        public string? InsDescription { get; set; }
 
-    public string? SurveyorName { get; set; }
+        public string? SurveyorName { get; set; }
 
-    public string? ContactNumber { get; set; }
+        public string? ContactNumber { get; set; }
 
-    public string? PolicyNo { get; set; }
+        public string? PolicyNo { get; set; }
 
     public DateOnly? InsValidTill { get; set; }
 
-    public bool ZeroDepo { get; set; }
+        public bool ZeroDepo { get; set; }
 
     public virtual ICollection<EstimateDetail> EstimateDetails { get; set; } = new List<EstimateDetail>();
 

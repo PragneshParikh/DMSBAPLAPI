@@ -221,6 +221,9 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
 
+    public virtual DbSet<EstimateHeader> EstimateHeaders { get; set; }
+    public virtual DbSet<EstimateDetail> EstimateDetails { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -4336,8 +4339,74 @@ public partial class BapldmsvadContext : DbContext
         modelBuilder.HasSequence("cir_no_seq");
         modelBuilder.HasSequence("LotNo_Seq");
 
+        modelBuilder.Entity<EstimateHeader>(entity =>
+        {
+            entity.ToTable("EstimateHeader");
+
+            entity.Property(e => e.EstimationNo).HasMaxLength(50);
+            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.CustomerMobile).HasMaxLength(20);
+            entity.Property(e => e.CustomerAddress).HasMaxLength(300);
+            entity.Property(e => e.CustomerPin).HasMaxLength(20);
+            entity.Property(e => e.CustomerEmail).HasMaxLength(150);
+            entity.Property(e => e.CustomerCity).HasMaxLength(100);
+            entity.Property(e => e.CustomerState).HasMaxLength(100);
+            entity.Property(e => e.DealerCode).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Open");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            // Unidirectional FK — JobType entity has no back-reference collection
+            // to EstimateHeader defined, matching how other one-way references
+            // are configured elsewhere in this file (e.g. FK_ComplaintMaster_GroupMaster
+            // style, minus the WithMany(p => p.X) side).
+            entity.HasOne(d => d.JobType)
+                .WithMany()
+                .HasForeignKey(d => d.JobTypeId)
+                .HasConstraintName("FK_EstimateHeader_JobType");
+        });
+
+        modelBuilder.Entity<EstimateDetail>(entity =>
+        {
+            entity.ToTable("EstimateDetail");
+
+            entity.Property(e => e.ItemType).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.ItemCode).HasMaxLength(50);
+            entity.Property(e => e.ItemDescription).HasMaxLength(200);
+
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)").HasDefaultValue(1m);
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.CgstPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.EstimateHeader)
+                .WithMany(p => p.EstimateDetails)
+                .HasForeignKey(d => d.EstimateHeaderId)
+                .HasConstraintName("FK_EstimateDetail_EstimateHeader");
+        });
+
         OnModelCreatingPartial(modelBuilder);
+
+
     }
+
+
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
