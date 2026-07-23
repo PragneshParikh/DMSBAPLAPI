@@ -244,7 +244,7 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in SaveJobCardDetails");
-                return StatusCode(500, "An error occurred while saving job card details.");
+                return BadRequest(new { message = ex.Message });     
             }
         }
 

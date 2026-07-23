@@ -4,10 +4,13 @@ using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
+using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Crypto.Engines;
 using QuestPDF.Infrastructure;
 using System;
@@ -82,46 +85,56 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
-                Console.WriteLine("Dealer Code: {0}", dealerCode);
+                Console.WriteLine($"Dealer Code: [{dealerCode}]");
+                Console.WriteLine($"Is Null: {dealerCode == null}");
+                Console.WriteLine($"Is Empty: {string.IsNullOrEmpty(dealerCode)}");
+
+                if (dealerCode?.Trim().ToLower() == "null")
+                {
+                    dealerCode = null;
+                }
+
+                bool isSuperAdmin = string.IsNullOrWhiteSpace(dealerCode);
                 if (jobTypeId == 1)
                 {
                     // ===================== PDI =====================
                     var data = await (
                         from h in _context.LotinspectionHeaders
 
-                        join dealerLg in _context.LedgerMasters
-                            on h.DealerCode equals dealerLg.DealerCode
-
                         join d in _context.LotinspectionDetails
-                           on h.Id equals d.LotHeaderId
-
+                          on h.Id equals d.LotHeaderId
                         join v in _context.ChassisDetails
-                            on d.ChassisNo equals v.ChassisNo
+                          on d.ChassisNo equals v.ChassisNo
+
+                        join dealerLg in _context.LedgerMasters.Where(x => x.LedgerType == "Dealer")
+                        on v.DealerId equals dealerLg.DealerCode
 
                         join i in _context.ItemMasters
                             on v.ItemCode equals i.Itemcode
 
-                        join vc in _context.VehicleInwards
-                            on v.ChassisNo equals vc.ChasisNo
+                        let vc = _context.ChassisBatteryDetails
+                         .Where(x => x.ChassisNo == v.ChassisNo)
+                         .OrderByDescending(x => x.CreatedDate)
+                         .FirstOrDefault()
 
 
                         join o in _context.OemmodelMasters
                             on i.Oemmodelname.Trim().ToLower()
                             equals o.ModelName.Trim().ToLower()
                             into oGroup
+
                         from o in oGroup.DefaultIfEmpty()
 
 
                         where h.IsLotInspected == true
-                                    && h.IsD2d == null
-                                    && v.SaleDate == null
-                                    && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
-                                    && dealerLg.LedgerType == "Dealer"
+                         && v.SaleDate == null
+                        //&& (h.IsD2d == true || h.IsD2d == null) 
+                        && (isSuperAdmin || v.DealerId == dealerCode)
 
                         select new LotInspectionChassisVM
                         {
                             InvoiceNo = h.InvoiceNo,
-                            ChassisNumber = d.ChassisNo,
+                            ChassisNumber = v.ChassisNo,
 
                             CustomerLedgerId = dealerLg.Id,
                             CustomerName = dealerLg.LedgerName,
@@ -129,14 +142,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
 
                             ModelName = i.Itemname,
-                            RegisterNo = vc.Regnumber,
+                            RegisterNo = v.RegNo,
                             BatteryNumber = vc.BatteryNo,
                             ChargerNumber = vc.ChargerNo,
                             ControllerNo = vc.ControllerNo,
                             BatteryMake = vc.BatteryMake,
                             BatteryCapacity = vc.BatteryCapacity,
-                            BatteryChemestry = vc.BatteryChemistry,
-                            ConverterNo = vc.Converter,
+                            BatteryChemestry = vc.BatteryChemical,
+                            ConverterNo = vc.ConverterNo,
                             MotorNo = vc.MotorNo,
 
                             oemModelId = o != null ? o.Id : 0
@@ -182,7 +195,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .FirstOrDefault()
 
                     where h.IsLotInspected == true
-                    && h.DealerCode == dealerCode || h.DealerCode == "null" || h.DealerCode == null
+                    && (isSuperAdmin || v.DealerId == dealerCode)
                     && v.SaleDate != null
 
                     select new LotInspectionChassisVM
@@ -568,6 +581,46 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             try
             {
+                // Check vehicle sale details
+                // 1. PDI not allowed after sale
+                var vehicle = await _context.ChassisDetails
+                    .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
+                if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
+                {
+                    throw new Exception(StringConstants.aftervehiclesalestatus);
+                }
+                // 2. Existing open job card check
+
+                var existingJobCards = await _context.RepairBillHeaders
+                    .Where(x => x.JobId == jobCardDetails.JobCardHeader.Id && !x.IsDelete)
+                    .ToListAsync();
+                if (existingJobCards.Any())
+                {
+                    var jobCardIds = existingJobCards
+                    .Select(x => x.Id)
+                    .ToList();
+
+                    var billedJobIds = await _context.RepairBillHeaders
+                    .Where(x =>
+                    jobCardIds.Contains(x.JobId) &&
+                    !x.IsDelete &&
+                    x.RepairbillStatus == "Billed")
+                    .Select(x => x.JobId)
+                    .ToListAsync();
+                    var openJobCardExists = await _context.RepairBillHeaders
+                        .Where(j => j.JobId == jobCardDetails.JobCardHeader.Id && !j.IsDelete)
+                        .AnyAsync(j => !_context.RepairBillHeaders
+                        .Any(r => r.JobId == j.Id && !r.IsDelete && r.RepairbillStatus == "Billed"));
+
+                    //var openJobCardExists = existingJobCards.Any(j =>
+                    //j.Status != "Closed" &&
+                    //!billedJobIds.Contains(j.Id));
+
+                    if (openJobCardExists)
+                    {
+                        throw new Exception(StringConstants.jobCardException);
+                    }
+                }
 
                 // Insert Header
 
@@ -586,6 +639,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
                     JobinTime = jobCardDetails.JobCardHeader.JobinTime,
                     JobNo = jobCardDetails.JobCardHeader.JobNo,
+                    EstNo = jobCardDetails.JobCardHeader.EstimateNo,
                     ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
                     EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
                     EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
@@ -1369,7 +1423,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
             // Material Transfer + Item Details
-            var stateFlag = string.Equals(custState,DealerState,StringComparison.OrdinalIgnoreCase) ? "S" : "O";
+            var stateFlag = string.Equals(custState, DealerState, StringComparison.OrdinalIgnoreCase) ? "S" : "O";
 
             var data = await (
                 from m in _context.MaterialTransfers
@@ -2182,41 +2236,71 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
         }
-    
 
-    public async Task<int> DeleteJobCardDetails(int jobCardHeaderId)
+
+        public async Task<int> DeleteJobCardDetails(int jobCardHeaderId, bool isSuperAdmin)
         {
-            var jobCardHeader = await _context.JobCardHeaders.FindAsync(jobCardHeaderId);
+            var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobCardHeaderId);
             if (jobCardHeader == null)
             {
                 throw new Exception("Job card header not found");
             }
-            // Delete related JobCardBatteryDetails
-            var batteryDetails = await _context.JobCardBatteryDetails
-                .Where(b => b.JobCardHeaderId == jobCardHeaderId)
+            if (!isSuperAdmin)
+            {
+                throw new Exception("Only SuperAdmin can delete job cards.");
+            }
+            // Delete Repair Bill if exists
+            var repairBills = await _context.RepairBillHeaders
+                .Where(x => x.JobId == jobCardHeaderId)
                 .ToListAsync();
-            if (batteryDetails.Any())
+            if (repairBills.Any())
             {
-                _context.JobCardBatteryDetails.RemoveRange(batteryDetails);
+                _context.RepairBillHeaders.RemoveRange(repairBills);
             }
-            // Delete related JobCardCustomer
-            var jobCardCustomer = await _context.JobCardCustomers
-                .FirstOrDefaultAsync(c => c.JobCardHeaderId == jobCardHeaderId);
-            if (jobCardCustomer != null)
+
+            // Delete FFIR if exists
+            var ffirs = await _context.Ffirheaders
+            .Where(x => x.JobCardHeaderId == jobCardHeaderId)
+            .ToListAsync();
+            if (ffirs.Any())
             {
-                _context.JobCardCustomers.Remove(jobCardCustomer);
+                var ffirHeaderDetails = _context.Ffirheaders;
+                ffirs.ForEach(ffir =>
+                {
+                    var ffirDetails = _context.Ffirheaders.Where(d => d.JobCardHeaderId == jobCardHeaderId).ToList();
+                    ffirDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = "Admin";
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
             }
-            
-            // Delete related JobCardComplaints
-            var complaints = await _context.JobCardComplaints
-                .Where(c => c.JobCardHeaderId == jobCardHeaderId)
-                .ToListAsync();
-            if (complaints.Any())
+
+            // Delete Material Transfer if exists
+            var materialTransfers = await _context.MaterialTransfers
+            .Where(x => x.JobId == jobCardHeaderId)
+            .ToListAsync();
+            if (materialTransfers.Any())
             {
-                _context.JobCardComplaints.RemoveRange(complaints);
+                var materialTransferDetails = _context.MaterialTransfers;
+                materialTransfers.ForEach(mt =>
+                {
+                    var mtDetails = _context.MaterialTransfers.Where(d => d.JobId == jobCardHeaderId).ToList();
+                    mtDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = "Admin";
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
             }
-            // Finally, delete the JobCardHeader
-            _context.JobCardHeaders.Remove(jobCardHeader);
+            // Soft Delete Job Card
+            jobCardHeader.IsDelete = true;
+            jobCardHeader.UpdateBy = "Admin";
+            jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
+
+            _context.JobCardHeaders.Update(jobCardHeader);
             return await _context.SaveChangesAsync();
         }
     }

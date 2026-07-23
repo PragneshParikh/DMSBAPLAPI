@@ -102,6 +102,8 @@ namespace DMS_BAPL_Utils.Constants
         public const string JobCardNotFound = "No Data Available";
         public const string WarrantyDetailsNotFound = "Warranty details not found for the specified model name.";
         public const string WarrantyDetailsSaved = "Warranty Details Saved Sucessfully.";
+        public const string aftervehiclesalestatus = "PDI Job Card cannot be created after vehicle sale.";
+        public const string jobCardException = "An open Job Card already exists for this chassis. Please close Repairbill the existing Job Card first.";
         //HSRP
         public const string HSRPSheet = "HSRPList";
 

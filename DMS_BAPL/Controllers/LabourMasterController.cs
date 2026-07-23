@@ -200,7 +200,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (isModelWise)
                 {
                     var result = await _labourMasterRepo.GetLabourMasterModelwiseList(null);
-                    var data = (result ?? new List<LabourMasteUpdateViewModel>())
+                    var data = (result?? new List<LabourMasteUpdateViewModel>())
                         .Where(x => oemModelName == null || x.OemModelName == oemModelName)
                         .Where(x => cityTier == null || x.CityTier == cityTier)
                         .ToList();
