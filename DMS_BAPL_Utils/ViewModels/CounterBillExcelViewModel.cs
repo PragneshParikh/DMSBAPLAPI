@@ -42,10 +42,12 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal Qty { get; set; }
 
         public decimal Rate { get; set; }
+        public decimal Amount { get; set; }
 
         public string? DiscType { get; set; }
 
         public decimal Discount { get; set; }
+        public decimal DiscountAmount { get; set; }
 
         public decimal Mrp { get; set; }
 

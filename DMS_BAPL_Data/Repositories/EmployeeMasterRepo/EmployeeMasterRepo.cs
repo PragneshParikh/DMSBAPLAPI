@@ -168,7 +168,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             try
             {
                 var result = await _context.EmployeeMasters
-                    .Where(e => e.DealerCode == dealerCode && e.Designation.ToLower() == designation.ToLower() && e.IsActive)
+                    .Where(e=> e.Designation.ToLower() == designation.ToLower() && e.IsActive)
                     .Select(e => new EmployeeDesignationWiseViewModel
                     {
                         EmployeeCode = e.EmployeeCode,
@@ -180,6 +180,10 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                         LocationCode = e.LocationCode,
                     })
                     .ToListAsync();
+                if(!string.IsNullOrEmpty(dealerCode))
+                {
+                    result =result.Where(i=>i.DealerCode == dealerCode).ToList();
+                }
                 return result;
             }
             catch { throw; }

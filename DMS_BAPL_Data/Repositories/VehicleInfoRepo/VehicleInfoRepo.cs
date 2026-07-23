@@ -81,7 +81,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleInfoRepo
                     VehicleDetails = new VehicleDetailsViewModel
                     {
                         ChassisNo = cd.ChassisNo,
-                        RegNo = vd != null ? vd.RegNo : string.Empty,
+                        RegNo = cd != null ? cd.RegNo : string.Empty,
                         SaleDate = cd.SaleDate,
                         ItemCode = cd.ItemCode,
                         ModelName = vd != null ? vd.ModelName : string.Empty,

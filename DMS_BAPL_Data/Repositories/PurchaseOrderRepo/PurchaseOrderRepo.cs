@@ -642,5 +642,42 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             }
             catch { throw; }
         }
+        public async Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode)
+        {
+            var result = await (from PO in _context.PurchaseOrders
+
+                                join PD in _context.PurchaseOrderDetails
+                                on PO.Ponumber equals PD.Ponumber
+
+                                join L in _context.LedgerMasters
+                                on PO.LedgerCode equals L.LedgerCode
+
+                                where PO.CustomerCode == dealerCode
+                                   && PD.ItemCode == itemCode
+
+                                let gstAmount = _context.TaxDetails
+                                .Where(TD => TD.Ponumber == PO.Ponumber && TD.ItemCode == PD.ItemCode)
+                                .Sum(TD => (decimal?)TD.TaxAmount) ?? 0
+
+                                select new
+                                {
+                                    PONumber = PO.Ponumber,
+                                    PO.PurchaseDate,
+
+                                    L.LedgerName,
+
+                                    Rate = PD.Rate - gstAmount,
+                                    Amount = PD.Rate,
+
+                                    PD.Qty,
+
+                                    GST = gstAmount
+                                })
+                                .GroupBy(x => x.Rate)
+                                .Select(g => g.First())
+                                .ToListAsync();
+
+            return result;
+        }
     }
 }

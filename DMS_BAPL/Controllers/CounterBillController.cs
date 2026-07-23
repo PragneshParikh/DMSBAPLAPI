@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.Services.CounterBillService;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,15 +11,17 @@ namespace DMS_BAPL_Api.Controllers
     public class CounterBillController : ControllerBase
     {
         private readonly ICounterBillService _counterBillService;
-        public CounterBillController(ICounterBillService counterBillService)
+        private readonly IHttpContextAccessor _contextAccessor;
+        public CounterBillController(ICounterBillService counterBillService, IHttpContextAccessor contextAccessor)
         {
             _counterBillService = counterBillService;
+            _contextAccessor = contextAccessor;
         }
 
         [HttpPost("save")]
         public async Task<IActionResult> Save([FromBody] CounterBillViewModel model)
         {
-            var userName = User.Identity?.Name ?? "Admin";
+            var userName = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
             var id = await _counterBillService.SaveCounterBillAsync(model, userName);
 
             return Ok(new
@@ -34,7 +37,7 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var userName = User.Identity?.Name ?? "Admin";
+                var userName = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
 
                 var result = await _counterBillService.UpdateCounterBillAsync(model, userName, id);
 
