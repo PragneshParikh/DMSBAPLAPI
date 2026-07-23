@@ -25,6 +25,7 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<object> IPartInwardService.PartsInward(PartsInwardViewModel partsInwardViewModel) => _partInwardRepo.PartsInward(partsInwardViewModel);
         Task<IEnumerable<PartsInward>> IPartInwardService.GetPendingPartInwardDetailByLocation(string locationCode) => _partInwardRepo.GetPendingPartInwardDetailByLocation(locationCode);
         Task<object> IPartInwardService.GetInwardPartDetailsByInvoiceNo(string invoiceNo) => _partInwardRepo.GetInwardPartDetailsByInvoiceNo(invoiceNo);
+        Task<Object> IPartInwardService.GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode) => _partInwardRepo.GetPartsInwardDetailsByDealer(pageIndex, pageSize, fromDate, toDate, dealerCode);
 
     }
 }

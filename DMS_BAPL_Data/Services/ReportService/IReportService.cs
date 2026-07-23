@@ -83,6 +83,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
+        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, string? dealerCode);
     }
     public class JobReportSummaryStats
     {
