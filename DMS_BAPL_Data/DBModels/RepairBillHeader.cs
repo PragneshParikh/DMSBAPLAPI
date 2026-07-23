@@ -55,6 +55,8 @@ public partial class RepairBillHeader
 
     public string? RepairbillStatus { get; set; }
 
+    public bool IsDelete { get; set; }
+
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }

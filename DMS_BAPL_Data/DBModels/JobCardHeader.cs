@@ -55,6 +55,8 @@ public partial class JobCardHeader
 
     public string? SupervisorComment { get; set; }
 
+    public string? InwardType { get; set; }
+
     public bool? IsPdiSuccess { get; set; }
 
     public bool? IsMaterialTransfer { get; set; }
@@ -70,6 +72,8 @@ public partial class JobCardHeader
     public DateTime? UpdatedDate { get; set; }
 
     public string? JobStatus { get; set; }
+
+    public string? EstNo { get; set; }
 
     public virtual ICollection<Ffirheader> Ffirheaders { get; set; } = new List<Ffirheader>();
 
