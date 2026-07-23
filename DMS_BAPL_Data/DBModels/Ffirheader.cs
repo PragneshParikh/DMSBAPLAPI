@@ -39,6 +39,10 @@ public partial class Ffirheader
 
     public string? Ffirremarks { get; set; }
 
+    public string? Ffirstatus { get; set; }
+
+    public bool IsDelete { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }
@@ -46,8 +50,6 @@ public partial class Ffirheader
     public string? UpdatedBy { get; set; }
 
     public DateTime? UpdatedDate { get; set; }
-
-    public string? Ffirstatus { get; set; }
 
     public virtual ICollection<FfirdetailObservation> FfirdetailObservations { get; set; } = new List<FfirdetailObservation>();
 

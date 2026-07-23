@@ -16,5 +16,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
         Task<object> PartsInward(PartsInwardViewModel partsInwardViewModel);
         Task<IEnumerable<PartsInward>> GetPendingPartInwardDetailByLocation(string locationCode);
         Task<object> GetInwardPartDetailsByInvoiceNo(string invoiceNo);
+        Task<Object> GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode);
     }
 }

@@ -1,7 +1,8 @@
-﻿using DMS_BAPL_Data.DBModels;
-using Microsoft.EntityFrameworkCore;
-using DMS_BAPL_Data.CustomModel;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace DMS_BAPL_Data.Repositories.ReportRepo
@@ -3617,7 +3618,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
             }).ToList();
         }
-        
+
 
         private List<RepairBillReportRowViewModel> MapRepairBillHeaderOnlyRows(List<RepairBillHeaderOnlyRawRow> rows)
         {
@@ -3868,6 +3869,81 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return mapped
                 .OrderByDescending(x => x.SaleBillCreatedDate ?? x.PerformaCreatedDate)
                 .ToList();
+        }
+
+        async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(int groupId, string? dealerCode)
+        {
+
+            var aggregatedTaxes = _context.AggregateTaxCodes
+                .GroupBy(at => at.AtaxCode)
+                .Select(g => new
+                {
+                    AtaxCode = g.Key,
+                    TotalTaxRate = g.Sum(x => x.TaxRate)
+                });
+
+            var data = await (
+                from pi in _context.PartsInventories
+                join im in _context.ItemMasters
+                    on pi.ItemCode equals im.Itemcode
+
+                join h in _context.HsnwiseTaxCodes
+                    on im.Hsncode equals h.Hsncode into hsnTaxGroup
+                from h in hsnTaxGroup
+                .Where(x => x.EffectiveDate <= DateTime.Now)
+                .OrderByDescending(x => x.EffectiveDate)
+                .Take(1)
+                .DefaultIfEmpty()
+
+                    //join at in _context.AggregateTaxCodes
+                    //on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
+                    //from at in aggregateTaxGroup.DefaultIfEmpty()
+
+                join at in aggregatedTaxes
+                    on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
+                from at in aggregateTaxGroup.DefaultIfEmpty()
+
+                where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+                      && pi.FinalStockFlag == "Y"
+                      && im.Grpidno == groupId
+                select new
+                {
+                    im.Itemtype,
+                    im.Itemname,
+                    im.Itemcode,
+                    im.Itemdesc,
+                    im.Hsncode,
+                    im.Dlrprice,
+                    im.Custprice,
+                    im.Igst,
+                    im.Grpidno,
+
+                    GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
+
+                    pi.BatchClosingQty,
+                    pi.VendorCode,
+
+                    GST = (decimal?)at.TotalTaxRate ?? 0
+                }
+            ).ToListAsync();
+
+            return data.Select((x, index) => new
+            {
+                SrNo = index + 1,
+                x.Itemtype,
+                x.Itemname,
+                x.Itemcode,
+                x.Itemdesc,
+                x.Hsncode,
+                x.Dlrprice,
+                x.Custprice,
+                x.GST,
+                x.Grpidno,
+                x.BatchClosingQty,
+                x.VendorCode,
+                x.GroupType
+            });
+
         }
     }
 }

@@ -92,6 +92,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateOnly? JobinDate { get; set; }
         public string? JobinTime { get; set; }
         public int? JobNo { get; set; }
+        public string? EstimateNo { get; set; }
         public int? ManualjobNo { get; set; }
         public DateOnly? EstdelDate { get; set; }
         public string? EstdelTime { get; set; }

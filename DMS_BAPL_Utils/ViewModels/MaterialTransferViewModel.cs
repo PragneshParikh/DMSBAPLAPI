@@ -52,6 +52,6 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? UpdatedBy { get; set; }
 
-        public string? UpdatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
     }
 }
