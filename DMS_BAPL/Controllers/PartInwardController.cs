@@ -161,5 +161,34 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        [HttpGet("GetPartsInwardDetailsByDealer")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartsInwardDetailsByDealer(
+            [FromQuery] int pageIndex,
+            [FromQuery] int pageSize,
+            [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate,
+            [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _partInwardService.GetPartsInwardDetailsByDealer(pageIndex, pageSize, fromDate, toDate, dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
     }
 }

@@ -9,7 +9,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
     public interface IReportRepo
     {
         // ── STOCK REPORT ──────────────────────────────────────────────
-        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync( string? dealerCode = null,DateTime? fromDate = null,DateTime? toDate = null);
+        Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null, DateTime? fromDate = null, DateTime? toDate = null);
         Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
 
 
@@ -84,5 +84,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
+        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, string? dealerCode);
     }
 }

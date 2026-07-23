@@ -557,5 +557,7 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+        Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, dealerCode);
     }
 }
