@@ -42,6 +42,13 @@ namespace DMS_BAPL_Data.Services.EstimateService
                     Status = "Open",
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now,
+                    InsuranceId = model.InsuranceId,
+                    InsDescription = model.InsDescription,
+                    SurveyorName = model.SurveyorName,
+                    ContactNumber = model.ContactNumber,
+                    PolicyNo = model.PolicyNo,
+                    InsValidTill = model.InsValidTill,
+                    ZeroDepo = model.ZeroDepo,
                     EstimateDetails = model.Details.Select(d => new EstimateDetail
                     {
                         ItemType = d.ItemType,
@@ -97,6 +104,14 @@ namespace DMS_BAPL_Data.Services.EstimateService
                     DealerCode = entity.DealerCode,
                     Status = entity.Status,
                     CreatedDate = entity.CreatedDate,
+                    InsuranceId = entity.InsuranceId,
+                    InsDescription = entity.InsDescription,
+                    SurveyorName = entity.SurveyorName,
+                    ContactNumber = entity.ContactNumber,
+                    PolicyNo = entity.PolicyNo,
+                    InsValidTill = entity.InsValidTill,
+                    ZeroDepo = entity.ZeroDepo,
+
                     Details = entity.EstimateDetails.Select(d => new EstimateDetailViewModel
                     {
                         Id = d.Id,
@@ -144,16 +159,16 @@ namespace DMS_BAPL_Data.Services.EstimateService
             entity.CustomerState = model.CustomerState;
             entity.Kms = model.Kms;
             entity.JobTypeId = model.JobTypeId;
-            // DealerCode is intentionally NOT overwritten here — it's set once at
-            // creation and should never change on edit, regardless of what a
-            // client sends.
             entity.UpdatedBy = userId;
             entity.UpdatedDate = DateTime.Now;
+            entity.InsuranceId = model.InsuranceId;
+            entity.InsDescription = model.InsDescription;
+            entity.SurveyorName = model.SurveyorName;
+            entity.ContactNumber = model.ContactNumber;
+            entity.PolicyNo = model.PolicyNo;
+            entity.InsValidTill = model.InsValidTill;
+            entity.ZeroDepo = model.ZeroDepo;
 
-            // ── Reconcile EstimateDetails: previously this method didn't touch
-            // Details at all, so editing Parts/Labour lines was silently lost.
-            // Now: remove lines no longer present, update existing lines by Id,
-            // add brand-new lines (Id == 0). ──
             var incomingIds = model.Details.Where(d => d.Id > 0).Select(d => d.Id).ToHashSet();
 
             var toRemove = entity.EstimateDetails.Where(d => !incomingIds.Contains(d.Id)).ToList();
@@ -258,6 +273,16 @@ namespace DMS_BAPL_Data.Services.EstimateService
             string Val(string? v) => string.IsNullOrWhiteSpace(v) ? "-" : v!;
             string Money(decimal v) => v.ToString("N2");
 
+            // Mirrors the Angular `hasInsurance` getter — show the section only if
+            // something was actually captured, not just because the columns exist.
+            bool hasInsurance =
+                !string.IsNullOrWhiteSpace(m.InsuranceParty) ||
+                !string.IsNullOrWhiteSpace(m.InsDescription) ||
+                !string.IsNullOrWhiteSpace(m.SurveyorName) ||
+                !string.IsNullOrWhiteSpace(m.ContactNumber) ||
+                !string.IsNullOrWhiteSpace(m.PolicyNo) ||
+                m.InsValidTill.HasValue;
+
             const string HeaderBg = "#6F72A0";
 
             return Document.Create(container =>
@@ -316,6 +341,30 @@ namespace DMS_BAPL_Data.Services.EstimateService
                                 KV(right, "Job Type", m.JobTypeName);
                             });
                         });
+
+                        // -- Insurance (only if captured) --
+                        if (hasInsurance)
+                        {
+                            col.Item().PaddingTop(8).Text("Insurance Detail").Bold().FontSize(10);
+
+                            col.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Grey.Medium)
+                                .Padding(6).Row(row =>
+                                {
+                                    row.RelativeItem().Column(left =>
+                                    {
+                                        KV(left, "Insurance Party", m.InsuranceParty);
+                                        KV(left, "Description", m.InsDescription);
+                                        KV(left, "Surveyor Name", m.SurveyorName);
+                                    });
+                                    row.RelativeItem().Column(right =>
+                                    {
+                                        KV(right, "Contact Number", m.ContactNumber);
+                                        KV(right, "Policy No", m.PolicyNo);
+                                        KV(right, "Valid Till", m.InsValidTill?.ToString("dd-MM-yyyy"));
+                                        KV(right, "Zero Depreciation", m.ZeroDepo ? "Yes" : "No");
+                                    });
+                                });
+                        }
 
                         // -- Line item table (shared layout for Parts & Labour) --
                         void RenderLineTable(string title, List<EstimatePrintLineViewModel> lines, decimal subtotal)

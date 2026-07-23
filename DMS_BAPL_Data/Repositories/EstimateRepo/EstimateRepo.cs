@@ -30,6 +30,43 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                 .ToDictionary(g => g.Key, g => g.First().JobTypeName!);
         }
 
+        // Resolves a LedgerMasters.Id -> LedgerName, used to print the
+        // Insurance Party's display name on the PDF (Angular resolves this
+        // client-side for the edit form, but the PDF is built server-side
+        // with no Angular around to do that lookup).
+        private async Task<string?> GetLedgerNameAsync(int? ledgerId)
+        {
+            if (!ledgerId.HasValue) return null;
+
+            return await _context.LedgerMasters
+                .AsNoTracking()
+                .Where(x => x.Id == ledgerId.Value)
+                .Select(x => x.LedgerName)
+                .FirstOrDefaultAsync();
+        }
+
+        // Batch-resolves EstimateHeader.Id -> the JobNo of the JobCardHeader
+        // created from it (JobCardHeader.Jobestmate is the FK back to this
+        // Estimate). Same raw-int convention RepairBillRepo already uses for
+        // its own JobCardNo field — no prefix combination.
+        private async Task<Dictionary<int, int?>> GetJobCardNoLookupAsync(List<int> estimateIds)
+        {
+            if (estimateIds.Count == 0) return new Dictionary<int, int?>();
+
+            var rows = await _context.JobCardHeaders
+                .AsNoTracking()
+                .Where(x => x.Jobestmate.HasValue && estimateIds.Contains(x.Jobestmate.Value))
+                .Select(x => new { EstimateId = x.Jobestmate!.Value, x.JobNo })
+                .ToListAsync();
+
+            // If more than one job card somehow references the same estimate,
+            // keep the highest JobNo (most recently created) rather than
+            // throwing on a duplicate key.
+            return rows
+                .GroupBy(x => x.EstimateId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.JobNo).First().JobNo);
+        }
+
         public async Task<int> CreateAsync(EstimateHeader header)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -123,6 +160,7 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                     .ToListAsync();
 
                 var jobTypeLookup = await GetJobTypeNameLookupAsync();
+                var jobCardLookup = await GetJobCardNoLookupAsync(rawRows.Select(x => x.Id).ToList());
 
                 var data = rawRows.Select(x => new EstimateResponseViewModel
                 {
@@ -141,6 +179,19 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                     JobTypeId = x.JobTypeId,
                     JobTypeName = x.JobTypeId.HasValue && jobTypeLookup.TryGetValue(x.JobTypeId.Value, out var jtName)
                         ? jtName : null,
+
+                    // ── Insurance ──
+                    InsuranceId = x.InsuranceId,
+                    InsDescription = x.InsDescription,
+                    SurveyorName = x.SurveyorName,
+                    ContactNumber = x.ContactNumber,
+                    PolicyNo = x.PolicyNo,
+                    InsValidTill = x.InsValidTill,
+                    ZeroDepo = x.ZeroDepo,
+
+                    // Job Card created from this estimate, if any
+                    JobCardNo = jobCardLookup.TryGetValue(x.Id, out var jcNo) ? jcNo : null,
+
                     DealerCode = x.DealerCode,
                     Status = x.Status,
                     CreatedDate = x.CreatedDate
@@ -162,7 +213,8 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
 
         public async Task UpdateAsync(EstimateHeader entity)
         {
-            try { 
+            try
+            {
                 await _context.SaveChangesAsync();
             }
             catch
@@ -249,7 +301,18 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                         Rate = (decimal)x.LabourRate,
                         CgstPercent = (decimal)x.Cgst,
                         SgstPercent = (decimal)x.Sgst,
-                        IgstPercent = (decimal)x.Igst
+                        IgstPercent = (decimal)x.Igst,
+
+                        // ── Linked Labour ──
+                        // Same row already carries the associated labour's
+                        // own code/name/rate/tax — expose it so the
+                        // frontend can auto-add it to the Labour grid.
+                        LinkedLabourCode = x.LabourCode,
+                        LinkedLabourDescription = x.LabourName,
+                        LinkedLabourRate = (decimal)x.LabourRate,
+                        LinkedLabourCgstPercent = (decimal)x.Cgst,
+                        LinkedLabourSgstPercent = (decimal)x.Sgst,
+                        LinkedLabourIgstPercent = (decimal)x.Igst
                     })
                     .ToListAsync();
             }
@@ -334,6 +397,11 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
 
                 var jobTypeName = await GetJobTypeNameAsync(header.JobTypeId);
 
+                // Insurance party has no name stored on EstimateHeader itself
+                // (only the FK) — resolve it here since the PDF is generated
+                // entirely server-side.
+                var insuranceParty = await GetLedgerNameAsync(header.InsuranceId);
+
                 var lines = header.EstimateDetails.Select(d => new EstimatePrintLineViewModel
                 {
                     ItemType = d.ItemType,
@@ -372,6 +440,15 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                     ChassisNo = header.ChassisNo,
                     Kms = header.Kms,
                     JobTypeName = jobTypeName,
+
+                    // ── Insurance ──
+                    InsuranceParty = insuranceParty,
+                    InsDescription = header.InsDescription,
+                    SurveyorName = header.SurveyorName,
+                    ContactNumber = header.ContactNumber,
+                    PolicyNo = header.PolicyNo,
+                    InsValidTill = header.InsValidTill,
+                    ZeroDepo = header.ZeroDepo,
 
                     CustomerName = header.CustomerName,
                     CustomerMobile = header.CustomerMobile,
