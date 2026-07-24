@@ -24,12 +24,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? DealerCode { get; set; }
         public string? DealerName { get; set; }
-
-        // NEW — replaces ServiceLocationCode/ServiceLocationName, shown
-        // right next to Dealer Code/Name per this request. Sourced from
-        // DealerMaster (same join already used for DealerName), not the
-        // job card's service location.
         public string? DealerLocation { get; set; }
+        public string? LocationName { get; set; }
 
         public string? DealerCity { get; set; }
         public string? DealerState { get; set; }

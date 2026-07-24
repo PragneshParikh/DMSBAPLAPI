@@ -9,7 +9,7 @@ public partial class EstimateHeader
 
     public string? EstimationNo { get; set; }
 
-    public DateOnly EstimateDate { get; set; }
+    public DateTime EstimateDate { get; set; }
 
     public string? ChassisNo { get; set; }
 
@@ -55,7 +55,7 @@ public partial class EstimateHeader
 
     public string? PolicyNo { get; set; }
 
-    public DateOnly? InsValidTill { get; set; }
+    public DateTime? InsValidTill { get; set; }
 
     public bool ZeroDepo { get; set; }
 

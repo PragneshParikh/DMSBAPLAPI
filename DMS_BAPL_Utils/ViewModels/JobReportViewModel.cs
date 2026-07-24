@@ -67,6 +67,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateTime? SaleDate { get; set; }
 
+        public DateTime? ClosedDate { get; set; }
+
         public string? SupervisorName { get; set; }
 
         public string? JobCreationSource { get; set; }
