@@ -165,5 +165,31 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, new { Success = false, Message = "An error occurred while generating repair bill performa details.", Details = ex.Message });
             }
         }
+
+        [HttpDelete("DeleteRepairbill/{id}/{role}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteRepairbill(int id, string role)
+        {
+            try
+            {
+                if (role != "SuperAdmin")
+                    return Unauthorized("Only Super Admin can delete");
+
+                var result = await _repairBillRepo.DeleteRepairbill(id, role);
+
+                if (result > 0)
+                    return Ok(new { message = "Deleted Successfully" });
+
+                return NotFound("Repair Bill not found");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DeleteRepairBill");
+                return StatusCode(500, "An error occurred while deleting the repair bill.");
+            }
+
+        }
     }
 }

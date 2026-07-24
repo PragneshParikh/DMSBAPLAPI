@@ -349,7 +349,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     from rb in repairBillJoin.DefaultIfEmpty()
 
                     join fr in _context.Ffirheaders
-                    on jh.Chassisno equals fr.FfirchassisNo into ffirJoin
+                    on jh.Id equals fr.JobCardHeaderId into ffirJoin
                     from fr in ffirJoin.DefaultIfEmpty()
 
 
@@ -434,6 +434,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
                         PartyState = x.sta != null ? x.sta.StateName : null,
                         CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
+                        RepairBillStatus = x.rb != null ? x.rb.RepairbillStatus : null,
 
                         IsMaterialTransfer = x.jh.IsMaterialTransfer,
 
@@ -465,6 +466,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             IsPdiSuccess = x.jh.IsPdiSuccess,
                             Observation = x.jh.Observation,
                             SupervisorComment = x.jh.SupervisorComment,
+                            IsDelete = x.jh.IsDelete,
                             CreatedDate = x.jh.CreatedDate,
                             UpdatedDate = x.jh.UpdatedDate,
                             JobStatus =
@@ -562,6 +564,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     })
                     //.GroupBy(x => x.JobCardHeader.Id)
                     //.Select(g => g.First())
+                    .Where(x => x.JobCardHeader.IsDelete != true)
                     .OrderByDescending(x => x.JobCardHeader.Id)
                     .ToListAsync();
 
@@ -591,36 +594,20 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }
                 // 2. Existing open job card check
 
-                var existingJobCards = await _context.RepairBillHeaders
-                    .Where(x => x.JobId == jobCardDetails.JobCardHeader.Id && !x.IsDelete)
-                    .ToListAsync();
-                if (existingJobCards.Any())
-                {
-                    var jobCardIds = existingJobCards
-                    .Select(x => x.Id)
-                    .ToList();
-
-                    var billedJobIds = await _context.RepairBillHeaders
-                    .Where(x =>
-                    jobCardIds.Contains(x.JobId) &&
-                    !x.IsDelete &&
-                    x.RepairbillStatus == "Billed")
-                    .Select(x => x.JobId)
-                    .ToListAsync();
-                    var openJobCardExists = await _context.RepairBillHeaders
-                        .Where(j => j.JobId == jobCardDetails.JobCardHeader.Id && !j.IsDelete)
-                        .AnyAsync(j => !_context.RepairBillHeaders
-                        .Any(r => r.JobId == j.Id && !r.IsDelete && r.RepairbillStatus == "Billed"));
-
-                    //var openJobCardExists = existingJobCards.Any(j =>
-                    //j.Status != "Closed" &&
-                    //!billedJobIds.Contains(j.Id));
-
-                    if (openJobCardExists)
+                var openJobCardExists = await _context.JobCardHeaders
+                .Where(j =>
+                j.Chassisno == jobCardDetails.JobCardHeader.Chassisno &&
+                j.IsDelete != true)
+                .AnyAsync(j =>
+                !_context.RepairBillHeaders.Any(r =>
+                r.JobId == j.Id &&
+                r.IsDelete != true &&
+                r.RepairbillStatus == "Billed"));
+                if (openJobCardExists)
                     {
                         throw new Exception(StringConstants.jobCardException);
                     }
-                }
+                
 
                 // Insert Header
 
@@ -1042,30 +1029,81 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             }
         }
-        public async Task<int> DeleteJobCard(int jobId)
+        public async Task<int> DeleteJobCard(int jobId, string role)
         {
-            var jobCard = await _context.JobCardHeaders.FindAsync(jobId);
+            
+            var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobId);
+            if (jobCardHeader == null)
+            {
+                throw new Exception("Job card header not found");
+            }
+            if (role != "SuperAdmin")
+            {
+                throw new Exception("Only SuperAdmin can delete job cards.");
+            }
+            // Delete Repair Bill if exists
+            var repairBills = await _context.RepairBillHeaders
+                .Where(x => x.JobId == jobId)
+                .ToListAsync();
+            if (repairBills.Any())
+            {
+                var repairBillHeaderDetails = _context.RepairBillHeaders;
+                repairBills.ForEach(repairBills =>
+                {
+                    var repairBillDetails = _context.RepairBillHeaders.Where(d => d.JobId == jobId).ToList();
+                    repairBillDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = role;
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
+              
+            }
 
-            if (jobCard == null)
-                return 0;
+            // Delete FFIR if exists
+            var ffirs = await _context.Ffirheaders
+            .Where(x => x.JobCardHeaderId == jobId)
+            .ToListAsync();
+            if (ffirs.Any())
+            {
+                var ffirHeaderDetails = _context.Ffirheaders;
+                ffirs.ForEach(ffir =>
+                {
+                    var ffirDetails = _context.Ffirheaders.Where(d => d.JobCardHeaderId == jobId).ToList();
+                    ffirDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = role;
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
+            }
 
-            //  IMPORTANT: Delete related data first 
+            // Delete Material Transfer if exists
+            var materialTransfers = await _context.MaterialTransfers
+            .Where(x => x.JobId == jobId)
+            .ToListAsync();
+            if (materialTransfers.Any())
+            {
+                var materialTransferDetails = _context.MaterialTransfers;
+                materialTransfers.ForEach(mt =>
+                {
+                    var mtDetails = _context.MaterialTransfers.Where(d => d.JobId == jobId).ToList();
+                    mtDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = role;
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
+            }
+            // Soft Delete Job Card
+            jobCardHeader.IsDelete = true;
+            jobCardHeader.UpdateBy = role;
+            jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
 
-            var complaints = _context.JobCardComplaints.Where(x => x.JobCardHeaderId == jobId);
-            _context.JobCardComplaints.RemoveRange(complaints);
-
-            var pdi = _context.PdichecklistChassisWises.Where(x => x.JobCardMasterId == jobId);
-            _context.PdichecklistChassisWises.RemoveRange(pdi);
-
-            var battery = _context.JobCardBatteryDetails.Where(x => x.JobCardHeaderId == jobId);
-            _context.JobCardBatteryDetails.RemoveRange(battery);
-
-            var customer = _context.JobCardCustomers.Where(x => x.JobCardHeaderId == jobId);
-            _context.JobCardCustomers.RemoveRange(customer);
-
-            // MAIN DELETE
-            _context.JobCardHeaders.Remove(jobCard);
-
+            _context.JobCardHeaders.Update(jobCardHeader);
             return await _context.SaveChangesAsync();
         }
         public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
@@ -2235,73 +2273,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
-        }
-
-
-        public async Task<int> DeleteJobCardDetails(int jobCardHeaderId, bool isSuperAdmin)
-        {
-            var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobCardHeaderId);
-            if (jobCardHeader == null)
-            {
-                throw new Exception("Job card header not found");
-            }
-            if (!isSuperAdmin)
-            {
-                throw new Exception("Only SuperAdmin can delete job cards.");
-            }
-            // Delete Repair Bill if exists
-            var repairBills = await _context.RepairBillHeaders
-                .Where(x => x.JobId == jobCardHeaderId)
-                .ToListAsync();
-            if (repairBills.Any())
-            {
-                _context.RepairBillHeaders.RemoveRange(repairBills);
-            }
-
-            // Delete FFIR if exists
-            var ffirs = await _context.Ffirheaders
-            .Where(x => x.JobCardHeaderId == jobCardHeaderId)
-            .ToListAsync();
-            if (ffirs.Any())
-            {
-                var ffirHeaderDetails = _context.Ffirheaders;
-                ffirs.ForEach(ffir =>
-                {
-                    var ffirDetails = _context.Ffirheaders.Where(d => d.JobCardHeaderId == jobCardHeaderId).ToList();
-                    ffirDetails.ForEach(detail =>
-                    {
-                        detail.IsDelete = true;
-                        detail.UpdatedBy = "Admin";
-                        detail.UpdatedDate = DateTime.UtcNow;
-                    });
-                });
-            }
-
-            // Delete Material Transfer if exists
-            var materialTransfers = await _context.MaterialTransfers
-            .Where(x => x.JobId == jobCardHeaderId)
-            .ToListAsync();
-            if (materialTransfers.Any())
-            {
-                var materialTransferDetails = _context.MaterialTransfers;
-                materialTransfers.ForEach(mt =>
-                {
-                    var mtDetails = _context.MaterialTransfers.Where(d => d.JobId == jobCardHeaderId).ToList();
-                    mtDetails.ForEach(detail =>
-                    {
-                        detail.IsDelete = true;
-                        detail.UpdatedBy = "Admin";
-                        detail.UpdatedDate = DateTime.UtcNow;
-                    });
-                });
-            }
-            // Soft Delete Job Card
-            jobCardHeader.IsDelete = true;
-            jobCardHeader.UpdateBy = "Admin";
-            jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
-
-            _context.JobCardHeaders.Update(jobCardHeader);
-            return await _context.SaveChangesAsync();
         }
     }
 }

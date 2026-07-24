@@ -116,6 +116,7 @@ namespace DMS_BAPL_Utils.ViewModels
             public int? JobCardNo { get; set; }
             public decimal? TotalNetAmount { get; set; }
             public string? RepairBillStatus { get; set; }
+            public bool? IsDelete { get; set; }
             public string? CreatedBy { get; set; }
             public DateTime? CreatedDate { get; set; }
             public string? UpdatedBy { get; set; }
