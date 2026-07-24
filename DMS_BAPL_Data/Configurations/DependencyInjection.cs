@@ -3,6 +3,7 @@ using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
 using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
+using DMS_BAPL_Data.Repositories.BgRoleRepo;
 using DMS_BAPL_Data.Repositories.ChassisBatteryDetailRepo;
 using DMS_BAPL_Data.Repositories.ChassisDetailRepo;
 using DMS_BAPL_Data.Repositories.ChassisDetailsRepo;
@@ -14,6 +15,7 @@ using DMS_BAPL_Data.Repositories.CityRepo;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.ComplaintMasterRepo;
 using DMS_BAPL_Data.Repositories.CounterBillRepo;
+using DMS_BAPL_Data.Repositories.DealerManagerRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.DepartmentRepo;
 using DMS_BAPL_Data.Repositories.DesignationRepo;
@@ -55,6 +57,7 @@ using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Data.Repositories.PurchaseOrderRepo;
 using DMS_BAPL_Data.Repositories.ReceiptEntryRepo;
 using DMS_BAPL_Data.Repositories.RepairBillRepo;
+using DMS_BAPL_Data.Repositories.RepoBillingRepo;
 using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
@@ -65,6 +68,8 @@ using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
+using DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo;
+using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
 using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
@@ -74,6 +79,7 @@ using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
 using DMS_BAPL_Data.Services.BatteryCapacityMasterService;
 using DMS_BAPL_Data.Services.BgEmployeeMasterService;
+using DMS_BAPL_Data.Services.BgRoleService;
 using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
 using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.ChassisService;
@@ -82,6 +88,7 @@ using DMS_BAPL_Data.Services.CircularDealerAssignmentService;
 using DMS_BAPL_Data.Services.CityService;
 using DMS_BAPL_Data.Services.ColorMasterService;
 using DMS_BAPL_Data.Services.CounterBillService;
+using DMS_BAPL_Data.Services.DealerManagerService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.DepartmentService;
 using DMS_BAPL_Data.Services.DesignationService;
@@ -117,6 +124,7 @@ using DMS_BAPL_Data.Services.PerformaInvoiceService;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Data.Services.PurchaseOrder;
 using DMS_BAPL_Data.Services.ReceiptEntryService;
+using DMS_BAPL_Data.Services.RepoBillingService;
 using DMS_BAPL_Data.Services.ReportService;
 using DMS_BAPL_Data.Services.RoleService;
 using DMS_BAPL_Data.Services.RoleWiseMenuRightService;
@@ -126,16 +134,12 @@ using DMS_BAPL_Data.Services.TaxServices;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Data.Services.VehicleQuotationService;
+using DMS_BAPL_Data.Services.VehicleQuotationService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using DMS_BAPL_Data.Services.ZoneMasterService;
 using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
-using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
-using DMS_BAPL_Data.Services.VehicleQuotationService;
-using DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo;
-using DMS_BAPL_Data.Repositories.RepoBillingRepo;
-using DMS_BAPL_Data.Services.RepoBillingService;
 
 namespace DMS_BAPL_Data.Configurations
 {
@@ -220,6 +224,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ICounterBillRepo, CounterBillRepo>();
             services.AddScoped<IRepoBillingRepo, RepoBillingRepo>();
             services.AddScoped<IEstimateRepo, EstimateRepo>();
+            services.AddScoped<IBgRoleRepo, BgRoleRepo>();
+            services.AddScoped<IDealerManagerRepo, DealerManagerRepo>();
+
 
             #endregion
 
@@ -284,7 +291,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IRepoBillingService, RepoBillingService>();
             services.AddScoped<IVehicleQuotationService, VehicleQuotationService>();
             services.AddScoped<IEstimateService, EstimateService>();
-
+            services.AddScoped<IBgRoleService, BgRoleService>();
+            services.AddScoped<IDealerManagerService, DealerManagerService>();
 
 
 
