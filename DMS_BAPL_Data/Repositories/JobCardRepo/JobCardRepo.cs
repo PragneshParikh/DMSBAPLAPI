@@ -192,6 +192,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefault()
 
+                    let existingjobCard = _context.JobCardHeaders
+                        .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+                        .OrderByDescending(j => j.CreatedDate)
+                        .FirstOrDefault()
+
                     where h.IsLotInspected == true
                     && (isSuperAdmin || v.DealerId == dealerCode)
                     && v.SaleDate != null
@@ -207,6 +212,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         ModelName = i.Itemname,
                         RegisterNo = v.RegNo,
                         InsuranceExpDate = vsd.InsExpDate,
+                        InwardType = h.InwardType,
+                        VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
 
                         // Latest Battery Details
                         BatteryNumber = vc != null ? vc.BatteryNo : null,

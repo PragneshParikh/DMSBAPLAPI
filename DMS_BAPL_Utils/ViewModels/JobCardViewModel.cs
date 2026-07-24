@@ -43,6 +43,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? RegisterNo { get; set; }
         public DateTime? SaleDate { get; set; }
         public DateTime? InsuranceExpDate { get; set; }
+        public int? VehiclePrevkms { get;set; }
         public DateTime? NextserviceDueDate { get; set; }
         public DateOnly? RsarenewalDate { get; set; }
         public string BatteryNumber { get; set; }
