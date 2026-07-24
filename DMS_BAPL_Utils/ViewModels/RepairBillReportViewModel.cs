@@ -35,6 +35,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateTime? JobDate { get; set; }
         public string? JobType { get; set; }
+        public int? JobNo { get; set; }
         public string? ServiceHead { get; set; }
         public string? ServiceType { get; set; }
 

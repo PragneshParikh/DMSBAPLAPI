@@ -68,17 +68,19 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         private async Task<Dictionary<string, ChassisDetailsD2dhistory>> GetLatestD2dHistoryByChassisAsync(IEnumerable<string?> chassisNos)
         {
-            var codes = chassisNos.Where(c => !string.IsNullOrEmpty(c)).Cast<string>().Distinct().ToList();
+            var codes = chassisNos.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().ToList();
             if (codes.Count == 0) return new Dictionary<string, ChassisDetailsD2dhistory>();
 
-            var histories = await _context.ChassisDetailsD2dhistories
+            var allHistories = await _context.ChassisDetailsD2dhistories
                 .AsNoTracking()
-                .Where(h => codes.Contains(h.ChassisNo) && !h.IsDeleted)
+                .Where(h => codes.Contains(h.ChassisNo))
                 .ToListAsync();
 
-            return histories
+            return allHistories
                 .GroupBy(h => h.ChassisNo)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.CreatedDate).First());
+                .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
+                .Where(latest => !latest.IsDeleted)
+                .ToDictionary(x => x.ChassisNo, x => x);
         }
 
         private async Task<Dictionary<string, DealerMaster>> GetDealerLookupAsync()
@@ -527,6 +529,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Observation = r.jh.Observation,
                         SupervisorComment = r.jh.SupervisorComment,
                         JobStatus = jobStatus,
+                        ClosedDate = rb != null && rb.RepairbillStatus == "Billed"
+                                            ? (DateTime?)(rb.UpdatedDate ?? rb.CreatedDate)
+                                            : null,
                         SaleDate = r.jc.SaleDate,
                         SupervisorName = r.jh.Supervisor,
                         JobCreationSource = r.js != null ? r.js.JobSourceName : null
@@ -1122,13 +1127,44 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
         }
 
+        private class LiveSaleMatch
+        {
+            public VehicleSaleBillHeader Header { get; set; } = null!;
+            public VehicleSaleBillDetail Detail { get; set; } = null!;
+        }
+
+        private async Task<Dictionary<string, LiveSaleMatch>> GetLatestLiveSaleByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim().ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            if (codes.Count == 0) return new Dictionary<string, LiveSaleMatch>();
+
+            var saleRows = await (
+                from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                where vsd.ChassisNo != null && codes.Contains(vsd.ChassisNo.Trim().ToUpper())
+                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
+                    on vsd.VehicleSaleBillId equals vsh.Id
+                select new { vsd, vsh }
+            ).ToListAsync();
+
+            return saleRows
+                .GroupBy(x => x.vsd.ChassisNo!.Trim().ToUpperInvariant())
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var latest = g.OrderByDescending(x => x.vsh.CreatedDate).First();
+                        return new LiveSaleMatch { Header = latest.vsh, Detail = latest.vsd };
+                    });
+        }
         public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter)
         {
             try
             {
-                static bool IsInvoiced(VehicleSaleBillHeader hdr) =>
-                    hdr != null && hdr.Status == "Invoiced";
-
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
 
@@ -1148,69 +1184,44 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         on vi.LocCode equals lm.Loccode into lmJoin
                     from lm in lmJoin.DefaultIfEmpty()
 
-                    join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                        on vi.ChasisNo equals vsd.ChassisNo into saleDetailJoin
-                    from vsd in saleDetailJoin.DefaultIfEmpty()
-
-                    join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
-                        on vsd.VehicleSaleBillId equals vsh.Id into saleHeaderJoin
-                    from vsh in saleHeaderJoin.DefaultIfEmpty()
-
-                    select new
-                    {
-                        Vehicle = vi,
-                        Dealer = dm,
-                        Item = im,
-                        Color = cm,
-                        Sale = vsd,
-                        SaleHdr = vsh,
-                        LocationMaster = lm
-                    };
+                    select new { Vehicle = vi, Dealer = dm, Item = im, Color = cm, LocationMaster = lm };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.DealerCode == filter.DealerCode);
-                }
+                    query = query.Where(x => x.Vehicle.DealerCode == filter.DealerCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ModelCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.ItemCode == filter.ModelCode);
-                }
+                    query = query.Where(x => x.Vehicle.ItemCode == filter.ModelCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ColorCode))
-                {
-                    query = query.Where(x =>
-                        x.Vehicle.ColrCode == filter.ColorCode);
-                }
+                    query = query.Where(x => x.Vehicle.ColrCode == filter.ColorCode);
 
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
-                {
                     query = query.Where(x =>
                         x.Vehicle.ChasisNo != null &&
                         x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
-                }
 
                 var rawData = await query.ToListAsync();
+                var saleLookup = await GetLatestLiveSaleByChassisAsync(rawData.Select(x => x.Vehicle.ChasisNo));
 
-                rawData = rawData
-                    .Where(x => !IsInvoiced(x.SaleHdr))
-                    .ToList();
-
-                var result = rawData.Select((x, index) =>
+                var mappedRows = rawData.Select((x, index) =>
                 {
-                    DateTime? invoiceDate = null;
+                    DateTime? invoiceDate = x.Vehicle.InvoiceDate.HasValue
+                        ? x.Vehicle.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
+                        : null;
 
-                    if (x.Vehicle.InvoiceDate.HasValue)
-                    {
-                        invoiceDate =
-                            x.Vehicle.InvoiceDate.Value
-                                .ToDateTime(TimeOnly.MinValue);
-                    }
+                    LiveSaleMatch? match = !string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+                        && saleLookup.TryGetValue(x.Vehicle.ChasisNo.Trim().ToUpperInvariant(), out var m)
+                        ? m
+                        : null;
 
-                    string vehicleStatus =
-                        x.SaleHdr != null ? "Allocated" : "Available";
+                    // NEW RULE:
+                    //   Invoiced           -> Allocated
+                    //   Anything else
+                    //   (PerformaCreated,
+                    //    Pending, Invalid,
+                    //    or no sale at all) -> Available
+                    bool isInvoiced = match?.Header.Status == "Invoiced";
+                    string vehicleStatus = isInvoiced ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
@@ -1232,44 +1243,43 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         BatteryNo6 = x.Vehicle.BatteryNo6,
                         ChargerNo = x.Vehicle.ChargerNo,
                         ControllerNo = x.Vehicle.ControllerNo,
-                        RegisterNo = x.Sale != null ? x.Sale.RegNo : "",
+                        RegisterNo = match?.Detail.RegNo ?? "",
                         InvoiceNo = x.Vehicle.InvoiceNo,
                         DispatchDate = invoiceDate,
                         ReceiveDate = invoiceDate,
                         VehicleStatus = vehicleStatus,
-                        StockStatus = x.SaleHdr != null ? "Allocated" : "In Stock",
+                        StockStatus = vehicleStatus,   // ← mirrors VehicleStatus now; see note below
                         LocationCode = x.Vehicle.LocCode,
                         LocationName = x.LocationMaster != null ? x.LocationMaster.Locname : "",
                         CurrentLocation = x.LocationMaster != null ? x.LocationMaster.Locname : x.Vehicle.LocCode,
                         PurchaseRate = 0,
                         EstimatedSaleRate = 0,
-                        IsBilled = false,
+                        IsBilled = isInvoiced,
                         DaysInStock = invoiceDate.HasValue ? (DateTime.Now - invoiceDate.Value).Days : 0
                     };
-                });
+                }).ToList();
+
+                // No exclusion step anymore — Invoiced vehicles are shown as "Allocated"
+                // instead of being filtered out entirely.
+                IEnumerable<CurrentStockReportViewModel> result = mappedRows;
 
                 if (!string.IsNullOrWhiteSpace(filter.StockStatus))
-                {
                     result = result.Where(x => x.VehicleStatus == filter.StockStatus);
-                }
 
                 if (filter.FromDate.HasValue)
-                {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
                         x.ReceiveDate.Value.Date >= filter.FromDate.Value.Date);
-                }
 
                 if (filter.ToDate.HasValue)
-                {
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
                         x.ReceiveDate.Value.Date <= filter.ToDate.Value.Date);
-                }
 
-                var totalRecords = result.Count();
+                var resultList = result.ToList();
+                var totalRecords = resultList.Count;
 
-                var data = result
+                var data = resultList
                     .OrderByDescending(x => x.ReceiveDate)
                     .ThenBy(x => x.DealerName)
                     .Skip((filter.PageIndex - 1) * filter.PageSize)
@@ -1284,10 +1294,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    "Error fetching current stock report: "
-                    + ex.Message,
-                    ex);
+                throw new Exception("Error fetching current stock report: " + ex.Message, ex);
             }
         }
 
@@ -1295,7 +1302,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // MODEL-WISE CURRENT STOCK (COUNT-WISE)
         // ═════════════════════════════════════════════════════════════════════
         public async Task<ModelWiseStockPivotResponse> GetModelWiseStockCountReportAsync(
-    string? dealerCode, DateTime? fromDate, DateTime? toDate)
+                 string? dealerCode, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
@@ -1753,6 +1760,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into dealerGroup
                     from dealer in dealerGroup.DefaultIfEmpty()
                     where po.Id > 0
+                       && po.IsAgainstKit == true   // ← NEW: only kit-linked POs
                     select new PartDispatchKitReportViewModel
                     {
                         PONumber = po.Ponumber,
@@ -2742,13 +2750,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 join clr in _context.ColorMasters.AsNoTracking()
                     on vi.ColrCode equals clr.Colorcode into clrJoin
                 from clr in clrJoin.DefaultIfEmpty()
-                join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                    on vi.ChasisNo equals vsd.ChassisNo into vsdJoin
-                from vsd in vsdJoin.DefaultIfEmpty()
-                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
-                    on vsd.VehicleSaleBillId equals vsh.Id into vshJoin
-                from vsh in vshJoin.DefaultIfEmpty()
-                select new { vi, dm, loc, im, clr, vsh };
+                    //join vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                    //    on vi.ChasisNo equals vsd.ChassisNo into vsdJoin
+                    //from vsd in vsdJoin.DefaultIfEmpty()
+                    //join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
+                    //    on vsd.VehicleSaleBillId equals vsh.Id into vshJoin
+                    //from vsh in vshJoin.DefaultIfEmpty()
+                select new { vi, dm, loc, im, clr };
 
             if (HasDealerFilter(filter.DealerCode))
                 query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
@@ -2775,6 +2783,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             var chassisNosForHistory = rawData.Select(x => x.vi.ChasisNo).ToList();
             var d2dHistoryLookup = await GetLatestD2dHistoryByChassisAsync(chassisNosForHistory);
+            var stockStatusLookup = await GetLatestStockStatusByChassisAsync(chassisNosForHistory);
             var dealerLookup = await GetDealerLookupAsync();
 
             var withDates = rawData.Select(x => new
@@ -2784,7 +2793,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 x.loc,
                 x.im,
                 x.clr,
-                x.vsh,
+                //x.vsh,
                 InvoiceDateTime = x.vi.InvoiceDate.HasValue
                     ? x.vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
                     : (DateTime?)null
@@ -2805,12 +2814,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             var allMapped = filteredList.Select(x =>
             {
-                var stockStatus = x.vsh == null
-                    ? "In Stock"
-                    : (x.vsh.Status == "Invoiced" ? "Sold" : "Allocated");
+                var stockStatus = x.vi.ChasisNo != null && stockStatusLookup.TryGetValue(x.vi.ChasisNo, out var liveStatus)
+                                          ? liveStatus
+                                          : "In Stock";
 
                 var history = x.vi.ChasisNo != null && d2dHistoryLookup.TryGetValue(x.vi.ChasisNo, out var hist)
-                    ? hist : null;
+                            ? hist : null;
 
                 DealerMaster? fromDealer = history?.IssueingDealerCode != null
                     && dealerLookup.TryGetValue(history.IssueingDealerCode, out var fd)
@@ -2853,12 +2862,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }).ToList();
 
             allMapped = allMapped
-                   .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
-                   .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase))
-                   .ToList();
+                       .Where(x => !string.IsNullOrWhiteSpace(x.FromDealerCode))
+                       .Where(x => !string.Equals(x.FromDealerCode, x.DealerCode, StringComparison.OrdinalIgnoreCase))
+                       .ToList();
 
-            // NEW — "From Dealer" filter: the dealer that originally issued/sent the vehicle,
-            // independent of filter.DealerCode (which only matches the current/receiving dealer).
             if (HasDealerFilter(filter.FromDealerCode))
             {
                 allMapped = allMapped
@@ -2888,6 +2895,34 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return allMapped;
         }
 
+        // Returns one entry per chassis — the status from its single most recent
+        // LIVE (non-deleted) sale bill, if any. Deliberately excludes deleted
+        // headers entirely (not just filters them at read time), so a chassis
+        // with both a deleted bill and a live bill is never ambiguous, and never
+        // produces more than one row in the report.
+        private async Task<Dictionary<string, string>> GetLatestStockStatusByChassisAsync(IEnumerable<string?> chassisNos)
+        {
+            var codes = chassisNos.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().ToList();
+            if (codes.Count == 0) return new Dictionary<string, string>();
+
+            var saleRows = await (
+                from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking()
+                    on vsd.VehicleSaleBillId equals vsh.Id
+                where codes.Contains(vsd.ChassisNo) && !vsh.IsDeleted
+                select new { vsd.ChassisNo, vsh.Status, vsh.CreatedDate }
+            ).ToListAsync();
+
+            return saleRows
+                .GroupBy(x => x.ChassisNo)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var latest = g.OrderByDescending(x => x.CreatedDate).First();
+                        return latest.Status == "Invoiced" ? "Sold" : "Allocated";
+                    });
+        }
         public async Task<List<D2DReportViewModel>> GetD2DReportForExportAsync(D2DReportFilterModel filter)
         {
             try
@@ -3108,6 +3143,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     // shown next to Dealer Code/Name.
                     DealerLocation = r.Dm != null ? r.Dm.City : null,
 
+                    LocationName = r.Loc != null ? r.Loc.Locname : null,
+
                     DealerCity = r.Dm?.City,
                     DealerState = r.Dm?.State,
 
@@ -3204,8 +3241,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             public LedgerMaster? Cl { get; set; }
         }
 
-        // Query A — bills that DO have Part/Labour lines. Root = RepairBillDetails,
-        // matching the version that already produced correct GST values.
+
         private IQueryable<RepairBillDetailRawRow> BuildRepairBillDetailQuery(RepairBillReportFilterModel filter)
         {
             var query =
@@ -3314,10 +3350,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return query;
         }
 
-        // Query B — bills with ZERO detail lines at all. Simple NOT EXISTS;
-        // no navigation-property risk since there's no d.PartItem etc. here.
-        // Returns nothing at all if a Part/Labour filter is active, since a
-        // bill with no lines can never satisfy that kind of filter.
+ 
         private IQueryable<RepairBillHeaderOnlyRawRow> BuildRepairBillHeaderOnlyQuery(RepairBillReportFilterModel filter)
         {
             bool hasDetailFilter = !string.IsNullOrWhiteSpace(filter.PartCode) || !string.IsNullOrWhiteSpace(filter.LabourCode);
@@ -3507,55 +3540,81 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var billNet = r.Rbh.TotalNetAmount ?? 0;
                 var billReceived = r.Rbh.AmountReceived ?? 0;
                 var billBalance = billNet - billReceived;
-                bool isPart;
-                if (r.D.PartItemId.HasValue && r.D.PartItemId.Value > 0)
+
+                // CHANGED — Part and Labour are no longer treated as mutually
+                // exclusive. A single detail row can legitimately have BOTH a
+                // linked part AND a linked labour master (e.g. "replace X" =
+                // part cost + install labour recorded on one line). Each side is
+                // now detected independently instead of an either/or switch, so
+                // neither side's rate/code/GST is silently dropped when both apply.
+                bool hasPart = r.D.PartItemId.HasValue && r.D.PartItemId.Value > 0;
+                bool hasLabour = r.D.LabourMasterId.HasValue && r.D.LabourMasterId.Value > 0;
+
+                // Legacy fallback — only when NEITHER FK is populated (manually
+                // entered row, never linked to a master record). ItemType is a
+                // single string and can't express "both", so this path only ever
+                // resolves to one side, same as the original behavior.
+                if (!hasPart && !hasLabour)
                 {
-                    isPart = true;
-                }
-                else if (r.D.LabourMasterId.HasValue && r.D.LabourMasterId.Value > 0)
-                {
-                    isPart = false;
-                }
-                else
-                {
-                    // Neither FK populated — fall back to the old string
-                    // check, kept only for any manually-entered rows never
-                    // linked to a master record.
-                    isPart = string.Equals(r.D.ItemType, "Part", StringComparison.OrdinalIgnoreCase);
+                    if (string.Equals(r.D.ItemType, "Part", StringComparison.OrdinalIgnoreCase))
+                        hasPart = true;
+                    else
+                        hasLabour = true;
                 }
 
-                decimal itemRate;
-                decimal discount;
-                string? partCode = null;
-                string? partDesc = null;
-                string? labourCode = null;
-                string? labourDesc = null;
-                decimal cgstPercent, sgstPercent, igstPercent;
+                // ── Part side ──
+                decimal itemRateForRow = hasPart ? (r.D.PartRate ?? 0) : 0;
+                decimal partDiscount = hasPart ? (r.D.PartDiscount ?? 0) : 0;
+                string? partCode = hasPart ? r.Pi?.Itemcode : null;
+                string? partDesc = hasPart ? r.Pi?.Itemdesc : null;
+                decimal partCgstPercent = hasPart ? (r.Pi?.Cgst ?? 0) : 0;
+                decimal partSgstPercent = hasPart ? (r.Pi?.Sgst ?? 0) : 0;
+                decimal partIgstPercent = hasPart ? (r.Pi?.Igst ?? 0) : 0;
 
-                if (isPart)
-                {
-                    itemRate = r.D.PartRate ?? 0;
-                    discount = r.D.PartDiscount ?? 0;
-                    partCode = r.Pi?.Itemcode;
-                    partDesc = r.Pi?.Itemdesc;
-                    cgstPercent = r.Pi?.Cgst ?? 0;
-                    sgstPercent = r.Pi?.Sgst ?? 0;
-                    igstPercent = r.Pi?.Igst ?? 0;
-                }
-                else
-                {
-                    itemRate = r.D.LabourRate ?? 0;
-                    discount = r.D.LabourDiscount ?? 0;
-                    labourCode = r.Lm?.LabourCode ?? r.Pwl?.LabourCode;
-                    labourDesc = r.Lm?.LabourDescription ?? r.Pwl?.LabourName;
-                    cgstPercent = r.Lm?.Cgst ?? r.Pwl?.Cgst ?? 0;
-                    sgstPercent = r.Lm?.Sgst ?? r.Pwl?.Sgst ?? 0;
-                    igstPercent = r.Lm?.Igst ?? r.Pwl?.Igst ?? 0;
-                }
+                // ── Labour side ──
+                decimal labourRateForRow = hasLabour ? (r.D.LabourRate ?? 0) : 0;
+                decimal labourDiscount = hasLabour ? (r.D.LabourDiscount ?? 0) : 0;
+                string? labourCode = hasLabour ? (r.Lm?.LabourCode ?? r.Pwl?.LabourCode) : null;
+                string? labourDesc = hasLabour ? (r.Lm?.LabourDescription ?? r.Pwl?.LabourName) : null;
+                decimal labourCgstPercent = hasLabour ? (r.Lm?.Cgst ?? r.Pwl?.Cgst ?? 0) : 0;
+                decimal labourSgstPercent = hasLabour ? (r.Lm?.Sgst ?? r.Pwl?.Sgst ?? 0) : 0;
+                decimal labourIgstPercent = hasLabour ? (r.Lm?.Igst ?? r.Pwl?.Igst ?? 0) : 0;
 
-                var cgstAmount = Round2(itemRate * cgstPercent / 100);
-                var sgstAmount = Round2(itemRate * sgstPercent / 100);
-                var igstAmount = Round2(itemRate * igstPercent / 100);
+                // GST amounts computed per-side against each side's own rate/%,
+                // then summed — correct even when the two sides carry different
+                // tax rates (goods vs. services commonly differ).
+                var cgstAmount = Round2(itemRateForRow * partCgstPercent / 100)
+                                + Round2(labourRateForRow * labourCgstPercent / 100);
+                var sgstAmount = Round2(itemRateForRow * partSgstPercent / 100)
+                                + Round2(labourRateForRow * labourSgstPercent / 100);
+                var igstAmount = Round2(itemRateForRow * partIgstPercent / 100)
+                                + Round2(labourRateForRow * labourIgstPercent / 100);
+
+                // Display % columns: unambiguous when only one side applies; when
+                // BOTH apply and the two rates genuinely differ, there's no single
+                // correct number for one column — shown here as the part's rate
+                // (ASSUMPTION — flag if you'd rather see the labour rate, or blank,
+                // in that mixed case; the underlying Amount columns are correct
+                // either way since they're computed per-side, not from this %).
+                decimal cgstPercent = hasPart ? partCgstPercent : labourCgstPercent;
+                decimal sgstPercent = hasPart ? partSgstPercent : labourSgstPercent;
+                decimal igstPercent = hasPart ? partIgstPercent : labourIgstPercent;
+
+                // Discount: single output column, so combine both sides when both
+                // apply (matches how the other combined totals already work).
+                decimal discount = partDiscount + labourDiscount;
+
+                // Part Code / Part Code Description: show real part data whenever
+                // a part exists on this row. Only reuse these columns for labour
+                // info (per the earlier "don't add a new column" request) when
+                // there's NO part on the row at all — so a genuine part's code
+                // is never overwritten by labour info just because labour is
+                // also present.
+                if (!hasPart && hasLabour)
+                {
+                    partCode = labourCode;
+                    partDesc = labourDesc;
+                }
 
                 return new RepairBillReportRowViewModel
                 {
@@ -3570,6 +3629,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     JobDate = r.Jh != null && r.Jh.JobinDate.HasValue
                         ? r.Jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    JobNo = r.Jh?.JobNo,
                     JobType = r.Jt?.JobTypeName,
                     ServiceHead = r.Sh?.ServiceHeadName,
                     ServiceType = r.St?.ServiceTypeName,
@@ -3589,8 +3649,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     IssueType = r.D.IssutypeId,
 
-                    ItemRate = itemRate,
-                    LabourRateRaw = r.D.LabourRate ?? 0,
+                    ItemRate = itemRateForRow,
+                    LabourRateRaw = labourRateForRow,
 
                     CgstPercent = cgstPercent,
                     CgstAmount = cgstAmount,
@@ -3647,6 +3707,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                     JobDate = r.Jh != null && r.Jh.JobinDate.HasValue
                         ? r.Jh.JobinDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                    JobNo = r.Jh?.JobNo,
                     JobType = r.Jt?.JobTypeName,
                     ServiceHead = r.Sh?.ServiceHeadName,
                     ServiceType = r.St?.ServiceTypeName,
@@ -3894,10 +3955,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .OrderByDescending(x => x.EffectiveDate)
                 .Take(1)
                 .DefaultIfEmpty()
-
-                    //join at in _context.AggregateTaxCodes
-                    //on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
-                    //from at in aggregateTaxGroup.DefaultIfEmpty()
 
                 join at in aggregatedTaxes
                     on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup

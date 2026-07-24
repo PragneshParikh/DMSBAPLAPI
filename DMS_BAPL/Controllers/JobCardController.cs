@@ -356,14 +356,14 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteJobCard(int jobId, string role)
+        public async Task<IActionResult> DeleteJobCard(int id, string role)
         {
             try
             {
                 if (role != "SuperAdmin")
                     return Unauthorized("Only Super Admin can delete");
 
-                var result = await _jobCardRepo.DeleteJobCard(jobId);
+                var result = await _jobCardRepo.DeleteJobCard(id,role);
 
                 if (result > 0)
                     return Ok(new { message = "Deleted Successfully" });

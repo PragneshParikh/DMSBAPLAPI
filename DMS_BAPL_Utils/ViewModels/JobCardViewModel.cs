@@ -106,6 +106,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? SupervisorComment { get; set; }
         public bool? IsPdiSuccess { get; set; }
         public string? JobStatus { get; set; }
+        public bool? IsDelete { get; set; }
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
@@ -343,6 +344,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool? IsMaterialTransfer { get; set; }
         public int? DealerLedgerId { get; set; }
         public int? CustomerLedgerId { get; set; }
+        public string? RepairBillStatus { get; set; }
         public JobCardHeaderVM JobCardHeader { get; set; }
         public JobCardBatteryVM JobCardBattery { get; set; }
         public JobCardCustomerVM JobCardCustomer { get; set; }

@@ -213,7 +213,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         BillNo = x.RepairBill.BillNo,
                         BillType = x.RepairBill.BillType,
                         PartyName = x.ledger.LedgerName,
-
+                        IsDelete = x.RepairBill.IsDelete,
 
                         ChassisNumber = x.Customer != null ? x.Customer.ChassisNo : null,
                         RegistrationNo = x.Customer != null ? x.Customer.RegisterNo : null,
@@ -225,6 +225,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         UpdatedBy = x.RepairBill.DealerCode,
 
                     })
+                    .Where(x => x.IsDelete != true) // Exclude deleted records
                     .OrderByDescending(x => x.Id)
                     .ToListAsync();
 
@@ -576,6 +577,40 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 return false;
                 throw new Exception(ex.Message);
             }
+        }
+        public async Task<int> DeleteRepairbill(int repairbillId, string role)
+        {
+
+            var repairbillHeader = await _context.RepairBillHeaders.FirstOrDefaultAsync(x => x.Id == repairbillId);
+            if (repairbillHeader == null)
+            {
+                throw new Exception("Repair bill header not found");
+            }
+            if (role != "SuperAdmin")
+            {
+                throw new Exception("Only SuperAdmin can delete repair bills.");
+            }
+            // Delete Repair Bill if exists
+            var repairBills = await _context.RepairBillHeaders
+                .Where(x => x.Id == repairbillId)
+                .ToListAsync();
+            if (repairBills.Any())
+            {
+                var repairBillHeaderDetails = _context.RepairBillHeaders;
+                repairBills.ForEach(repairBills =>
+                {
+                    var repairBillDetails = _context.RepairBillHeaders.Where(d => d.Id == repairbillId).ToList();
+                    repairBillDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = role;
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
+
+            }
+            _context.RepairBillHeaders.Update(repairbillHeader);
+            return await _context.SaveChangesAsync();
         }
 
 
