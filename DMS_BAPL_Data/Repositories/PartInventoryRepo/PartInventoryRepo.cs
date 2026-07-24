@@ -28,12 +28,10 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
 
         public async Task UpdateStock(PartsInventory partsInventory)
         {
-            //using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 var lastBatch = await _context.PartsInventories
-                    .Where(x => x.ItemCode == partsInventory.ItemCode)
+                    .Where(x => x.ItemCode == partsInventory.ItemCode && x.VendorCode == partsInventory.VendorCode && x.DealerLocation == partsInventory.DealerLocation)
                     .OrderByDescending(x => x.Id)
                     .FirstOrDefaultAsync();
 
@@ -64,12 +62,12 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                     BatchTransQty = partsInventory.BatchTransQty,
                     BatchClosingQty = closingQty,
                     TransDate = DateOnly.FromDateTime(DateTime.Now),
-                    DealerLocation = lastBatch?.DealerLocation ?? string.Empty,
+                    DealerLocation = partsInventory.DealerLocation ?? string.Empty,
                     VendorCode = partsInventory.VendorCode ?? string.Empty,
                     FinalStockFlag = "Y",
                     TotalRate = lastBatch?.TotalRate ?? 0,
                     PurchaseRate = lastBatch?.PurchaseRate ?? 0,
-                    Potype = lastBatch?.Potype ?? "B2C",
+                    Potype = partsInventory.Potype ?? string.Empty,
                     PostTransaction = lastBatch?.PostTransaction,
                     CreatedBy = partsInventory.CreatedBy,
                     CreatedDate = partsInventory.CreatedDate
@@ -79,12 +77,9 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                     lastBatch.FinalStockFlag = "N";
 
                 _context.PartsInventories.Add(newRecord);
-                //await _context.SaveChangesAsync();
-                //await transaction.CommitAsync();
             }
             catch
             {
-                //await transaction.RollbackAsync();
                 throw;
             }
         }

@@ -69,14 +69,14 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
                         TransDate = DateOnly.FromDateTime(DateTime.Now),
 
-                        DealerLocation = g.First().LocCode,
+                        DealerLocation = partsInwardDetailsViewModel.selectedLocation,
                         VendorCode = g.First().DealerCode,
 
                         // optional calculations
                         TotalRate = g.Sum(x => x.ItemRate * x.ItemQty),
                         PurchaseRate = g.First().ItemRate,
 
-                        Potype = "B2C",
+                        Potype = partsInwardDetailsViewModel.POType,
                         PostTransaction = 0,
 
                         CreatedBy = partsInwardDetailsViewModel.UpdatedBy,

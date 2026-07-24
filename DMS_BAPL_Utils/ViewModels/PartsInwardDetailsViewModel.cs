@@ -9,6 +9,8 @@ namespace DMS_BAPL_Utils.ViewModels
     public class PartsInwardDetailsViewModel
     {
         public string InvoiceNo { get; set; }
+        public string selectedLocation { get; set; }
+        public string POType { get; set; }
         public DateTime ReceiptDate { get; set; }
         public string PrefixNo { get; set; }
         public string DocumentNo { get; set; }

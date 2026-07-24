@@ -558,6 +558,6 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
-        Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, dealerCode);
+        Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
     }
 }
