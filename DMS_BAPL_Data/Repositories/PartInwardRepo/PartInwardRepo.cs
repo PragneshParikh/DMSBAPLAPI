@@ -228,6 +228,7 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 InvoiceDate = partInwards.First().InvoiceDate,
                 LocationCode = partInwards.First().LocCode,
                 InvoiceNo = partInwards.First().InvoiceNo,
+                ReceiptDate = partInwards.First().ReceiptDate ?? null,
                 PartInwards = partInwards
             };
         }
