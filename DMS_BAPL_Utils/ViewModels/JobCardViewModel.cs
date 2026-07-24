@@ -38,10 +38,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerName { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerAltMobile { get; set; }
+        public string? InwardType { get; set; }
         public string? ModelName { get; set; }
         public string? RegisterNo { get; set; }
         public DateTime? SaleDate { get; set; }
-        public DateOnly? InsuranceExpDate { get; set; }
+        public DateTime? InsuranceExpDate { get; set; }
         public DateTime? NextserviceDueDate { get; set; }
         public DateOnly? RsarenewalDate { get; set; }
         public string BatteryNumber { get; set; }
@@ -106,6 +107,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? SupervisorComment { get; set; }
         public bool? IsPdiSuccess { get; set; }
         public string? JobStatus { get; set; }
+        public string? InwardType { get; set; } 
         public bool? IsDelete { get; set; }
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }

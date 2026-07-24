@@ -207,6 +207,8 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
 
                     jobDate = jh.JobinDate,
 
+                    IsDelete = ffir.IsDelete,
+
                     CustomerName = jc.CustomerName,
 
                     ModelName = _context.MainPartAffectedFfirs
@@ -244,6 +246,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
             }
 
             return await query
+                .Where(x => x.IsDelete != true)
                 .OrderByDescending(x => x.Id)
                 .ToListAsync();
         }
@@ -388,6 +391,44 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                 throw;
             }
         }
+
+        public async Task<int> DeleteFFIR(int ffirId, string role)
+        {
+
+            var ffirHeader = await _context.Ffirheaders.FirstOrDefaultAsync(x => x.Id == ffirId);
+            if (ffirHeader == null)
+            {
+                throw new Exception("FFIR header not found");
+            }
+            if (role != "SuperAdmin")
+            {
+                throw new Exception("Only SuperAdmin can delete FFIR.");
+            }
+           
+
+            // Delete FFIR if exists
+            var ffirs = await _context.Ffirheaders
+            .Where(x => x.Id == ffirId)
+            .ToListAsync();
+            if (ffirs.Any())
+            {
+                var ffirHeaderDetails = _context.Ffirheaders;
+                ffirs.ForEach(ffir =>
+                {
+                    var ffirDetails = _context.Ffirheaders.Where(d => d.Id == ffirId).ToList();
+                    ffirDetails.ForEach(detail =>
+                    {
+                        detail.IsDelete = true;
+                        detail.UpdatedBy = role;
+                        detail.UpdatedDate = DateTime.UtcNow;
+                    });
+                });
+            }
+
+            _context.Ffirheaders.Update(ffirHeader);
+            return await _context.SaveChangesAsync();
+        }
+
 
     }
 }
