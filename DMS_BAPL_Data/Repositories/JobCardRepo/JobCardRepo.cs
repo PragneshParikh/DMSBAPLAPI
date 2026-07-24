@@ -85,9 +85,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
-                Console.WriteLine($"Dealer Code: [{dealerCode}]");
-                Console.WriteLine($"Is Null: {dealerCode == null}");
-                Console.WriteLine($"Is Empty: {string.IsNullOrEmpty(dealerCode)}");
 
                 if (dealerCode?.Trim().ToLower() == "null")
                 {
@@ -139,6 +136,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             CustomerLedgerId = dealerLg.Id,
                             CustomerName = dealerLg.LedgerName,
                             CustomerMobile = dealerLg.MobileNumber,
+                            InwardType = h.InwardType,
 
 
                             ModelName = i.Itemname,
@@ -194,6 +192,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefault()
 
+                    let existingjobCard = _context.JobCardHeaders
+                        .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+                        .OrderByDescending(j => j.CreatedDate)
+                        .FirstOrDefault()
+
                     where h.IsLotInspected == true
                     && (isSuperAdmin || v.DealerId == dealerCode)
                     && v.SaleDate != null
@@ -208,6 +211,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         SaleDate = v.SaleDate,
                         ModelName = i.Itemname,
                         RegisterNo = v.RegNo,
+                        InsuranceExpDate = vsd.InsExpDate,
+                        InwardType = h.InwardType,
+                        VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
 
                         // Latest Battery Details
                         BatteryNumber = vc != null ? vc.BatteryNo : null,
@@ -448,6 +454,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             JobSource = x.jh.JobSource,
                             Chassisno = x.jh.Chassisno,
                             Couponno = x.jh.Couponno,
+                            InwardType = x.jh.InwardType,
                             Jobprefix = x.jh.Jobprefix,
                             JobNo = x.jh.JobNo,
                             Vehiclekms = x.jh.Vehiclekms,
@@ -622,6 +629,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Servicetype = jobCardDetails.JobCardHeader.Servicetype,
                     Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
                     Couponno = jobCardDetails.JobCardHeader.Couponno,
+                    InwardType = jobCardDetails.JobCardHeader.InwardType,
                     Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
                     JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
                     JobinTime = jobCardDetails.JobCardHeader.JobinTime,
@@ -769,6 +777,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 header.Servicetype = updateJobCardDetails.JobCardHeader.Servicetype;
                 header.Serviceloc = updateJobCardDetails.JobCardHeader.Serviceloc;
                 header.Couponno = updateJobCardDetails.JobCardHeader.Couponno;
+                header.InwardType = updateJobCardDetails.JobCardHeader.InwardType;
                 header.Jobprefix = updateJobCardDetails.JobCardHeader.Jobprefix;
                 header.JobinDate = updateJobCardDetails.JobCardHeader.JobinDate;
                 header.JobinTime = updateJobCardDetails.JobCardHeader.JobinTime;
@@ -1230,6 +1239,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                     Servicetype = JCH.Servicetype,
                                     Serviceloc = JCH.Serviceloc,
                                     Couponno = JCH.Couponno,
+                                    InwardType = JCH.InwardType,
                                     Jobprefix = JCH.Jobprefix,
                                     JobinDate = JCH.JobinDate,
                                     JobinTime = JCH.JobinTime,
@@ -1629,6 +1639,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         on jh.Id equals c.JobCardHeaderId into custJoin
                     from c in custJoin.DefaultIfEmpty()
 
+                    join vsd in _context.VehicleSaleBillDetails
+                    on c.ChassisNo equals vsd.ChassisNo into vsdJoin
+                    from vsd in vsdJoin.DefaultIfEmpty()
+                    
                     join job in _context.JobTypes
                         on jh.Jobtype equals job.Id into jobJoin
                     from job in jobJoin.DefaultIfEmpty()
@@ -1669,6 +1683,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     {
                         jh,
                         c,
+                        vsd,
                         job,
                         sh,
                         st,
@@ -1740,6 +1755,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             PartyState = x.sta != null ? x.sta.StateName : null,
                             CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
                             IsMaterialTransfer = x.jh.IsMaterialTransfer,
+                            
+
 
                             JobCardHeader = new JobCardHeaderVM
                             {
@@ -1751,6 +1768,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 JobSource = x.jh.JobSource,
                                 Chassisno = x.jh.Chassisno,
                                 Couponno = x.jh.Couponno,
+                                InwardType = x.jh.InwardType,
                                 Jobprefix = x.jh.Jobprefix,
                                 JobNo = x.jh.JobNo,
                                 Vehiclekms = x.jh.Vehiclekms,
@@ -1812,14 +1830,15 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 CustomerAltMobile = x.c.CustomerAltMobile,
                                 MotorNo = x.c.MotorNo,
                                 BatteryNo = x.c.BatteryNo,
-                                InsuranceExpDate = x.c.InsuranceExpDate,
+                                InsuranceExpDate = x.vsd.InsExpDate,
                                 NextserviceDueDate = x.c.NextserviceDueDate,
                                 RsarenewalDate = x.c.RsarenewalDate,
                                 Remarks = x.c.Remarks
                             }
                         })
-    .OrderByDescending(x => x.JobCardHeader.Id)
-    .ToListAsync();
+                    .Where(x => x.JobCardHeader.IsDelete != true)
+                    .OrderByDescending(x => x.JobCardHeader.Id)
+                    .ToListAsync();
 
 
                 return jobCardsResult;

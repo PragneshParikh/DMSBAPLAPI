@@ -148,5 +148,31 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpDelete("DeleteFFIR/{id}/{role}")]
+        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteFFIR(int id, string role)
+        {
+            try
+            {
+                if (role != "SuperAdmin")
+                    return Unauthorized("Only Super Admin can delete");
+
+                var result = await _ffirRepo.DeleteFFIR(id, role);
+
+                if (result > 0)
+                    return Ok(new { message = "Deleted Successfully" });
+
+                return NotFound("FFIR not found");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DeleteFFIR");
+                return StatusCode(500, "An error occurred while deleting the FFIR.");
+            }
+
+        }
+
     }
 }

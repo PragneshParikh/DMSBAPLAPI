@@ -20,5 +20,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
         Task<FFIRViewModel> GetFFIRById(int id);
 
         Task<bool> UpdateFFIRAsync(int id, FFIRViewModel model);
+
+        Task<int> DeleteFFIR(int ffirId, string role);
     }
 }

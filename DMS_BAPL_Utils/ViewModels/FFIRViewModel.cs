@@ -152,5 +152,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string FFIRRemarks { get; set; }
 
+        public bool? IsDelete { get; set; }
+
     }
 }
