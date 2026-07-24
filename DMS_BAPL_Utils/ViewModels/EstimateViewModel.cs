@@ -28,7 +28,6 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string? EstimationNo { get; set; }
         public DateTime EstimateDate { get; set; }
-
         public string? ChassisNo { get; set; }
 
         public string? CustomerName { get; set; }
@@ -38,17 +37,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerEmail { get; set; }
         public string? CustomerCity { get; set; }
         public string? CustomerState { get; set; }
-
         public int? Kms { get; set; }
-
-        // FK to JobType.Id — resolved from the frontend dropdown,
-        // NOT free text (matches JobCardHeader.Jobtype convention)
         public int? JobTypeId { get; set; }
-
-        // ── Insurance ──
-        // Property names match the Angular save payload exactly
-        // (insuranceId, insDescription, surveyorName, contactNumber,
-        // policyNo, insValidTill, zeroDepo) via default camelCase JSON.
         public int? InsuranceId { get; set; }
         public string? InsDescription { get; set; }
         public string? SurveyorName { get; set; }
@@ -68,12 +58,9 @@ namespace DMS_BAPL_Utils.ViewModels
     public class EstimateResponseViewModel
     {
         public int Id { get; set; }
-
         public string? EstimationNo { get; set; }
         public DateTime EstimateDate { get; set; }
-
         public string? ChassisNo { get; set; }
-
         public string? CustomerName { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerAddress { get; set; }
@@ -81,17 +68,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? CustomerEmail { get; set; }
         public string? CustomerCity { get; set; }
         public string? CustomerState { get; set; }
-
         public int? Kms { get; set; }
-
         public int? JobTypeId { get; set; }
-        public string? JobTypeName { get; set; }   // resolved via JobType lookup, read-only display value
-
-        // ── Insurance ──
-        // Only the raw FK/fields are returned here — the Angular edit form
-        // resolves the party's display name itself by matching InsuranceId
-        // against its own loaded insurance-ledger list, the same way it
-        // already does for a freshly-selected party.
+        public string? JobTypeName { get; set; }  
         public int? InsuranceId { get; set; }
         public string? InsDescription { get; set; }
         public string? SurveyorName { get; set; }
@@ -99,13 +78,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? PolicyNo { get; set; }
         public DateTime? InsValidTill { get; set; }
         public bool ZeroDepo { get; set; }
-
-        // Job Card created from this estimate, if any (JobCardHeader.Jobestmate
-        // is the FK back to this Estimate's Id). Null when no job card has
-        // been created yet — matches the raw JobNo int, same convention
-        // RepairBillRepo already uses for its own JobCardNo field.
         public int? JobCardNo { get; set; }
-
+        public DateTime? JobCardCreatedDate { get; set; }
         public string? DealerCode { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedDate { get; set; }
@@ -152,13 +126,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal CgstPercent { get; set; }
         public decimal SgstPercent { get; set; }
         public decimal IgstPercent { get; set; }
-
-        // ── Linked Labour ──
-        // PartWiseLabourMaster pairs each part with one associated labour
-        // operation (same table RepairBill uses to auto-generate labour
-        // rows from a part via labourCodeDetailslist). When present, the
-        // Estimate form auto-adds this labour to the Labour grid as soon
-        // as the part is selected.
         public string? LinkedLabourCode { get; set; }
         public string? LinkedLabourDescription { get; set; }
         public decimal? LinkedLabourRate { get; set; }
@@ -204,18 +171,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerGstin { get; set; }
         public string? DealerPan { get; set; }
         public string? DealerTradeCertNo { get; set; }
-
         public string? EstimationNo { get; set; }
         public DateTime EstimateDate { get; set; }
-
         public string? ChassisNo { get; set; }
         public int? Kms { get; set; }
         public string? JobTypeName { get; set; }
-
-        // ── Insurance ──
-        // Unlike EstimateResponseViewModel, this needs the resolved display
-        // name — the PDF is generated entirely server-side, so there's no
-        // Angular around at print time to resolve InsuranceId -> name.
         public string? InsuranceParty { get; set; }
         public string? InsDescription { get; set; }
         public string? SurveyorName { get; set; }
@@ -223,7 +183,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? PolicyNo { get; set; }
         public DateTime? InsValidTill { get; set; }
         public bool ZeroDepo { get; set; }
-
         public string? CustomerName { get; set; }
         public string? CustomerMobile { get; set; }
         public string? CustomerAddress { get; set; }

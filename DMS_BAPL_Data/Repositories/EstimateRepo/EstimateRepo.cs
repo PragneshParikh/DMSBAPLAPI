@@ -44,27 +44,23 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                 .Select(x => x.LedgerName)
                 .FirstOrDefaultAsync();
         }
-
-        // Batch-resolves EstimateHeader.Id -> the JobNo of the JobCardHeader
-        // created from it (JobCardHeader.Jobestmate is the FK back to this
-        // Estimate). Same raw-int convention RepairBillRepo already uses for
-        // its own JobCardNo field — no prefix combination.
-        private async Task<Dictionary<int, int?>> GetJobCardNoLookupAsync(List<int> estimateIds)
+        private async Task<Dictionary<int, (int? JobNo, DateTime? CreatedDate)>> GetJobCardNoLookupAsync(List<int> estimateIds)
         {
-            if (estimateIds.Count == 0) return new Dictionary<int, int?>();
+            if (estimateIds.Count == 0) return new Dictionary<int, (int?, DateTime?)>();
 
             var rows = await _context.JobCardHeaders
                 .AsNoTracking()
                 .Where(x => x.Jobestmate.HasValue && estimateIds.Contains(x.Jobestmate.Value))
-                .Select(x => new { EstimateId = x.Jobestmate!.Value, x.JobNo })
+                .Select(x => new { EstimateId = x.Jobestmate!.Value, x.JobNo, x.CreatedDate })
                 .ToListAsync();
 
-            // If more than one job card somehow references the same estimate,
-            // keep the highest JobNo (most recently created) rather than
-            // throwing on a duplicate key.
             return rows
                 .GroupBy(x => x.EstimateId)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.JobNo).First().JobNo);
+                .ToDictionary(g => g.Key, g =>
+                {
+                    var latest = g.OrderByDescending(x => x.JobNo).First();
+                    return (latest.JobNo, (DateTime?)latest.CreatedDate);
+                });
         }
 
         public async Task<int> CreateAsync(EstimateHeader header)
@@ -162,39 +158,45 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                 var jobTypeLookup = await GetJobTypeNameLookupAsync();
                 var jobCardLookup = await GetJobCardNoLookupAsync(rawRows.Select(x => x.Id).ToList());
 
-                var data = rawRows.Select(x => new EstimateResponseViewModel
+                var data = rawRows.Select(x =>
                 {
-                    Id = x.Id,
-                    EstimationNo = x.EstimationNo,
-                    EstimateDate = x.EstimateDate,
-                    ChassisNo = x.ChassisNo,
-                    CustomerName = x.CustomerName,
-                    CustomerMobile = x.CustomerMobile,
-                    CustomerAddress = x.CustomerAddress,
-                    CustomerPin = x.CustomerPin,
-                    CustomerEmail = x.CustomerEmail,
-                    CustomerCity = x.CustomerCity,
-                    CustomerState = x.CustomerState,
-                    Kms = x.Kms,
-                    JobTypeId = x.JobTypeId,
-                    JobTypeName = x.JobTypeId.HasValue && jobTypeLookup.TryGetValue(x.JobTypeId.Value, out var jtName)
-                        ? jtName : null,
+                    jobCardLookup.TryGetValue(x.Id, out var jobCard); // (null, null) if no job card yet
 
-                    // ── Insurance ──
-                    InsuranceId = x.InsuranceId,
-                    InsDescription = x.InsDescription,
-                    SurveyorName = x.SurveyorName,
-                    ContactNumber = x.ContactNumber,
-                    PolicyNo = x.PolicyNo,
-                    InsValidTill = x.InsValidTill,
-                    ZeroDepo = x.ZeroDepo,
+                    return new EstimateResponseViewModel
+                    {
+                        Id = x.Id,
+                        EstimationNo = x.EstimationNo,
+                        EstimateDate = x.EstimateDate,
+                        ChassisNo = x.ChassisNo,
+                        CustomerName = x.CustomerName,
+                        CustomerMobile = x.CustomerMobile,
+                        CustomerAddress = x.CustomerAddress,
+                        CustomerPin = x.CustomerPin,
+                        CustomerEmail = x.CustomerEmail,
+                        CustomerCity = x.CustomerCity,
+                        CustomerState = x.CustomerState,
+                        Kms = x.Kms,
+                        JobTypeId = x.JobTypeId,
+                        JobTypeName = x.JobTypeId.HasValue && jobTypeLookup.TryGetValue(x.JobTypeId.Value, out var jtName)
+                            ? jtName : null,
 
-                    // Job Card created from this estimate, if any
-                    JobCardNo = jobCardLookup.TryGetValue(x.Id, out var jcNo) ? jcNo : null,
+                        // ── Insurance ──
+                        InsuranceId = x.InsuranceId,
+                        InsDescription = x.InsDescription,
+                        SurveyorName = x.SurveyorName,
+                        ContactNumber = x.ContactNumber,
+                        PolicyNo = x.PolicyNo,
+                        InsValidTill = x.InsValidTill,
+                        ZeroDepo = x.ZeroDepo,
 
-                    DealerCode = x.DealerCode,
-                    Status = x.Status,
-                    CreatedDate = x.CreatedDate
+                        // Job Card created from this estimate, if any
+                        JobCardNo = jobCard.JobNo,
+                        JobCardCreatedDate = jobCard.CreatedDate,
+
+                        DealerCode = x.DealerCode,
+                        Status = x.Status,
+                        CreatedDate = x.CreatedDate
+                    };
                 }).ToList();
 
                 return new EstimatePagedResponse

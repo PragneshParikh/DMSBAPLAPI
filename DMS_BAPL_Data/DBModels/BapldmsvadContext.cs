@@ -221,9 +221,6 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
 
-    public virtual DbSet<EstimateHeader> EstimateHeaders { get; set; }
-    public virtual DbSet<EstimateDetail> EstimateDetails { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
@@ -4355,21 +4352,15 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Open");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
-            entity.Property(e => e.CreatedDate)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())")
+                                               .HasColumnType("datetime");
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
-
-            // Unidirectional FK — JobType entity has no back-reference collection
-            // to EstimateHeader defined, matching how other one-way references
-            // are configured elsewhere in this file (e.g. FK_ComplaintMaster_GroupMaster
-            // style, minus the WithMany(p => p.X) side).
-            entity.HasOne(d => d.JobType)
-                .WithMany()
-                .HasForeignKey(d => d.JobTypeId)
-                .HasConstraintName("FK_EstimateHeader_JobType");
+            //entity.HasOne(d => d.JobType)
+            //    .WithMany()
+            //    .HasForeignKey(d => d.JobTypeId)
+            //    .HasConstraintName("FK_EstimateHeader_JobType");
         });
 
         modelBuilder.Entity<EstimateDetail>(entity =>

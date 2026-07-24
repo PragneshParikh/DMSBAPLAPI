@@ -529,6 +529,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Observation = r.jh.Observation,
                         SupervisorComment = r.jh.SupervisorComment,
                         JobStatus = jobStatus,
+                        ClosedDate = rb != null && rb.RepairbillStatus == "Billed"
+                                            ? (DateTime?)(rb.UpdatedDate ?? rb.CreatedDate)
+                                            : null,
                         SaleDate = r.jc.SaleDate,
                         SupervisorName = r.jh.Supervisor,
                         JobCreationSource = r.js != null ? r.js.JobSourceName : null
@@ -3952,10 +3955,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .OrderByDescending(x => x.EffectiveDate)
                 .Take(1)
                 .DefaultIfEmpty()
-
-                    //join at in _context.AggregateTaxCodes
-                    //on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
-                    //from at in aggregateTaxGroup.DefaultIfEmpty()
 
                 join at in aggregatedTaxes
                     on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
