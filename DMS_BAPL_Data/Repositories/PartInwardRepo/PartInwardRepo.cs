@@ -176,7 +176,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                                      join im in _context.ItemMasters
                                         on pi.PartNo equals im.Itemcode
                                      where pi.InvoiceNo == invoiceNo
-                                     //&& pi.IsAccepted == false
                                      select new
                                      {
                                          pi.InvoiceDate,
@@ -184,7 +183,13 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                                          pi.PartNo,
                                          pi.ItemHsncode,
                                          pi.ItemRate,
-                                         pi.ItemMrp,
+
+                                         ItemAmount = pi.ItemRate * pi.ItemQty,
+
+                                         ItemMrp = pi.ItemRate +
+                                         (pi.ItemRate * (pi.Igst > 0
+                                         ? pi.Igst : (pi.Cgst + pi.Sgst)) / 100m),
+
                                          pi.ItemQty,
                                          pi.Sgst,
                                          pi.Cgst,
