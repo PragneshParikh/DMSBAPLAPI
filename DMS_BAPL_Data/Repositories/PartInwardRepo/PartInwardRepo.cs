@@ -317,5 +317,87 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
             return data;
         }
+
+        async Task<IEnumerable<object>> IPartInwardRepo.GetPartInwardExcelByDealer(DateTime fromDate, DateTime toDate, string? dealerCode)
+        {
+            var query = from p in _context.PartsInwards
+                        join l in _context.LedgerMasters
+                            on p.PartyName equals l.LedgerCode into ledgerGroup
+                        from l in ledgerGroup.DefaultIfEmpty()
+
+                        join lm in _context.LocationMasters
+                            on p.LocCode equals lm.Loccode into locationGroup
+                        from lm in locationGroup.DefaultIfEmpty()
+                        select new
+                        {
+                            Part = p,
+                            PartyName = l.LedgerName,
+                            lm.Locname
+                        };
+
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+            {
+                query = query.Where(x => x.Part.DealerCode == dealerCode);
+            }
+
+            query = query.Where(x => x.Part.InvoiceDate >= fromDate.Date && x.Part.InvoiceDate <= toDate.Date);
+
+            var result = await query
+                .GroupBy(x => new
+                {
+                    x.Part.InvoiceNo,
+                    x.Part.InvoiceDate,
+                    x.Part.DealerCode,
+                    x.PartyName,
+                })
+                .Select(g => new
+                {
+                    g.Key.InvoiceNo,
+                    g.Key.InvoiceDate,
+                    g.Key.DealerCode,
+                    g.Key.PartyName,
+
+                    LocationCode = g.First().Part.LocCode,
+                    LocationName = g.First().Locname,
+
+                    TotalQty = g.Sum(x => x.Part.ItemQty),
+                    TotalAmount = g.Sum(x => x.Part.ItemQty * x.Part.ItemRate),
+
+                    TotalItems = g.Count(),
+
+                    CreatedDate = g.Max(x => x.Part.CreatedDate),
+                    CreatedBy = g.Max(x => x.Part.CreatedBy),
+
+                    IsAccepted = g.All(x => x.Part.IsAccepted.Value == true) ? "Received" : "Pending",
+
+                    GST = g.First().Part.Igst == 0m
+                        ? g.First().Part.Cgst + g.First().Part.Sgst
+                        : g.First().Part.Igst
+                })
+                .OrderBy(x => x.InvoiceDate)
+                .ToListAsync();
+
+            var data = result.Select((x, index) => new
+            {
+                x.InvoiceNo,
+                x.InvoiceDate,
+                x.DealerCode,
+                x.PartyName,
+                x.LocationCode,
+                x.LocationName,
+
+                x.TotalItems,
+                x.TotalQty,
+                x.TotalAmount,
+
+                x.IsAccepted,
+                x.CreatedDate,
+                x.CreatedBy,
+
+                x.GST
+            });
+
+            return data;
+        }
     }
 }
