@@ -53,11 +53,18 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
             {
                 var result = await (from cd in _context.ChassisDetails
                                     join im in _context.ItemMasters
+
                                     on cd.ItemCode equals im.Itemcode into itemInfo
                                     from im in itemInfo.DefaultIfEmpty()
 
-                                    join cbd in _context.ChassisBatteryDetails
-                                    on cd.ChassisNo equals cbd.ChassisNo into ChassisBatteryInfo
+                                    join ld in _context.LotinspectionDetails
+                                    on cd.ChassisNo equals ld.ChassisNo
+                                    join lh in _context.LotinspectionHeaders
+                                    on ld.LotHeaderId equals lh.Id
+
+                                    join cbd in _context.ChassisBatteryDetails.Where(x => x.MotorOrderNo == 1 &&
+                                    x.BatteryOrderNo == 1 && x.ChargerOrderNo == 1 && x.ControllerOrderNo == 1 &&
+                                    x.ConverterOrderNo == 1) on cd.ChassisNo equals cbd.ChassisNo into ChassisBatteryInfo
                                     from cbd in ChassisBatteryInfo.DefaultIfEmpty()
 
                                     join vi in _context.VehicleInwards
@@ -68,7 +75,7 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                                     on im.Colorcode equals clr.Colorcode into colourInfo
                                     from clr in colourInfo.DefaultIfEmpty()
 
-                                    where cd.LocationCode == locationCode
+                                    where cd.LocationCode == locationCode && cd.SaleDate == null && lh.IsLotInspected == true
                                     select new VehicleStockTransferChassisListViewModel
                                     {
                                         ChassisNo = cd.ChassisNo,
@@ -81,9 +88,10 @@ namespace DMS_BAPL_Data.Repositories.ChassisDetailsRepo
                                         BatteryCapacity = cbd.BatteryCapacity,
                                         BatteryNo = cbd.BatteryNo,
                                         Charger = cbd.ChargerNo,
-                                        Convertor = vi.Converter,
+                                        Convertor = cbd.ConverterNo,
                                         Controller = cbd.ControllerNo,
                                         FameII = vi.Fame2Discount,
+                                        MotorNo=cbd.MotorNo,
                                         Rate = vi.Dlrprice
                                     }
                                     ).ToListAsync();
