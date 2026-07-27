@@ -17,7 +17,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
         private readonly BapldmsvadContext _context;
         private readonly IHttpContextAccessor _httpContext;
         private readonly IPartInventoryService _partInventoryService;
-        public VehicleStockTransferRepo(BapldmsvadContext context, IHttpContextAccessor httpContext,IPartInventoryService partInventoryService)
+        public VehicleStockTransferRepo(BapldmsvadContext context, IHttpContextAccessor httpContext, IPartInventoryService partInventoryService)
         {
             _context = context;
             _httpContext = httpContext;
@@ -57,6 +57,9 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                         ChassisNo = item.ChassisNo,
                         ItemCode = item.ItemCode,
                         ItemRate = item.ItemRate,
+                        Margin = item.Margin,
+                        ItemAmount = item.ItemAmount,
+                        FameIi =item.FameII,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now
                     };
@@ -79,7 +82,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                 }
                 await _context.SaveChangesAsync();
 
-                var itemCodes = model.VehicleStockTransferDetailsViewModel.Select(x=>x.ItemCode).ToList();
+                var itemCodes = model.VehicleStockTransferDetailsViewModel.Select(x => x.ItemCode).ToList();
                 var groupedItems = itemCodes
                     .GroupBy(x => x)
                     .Select(g => new
@@ -148,7 +151,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
         {
             try
             {
-                var query = _context.VehicleStockTransferHeaders.AsQueryable();
+                var query = _context.VehicleStockTransferHeaders.OrderByDescending(i => i.CreatedDate).AsQueryable();
 
                 if (filter.FromDate.HasValue)
                 {
@@ -292,6 +295,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                                 on d.ChassisNo equals cd.ChassisNo into chassisInfo
                             from cd in chassisInfo.DefaultIfEmpty()
 
+                            join cbd in _context.ChassisBatteryDetails.Where(x => x.MotorOrderNo == 1 &&
+                                   x.BatteryOrderNo == 1 && x.ChargerOrderNo == 1 && x.ControllerOrderNo == 1 &&
+                                   x.ConverterOrderNo == 1) on cd.ChassisNo equals cbd.ChassisNo into ChassisBatteryInfo
+                            from cbd in ChassisBatteryInfo.DefaultIfEmpty()
+
                             join im in _context.ItemMasters
                                 on d.ItemCode equals im.Itemcode into itemInfo
                             from im in itemInfo.DefaultIfEmpty()
@@ -300,9 +308,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                                 on im.Colorcode equals clr.Colorcode into colourInfo
                             from clr in colourInfo.DefaultIfEmpty()
 
-                            join vi in _context.VehicleInwards
-                                on d.ChassisNo equals vi.ChasisNo into inwardInfo
-                            from vi in inwardInfo.DefaultIfEmpty()
+                            from vi in _context.VehicleInwards.Where(x => x.ChasisNo == d.ChassisNo &&
+                            x.DealerCode == vh.DealerCode).OrderByDescending(x => x.Id).Take(1).DefaultIfEmpty()
 
                             select new VehicleStockTransferDetailsWithChassisViewModel
                             {
@@ -314,14 +321,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                                 Colour = clr != null ? clr.Colorname : "",
                                 MfgYear = vi != null ? vi.MfgYear : null,
                                 KeyNo = vi != null ? vi.KeyNo : "",
-                                BatteryMake = vi != null ? vi.BatteryMake : "",
-                                BatteryCapacity = vi != null ? vi.BatteryCapacity : "",
-                                BatteryNo = vi != null ? vi.BatteryNo : "",
-                                Charger = vi != null ? vi.ChargerNo : "",
-                                Convertor = vi != null ? vi.Converter : "",
-                                Controller = vi != null ? vi.ControllerNo : "",
-                                FameII = vi != null ? vi.Fame2Discount : null,
-                                Rate = d.ItemRate
+                                BatteryMake = cbd != null ? cbd.BatteryMake : "",
+                                BatteryCapacity = cbd != null ? cbd.BatteryCapacity : "",
+                                BatteryNo = cbd != null ? cbd.BatteryNo : "",
+                                Charger = cbd != null ? cbd.ChargerNo : "",
+                                Convertor = cbd != null ? cbd.ConverterNo : "",
+                                Controller = cbd != null ? cbd.ControllerNo : "",
+                                FameII = d != null ? d.FameIi : 0,
+                                Rate = d.ItemRate,
+                                MotorNo = cbd != null ? cbd.MotorNo : "",
+                                ItemAmount =d.ItemAmount,
+                                Margin =d.Margin
                             }
 
                         ).ToList()
@@ -335,75 +345,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleStockTransferRepo
                 throw;
             }
         }
-
-        //public async Task<List<VehicleStockExcelViewModel>> GetExcelReportData()
-        //{
-        //    try
-        //    {
-        //        var result = await (
-        //            from d in _context.VehicleStockTransferDetails
-
-        //            join h in _context.VehicleStockTransferHeaders
-        //                on d.TransferHeaderId equals h.Id
-
-        //            join issueLoc in _context.LocationMasters
-        //                on h.IssuingLocationCode equals issueLoc.Loccode into issueLocInfo
-        //            from issueLoc in issueLocInfo.DefaultIfEmpty()
-
-        //            join receiveLoc in _context.LocationMasters
-        //                on h.ReceivingLocationCode equals receiveLoc.Loccode into receiveLocInfo
-        //            from receiveLoc in receiveLocInfo.DefaultIfEmpty()
-
-        //            join issueEmp in _context.EmployeeMasters
-        //                on h.IssuingStaffCode equals issueEmp.EmployeeCode into issueEmpInfo
-        //            from issueEmp in issueEmpInfo.DefaultIfEmpty()
-
-        //            join receiveEmp in _context.EmployeeMasters
-        //                on h.ReceivingStaffCode equals receiveEmp.EmployeeCode into receiveEmpInfo
-        //            from receiveEmp in receiveEmpInfo.DefaultIfEmpty()
-
-        //            join item in _context.ItemMasters
-        //                on d.ItemCode equals item.Itemcode into itemInfo
-        //            from item in itemInfo.DefaultIfEmpty()
-
-        //            join clr in _context.ColorMasters
-        //            on item.Colorcode equals clr.Colorcode into clrInfo
-        //            from clr in clrInfo.DefaultIfEmpty()
-
-        //            join vi in _context.VehicleInwards
-        //            on d.ChassisNo  equals vi.ChasisNo into VehicleInwardsInfo
-        //            from vi in VehicleInwardsInfo.DefaultIfEmpty()
-
-        //            select new VehicleStockExcelViewModel
-        //            {
-        //                id = h.Id,
-        //                TransferNo = h.TransferNo,
-        //                TransferDate = h.TransferDate,
-        //                IssuingLocation = issueLoc != null ? issueLoc.Locname : string.Empty,
-        //                ReceivingLocation = receiveLoc != null ? receiveLoc.Locname : string.Empty,
-        //                IssuingStaff = issueEmp != null ? issueEmp.FirstName + " " + issueEmp.LastName : string.Empty,
-        //                ReceivingStaff = receiveEmp != null ? receiveEmp.FirstName + " " + receiveEmp.LastName : string.Empty,
-        //                ChassisNo = d.ChassisNo,
-        //                ItemCode = d.ItemCode,
-        //                ModelName = item != null ? item.Itemname : string.Empty,
-        //                Colour = clr.Colorname,
-        //                MfgYear = vi.MfgYear,
-        //                KeyNo = vi.KeyNo,
-        //                BatteryMake = vi.BatteryMake,
-        //                BatteryNo = vi.BatteryNo,
-        //                BatteryCapacity = vi.BatteryCapacity,
-        //                Charger = vi.ChargerNo,
-        //                Controller = vi.ControllerNo
-        //            }
-        //        ).ToListAsync();
-
-        //        return result;
-        //    }
-        //    catch (Exception)
-        //    {
-        //        throw;
-        //    }
-        //}
 
         public async Task<List<VehicleStockExcelViewModel>> GetExcelReportData(DateTime? dateFrom, DateTime? dateTo, string? issuingLocation, string? receivingLocation, string? search)
         {
