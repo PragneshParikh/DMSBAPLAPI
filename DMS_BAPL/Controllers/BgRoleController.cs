@@ -49,7 +49,7 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var result = await _bgRoleService.CreateRoleWithCategory(model, userId);   // now passes userId
+                var result = await _bgRoleService.CreateRoleWithCategory(model, userId);
                 if (result.Succeeded) return Ok(new { message = "BG Role saved and mapped to category." });
 
                 return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
@@ -89,7 +89,14 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
                 var mappings = await _bgRoleService.GetAllMappings();
-                var data = mappings.Select(m => new { id = m.Id, roleName = m.RoleName, category = m.Category }).ToList();
+                var data = mappings.Select(m => new
+                {
+                    id = m.Id,
+                    roleId = m.RoleId,      // real Identity AspNetRole.Id (GUID) — needed by
+                                            // Dealer Creation Manager's Role assignment
+                    roleName = m.RoleName,
+                    category = m.Category
+                }).ToList();
                 return Ok(data);
             }
             catch (Exception ex)
@@ -118,6 +125,7 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while updating the BG role mapping.");
             }
         }
+
         [HttpDelete("mappings/{id}")]
         public async Task<IActionResult> DeleteMapping(int id)
         {

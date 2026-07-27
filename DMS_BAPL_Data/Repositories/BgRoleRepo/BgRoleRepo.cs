@@ -14,9 +14,6 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
 
         public async Task<IEnumerable<AspNetRole>> GetRoles()
         {
-            // Same shared AspNetRoles table as the plain Role Master screen —
-            // BG roles ARE real Identity roles too, just tracked in a
-            // separate category-mapping table so they list independently.
             return await _context.AspNetRoles.ToListAsync();
         }
 
@@ -61,6 +58,7 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
             await _context.SaveChangesAsync();
             return true;
         }
+
         public async Task<bool> DeleteMapping(int id)
         {
             var mapping = await _context.BgRoleCategoryMappings.FindAsync(id);

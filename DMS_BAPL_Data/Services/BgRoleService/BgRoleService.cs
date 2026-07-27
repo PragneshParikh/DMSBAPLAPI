@@ -39,7 +39,6 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                 role = await _roleManager.FindByNameAsync(name);
             }
 
-          
             var existing = await _bgRoleRepo.GetMappingsByCategory(category);
             if (!existing.Any(m => m.RoleId == role!.Id))
             {
@@ -48,7 +47,7 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                     RoleId = role!.Id,
                     RoleName = role.Name!,
                     Category = category,
-                    CreatedBy = createdBy,   // real logged-in user, not hardcoded
+                    CreatedBy = createdBy,
                     CreatedDate = DateTime.Now
                 });
             }
@@ -77,6 +76,7 @@ namespace DMS_BAPL_Data.Services.BgRoleService
             var mapping = await _bgRoleRepo.GetMappingById(id);
             if (mapping == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Mapping not found." });
+
             if (!string.IsNullOrEmpty(mapping.RoleId) &&
                 !string.Equals(mapping.RoleName, trimmedName, StringComparison.OrdinalIgnoreCase))
             {
@@ -84,10 +84,10 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                 if (role == null)
                     return IdentityResult.Failed(new IdentityError { Description = "Underlying Identity role not found." });
 
-                // Block renaming into a name already owned by a DIFFERENT role.
                 var clash = await _roleManager.FindByNameAsync(trimmedName);
                 if (clash != null && clash.Id != role.Id)
                     return IdentityResult.Failed(new IdentityError { Description = $"A role named '{trimmedName}' already exists." });
+
                 var renameResult = await _roleManager.SetRoleNameAsync(role, trimmedName);
                 if (!renameResult.Succeeded)
                     return renameResult;
@@ -96,6 +96,7 @@ namespace DMS_BAPL_Data.Services.BgRoleService
             await _bgRoleRepo.UpdateMappingNameAndCategory(id, trimmedName, trimmedCategory);
             return IdentityResult.Success;
         }
+
         public async Task<bool> DeleteMapping(int id)
         {
             return await _bgRoleRepo.DeleteMapping(id);
