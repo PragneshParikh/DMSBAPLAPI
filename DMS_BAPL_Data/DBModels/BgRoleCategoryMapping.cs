@@ -5,6 +5,7 @@ namespace DMS_BAPL_Data.DBModels;
 public partial class BgRoleCategoryMapping
 {
     public int Id { get; set; }
+    public int? LocationId { get; set; }
     public string? RoleId { get; set; }
     public string? RoleName { get; set; }
     public string? Category { get; set; }

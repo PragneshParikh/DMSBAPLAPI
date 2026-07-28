@@ -4406,6 +4406,11 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.LocationId);
+
+            entity.HasIndex(e => e.LocationId, "UQ_BgRoleCategoryMapping_LocationId")
+                .IsUnique()
+                .HasFilter("[LocationId] IS NOT NULL");
             entity.Property(e => e.RoleId).HasMaxLength(450);
             entity.Property(e => e.RoleName).HasMaxLength(256);
         });

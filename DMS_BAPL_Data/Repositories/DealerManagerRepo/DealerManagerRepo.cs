@@ -162,9 +162,6 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             var dealer = await _context.DealerMasters.FirstOrDefaultAsync(d => d.Id == dealerId);
             if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
                 return DealerRoleAssignResult.DealerNotFound;
-
-            // Tracked (no AsNoTracking) — we're mutating this user's Roles
-            // collection below, and SaveChangesAsync needs to see the change.
             var user = await _context.AspNetUsers
                 .Include(u => u.Roles)
                 .Where(u => u.DealerCode == dealer.Dealercode)
@@ -177,16 +174,201 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             var role = await _context.AspNetRoles.FirstOrDefaultAsync(r => r.Id == roleId);
             if (role == null)
                 return DealerRoleAssignResult.RoleNotFound;
-
-            // Single-role semantics, matching the popup's single Role field —
-            // clears any existing role(s) on this user, then sets exactly the
-            // one selected. This mutates the real AspNetUserRoles join table
-            // via EF's skip-navigation tracking; no Identity manager needed.
             user.Roles.Clear();
             user.Roles.Add(role);
 
             await _context.SaveChangesAsync();
             return DealerRoleAssignResult.Success;
+        }
+
+        private async Task<(string? RoleId, string? RoleName)> ResolveDealerRoleAsync(int dealerId)
+        {
+            var dealer = await _context.DealerMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dealerId);
+            if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
+                return (null, null);
+
+            var user = await _context.AspNetUsers
+                .AsNoTracking()
+                .Include(u => u.Roles)
+                .Where(u => u.DealerCode == dealer.Dealercode)
+                .OrderBy(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            var role = user?.Roles.FirstOrDefault();
+            return (role?.Id, role?.Name);
+        }
+
+        public async Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId)
+        {
+            var dealerExists = await _context.DealerMasters.AnyAsync(d => d.Id == dealerId);
+            if (!dealerExists) return null;
+
+            string? effectiveRoleId = roleId;
+            string? effectiveRoleName = null;
+
+            if (!string.IsNullOrWhiteSpace(effectiveRoleId))
+            {
+                // Explicit role picked from the modal's dropdown — look it up directly.
+                var role = await _context.AspNetRoles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == effectiveRoleId);
+                effectiveRoleName = role?.Name;
+                if (role == null) effectiveRoleId = null; // bad/stale id — fall through as "no role selected"
+            }
+            else
+            {
+                // No role specified — default to whatever role is currently
+                // assigned to this dealer's linked login, same as before.
+                var (resolvedRoleId, resolvedRoleName) = await ResolveDealerRoleAsync(dealerId);
+                effectiveRoleId = resolvedRoleId;
+                effectiveRoleName = resolvedRoleName;
+            }
+
+            var topMenus = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
+                .ToListAsync();
+
+            var topMenuIds = topMenus.Select(m => m.Id).ToList();
+
+            var subMenus = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
+                .OrderBy(m => m.SerialNo)
+                .ToListAsync();
+
+            var subMenuIds = subMenus.Select(s => s.Id).ToList();
+
+            var grantedSubMenuIds = string.IsNullOrEmpty(effectiveRoleId)
+                ? new HashSet<int>()
+                : (await _context.RoleWiseMenuRights
+                    .AsNoTracking()
+                    .Where(r => r.RoleId == effectiveRoleId && subMenuIds.Contains(r.SubMenuId))
+                    .Select(r => r.SubMenuId)
+                    .ToListAsync())
+                  .ToHashSet();
+
+            var groups = topMenus.Select(top => new DealerMenuAccessGroupViewModel
+            {
+                TopMenuId = top.Id,
+                TopMenuName = top.MenuName ?? string.Empty,
+                Items = subMenus
+                    .Where(s => s.ParentMenuId == top.Id)
+                    .Select(s => new DealerMenuAccessItemViewModel
+                    {
+                        SubMenuId = s.Id,
+                        MenuName = s.MenuName ?? string.Empty,
+                        PathName = s.PathName,
+                        IsGranted = grantedSubMenuIds.Contains(s.Id)
+                    })
+                    .ToList()
+            }).ToList();
+
+            return new DealerMenuAccessResponseViewModel
+            {
+                DealerId = dealerId,
+                RoleId = effectiveRoleId,
+                RoleName = effectiveRoleName,
+                Groups = groups
+            };
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        {
+            if (string.IsNullOrWhiteSpace(roleId))
+                return (false, "Please select a role.");
+
+            var dealerExists = await _context.DealerMasters.AnyAsync(d => d.Id == dealerId);
+            if (!dealerExists)
+                return (false, "Dealer not found.");
+
+            var roleExists = await _context.AspNetRoles.AnyAsync(r => r.Id == roleId);
+            if (!roleExists)
+                return (false, "Selected role no longer exists.");
+
+            var topMenus = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
+                .ToListAsync();
+            var topMenuIds = topMenus.Select(m => m.Id).ToList();
+
+            var validSubMenus = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
+                .ToDictionaryAsync(m => m.Id, m => m.ParentMenuId!.Value);
+
+            var requestedIds = grantedSubMenuIds.Where(id => validSubMenus.ContainsKey(id)).ToHashSet();
+
+            var existingRights = await _context.RoleWiseMenuRights
+                .Where(r => r.RoleId == roleId && validSubMenus.Keys.Contains(r.SubMenuId))
+                .ToListAsync();
+
+            var existingIds = existingRights.Select(r => r.SubMenuId).ToHashSet();
+
+            var toAdd = requestedIds.Except(existingIds).ToList();
+            var toRemove = existingRights.Where(r => !requestedIds.Contains(r.SubMenuId)).ToList();
+
+            if (toRemove.Any())
+                _context.RoleWiseMenuRights.RemoveRange(toRemove);
+
+            foreach (var subMenuId in toAdd)
+            {
+                _context.RoleWiseMenuRights.Add(new RoleWiseMenuRight
+                {
+                    RoleId = roleId,
+                    MenuId = validSubMenus[subMenuId],
+                    SubMenuId = subMenuId,
+                    Permission = 4,
+                    CreatedBy = updatedBy,
+                    CreatedDate = DateTime.Now
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, null);
+        }
+
+        public async Task<List<DealerLocationViewModel>> GetLocationsAsync(int dealerId)
+        {
+            var dealer = await _context.DealerMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dealerId);
+            if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
+                return new List<DealerLocationViewModel>();
+
+            return await _context.LocationMasters
+                .AsNoTracking()
+                .Where(l => l.Dealercode == dealer.Dealercode)
+                .Select(l => new DealerLocationViewModel
+                {
+                    Id = l.Id,
+                    LocCode = l.Loccode,
+                    LocName = l.Locname,
+                    IsActive = l.Active == "Y"
+                })
+                .ToListAsync();
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateLocationsStatusAsync(int dealerId, List<int> locationIds, bool isActive, string updatedBy)
+        {
+            var dealer = await _context.DealerMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dealerId);
+            if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
+                return (false, "Dealer not found.");
+
+            // Only ever touches locations that genuinely belong to THIS dealer —
+            // a tampered payload can't flip another dealer's location status.
+            var locations = await _context.LocationMasters
+                .Where(l => locationIds.Contains(l.Id) && l.Dealercode == dealer.Dealercode)
+                .ToListAsync();
+
+            if (!locations.Any())
+                return (false, "No matching locations found for this dealer.");
+
+            foreach (var loc in locations)
+            {
+                loc.Active = isActive ? "Y" : "N";
+                loc.UpdatedBy = updatedBy;
+                loc.UpdatedDate = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, null);
         }
     }
 }

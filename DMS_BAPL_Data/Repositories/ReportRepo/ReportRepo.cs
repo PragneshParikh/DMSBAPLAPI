@@ -756,9 +756,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Observation = x.jh.Observation,
                     SupervisorComment = x.jh.SupervisorComment,
                     JobStatus = jobStatus,
-                    // Mirrors GetJobReportAsync exactly — CSV export and the dealer-wise
-                    // summary both flow through this method, so this keeps their day
-                    // count / end date frozen the same way the live grid does.
                     ClosedDate = rb != null && rb.RepairbillStatus == "Billed"
                                         ? (DateTime?)(rb.UpdatedDate ?? rb.CreatedDate)
                                         : null,
