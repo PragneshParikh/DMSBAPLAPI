@@ -948,7 +948,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                         LocationCode = item.LocationCode,
                         IsD2D = item.IsD2D,
                         RepairBillStatus=item.RepairBillStatus,
-
+                        MotorNo =item.MotorNo
 
                     };
 
