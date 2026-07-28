@@ -84,6 +84,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
-        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, string? dealerCode);
+        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode);
     }
 }

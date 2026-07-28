@@ -6,6 +6,7 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2021.DocumentTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -1181,7 +1182,12 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetPartsStockDetailsByDealer([FromQuery] int groupId, [FromQuery] string? dealerCode = null)
+        public async Task<IActionResult> GetPartsStockDetailsByDealer(
+            [FromQuery] int groupId,
+            [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate,
+            [FromQuery] string? dealerCode = null
+            )
         {
             try
             {
@@ -1190,7 +1196,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, dealerCode);
+                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
 
                 return Ok(result);
             }
