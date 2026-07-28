@@ -18,9 +18,12 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
         Task<bool> DealerCodeExistsAsync(string dealerCode, int excludeId);
         Task<bool> UpdateAsync(int id, DealerQuickUpdateViewModel model);
         Task<bool> DeactivateAsync(int id);
-
-        // NEW — no new table; reassigns the role of the AspNetUser linked
-        // to this dealer via DealerCode.
         Task<DealerRoleAssignResult> AssignRoleAsync(int dealerId, string roleId);
+
+        Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId);
+        Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string updatedBy);
+
+        Task<List<DealerLocationViewModel>> GetLocationsAsync(int dealerId);
+        Task<(bool Success, string? Error)> UpdateLocationsStatusAsync(int dealerId, List<int> locationIds, bool isActive, string updatedBy);
     }
 }

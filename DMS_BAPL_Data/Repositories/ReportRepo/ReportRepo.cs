@@ -756,6 +756,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Observation = x.jh.Observation,
                     SupervisorComment = x.jh.SupervisorComment,
                     JobStatus = jobStatus,
+                    ClosedDate = rb != null && rb.RepairbillStatus == "Billed"
+                                        ? (DateTime?)(rb.UpdatedDate ?? rb.CreatedDate)
+                                        : null,
                     SaleDate = x.jc.SaleDate,
                     SupervisorName = x.jh.Supervisor,
                     JobCreationSource = x.js != null ? x.js.JobSourceName : null
@@ -1897,6 +1900,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     from occ in occJoin.DefaultIfEmpty()
 
                     select new { vd, vh, im, dm, cust, city, state, occ };
+
+
                 if (HasDealerFilter(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
@@ -1924,12 +1929,18 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
 
+                if (HasDealerFilter(filter.DealerCode))
+                    baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
+                baseQuery = baseQuery.Where(x => !x.vh.IsDeleted);
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
                 var chassisNos = rawRows.Select(x => x.vd.ChassisNo).ToList();
                 var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
                 var locationLookup = await GetLocationLookupAsync();
                 var colorLookup = await GetColorLookupAsync();
+           
+
+
 
 
                 var rows = rawRows.Select(x =>

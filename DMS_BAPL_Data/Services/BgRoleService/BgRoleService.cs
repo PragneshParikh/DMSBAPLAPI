@@ -23,11 +23,11 @@ namespace DMS_BAPL_Data.Services.BgRoleService
 
         public async Task<IdentityResult> CreateRoleWithCategory(BgRoleWithCategoryViewModel model, string createdBy)
         {
-            if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Category))
-                return IdentityResult.Failed(new IdentityError { Description = "Role name and category are required." });
+            if (string.IsNullOrWhiteSpace(model.Name))
+                return IdentityResult.Failed(new IdentityError { Description = "Role name is required." });
 
             var name = model.Name.Trim();
-            var category = model.Category.Trim();
+            var category = string.IsNullOrWhiteSpace(model.Category) ? null : model.Category.Trim();
 
             var role = await _roleManager.FindByNameAsync(name);
             if (role == null)
@@ -39,8 +39,7 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                 role = await _roleManager.FindByNameAsync(name);
             }
 
-          
-            var existing = await _bgRoleRepo.GetMappingsByCategory(category);
+            var existing = await _bgRoleRepo.GetAllMappings();
             if (!existing.Any(m => m.RoleId == role!.Id))
             {
                 await _bgRoleRepo.AddRoleCategoryMapping(new BgRoleCategoryMapping
@@ -48,7 +47,7 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                     RoleId = role!.Id,
                     RoleName = role.Name!,
                     Category = category,
-                    CreatedBy = createdBy,   // real logged-in user, not hardcoded
+                    CreatedBy = createdBy,
                     CreatedDate = DateTime.Now
                 });
             }
@@ -66,17 +65,18 @@ namespace DMS_BAPL_Data.Services.BgRoleService
             return await _bgRoleRepo.GetAllMappings();
         }
 
-        public async Task<IdentityResult> UpdateMapping(int id, string name, string category)
+        public async Task<IdentityResult> UpdateMapping(int id, string name, string? category)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(category))
-                return IdentityResult.Failed(new IdentityError { Description = "Role name and category are required." });
+            if (string.IsNullOrWhiteSpace(name))
+                return IdentityResult.Failed(new IdentityError { Description = "Role name is required." });
 
             var trimmedName = name.Trim();
-            var trimmedCategory = category.Trim();
+            var trimmedCategory = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
 
             var mapping = await _bgRoleRepo.GetMappingById(id);
             if (mapping == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Mapping not found." });
+
             if (!string.IsNullOrEmpty(mapping.RoleId) &&
                 !string.Equals(mapping.RoleName, trimmedName, StringComparison.OrdinalIgnoreCase))
             {
@@ -84,10 +84,10 @@ namespace DMS_BAPL_Data.Services.BgRoleService
                 if (role == null)
                     return IdentityResult.Failed(new IdentityError { Description = "Underlying Identity role not found." });
 
-                // Block renaming into a name already owned by a DIFFERENT role.
                 var clash = await _roleManager.FindByNameAsync(trimmedName);
                 if (clash != null && clash.Id != role.Id)
                     return IdentityResult.Failed(new IdentityError { Description = $"A role named '{trimmedName}' already exists." });
+
                 var renameResult = await _roleManager.SetRoleNameAsync(role, trimmedName);
                 if (!renameResult.Succeeded)
                     return renameResult;
@@ -96,9 +96,32 @@ namespace DMS_BAPL_Data.Services.BgRoleService
             await _bgRoleRepo.UpdateMappingNameAndCategory(id, trimmedName, trimmedCategory);
             return IdentityResult.Success;
         }
+
         public async Task<bool> DeleteMapping(int id)
         {
             return await _bgRoleRepo.DeleteMapping(id);
+        }
+
+        // ── Location's own Role Assignment + Menu Access ──
+
+        public async Task<LocationRoleDetailViewModel?> GetLocationDetailAsync(int locationId)
+        {
+            return await _bgRoleRepo.GetLocationDetailAsync(locationId);
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateLocationDetailAsync(int locationId, UpdateLocationRoleDetailViewModel model, string updatedBy)
+        {
+            return await _bgRoleRepo.UpdateLocationDetailAsync(locationId, model, updatedBy);
+        }
+
+        public async Task<(string? RoleId, string? RoleName, List<DealerMenuAccessGroupViewModel> Groups)?> GetLocationMenuAccessAsync(int locationId, string? roleId)
+        {
+            return await _bgRoleRepo.GetLocationMenuAccessAsync(locationId, roleId);
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateLocationMenuAccessAsync(int locationId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        {
+            return await _bgRoleRepo.UpdateLocationMenuAccessAsync(locationId, roleId, grantedSubMenuIds ?? new List<int>(), updatedBy);
         }
     }
 }
