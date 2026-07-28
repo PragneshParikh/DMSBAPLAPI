@@ -1748,6 +1748,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         x.c.ChassisNo.Contains(search.ChassisNo));
                 }
 
+                
 
                 var jobCardsResult = await query
                         .Select(x => new JobCardlistDetailsViewModel
@@ -1844,11 +1845,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 Remarks = x.c.Remarks
                             }
                         })
-                    .Where(x => x.JobCardHeader.IsDelete != true)
                     .OrderByDescending(x => x.JobCardHeader.Id)
                     .ToListAsync();
 
-
+                jobCardsResult = jobCardsResult.Where(x=>x.JobCardHeader.IsDelete != true).ToList();
+                
                 return jobCardsResult;
             }
             catch (Exception ex)
