@@ -4027,23 +4027,23 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 });
 
             var saleCounts = _context.PartsInventories
-    .Where(x =>
-        x.TransDate >= DateOnly.FromDateTime(fromDate) &&
-        x.TransDate <= DateOnly.FromDateTime(toDate) &&
-        x.TransType == "S")
-    .GroupBy(x => new
-    {
-        x.VendorCode,
-        x.DealerLocation,
-        x.ItemCode
-    })
-    .Select(g => new
-    {
-        VendorCode = g.Key.VendorCode,
-        DealerLocation = g.Key.DealerLocation,
-        ItemCode = g.Key.ItemCode,
-        SaleCount = g.Count()
-    });
+                .Where(x =>
+                x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                x.TransType == "S")
+                .GroupBy(x => new
+                {
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.ItemCode
+                })
+                .Select(g => new
+                {
+                    VendorCode = g.Key.VendorCode,
+                    DealerLocation = g.Key.DealerLocation,
+                    ItemCode = g.Key.ItemCode,
+                    SaleCount = g.Count()
+                });
 
             var purchaseCounts = _context.PartsInventories
                 .Where(x =>
@@ -4075,16 +4075,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         join lm in _context.LocationMasters
                             on pi.DealerLocation equals lm.Loccode
 
-                        //join h in _context.HsnwiseTaxCodes
-                        //    on im.Hsncode equals h.Hsncode into hsnTaxGroup
-                        //from h in hsnTaxGroup
-                        //    .Where(x => x.EffectiveDate <= DateTime.Now)
-                        //    .OrderByDescending(x => x.EffectiveDate)
-                        //    .Take(1)
-                        //    .DefaultIfEmpty()
+                        join mt in _context.MaterialTransfers
+                            on im.Id equals mt.ItemId into materialGroup
+                        from mt in materialGroup
 
                         join h in _context.HsnwiseTaxCodes
-on im.Hsncode equals h.Hsncode into hsnTaxGroup
+                            on im.Hsncode equals h.Hsncode into hsnTaxGroup
                         from h in hsnTaxGroup
                             .Where(x => x.EffectiveDate <= DateTime.Now
                                      && x.AtaxCode != null)
@@ -4093,23 +4089,25 @@ on im.Hsncode equals h.Hsncode into hsnTaxGroup
                             .DefaultIfEmpty()
 
                         join at in aggregatedTaxes
-                            on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
+                            on h.AtaxCode equals at.AtaxCode
+                            into aggregateTaxGroup
                         from at in aggregateTaxGroup.DefaultIfEmpty()
 
                         join sc in saleCounts
-on new
-{
-    pi.VendorCode,
-    pi.DealerLocation,
-    pi.ItemCode
-}
-equals new
-{
-    sc.VendorCode,
-    sc.DealerLocation,
-    sc.ItemCode
-}
-into saleGroup
+                        on new
+                        {
+                            pi.VendorCode,
+                            pi.DealerLocation,
+                            pi.ItemCode
+                        }
+                        equals new
+                        {
+                            sc.VendorCode,
+                            sc.DealerLocation,
+                            sc.ItemCode
+                        }
+                        into saleGroup
+
                         from sc in saleGroup.DefaultIfEmpty()
 
                         join pc in purchaseCounts
@@ -4156,8 +4154,14 @@ into saleGroup
 
                             GST = at != null ? at.TotalTaxRate : 0,
 
-                            SaleCount = sc != null ? sc.SaleCount : 0,
-                            PurchaseCount = pc != null ? pc.PurchaseCount : 0
+                            MRP = im.Dlrprice +
+                            ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
+
+
+                            //SaleCount = sc != null ? sc.SaleCount : 0,
+                            //PurchaseCount = pc != null ? pc.PurchaseCount : 0
+                            SaleCount = (int?)sc.SaleCount ?? 0,
+                            PurchaseCount = (int?)pc.PurchaseCount ?? 0
                         })
                         .ToListAsync();
 
@@ -4180,7 +4184,8 @@ into saleGroup
                     x.Locname,
                     x.GroupType,
                     x.SaleCount,
-                    x.PurchaseCount
+                    x.PurchaseCount,
+                    x.MRP
                 });
             }
             catch (Exception ex)
