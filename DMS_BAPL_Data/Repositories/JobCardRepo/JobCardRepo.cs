@@ -115,6 +115,12 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                          .FirstOrDefault()
 
 
+                        let existingjobCard = _context.JobCardHeaders
+                            .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+                            .OrderByDescending(j => j.CreatedDate)
+                            .FirstOrDefault()
+
+
                         join o in _context.OemmodelMasters
                             on i.Oemmodelname.Trim().ToLower()
                             equals o.ModelName.Trim().ToLower()
@@ -137,6 +143,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             CustomerName = dealerLg.LedgerName,
                             CustomerMobile = dealerLg.MobileNumber,
                             InwardType = h.InwardType,
+                            VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
 
 
                             ModelName = i.Itemname,
@@ -192,7 +199,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefault()
 
-                    let existingjobCard = _context.JobCardHeaders
+                    let existingjobCardaftersale = _context.JobCardHeaders
                         .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
                         .OrderByDescending(j => j.CreatedDate)
                         .FirstOrDefault()
@@ -213,7 +220,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RegisterNo = v.RegNo,
                         InsuranceExpDate = vsd.InsExpDate,
                         InwardType = h.InwardType,
-                        VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
+                        VehiclePrevkms = existingjobCardaftersale != null ? existingjobCardaftersale.Vehiclekms : null,
 
                         // Latest Battery Details
                         BatteryNumber = vc != null ? vc.BatteryNo : null,
@@ -572,7 +579,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     //.GroupBy(x => x.JobCardHeader.Id)
                     //.Select(g => g.First())
                     .Where(x => x.JobCardHeader.IsDelete != true)
-                    .OrderByDescending(x => x.JobCardHeader.Id)
+                    .OrderByDescending(x => x.JobCardHeader.CreatedDate)
                     .ToListAsync();
 
 
@@ -611,10 +618,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 r.IsDelete != true &&
                 r.RepairbillStatus == "Billed"));
                 if (openJobCardExists)
-                    {
-                        throw new Exception(StringConstants.jobCardException);
-                    }
-                
+                {
+                    throw new Exception(StringConstants.jobCardException);
+                }
+
 
                 // Insert Header
 
@@ -1040,7 +1047,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         }
         public async Task<int> DeleteJobCard(int jobId, string role)
         {
-            
+
             var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobId);
             if (jobCardHeader == null)
             {
@@ -1067,7 +1074,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         detail.UpdatedDate = DateTime.UtcNow;
                     });
                 });
-              
+
             }
 
             // Delete FFIR if exists
@@ -1277,7 +1284,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     from jh in _context.JobCardHeaders
                     join jc in _context.JobCardCustomers
                         on jh.Id equals jc.JobCardHeaderId
-                    where jc.ChassisNo == chassisNo
+                    where jc.ChassisNo == chassisNo && jh.Jobtype != 1
                     select new
                     {
                         jh.Servicehead,
@@ -1314,7 +1321,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         on sch.ServiceType equals st.Id
 
                     where jc.ChassisNo == chassisNo
-                          && (!jobCardId.HasValue || jh.Id == jobCardId)
+                          && (!jobCardId.HasValue || jh.Id == jobCardId
+                          && jh.Jobtype != 1)
                           && sch.EffectiveDate ==
                                 _context.ModelwiseServiceSchedules
                                     .Where(x => x.OemmodelId == oem.Id)
@@ -1642,7 +1650,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join vsd in _context.VehicleSaleBillDetails
                     on c.ChassisNo equals vsd.ChassisNo into vsdJoin
                     from vsd in vsdJoin.DefaultIfEmpty()
-                    
+
                     join job in _context.JobTypes
                         on jh.Jobtype equals job.Id into jobJoin
                     from job in jobJoin.DefaultIfEmpty()
@@ -1740,6 +1748,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         x.c.ChassisNo.Contains(search.ChassisNo));
                 }
 
+                
 
                 var jobCardsResult = await query
                         .Select(x => new JobCardlistDetailsViewModel
@@ -1755,7 +1764,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             PartyState = x.sta != null ? x.sta.StateName : null,
                             CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
                             IsMaterialTransfer = x.jh.IsMaterialTransfer,
-                            
+
 
 
                             JobCardHeader = new JobCardHeaderVM
@@ -1836,11 +1845,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 Remarks = x.c.Remarks
                             }
                         })
-                    .Where(x => x.JobCardHeader.IsDelete != true)
                     .OrderByDescending(x => x.JobCardHeader.Id)
                     .ToListAsync();
 
-
+                jobCardsResult = jobCardsResult.Where(x=>x.JobCardHeader.IsDelete != true).ToList();
+                
                 return jobCardsResult;
             }
             catch (Exception ex)
