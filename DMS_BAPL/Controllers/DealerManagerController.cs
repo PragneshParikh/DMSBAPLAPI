@@ -115,5 +115,83 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while assigning the role.");
             }
         }
+
+        [HttpGet("{id}/menu-access")]
+        public async Task<IActionResult> GetMenuAccess(int id, [FromQuery] string? roleId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var result = await _service.GetMenuAccessAsync(id, roleId);
+                if (result == null) return NotFound(new { message = "Dealer not found." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching dealer menu access");
+                return StatusCode(500, "An error occurred while fetching menu access.");
+            }
+        }
+
+        [HttpPut("{id}/menu-access")]
+        public async Task<IActionResult> UpdateMenuAccess(int id, [FromBody] UpdateDealerMenuAccessViewModel model)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var (success, error) = await _service.UpdateMenuAccessAsync(id, model.RoleId, model.GrantedSubMenuIds, userId);
+                if (!success) return BadRequest(new { message = error });
+
+                return Ok(new { message = "Menu access updated." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating dealer menu access");
+                return StatusCode(500, "An error occurred while updating menu access.");
+            }
+        }
+
+        [HttpGet("{id}/locations")]
+        public async Task<IActionResult> GetLocations(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var result = await _service.GetLocationsAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching dealer locations");
+                return StatusCode(500, "An error occurred while fetching locations.");
+            }
+        }
+
+        [HttpPut("{id}/locations/bulk-status")]
+        public async Task<IActionResult> UpdateLocationsStatus(int id, [FromBody] BulkUpdateLocationStatusViewModel model)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var (success, error) = await _service.UpdateLocationsStatusAsync(id, model.LocationIds, model.IsActive, userId);
+                if (!success) return BadRequest(new { message = error });
+
+                return Ok(new { message = $"{model.LocationIds.Count} location(s) updated." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating location status");
+                return StatusCode(500, "An error occurred while updating location status.");
+            }
+        }
     }
 }

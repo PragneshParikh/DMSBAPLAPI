@@ -15,6 +15,12 @@ public partial class VehicleStockTransferDetail
 
     public decimal ItemRate { get; set; }
 
+    public decimal? Margin { get; set; }
+
+    public decimal? ItemAmount { get; set; }
+
+    public decimal? FameIi { get; set; }
+
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }

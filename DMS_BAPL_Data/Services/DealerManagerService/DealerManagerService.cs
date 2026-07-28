@@ -59,5 +59,27 @@ namespace DMS_BAPL_Data.Services.DealerManagerService
                 _ => (false, "Unable to assign role.")
             };
         }
+        public async Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId)
+        {
+            return await _repo.GetMenuAccessAsync(dealerId, roleId);
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        {
+            return await _repo.UpdateMenuAccessAsync(dealerId, roleId, grantedSubMenuIds ?? new List<int>(), updatedBy);
+        }
+
+        public async Task<List<DealerLocationViewModel>> GetLocationsAsync(int dealerId)
+        {
+            return await _repo.GetLocationsAsync(dealerId);
+        }
+
+        public async Task<(bool Success, string? Error)> UpdateLocationsStatusAsync(int dealerId, List<int> locationIds, bool isActive, string updatedBy)
+        {
+            if (locationIds == null || !locationIds.Any())
+                return (false, "Select at least one location.");
+
+            return await _repo.UpdateLocationsStatusAsync(dealerId, locationIds, isActive, updatedBy);
+        }
     }
 }

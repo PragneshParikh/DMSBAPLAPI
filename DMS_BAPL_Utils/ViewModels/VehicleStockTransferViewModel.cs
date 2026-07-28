@@ -27,6 +27,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public string ItemCode { get; set; } = null!;
         public decimal ItemRate { get; set; }
         public string? ModelName {  get; set; }
+        public decimal? Margin { get; set; }
+        public decimal? ItemAmount { get; set; }
+        public decimal? FameII { get; set; }
         public VehicleStockTransferChassisListViewModel? ChassisDetails {  get; set; }
     }
 
@@ -44,8 +47,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Charger { get; set; }
         public string Convertor { get; set; }
         public string Controller { get; set; }
+        public string MotorNo { get; set; }
         public decimal? FameII { get; set; }
         public decimal? Rate { get; set; }
+        public decimal? Margin { get; set; }
     }
 
     public class VehicleStockTransferListVewModel
@@ -91,6 +96,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Charger { get; set; }
         public string Convertor { get; set; }
         public string Controller { get; set; }
+        public decimal? Margin { get; set; }
+        public string? MotorNo { get; set; }
+
+        public decimal? ItemAmount { get; set; }
         public decimal? FameII { get; set; }
         public decimal? Rate { get; set; }
     }

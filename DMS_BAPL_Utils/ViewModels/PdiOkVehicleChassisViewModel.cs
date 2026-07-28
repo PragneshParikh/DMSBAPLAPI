@@ -54,6 +54,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string BatteryNo { get; set; }
         public string ConverterNo { get; set; }
+        public string MotorNo { get; set; }
         public string ChargerNo { get; set; }
         public string ControllerNo { get; set; }
 

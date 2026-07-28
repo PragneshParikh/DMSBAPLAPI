@@ -1295,7 +1295,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         on vi.InvoiceNo equals li.InvoiceNo 
                     join im in _context.ItemMasters
                         on vi.ItemCode equals im.Itemcode
-                   
+                    join cbd in _context.ChassisBatteryDetails.Where(x => x.MotorOrderNo == 1 &&
+                                x.BatteryOrderNo == 1 && x.ChargerOrderNo == 1 && x.ControllerOrderNo == 1 &&
+                                x.ConverterOrderNo == 1) on ch.ChassisNo equals cbd.ChassisNo into ChassisBatteryInfo
+                    from cbd in ChassisBatteryInfo.DefaultIfEmpty()
+
                     join clr in _context.ColorMasters
                         on vi.ColrCode equals clr.Colorcode
 
@@ -1332,12 +1336,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             ItemName = im.Itemname,
                             KeyNo = vi.KeyNo,
                             BookNo = vi.ServBkno,
-                            BatteryNo = vi.BatteryNo,
-                            BatteryChemical = vi.BatteryChemistry,
-                            BatteryCapacity = vi.BatteryCapacity,
-                            BatteryMake = vi.BatteryMake,
-                            ChargerNo = vi.ChargerNo,
-                            ControllerNo = vi.ControllerNo,
+                            BatteryNo = cbd.BatteryNo,
+                            BatteryChemical = cbd.BatteryChemical,
+                            BatteryCapacity = cbd.BatteryCapacity,
+                            BatteryMake = cbd.BatteryMake,
+                            ChargerNo = cbd.ChargerNo,
+                            ControllerNo = cbd.ControllerNo,
+                            MotorNo =cbd.MotorNo,
                             FameIIAmnt = vi.Fame2Discount,
                             DealerPrice = vi.Dlrprice,
                             CustomerPrice = vi.Custprice,

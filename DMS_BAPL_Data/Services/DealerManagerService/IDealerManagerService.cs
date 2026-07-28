@@ -10,5 +10,10 @@ namespace DMS_BAPL_Data.Services.DealerManagerService
         Task<(bool Success, string? Error)> UpdateAsync(int id, DealerQuickUpdateViewModel model);
         Task<bool> DeactivateAsync(int id);
         Task<(bool Success, string? Error)> AssignRoleAsync(int dealerId, string roleId);
+        Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId);
+        Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string updatedBy);
+
+        Task<List<DealerLocationViewModel>> GetLocationsAsync(int dealerId);
+        Task<(bool Success, string? Error)> UpdateLocationsStatusAsync(int dealerId, List<int> locationIds, bool isActive, string updatedBy);
     }
 }

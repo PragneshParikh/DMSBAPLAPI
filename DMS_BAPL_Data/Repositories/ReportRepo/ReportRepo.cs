@@ -756,6 +756,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     Observation = x.jh.Observation,
                     SupervisorComment = x.jh.SupervisorComment,
                     JobStatus = jobStatus,
+                    ClosedDate = rb != null && rb.RepairbillStatus == "Billed"
+                                        ? (DateTime?)(rb.UpdatedDate ?? rb.CreatedDate)
+                                        : null,
                     SaleDate = x.jc.SaleDate,
                     SupervisorName = x.jh.Supervisor,
                     JobCreationSource = x.js != null ? x.js.JobSourceName : null
@@ -1897,6 +1900,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     from occ in occJoin.DefaultIfEmpty()
 
                     select new { vd, vh, im, dm, cust, city, state, occ };
+
+
                 if (HasDealerFilter(filter.DealerCode))
                     baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
 
@@ -1924,12 +1929,18 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
 
+                if (HasDealerFilter(filter.DealerCode))
+                    baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
+                baseQuery = baseQuery.Where(x => !x.vh.IsDeleted);
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
                 var chassisNos = rawRows.Select(x => x.vd.ChassisNo).ToList();
                 var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
                 var locationLookup = await GetLocationLookupAsync();
                 var colorLookup = await GetColorLookupAsync();
+           
+
+
 
 
                 var rows = rawRows.Select(x =>
@@ -3350,7 +3361,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return query;
         }
 
- 
+
         private IQueryable<RepairBillHeaderOnlyRawRow> BuildRepairBillHeaderOnlyQuery(RepairBillReportFilterModel filter)
         {
             bool hasDetailFilter = !string.IsNullOrWhiteSpace(filter.PartCode) || !string.IsNullOrWhiteSpace(filter.LabourCode);
@@ -3932,9 +3943,92 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .ToList();
         }
 
-        async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(int groupId, string? dealerCode)
-        {
+        //async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode)
+        //{
+        //    var aggregatedTaxes = _context.AggregateTaxCodes
+        //        .GroupBy(at => at.AtaxCode)
+        //        .Select(g => new
+        //        {
+        //            AtaxCode = g.Key,
+        //            TotalTaxRate = g.Sum(x => x.TaxRate)
+        //        });
 
+        //    var data = await (
+        //        from pi in _context.PartsInventories
+        //        join im in _context.ItemMasters
+        //            on pi.ItemCode equals im.Itemcode
+
+        //        join lm in _context.LocationMasters
+        //            on pi.DealerLocation equals lm.Loccode
+
+        //        join h in _context.HsnwiseTaxCodes
+        //            on im.Hsncode equals h.Hsncode into hsnTaxGroup
+        //        from h in hsnTaxGroup
+        //        .Where(x => x.EffectiveDate <= DateTime.Now)
+        //        .OrderByDescending(x => x.EffectiveDate)
+        //        .Take(1)
+        //        .DefaultIfEmpty()
+
+        //        join at in aggregatedTaxes
+        //            on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
+        //        from at in aggregateTaxGroup.DefaultIfEmpty()
+
+        //        where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+        //              && pi.FinalStockFlag == "Y"
+        //              && im.Grpidno == groupId
+        //              && pi.TransDate >= DateOnly.FromDateTime(fromDate)
+        //              && pi.TransDate <= DateOnly.FromDateTime(toDate.Date)
+        //        select new
+        //        {
+        //            im.Itemtype,
+        //            im.Itemname,
+        //            im.Itemcode,
+        //            im.Itemdesc,
+        //            im.Hsncode,
+        //            im.Dlrprice,
+        //            im.Custprice,
+        //            im.Igst,
+        //            im.Grpidno,
+
+        //            GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
+
+        //            pi.BatchClosingQty,
+        //            pi.VendorCode,
+        //            pi.DealerLocation,
+
+        //            lm.Locname,
+
+        //            GST = (decimal?)at.TotalTaxRate ?? 0
+        //        }
+        //    ).ToListAsync();
+
+        //    return data.Select((x, index) => new
+        //    {
+        //        SrNo = index + 1,
+        //        x.Itemtype,
+        //        x.Itemname,
+        //        x.Itemcode,
+        //        x.Itemdesc,
+        //        x.Hsncode,
+        //        x.Dlrprice,
+        //        x.Custprice,
+        //        x.GST,
+        //        x.Grpidno,
+        //        x.BatchClosingQty,
+        //        x.VendorCode,
+        //        x.DealerLocation,
+        //        x.Locname,
+        //        x.GroupType
+        //    });
+
+        //}
+
+        async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(
+            int groupId,
+            DateTime fromDate,
+            DateTime toDate,
+            string? dealerCode)
+        {
             var aggregatedTaxes = _context.AggregateTaxCodes
                 .GroupBy(at => at.AtaxCode)
                 .Select(g => new
@@ -3943,64 +4037,172 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     TotalTaxRate = g.Sum(x => x.TaxRate)
                 });
 
-            var data = await (
-                from pi in _context.PartsInventories
-                join im in _context.ItemMasters
-                    on pi.ItemCode equals im.Itemcode
-
-                join h in _context.HsnwiseTaxCodes
-                    on im.Hsncode equals h.Hsncode into hsnTaxGroup
-                from h in hsnTaxGroup
-                .Where(x => x.EffectiveDate <= DateTime.Now)
-                .OrderByDescending(x => x.EffectiveDate)
-                .Take(1)
-                .DefaultIfEmpty()
-
-                join at in aggregatedTaxes
-                    on h.AtaxCode equals at.AtaxCode into aggregateTaxGroup
-                from at in aggregateTaxGroup.DefaultIfEmpty()
-
-                where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
-                      && pi.FinalStockFlag == "Y"
-                      && im.Grpidno == groupId
-                select new
+            var saleCounts = _context.PartsInventories
+                .Where(x =>
+                x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                x.TransType == "S")
+                .GroupBy(x => new
                 {
-                    im.Itemtype,
-                    im.Itemname,
-                    im.Itemcode,
-                    im.Itemdesc,
-                    im.Hsncode,
-                    im.Dlrprice,
-                    im.Custprice,
-                    im.Igst,
-                    im.Grpidno,
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.ItemCode
+                })
+                .Select(g => new
+                {
+                    VendorCode = g.Key.VendorCode,
+                    DealerLocation = g.Key.DealerLocation,
+                    ItemCode = g.Key.ItemCode,
+                    SaleCount = g.Count()
+                });
 
-                    GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
+            var purchaseCounts = _context.PartsInventories
+                .Where(x =>
+                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                    x.TransType == "P")
+                .GroupBy(x => new
+                {
+                    VendorCode = x.VendorCode ?? "",
+                    DealerLocation = x.DealerLocation ?? "",
+                    ItemCode = x.ItemCode ?? ""
+                })
+                .Select(g => new
+                {
+                    g.Key.VendorCode,
+                    g.Key.DealerLocation,
+                    g.Key.ItemCode,
+                    PurchaseCount = g.Count()
+                });
 
-                    pi.BatchClosingQty,
-                    pi.VendorCode,
-
-                    GST = (decimal?)at.TotalTaxRate ?? 0
-                }
-            ).ToListAsync();
-
-            return data.Select((x, index) => new
+            try
             {
-                SrNo = index + 1,
-                x.Itemtype,
-                x.Itemname,
-                x.Itemcode,
-                x.Itemdesc,
-                x.Hsncode,
-                x.Dlrprice,
-                x.Custprice,
-                x.GST,
-                x.Grpidno,
-                x.BatchClosingQty,
-                x.VendorCode,
-                x.GroupType
-            });
+                var data = await (
+                        from pi in _context.PartsInventories
 
+                        join im in _context.ItemMasters
+                            on pi.ItemCode equals im.Itemcode
+
+                        join lm in _context.LocationMasters
+                            on pi.DealerLocation equals lm.Loccode
+
+                        join mt in _context.MaterialTransfers
+                            on im.Id equals mt.ItemId into materialGroup
+                        from mt in materialGroup
+
+                        join h in _context.HsnwiseTaxCodes
+                            on im.Hsncode equals h.Hsncode into hsnTaxGroup
+                        from h in hsnTaxGroup
+                            .Where(x => x.EffectiveDate <= DateTime.Now
+                                     && x.AtaxCode != null)
+                            .OrderByDescending(x => x.EffectiveDate)
+                            .Take(1)
+                            .DefaultIfEmpty()
+
+                        join at in aggregatedTaxes
+                            on h.AtaxCode equals at.AtaxCode
+                            into aggregateTaxGroup
+                        from at in aggregateTaxGroup.DefaultIfEmpty()
+
+                        join sc in saleCounts
+                        on new
+                        {
+                            pi.VendorCode,
+                            pi.DealerLocation,
+                            pi.ItemCode
+                        }
+                        equals new
+                        {
+                            sc.VendorCode,
+                            sc.DealerLocation,
+                            sc.ItemCode
+                        }
+                        into saleGroup
+
+                        from sc in saleGroup.DefaultIfEmpty()
+
+                        join pc in purchaseCounts
+                        on new
+                        {
+                            VendorCode = pi.VendorCode ?? "",
+                            DealerLocation = pi.DealerLocation ?? "",
+                            ItemCode = pi.ItemCode ?? ""
+                        }
+                        equals new
+                        {
+                            VendorCode = pc.VendorCode ?? "",
+                            DealerLocation = pc.DealerLocation ?? "",
+                            ItemCode = pc.ItemCode ?? ""
+                        }
+                        into purchaseGroup
+                        from pc in purchaseGroup.DefaultIfEmpty()
+
+                        where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+                              && pi.FinalStockFlag == "Y"
+                              && im.Grpidno == groupId
+                              && pi.TransDate >= DateOnly.FromDateTime(fromDate)
+                              && pi.TransDate <= DateOnly.FromDateTime(toDate)
+
+                        select new
+                        {
+                            im.Itemtype,
+                            im.Itemname,
+                            im.Itemcode,
+                            im.Itemdesc,
+                            im.Hsncode,
+                            im.Dlrprice,
+                            im.Custprice,
+                            im.Igst,
+                            im.Grpidno,
+
+                            GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
+
+                            pi.BatchClosingQty,
+                            pi.VendorCode,
+                            pi.DealerLocation,
+
+                            lm.Locname,
+
+                            GST = at != null ? at.TotalTaxRate : 0,
+
+                            MRP = im.Dlrprice +
+                            ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
+
+
+                            //SaleCount = sc != null ? sc.SaleCount : 0,
+                            //PurchaseCount = pc != null ? pc.PurchaseCount : 0
+                            SaleCount = (int?)sc.SaleCount ?? 0,
+                            PurchaseCount = (int?)pc.PurchaseCount ?? 0
+                        })
+                        .ToListAsync();
+
+
+                return data.Select((x, index) => new
+                {
+                    SrNo = index + 1,
+                    x.Itemtype,
+                    x.Itemname,
+                    x.Itemcode,
+                    x.Itemdesc,
+                    x.Hsncode,
+                    x.Dlrprice,
+                    x.Custprice,
+                    x.GST,
+                    x.Grpidno,
+                    x.BatchClosingQty,
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.Locname,
+                    x.GroupType,
+                    x.SaleCount,
+                    x.PurchaseCount,
+                    x.MRP
+                });
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
     }
 }
