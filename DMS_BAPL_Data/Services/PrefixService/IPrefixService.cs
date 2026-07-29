@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Services.PrefixService
         Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel);
         Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName);
         Task<byte[]> DownloadExcel();
+        Task<PagedResponse<NumberSequence>> GetPrefixByPagedByDealer(int pageIndex, int pageSize, string? searchTerms, string? dealerCode);
     }
 }
