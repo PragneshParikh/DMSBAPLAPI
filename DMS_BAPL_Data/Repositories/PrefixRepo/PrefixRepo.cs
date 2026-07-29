@@ -114,10 +114,13 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
             {
                 var newNumberSequences = (new NumberSequence
                 {
-                    SequenceCode = numberSequenceViewModel.SequenceCode,
+                    SequenceCode = numberSequenceViewModel.SequenceCode.Replace("DealerCode", numberSequenceViewModel.DealerCode.Length >= 3 ? numberSequenceViewModel.DealerCode[^3..] : numberSequenceViewModel.DealerCode),
                     SequenceName = numberSequenceViewModel.SequenceName,
                     Format = numberSequenceViewModel.Format,
                     Year = numberSequenceViewModel.Year,
+                    DealerCode = numberSequenceViewModel.DealerCode,
+                    NextNo = numberSequenceViewModel.NextNo,
+                    Increment = numberSequenceViewModel.Increment,
                     IsActive = numberSequenceViewModel.IsActive,
                     CreatedBy = numberSequenceViewModel.CreatedBy,
                     CreatedDate = numberSequenceViewModel.CreatedDate
@@ -145,5 +148,51 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
 
             return existing.Id;
         }
+        async Task<PagedResponse<NumberSequence>> IPrefixRepo.GetPrefixByPagedByDealer(
+            int pageIndex,
+            int pageSize,
+            string? searchTerms,
+            string? dealerCode)
+        {
+            try
+            {
+                var query = _context.NumberSequences
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(x => x.DealerCode == dealerCode);
+                }
+
+                if (!string.IsNullOrWhiteSpace(searchTerms))
+                {
+                    query = query.Where(c =>
+                        c.SequenceCode.Contains(searchTerms) ||
+                        c.SequenceName.Contains(searchTerms) ||
+                        c.Format.Contains(searchTerms) ||
+                        c.DealerCode.Contains(searchTerms));
+                }
+
+                int totalRecords = await query.CountAsync();
+
+                var prefixes = await query
+                    .OrderByDescending(c => c.CreatedDate)
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return new PagedResponse<NumberSequence>
+                {
+                    Data = prefixes,
+                    TotalRecords = totalRecords
+                };
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
     }
 }
