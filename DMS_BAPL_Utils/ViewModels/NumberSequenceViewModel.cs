@@ -22,6 +22,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public bool IsActive { get; set; }
 
+        public string? DealerCode { get; set; } = null!;
+
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedDate { get; set; }

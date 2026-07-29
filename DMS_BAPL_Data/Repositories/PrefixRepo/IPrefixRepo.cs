@@ -13,5 +13,6 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
         Task<int> InsertPrefix(NumberSequenceViewModel numberSequence);
         Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel);
         Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName);
+        Task<PagedResponse<NumberSequence>> GetPrefixByPagedByDealer(int pageIndex, int pageSize, string? searchTerms, string? dealerCode);
     }
 }
