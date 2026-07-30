@@ -35,6 +35,99 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
             _httpContextAccessor = httpContextAccessor;
         }
 
+        //public async Task<List<MenuMasterViewModel>> GetMenuItems()
+        //{
+        //    try
+        //    {
+        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+
+        //        var menus = await _menuRepo.GetMenuItems();
+
+        //        var userRoles = await _context.Set<IdentityUserRole<string>>()
+        //            .Where(x => x.UserId == userId)
+        //            .ToListAsync();
+
+        //        var roleId = userRoles.Select(x => x.RoleId).FirstOrDefault();
+
+        //        var roleRights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+
+        //        var allowedSubMenuIds = roleRights
+        //            .Where(x => x.Permission > 0)
+        //            .Select(x => x.SubMenuId)
+        //            .ToHashSet();
+
+        //        var parentMenus = menus
+        //            .Where(x => x.ParentMenuId == null)
+        //            .OrderBy(x => x.MenuName)
+        //            .ThenBy(x => x.SerialNo)
+        //            .Select(menu =>
+        //            {
+        //                var children = menus
+        //                .Where(x => x.ParentMenuId == menu.Id
+        //                && roleRights.Any(r => r.SubMenuId == x.Id && r.Permission > 0))
+        //                .OrderBy(x => x.SerialNo)
+        //                .Select(child => new MenuMasterViewModel
+        //                {
+        //                    id = child.Id,
+        //                    label = child.MenuName,
+        //                    link = child.PathName,
+        //                    parentId = child.ParentMenuId,
+        //                    module = child.ModuleName
+        //                })
+        //                .ToList();
+
+        //                var hasChildren = children.Any();
+
+        //                var hasAccess = roleRights
+        //                .Any(r => r.SubMenuId == menu.Id && r.Permission > 0);
+
+        //                if (hasChildren)
+        //                {
+        //                    return new MenuMasterViewModel
+        //                    {
+        //                        id = menu.Id,
+        //                        label = menu.MenuName,
+        //                        icon = "ri-dashboard-2-line",
+        //                        isCollapsed = true,
+        //                        subItems = children
+        //                    };
+        //                }
+
+        //                if (hasAccess)
+        //                {
+        //                    return new MenuMasterViewModel
+        //                    {
+        //                        id = menu.Id,
+        //                        label = menu.MenuName,
+        //                        link = menu.PathName,
+        //                        icon = "ri-dashboard-2-line"
+        //                    };
+        //                }
+
+        //                return null;
+        //            })
+        //            .Where(x => x != null)
+        //            .ToList();
+
+        //        var result = new List<MenuMasterViewModel>
+        //        {
+        //            new MenuMasterViewModel
+        //            {
+        //                id = 1000,
+        //                label = "MENU",
+        //                isTitle = true
+        //            }
+        //        };
+
+        //        result.AddRange(parentMenus);
+
+        //        return result;
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //}
         public async Task<List<MenuMasterViewModel>> GetMenuItems()
         {
             try
@@ -46,10 +139,14 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                 var userRoles = await _context.Set<IdentityUserRole<string>>()
                     .Where(x => x.UserId == userId)
                     .ToListAsync();
+                var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
 
-                var roleId = userRoles.Select(x => x.RoleId).FirstOrDefault();
-
-                var roleRights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+                var roleRights = new List<RoleWiseMenuRight>();
+                foreach (var rid in roleIds)
+                {
+                    var rights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(rid);
+                    roleRights.AddRange(rights);
+                }
 
                 var allowedSubMenuIds = roleRights
                     .Where(x => x.Permission > 0)
@@ -64,7 +161,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     {
                         var children = menus
                         .Where(x => x.ParentMenuId == menu.Id
-                        && roleRights.Any(r => r.SubMenuId == x.Id && r.Permission > 0))
+                        && allowedSubMenuIds.Contains(x.Id))
                         .OrderBy(x => x.SerialNo)
                         .Select(child => new MenuMasterViewModel
                         {
@@ -78,8 +175,7 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
 
                         var hasChildren = children.Any();
 
-                        var hasAccess = roleRights
-                        .Any(r => r.SubMenuId == menu.Id && r.Permission > 0);
+                        var hasAccess = allowedSubMenuIds.Contains(menu.Id);
 
                         if (hasChildren)
                         {
@@ -110,14 +206,14 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     .ToList();
 
                 var result = new List<MenuMasterViewModel>
-                {
-                    new MenuMasterViewModel
-                    {
-                        id = 1000,
-                        label = "MENU",
-                        isTitle = true
-                    }
-                };
+        {
+            new MenuMasterViewModel
+            {
+                id = 1000,
+                label = "MENU",
+                isTitle = true
+            }
+        };
 
                 result.AddRange(parentMenus);
 
