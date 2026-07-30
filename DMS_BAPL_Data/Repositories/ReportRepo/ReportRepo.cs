@@ -4083,12 +4083,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         join im in _context.ItemMasters
                             on pi.ItemCode equals im.Itemcode
 
+
                         join lm in _context.LocationMasters
                             on pi.DealerLocation equals lm.Loccode
 
                         join mt in _context.MaterialTransfers
                             on im.Id equals mt.ItemId into materialGroup
-                        from mt in materialGroup
+                        from mt in materialGroup.DefaultIfEmpty()
 
                         join h in _context.HsnwiseTaxCodes
                             on im.Hsncode equals h.Hsncode into hsnTaxGroup
