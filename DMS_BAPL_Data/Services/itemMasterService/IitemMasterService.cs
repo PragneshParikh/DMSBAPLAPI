@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
         Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel);
         Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
-        Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId);
+        Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode);
         Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation);
         Task<List<ItemMasterViewModel>> GetItemModelist();
     }
