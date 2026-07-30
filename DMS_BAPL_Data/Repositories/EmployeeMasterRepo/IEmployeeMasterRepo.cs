@@ -17,5 +17,7 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         Task<List<EmployeeDesignationWiseViewModel>> GetEmployeesByDesignation(string? dealerCode, string designation);
         Task<EmployeeMaster?> GetEmployeeByEmail(string email);
         Task<IEnumerable<EmployeeRoleMapping>> GetRoleMappings(int employeeId);
+
+        Task<List<EmployeeMenuGroupViewModel>> GetMenuForRolesAsync(List<string> roleIds);
     }
 }

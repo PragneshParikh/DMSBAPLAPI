@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -25,12 +26,6 @@ namespace DMS_BAPL_Api.Controllers
             _roleManager = roleManager;
         }
 
-        // GET ALL EMPLOYEES
-        // FIX: previously returned every employee regardless of who was
-        // asking. Now scoped to the caller's own DealerCode (already
-        // embedded in the JWT for both Dealer and Employee logins) unless
-        // the caller is SuperAdmin. Fails closed — no dealer context on the
-        // token means an empty list, never "show everyone" by default.
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeMaster>>> Get()
         {
@@ -44,10 +39,6 @@ namespace DMS_BAPL_Api.Controllers
 
                     if (string.IsNullOrWhiteSpace(callerDealerCode))
                     {
-                        // No dealer context on this token (e.g. a BgEmployee
-                        // login, which spans multiple dealers and isn't
-                        // handled by this single-DealerCode filter yet).
-                        // Fail closed rather than exposing every dealer's data.
                         return Ok(Enumerable.Empty<EmployeeMaster>());
                     }
 
@@ -60,14 +51,10 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
-
                 return BadRequest(ex.Message);
             }
         }
 
-        // GET EMPLOYEE BY ID
-        // FIX: also scoped now, so a dealer can't bypass the list filter by
-        // guessing/hitting another dealer's employee id directly.
         [HttpGet("GetById/{Id}")]
         public async Task<ActionResult> GetEmployeeById(int Id)
         {
@@ -121,6 +108,14 @@ namespace DMS_BAPL_Api.Controllers
 
                     selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
                     roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
+
+                    // NEW — category + roleId pairs, straight from
+                    // EmployeeRoleMapping. The frontend uses roleId directly
+                    // against Role Master's menu-access endpoint to prefill
+                    // Edit mode — no name-matching involved at all.
+                    roleMappings = mappings
+                        .Select(m => new { category = m.Category, roleName = m.RoleName, roleId = m.RoleId })
+                        .ToList(),
                 };
 
                 return Ok(response);
@@ -128,18 +123,10 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
-
                 return BadRequest(ex.Message);
             }
         }
 
-        // INSERT EMPLOYEE
-        // FIX: EnsureEmployeeLogin now only runs when an EmailId was actually
-        // supplied. It used to run unconditionally, so once Email/Password
-        // stopped being mandatory on the front end, a blank EmailId reached
-        // _userManager.FindByEmailAsync(...)/CreateAsync(...) and threw,
-        // failing the whole request. Guarding here (and again inside
-        // EnsureEmployeeLogin as a backstop) fixes that.
         [HttpPost]
         public async Task<ActionResult> CreateNewUser([FromBody] EmployeeMaster employeeMaster)
         {
@@ -193,24 +180,15 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 var employeeList = await _employeeService.GetEmployeesByDesignation(dealerCode, designation);
-
                 return Ok(employeeList);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
-
                 return BadRequest(ex.Message);
             }
         }
 
-        /// <summary>
-        /// Downloads the employee list as an Excel file. If dealerCode is
-        /// supplied, exports only that dealer's employees — otherwise exports
-        /// everyone. FIX: non-SuperAdmin callers can no longer pass an
-        /// arbitrary dealerCode — their own DealerCode (from the token) is
-        /// enforced instead, closing the same gap as Get()/GetEmployeeById().
-        /// </summary>
         [HttpGet("download")]
         public async Task<IActionResult> Download([FromQuery] string? dealerCode = null)
         {
@@ -243,11 +221,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // FIX: added an early-out guard. EmailId is now optional on the
-        // incoming payload (Email/Password/Category are no longer mandatory
-        // when creating/updating an employee), so this method must not
-        // assume a non-null EmailId. Everything below this guard is
-        // unchanged from before.
         private async Task EnsureEmployeeLogin(EmployeeMaster emp)
         {
             if (string.IsNullOrWhiteSpace(emp.EmailId))
@@ -257,10 +230,11 @@ namespace DMS_BAPL_Api.Controllers
                 await _roleManager.CreateAsync(new IdentityRole("Employee"));
 
             var existing = await _userManager.FindByEmailAsync(emp.EmailId!);
+            ApplicationUser user;
 
             if (existing == null)
             {
-                var user = new ApplicationUser
+                user = new ApplicationUser
                 {
                     UserName = emp.EmailId,
                     Email = emp.EmailId,
@@ -275,13 +249,48 @@ namespace DMS_BAPL_Api.Controllers
 
                 await _userManager.AddToRoleAsync(user, "Employee");
             }
-            else if (!string.IsNullOrWhiteSpace(emp.Password))
+            else
             {
-                var token = await _userManager.GeneratePasswordResetTokenAsync(existing);
-                var res = await _userManager.ResetPasswordAsync(existing, token, emp.Password);
+                user = existing;
 
-                if (!res.Succeeded)
-                    throw new Exception($"Login password could not be updated: {string.Join(", ", res.Errors.Select(e => e.Description))}");
+                if (!string.IsNullOrWhiteSpace(emp.Password))
+                {
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(existing);
+                    var res = await _userManager.ResetPasswordAsync(existing, token, emp.Password);
+
+                    if (!res.Succeeded)
+                        throw new Exception($"Login password could not be updated: {string.Join(", ", res.Errors.Select(e => e.Description))}");
+                }
+            }
+
+            await SyncEmployeeFunctionalRoles(user, emp.RoleMappings);
+        }
+
+        private async Task SyncEmployeeFunctionalRoles(ApplicationUser user, List<RoleMappingDto>? roleMappings)
+        {
+            var desiredRoleNames = (roleMappings ?? new List<RoleMappingDto>())
+                .Where(m => !string.IsNullOrWhiteSpace(m.RoleName))
+                .Select(m => m.RoleName.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            var toRemove = currentRoles
+                .Where(r => !r.Equals("Employee", StringComparison.OrdinalIgnoreCase) &&
+                            !desiredRoleNames.Contains(r, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (toRemove.Any())
+                await _userManager.RemoveFromRolesAsync(user, toRemove);
+
+            foreach (var roleName in desiredRoleNames)
+            {
+                if (!await _roleManager.RoleExistsAsync(roleName))
+                    continue;
+
+                if (!currentRoles.Contains(roleName, StringComparer.OrdinalIgnoreCase))
+                    await _userManager.AddToRoleAsync(user, roleName);
             }
         }
     }

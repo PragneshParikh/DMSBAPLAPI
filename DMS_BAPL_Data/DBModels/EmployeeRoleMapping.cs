@@ -13,5 +13,7 @@ public partial class EmployeeRoleMapping
 
     public string RoleName { get; set; } = null!;
 
+    public string? RoleId { get; set; }
+
     public DateTime? CreatedDate { get; set; }
 }

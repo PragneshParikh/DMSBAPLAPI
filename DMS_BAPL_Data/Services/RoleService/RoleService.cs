@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.RoleService
@@ -13,65 +12,101 @@ namespace DMS_BAPL_Data.Services.RoleService
     public class RoleService : IRoleService
     {
         private readonly IRoleRepo _roleRepo;
-        private readonly RoleManager<IdentityRole> _roleManager;   // ADD
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public RoleService(IRoleRepo roleRepo, RoleManager<IdentityRole> roleManager)  // ADD param
+        public RoleService(IRoleRepo roleRepo, RoleManager<IdentityRole> roleManager)
         {
             _roleRepo = roleRepo;
-            _roleManager = roleManager;                            // ADD
+            _roleManager = roleManager;
         }
 
         public async Task<IEnumerable<AspNetRole>> GetRoles()
+            => await _roleRepo.GetRoles();
+
+        public async Task<IdentityResult> CreateRoleWithCategory(RoleWithCategoryViewModel model)
         {
-            return await _roleRepo.GetRoles();
-        }
-
-        public async Task<AspNetRole> GetRoleById(string roleId)
-        {
-            return await _roleRepo.GetRoleById(roleId);
-        }
-
-        public async Task<IdentityResult> CreateRoleWithCategory(RoleWithCategoryViewModel vm)
-        {
-            if (string.IsNullOrWhiteSpace(vm.Name) || string.IsNullOrWhiteSpace(vm.Category))
-                return IdentityResult.Failed(new IdentityError { Description = "Role name and category are required." });
-
-            var name = vm.Name.Trim();
-            var category = vm.Category.Trim();
-
-            // create the role in AspNetRoles if it doesn't exist  (RoleManager, NOT repo)
-            var role = await _roleManager.FindByNameAsync(name);
-            if (role == null)
+            if (!await _roleManager.RoleExistsAsync(model.Name))
             {
-                var create = await _roleManager.CreateAsync(new IdentityRole(name));
-                if (!create.Succeeded) return create;
-                role = await _roleManager.FindByNameAsync(name);
+                var createResult = await _roleManager.CreateAsync(new IdentityRole(model.Name));
+                if (!createResult.Succeeded)
+                    return createResult;
             }
-
-            // map to category (skip if this role is already mapped to it)
-            var existing = await _roleRepo.GetMappingsByCategory(category);
-            if (!existing.Any(m => m.RoleId == role!.Id))
+            var role = await _roleManager.FindByNameAsync(model.Name);
+            await _roleRepo.AddRoleCategoryMapping(new RoleCategoryMapping
             {
-                await _roleRepo.AddRoleCategoryMapping(new RoleCategoryMapping
-                {
-                    Category = category,
-                    RoleId = role!.Id,
-                    RoleName = role.Name!,
-                    CreatedBy = "admin",
-                    CreatedDate = DateTime.Now
-                });
-            }
-
+                RoleId = role!.Id,
+                RoleName = model.Name,
+                Category = model.Category,
+                CreatedDate = DateTime.Now
+            });
             return IdentityResult.Success;
         }
 
-        public async Task<List<RoleCategoryMapping>> GetRolesByCategory(string category)
+        public async Task<List<RoleCategoryMapping>> GetAllMappings()
+            => await _roleRepo.GetAllMappings();
+
+        public async Task<bool> UpdateMapping(int id, string roleName, string? category)
+            => await _roleRepo.UpdateMappingNameAndCategory(id, roleName, category);
+
+        public async Task<bool> DeleteMapping(int id)
+            => await _roleRepo.DeleteMapping(id);
+
+        public async Task<RoleMenuAccessResponseViewModel?> GetMenuAccessAsync(string roleId)
+            => await _roleRepo.GetMenuAccessAsync(roleId);
+
+        public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(string roleId, List<int> grantedSubMenuIds, string updatedBy)
+            => await _roleRepo.UpdateMenuAccessAsync(roleId, grantedSubMenuIds, updatedBy);
+
+        public async Task<List<DealerMenuAccessGroupViewModel>> GetMenuTemplateAsync()
+            => await _roleRepo.GetMenuTemplateAsync();
+
+        public async Task<(string RoleId, string RoleName)?> ResolveOrCreateRoleForItemsAsync(string category, List<int> subMenuIds, string createdBy)
         {
-            return await _roleRepo.GetMappingsByCategory(category);
+            var requestedSet = (subMenuIds ?? new List<int>()).Distinct().ToHashSet();
+            if (requestedSet.Count == 0) return null;
+
+            var template = await _roleRepo.GetMenuTemplateAsync();
+            var allValidItems = template.SelectMany(g => g.Items).ToList();
+            var validIds = allValidItems.Select(i => i.SubMenuId).ToHashSet();
+            requestedSet = requestedSet.Where(id => validIds.Contains(id)).ToHashSet();
+            if (requestedSet.Count == 0) return null;
+
+            var candidates = (await _roleRepo.GetAllMappings())
+                .Where(m => string.Equals(m.Category, category, StringComparison.OrdinalIgnoreCase)
+                            && !string.IsNullOrWhiteSpace(m.RoleId))
+                .ToList();
+
+            foreach (var candidate in candidates)
+            {
+                var access = await _roleRepo.GetMenuAccessAsync(candidate.RoleId!);
+                if (access == null) continue;
+
+                var grantedSet = access.Groups
+                    .SelectMany(g => g.Items)
+                    .Where(i => i.IsGranted)
+                    .Select(i => i.SubMenuId)
+                    .ToHashSet();
+
+                if (grantedSet.SetEquals(requestedSet))
+                    return (candidate.RoleId!, candidate.RoleName);
+            }
+
+            var name = string.Join(", ", allValidItems.Where(i => requestedSet.Contains(i.SubMenuId)).Select(i => i.MenuName));
+
+            var createResult = await CreateRoleWithCategory(new RoleWithCategoryViewModel { Name = name, Category = category });
+            if (!createResult.Succeeded) return null;
+
+            var newMapping = (await _roleRepo.GetAllMappings())
+                .Where(m => string.Equals(m.Category, category, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(m => m.Id)
+                .FirstOrDefault(m => string.Equals(m.RoleName, name, StringComparison.OrdinalIgnoreCase));
+
+            if (newMapping?.RoleId == null) return null;
+
+            var (success, _) = await _roleRepo.UpdateMenuAccessAsync(newMapping.RoleId, requestedSet.ToList(), createdBy);
+            if (!success) return null;
+
+            return (newMapping.RoleId, newMapping.RoleName);
         }
-
-        public async Task<List<RoleCategoryMapping>> GetAllMappings() => await _roleRepo.GetAllMappings();
-
-        public async Task<bool> DeleteMapping(int id) => await _roleRepo.DeleteMapping(id);
     }
 }

@@ -104,5 +104,8 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
                 CellValue = new CellValue(value ?? string.Empty)
             };
         }
+
+        Task<List<EmployeeMenuGroupViewModel>> IEmployeeService.GetMenuForRolesAsync(List<string> roleIds)
+                                                => _employeeMasterRepo.GetMenuForRolesAsync(roleIds);
     }
 }
