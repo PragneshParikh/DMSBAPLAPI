@@ -80,6 +80,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     LocCode = model.LocCode,
                     LedgerCode = model.LedgerCode,
                     Status = false,
+                   
                     SubOrderType = model.SubOrderType,
                     IsAgainstKit = model.IsAgainstKit,
                     JobId = model.JobId
@@ -107,6 +108,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
+                        Mrp =item.MRP,
                         //LineAmount = lineAmount,
                         LineNumber = lineNumber,
                         CreatedBy = userId,
@@ -241,6 +243,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = 0, // Subsidy only for Vehicles (itemtype 11)
                         Rate = rate,
+                        Mrp=item.MRP,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
                         CreatedBy = model.CreatedBy,
