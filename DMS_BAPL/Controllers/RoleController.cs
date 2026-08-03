@@ -77,13 +77,10 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
                 var mappings = await _roleService.GetAllMappings();
-                var data = mappings.Select(m => new
-                {
-                    id = m.Id,
-                    roleId = m.RoleId,
-                    roleName = m.RoleName,
-                    category = m.Category
-                }).ToList();
+                var data = mappings
+                  .Where(m => !m.IsSystemGenerated)
+                  .Select(m => new { id = m.Id, roleId = m.RoleId, roleName = m.RoleName, category = m.Category })
+                  .ToList();
                 return Ok(data);
             }
             catch (Exception ex)
@@ -221,6 +218,27 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error resolving role for selected menu items");
                 return StatusCode(500, "An error occurred while resolving the role.");
+            }
+        }
+
+        [HttpGet("by-category/{category}")]
+        public async Task<IActionResult> GetRolesByCategory(string category)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var mappings = await _roleService.GetMappingsByCategory(category);
+                var data = mappings
+                    .Select(m => new { roleId = m.RoleId, roleName = m.RoleName })
+                    .ToList();
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching roles by category");
+                return StatusCode(500, "An error occurred while fetching roles for this category.");
             }
         }
     }

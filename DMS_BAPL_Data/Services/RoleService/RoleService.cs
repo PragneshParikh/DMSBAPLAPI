@@ -24,6 +24,18 @@ namespace DMS_BAPL_Data.Services.RoleService
             => await _roleRepo.GetRoles();
 
         public async Task<IdentityResult> CreateRoleWithCategory(RoleWithCategoryViewModel model)
+            => await CreateRoleWithCategory(model, isSystemGenerated: false);
+
+        public async Task<List<RoleCategoryMapping>> GetMappingsByCategory(string category)
+        {
+            var all = await _roleRepo.GetAllMappings(); // unfiltered — see RoleRepo fix from earlier
+            return all
+                .Where(m => !m.IsSystemGenerated
+                         && string.Equals(m.Category, category, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(m => m.RoleName)
+                .ToList();
+        }
+        private async Task<IdentityResult> CreateRoleWithCategory(RoleWithCategoryViewModel model, bool isSystemGenerated)
         {
             if (!await _roleManager.RoleExistsAsync(model.Name))
             {
@@ -37,7 +49,8 @@ namespace DMS_BAPL_Data.Services.RoleService
                 RoleId = role!.Id,
                 RoleName = model.Name,
                 Category = model.Category,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                IsSystemGenerated = isSystemGenerated
             });
             return IdentityResult.Success;
         }
@@ -92,8 +105,9 @@ namespace DMS_BAPL_Data.Services.RoleService
             }
 
             var name = string.Join(", ", allValidItems.Where(i => requestedSet.Contains(i.SubMenuId)).Select(i => i.MenuName));
-
-            var createResult = await CreateRoleWithCategory(new RoleWithCategoryViewModel { Name = name, Category = category });
+            var createResult = await CreateRoleWithCategory(
+                new RoleWithCategoryViewModel { Name = name, Category = category },
+                isSystemGenerated: true);
             if (!createResult.Succeeded) return null;
 
             var newMapping = (await _roleRepo.GetAllMappings())

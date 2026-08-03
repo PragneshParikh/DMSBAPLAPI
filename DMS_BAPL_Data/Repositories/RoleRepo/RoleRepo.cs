@@ -28,6 +28,18 @@ namespace DMS_BAPL_Data.Repositories.RoleRepo
             await _context.SaveChangesAsync();
         }
 
+        // FIX: returns ALL mappings, system-generated or not. This method is
+        // used internally by RoleService.ResolveOrCreateRoleForItemsAsync to
+        // (a) find a previously auto-created role to reuse, and (b) locate
+        // the mapping row it just inserted so it can read back its RoleId.
+        // Both need to see system-generated rows — filtering them out here
+        // means a freshly-inserted mapping can never be found again, which
+        // is what caused every fresh resolve to fail with "Could not
+        // resolve or create a role for the selected items."
+        // The "hide auto-created roles from the Role Master list" behavior
+        // belongs ONLY in RoleController.GetMappings (which already applies
+        // its own .Where(m => !m.IsSystemGenerated) on the projected data).
+        // Do not duplicate that filter here.
         public async Task<List<RoleCategoryMapping>> GetAllMappings()
         {
             return await _context.RoleCategoryMappings
@@ -68,11 +80,31 @@ namespace DMS_BAPL_Data.Repositories.RoleRepo
             await _context.SaveChangesAsync();
             return true;
         }
+
         private static bool IsMenuAccessCategory(string? category) =>
             !string.IsNullOrWhiteSpace(category) &&
             (category.Equals("Sale", StringComparison.OrdinalIgnoreCase) ||
              category.Equals("Sales", StringComparison.OrdinalIgnoreCase) ||
              category.Equals("Service", StringComparison.OrdinalIgnoreCase));
+
+        // NEW — defensive fix, separate from the bug above. RoleWiseMenuRights
+        // is keyed by RoleId only, not by category, so if one AspNetRole ever
+        // ends up with more than one RoleCategoryMapping row (e.g. resolved
+        // once under "Sale" and once under "Service" for the same items),
+        // menu access is genuinely shared between them either way. This picks
+        // ANY mapping row for the role that falls in the valid category set,
+        // instead of whatever row an unordered query happened to return first.
+        private async Task<RoleCategoryMapping?> GetValidCategoryMapping(string roleId)
+        {
+            var mappings = await _context.RoleCategoryMappings
+                .AsNoTracking()
+                .Where(m => m.RoleId == roleId)
+                .ToListAsync();
+
+            return mappings
+                .OrderByDescending(m => m.Id)
+                .FirstOrDefault(m => IsMenuAccessCategory(m.Category));
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // MENU ACCESS — SALE / SERVICE ROLES ONLY
@@ -80,11 +112,8 @@ namespace DMS_BAPL_Data.Repositories.RoleRepo
 
         public async Task<RoleMenuAccessResponseViewModel?> GetMenuAccessAsync(string roleId)
         {
-            var mapping = await _context.RoleCategoryMappings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.RoleId == roleId);
-
-            if (mapping == null || !IsMenuAccessCategory(mapping.Category))
+            var mapping = await GetValidCategoryMapping(roleId);
+            if (mapping == null)
                 return null;
 
             var topMenus = await _context.MenuMasters
@@ -136,11 +165,8 @@ namespace DMS_BAPL_Data.Repositories.RoleRepo
 
         public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(string roleId, List<int> grantedSubMenuIds, string updatedBy)
         {
-            var mapping = await _context.RoleCategoryMappings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.RoleId == roleId);
-
-            if (mapping == null || !IsMenuAccessCategory(mapping.Category))
+            var mapping = await GetValidCategoryMapping(roleId);
+            if (mapping == null)
                 return (false, "This role is not registered under the Sale or Service category.");
 
             var roleExists = await _context.AspNetRoles.AnyAsync(r => r.Id == roleId);
@@ -187,8 +213,6 @@ namespace DMS_BAPL_Data.Repositories.RoleRepo
             await _context.SaveChangesAsync();
             return (true, null);
         }
-
-    
 
         public async Task<List<DealerMenuAccessGroupViewModel>> GetMenuTemplateAsync()
         {

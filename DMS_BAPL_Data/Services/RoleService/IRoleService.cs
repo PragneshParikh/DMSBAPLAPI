@@ -13,7 +13,7 @@ namespace DMS_BAPL_Data.Services.RoleService
         Task<List<RoleCategoryMapping>> GetAllMappings();
         Task<bool> UpdateMapping(int id, string roleName, string? category);
         Task<bool> DeleteMapping(int id);
-
+        Task<List<RoleCategoryMapping>> GetMappingsByCategory(string category);
         Task<RoleMenuAccessResponseViewModel?> GetMenuAccessAsync(string roleId);
         Task<(bool Success, string? Error)> UpdateMenuAccessAsync(string roleId, List<int> grantedSubMenuIds, string updatedBy);
         Task<List<DealerMenuAccessGroupViewModel>> GetMenuTemplateAsync();

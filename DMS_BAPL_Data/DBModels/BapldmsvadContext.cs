@@ -3603,6 +3603,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.RoleId).HasMaxLength(450);
             entity.Property(e => e.RoleName).HasMaxLength(256);
+            entity.Property(e => e.IsSystemGenerated).HasDefaultValue(false);
         });
 
         modelBuilder.Entity<RoleMenuMapping>(entity =>

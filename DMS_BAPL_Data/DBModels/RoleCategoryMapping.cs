@@ -13,6 +13,8 @@ public partial class RoleCategoryMapping
 
     public string RoleName { get; set; } = null!;
 
+    public bool IsSystemGenerated { get; set; }
+
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }
