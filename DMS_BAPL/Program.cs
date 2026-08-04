@@ -3,6 +3,10 @@ using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Middleware;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Repositories.PartDispatchRepo;
+using DMS_BAPL_Data.Repositories.PartDispWarrantyRepo;
+using DMS_BAPL_Data.Services.PartDispatchService;
+using DMS_BAPL_Data.Services.PartDispWarrantyService;
 using DMS_BAPL_Utils.Helpers;
 using DocumentFormat.OpenXml.Drawing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -96,6 +100,10 @@ builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
+builder.Services.AddScoped<IPartDispWarrantyRepo, PartDispWarrantyRepo>();
+builder.Services.AddScoped<IPartDispWarrantyService, PartDispWarrantyService>();
+builder.Services.AddScoped<IPartDispatchRepo, PartDispatchRepo>();
+builder.Services.AddScoped<IPartDispatchService, PartDispatchService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "Your_Default_Very_Long_Secret_Key_Here");
