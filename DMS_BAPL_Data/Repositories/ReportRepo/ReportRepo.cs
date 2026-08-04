@@ -1147,12 +1147,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             if (codes.Count == 0) return new Dictionary<string, LiveSaleMatch>();
 
             var saleRows = await (
-                from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
-                where vsd.ChassisNo != null && codes.Contains(vsd.ChassisNo.Trim().ToUpper())
-                join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
-                    on vsd.VehicleSaleBillId equals vsh.Id
-                select new { vsd, vsh }
-            ).ToListAsync();
+              from vsd in _context.VehicleSaleBillDetails.AsNoTracking()
+              where vsd.ChassisNo != null && codes.Contains(vsd.ChassisNo.Trim().ToUpper())
+              join vsh in _context.VehicleSaleBillHeaders.AsNoTracking().Where(h => !h.IsDeleted)
+                  on vsd.VehicleSaleBillId equals vsh.Id
+              select new { vsd, vsh }
+             ).ToListAsync();
 
             return saleRows
                 .GroupBy(x => x.vsd.ChassisNo!.Trim().ToUpperInvariant())
@@ -1170,40 +1170,46 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             {
                 var query =
                     from vi in _context.VehicleInwards.AsNoTracking()
-
                     join dm in _context.DealerMasters.AsNoTracking()
                         on vi.DealerCode equals dm.Dealercode into dmJoin
                     from dm in dmJoin.DefaultIfEmpty()
-
                     join im in _context.ItemMasters.AsNoTracking()
                         on vi.ItemCode equals im.Itemcode into imJoin
                     from im in imJoin.DefaultIfEmpty()
-
                     join cm in _context.ColorMasters.AsNoTracking()
                         on vi.ColrCode equals cm.Colorcode into cmJoin
                     from cm in cmJoin.DefaultIfEmpty()
-
                     join lm in _context.LocationMasters.AsNoTracking()
                         on vi.LocCode equals lm.Loccode into lmJoin
                     from lm in lmJoin.DefaultIfEmpty()
-
                     select new { Vehicle = vi, Dealer = dm, Item = im, Color = cm, LocationMaster = lm };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                     query = query.Where(x => x.Vehicle.DealerCode == filter.DealerCode);
-
                 if (!string.IsNullOrWhiteSpace(filter.ModelCode))
                     query = query.Where(x => x.Vehicle.ItemCode == filter.ModelCode);
-
                 if (!string.IsNullOrWhiteSpace(filter.ColorCode))
                     query = query.Where(x => x.Vehicle.ColrCode == filter.ColorCode);
-
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     query = query.Where(x =>
                         x.Vehicle.ChasisNo != null &&
                         x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
 
                 var rawData = await query.ToListAsync();
+
+
+                rawData = rawData
+                       .GroupBy(x => string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+                           ? null
+                           : x.Vehicle.ChasisNo.Trim().ToUpperInvariant())
+                       .SelectMany(g =>
+                           g.Key == null
+                               ? g
+                               : g.OrderByDescending(x => x.Vehicle.InvoiceDate)
+                                  .ThenByDescending(x => x.Vehicle.Id)
+                                  .Take(1))
+                       .ToList();
+
                 var saleLookup = await GetLatestLiveSaleByChassisAsync(rawData.Select(x => x.Vehicle.ChasisNo));
 
                 var mappedRows = rawData.Select((x, index) =>
@@ -1217,12 +1223,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         ? m
                         : null;
 
-                    // NEW RULE:
-                    //   Invoiced           -> Allocated
-                    //   Anything else
-                    //   (PerformaCreated,
-                    //    Pending, Invalid,
-                    //    or no sale at all) -> Available
+                    // Invoiced (sold) -> Allocated; anything else -> Available. Allocated
+                    // vehicles always show in this report — sale status never removes a
+                    // row; only the dedupe step above (i.e. D2D) does.
                     bool isInvoiced = match?.Header.Status == "Invoiced";
                     string vehicleStatus = isInvoiced ? "Allocated" : "Available";
 
@@ -1251,7 +1254,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         DispatchDate = invoiceDate,
                         ReceiveDate = invoiceDate,
                         VehicleStatus = vehicleStatus,
-                        StockStatus = vehicleStatus,   // ← mirrors VehicleStatus now; see note below
+                        StockStatus = vehicleStatus,
                         LocationCode = x.Vehicle.LocCode,
                         LocationName = x.LocationMaster != null ? x.LocationMaster.Locname : "",
                         CurrentLocation = x.LocationMaster != null ? x.LocationMaster.Locname : x.Vehicle.LocCode,
@@ -1262,18 +1265,14 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     };
                 }).ToList();
 
-                // No exclusion step anymore — Invoiced vehicles are shown as "Allocated"
-                // instead of being filtered out entirely.
                 IEnumerable<CurrentStockReportViewModel> result = mappedRows;
 
                 if (!string.IsNullOrWhiteSpace(filter.StockStatus))
                     result = result.Where(x => x.VehicleStatus == filter.StockStatus);
-
                 if (filter.FromDate.HasValue)
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
                         x.ReceiveDate.Value.Date >= filter.FromDate.Value.Date);
-
                 if (filter.ToDate.HasValue)
                     result = result.Where(x =>
                         x.ReceiveDate.HasValue &&
@@ -1300,7 +1299,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error fetching current stock report: " + ex.Message, ex);
             }
         }
-
         // ═════════════════════════════════════════════════════════════════════
         // MODEL-WISE CURRENT STOCK (COUNT-WISE)
         // ═════════════════════════════════════════════════════════════════════
