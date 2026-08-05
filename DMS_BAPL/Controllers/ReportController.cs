@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.ReportService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
@@ -7,6 +8,7 @@ using DocumentFormat.OpenXml.Office2021.DocumentTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -16,11 +18,27 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IReportService _reportService;
         private readonly ILogger<ReportController> _logger;
+        private readonly IEmployeeService _employeeService;
 
-        public ReportController(IReportService reportService, ILogger<ReportController> logger)
+        public ReportController(IReportService reportService, ILogger<ReportController> logger, IEmployeeService employeeService)
         {
             _reportService = reportService;
             _logger = logger;
+            _employeeService = employeeService;
+        }
+
+
+        private async Task<string?> GetLiveLocationCodeAsync(string? tokenLocationCode)
+        {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrWhiteSpace(email))
+                return tokenLocationCode;
+
+            var employee = await _employeeService.GetEmployeeByEmail(email);
+
+            return !string.IsNullOrWhiteSpace(employee?.LocationCode)
+                ? employee.LocationCode
+                : tokenLocationCode;
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -90,7 +108,7 @@ namespace DMS_BAPL_Api.Controllers
         // JOB CARD
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>Get Job Card Report with pagination and filtering</summary>
+     
         [HttpPost("job-card")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -109,15 +127,18 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                // ── Dealer restriction: non-admins are forced to their own dealer;
-                // SuperAdmin/Admin keep whatever the client actually selected
-                // (including empty = "All Dealers"). ──
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
+
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.ServiceLocation = liveLocationCode;
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -177,6 +198,16 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
                 var result = await _reportService.GetJobReportByDealerAsync(
                     dealerCode, pageIndex, pageSize, fromDate, toDate);
                 return Ok(result);
@@ -188,7 +219,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get filtered Job Card Report</summary>
+
         [HttpPost("job-card/filter")]
         [ProducesResponseType(typeof(JobReportPagedResponse<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -197,9 +228,29 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+                // ── Dealer + location restriction: this hits the exact same
+                // query as /job-card, so it needs the exact same lockdown —
+                // otherwise it's a straight bypass of that endpoint's restriction. ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.ServiceLocation = liveLocationCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetFilteredJobReportAsync(filter);
                 return Ok(result);
@@ -242,7 +293,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get Job Report Summary Statistics</summary>
+
         [HttpGet("job-card/summary-stats")]
         [ProducesResponseType(typeof(JobReportSummaryStats), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -279,12 +330,27 @@ namespace DMS_BAPL_Api.Controllers
         /// <summary>Get Vehicle Sale Report</summary>
         [HttpGet("vehicle-sale")]
         [ProducesResponseType(typeof(List<VehicleSaleReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetVehicleSaleReport(
         [FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
                 var result = await _reportService.GetVehicleSaleReportAsync(fromDate, toDate, dealerCode);
                 return Ok(result);
             }
@@ -295,11 +361,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>
-        /// Get Total Sale Report (Dealer-wise Mapping) — one row per dealer with
-        /// full financial totals. Non-admin/dealer users are always restricted
-        /// to their own dealer's data, regardless of what dealerCode is passed.
-        /// </summary>
         [HttpGet("total-sale-dealer-wise")]
         [ProducesResponseType(typeof(TotalSaleReportDealerWiseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -334,7 +395,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get Model Wise Sale Report (Count-wise) — pivoted Dealer x Model</summary>
+
         [HttpGet("model-wise-sale-count")]
         [ProducesResponseType(typeof(ModelWiseSalePivotResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -347,7 +408,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own dealer ──
+ 
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -400,6 +461,7 @@ namespace DMS_BAPL_Api.Controllers
 
         [HttpPost("current-stock")]
         [ProducesResponseType(typeof(PagedResponse<CurrentStockReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCurrentStockReport([FromBody] CurrentStockFilterModel filter)
         {
@@ -414,11 +476,24 @@ namespace DMS_BAPL_Api.Controllers
                     });
                 }
 
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 if (filter.PageIndex < 1)
                     filter.PageIndex = 1;
 
                 if (filter.PageSize < 1)
                     filter.PageSize = 20;
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService
                     .GetCurrentStockReportAsync(filter);
@@ -450,8 +525,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own dealer,
-                // overriding whatever DealerCode the client sent in the body ──
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -534,6 +607,14 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 var result =
                     await _reportService
@@ -578,6 +659,18 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetModelListByDealer(string dealerCode)
         {
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User not authorized");
+            bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+            if (!isAdmin)
+            {
+                string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (!string.IsNullOrEmpty(tokenDealerCode))
+                    dealerCode = tokenDealerCode;
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             var result =
                 await _reportService
                 .GetModelListByDealerAsync(
@@ -594,6 +687,20 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // ── Dealer restriction: non-admins always see only their own dealer ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
                 var result =
                     await _reportService
                     .GetPartDispatchKitReportAsync(
@@ -771,14 +878,34 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("print/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCounterBillPrint(int id)
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 var result = await _reportService.GetCounterBillPrintById(id);
 
                 if (result == null)
                     return NotFound("Counter Bill not found.");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode) &&
+                        !string.Equals(result.DealerCode, tokenDealerCode, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Forbid();
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 return Ok(result);
             }
@@ -818,6 +945,11 @@ namespace DMS_BAPL_Api.Controllers
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
+
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.LocationCode = liveLocationCode;
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -890,6 +1022,12 @@ namespace DMS_BAPL_Api.Controllers
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
+
+  
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.LocationCode = liveLocationCode;
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -928,6 +1066,16 @@ namespace DMS_BAPL_Api.Controllers
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
+
+                    // ── Location restriction: logins pinned to one location can't
+                    // widen the report to the rest of the dealer's locations by
+                    // passing a different LocationCode. Resolved live from
+                    // Employee Master so a location reassignment takes effect
+                    // immediately, not just on the employee's next login. ──
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.LocationCode = liveLocationCode;
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -1195,6 +1343,16 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+     
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
 

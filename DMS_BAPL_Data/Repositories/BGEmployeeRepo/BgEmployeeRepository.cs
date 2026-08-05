@@ -306,7 +306,7 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                     return new BgEmployeeListItemViewModel
                     {
                         Id = e.Id,
-                        EmployeeCode = e.EmployeeCode,
+                        EmployeeCode = !string.IsNullOrWhiteSpace(e.EmployeeCode) ? e.EmployeeCode : e.TsmCode,
                         EmployeeName = $"{e.FirstName} {e.LastName}".Trim(),
                         DealerCode = e.DealerCode,
                         DealerName = string.Join(", ", dealerNames),

@@ -134,7 +134,10 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 LocationCode = existing?.LocationCode,
                 Department = existing?.Department,
                 ProfileId = existing?.ProfileId,
-                EmployeeCode = existing?.EmployeeCode,
+                EmployeeCode = !string.IsNullOrWhiteSpace(existing?.EmployeeCode)
+                                ? existing!.EmployeeCode
+                                : payload.TsmCode,
+
                 Email = existing?.Email,
                 Password = existing?.Password,
             };
