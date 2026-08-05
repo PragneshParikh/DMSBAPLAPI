@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Office2021.DocumentTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -26,23 +27,7 @@ namespace DMS_BAPL_Api.Controllers
             _employeeService = employeeService;
         }
 
-        /// <summary>
-        /// Resolves the location this caller should be restricted to, live from
-        /// Employee Master rather than trusting the JWT's snapshot.
-        ///
-        /// LocationCode on the token is set once, at login. If an admin later
-        /// reassigns this employee to a different location via Employee Master,
-        /// that change would not reach the token until the employee logs out and
-        /// back in — up to 24 hours of stale reports. This does a lookup by the
-        /// caller's email on every report request instead, so a location change
-        /// takes effect on the very next call.
-        ///
-        /// Falls back to whatever the token already has (tokenLocationCode) if no
-        /// matching row is found — e.g. dealer-role logins, which have no
-        /// location concept at all today, or BgEmployeeMaster-backed logins,
-        /// which this lookup does not cover (EmployeeMaster only — see the
-        /// BgEmployeeMaster caveat noted in AuthController).
-        /// </summary>
+
         private async Task<string?> GetLiveLocationCodeAsync(string? tokenLocationCode)
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -123,7 +108,7 @@ namespace DMS_BAPL_Api.Controllers
         // JOB CARD
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>Get Job Card Report with pagination and filtering</summary>
+     
         [HttpPost("job-card")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -142,9 +127,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter.PageIndex < 1) filter.PageIndex = 1;
                 if (filter.PageSize < 1) filter.PageSize = 20;
 
-                // ── Dealer restriction: non-admins are forced to their own dealer;
-                // SuperAdmin/Admin keep whatever the client actually selected
-                // (including empty = "All Dealers"). ──
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -152,11 +135,6 @@ namespace DMS_BAPL_Api.Controllers
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
 
-                    // ── Location restriction: logins pinned to one location can't
-                    // widen the report to the rest of the dealer's locations by
-                    // passing a different ServiceLocation. Resolved live from
-                    // Employee Master so a location reassignment takes effect
-                    // immediately, not just on the employee's next login. ──
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
                     if (!string.IsNullOrEmpty(liveLocationCode))
@@ -220,10 +198,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins can only ever pull their own
-                // dealer's report here, regardless of what dealerCode is in the
-                // URL — otherwise any dealer could view another dealer's job
-                // cards just by editing the route segment. ──
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -244,7 +219,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get filtered Job Card Report</summary>
+
         [HttpPost("job-card/filter")]
         [ProducesResponseType(typeof(JobReportPagedResponse<JobReportViewModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -318,7 +293,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get Job Report Summary Statistics</summary>
+
         [HttpGet("job-card/summary-stats")]
         [ProducesResponseType(typeof(JobReportSummaryStats), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -366,10 +341,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own
-                // dealer. This report includes customer name/address/mobile/email,
-                // so an unrestricted dealerCode query param would leak another
-                // dealer's customer PII. ──
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -389,11 +361,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>
-        /// Get Total Sale Report (Dealer-wise Mapping) — one row per dealer with
-        /// full financial totals. Non-admin/dealer users are always restricted
-        /// to their own dealer's data, regardless of what dealerCode is passed.
-        /// </summary>
         [HttpGet("total-sale-dealer-wise")]
         [ProducesResponseType(typeof(TotalSaleReportDealerWiseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -428,7 +395,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        /// <summary>Get Model Wise Sale Report (Count-wise) — pivoted Dealer x Model</summary>
+
         [HttpGet("model-wise-sale-count")]
         [ProducesResponseType(typeof(ModelWiseSalePivotResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -441,7 +408,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own dealer ──
+ 
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -519,8 +486,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (filter.PageSize < 1)
                     filter.PageSize = 20;
 
-                // ── Dealer restriction: non-admins are forced to their own dealer,
-                // overriding whatever DealerCode the client sent in the body ──
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -560,8 +525,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own dealer,
-                // overriding whatever DealerCode the client sent in the body ──
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -644,11 +607,6 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
-
-                // ── Dealer restriction: non-admins always see only their own
-                // dealer. This report includes customer name/mobile, so an
-                // unrestricted dealerCode query param would leak another
-                // dealer's customer data. ──
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -704,9 +662,6 @@ namespace DMS_BAPL_Api.Controllers
             string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized("User not authorized");
-
-            // ── Dealer restriction: non-admins can only ever pull their own
-            // dealer's model list, regardless of what dealerCode is in the URL ──
             bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
             if (!isAdmin)
             {
@@ -940,11 +895,6 @@ namespace DMS_BAPL_Api.Controllers
                 if (result == null)
                     return NotFound("Counter Bill not found.");
 
-                // ── Dealer restriction: the id is just an integer a dealer could
-                // enumerate/guess — without this check any dealer could print any
-                // other dealer's counter bill (customer name, GST no, address,
-                // etc.). Checked after the fetch since DealerCode is already on
-                // the returned view model. ──
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -996,11 +946,6 @@ namespace DMS_BAPL_Api.Controllers
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
 
-                    // ── Location restriction: logins pinned to one location can't
-                    // widen the report to the rest of the dealer's locations by
-                    // passing a different LocationCode. Resolved live from
-                    // Employee Master so a location reassignment takes effect
-                    // immediately, not just on the employee's next login. ──
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
                     if (!string.IsNullOrEmpty(liveLocationCode))
@@ -1078,11 +1023,7 @@ namespace DMS_BAPL_Api.Controllers
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
 
-                    // ── Location restriction: logins pinned to one location can't
-                    // widen the report to the rest of the dealer's locations by
-                    // passing a different LocationCode. Resolved live from
-                    // Employee Master so a location reassignment takes effect
-                    // immediately, not just on the employee's next login. ──
+  
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
                     if (!string.IsNullOrEmpty(liveLocationCode))
@@ -1402,6 +1343,16 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+     
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        dealerCode = tokenDealerCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
 
