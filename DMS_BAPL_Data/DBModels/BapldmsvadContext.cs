@@ -41,6 +41,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; }
 
+    public virtual DbSet<BgRoleCategoryMapping> BgRoleCategoryMappings { get; set; }
+
     public virtual DbSet<ChassisBatteryDetail> ChassisBatteryDetails { get; set; }
 
     public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
@@ -221,7 +223,6 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
 
-    public virtual DbSet<BgRoleCategoryMapping> BgRoleCategoryMappings { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -500,6 +501,21 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeRoleMappings)
                 .HasForeignKey(d => d.BgEmployeeId)
                 .HasConstraintName("FK_BgEmployeeRoleMappings_BgEmployeeMaster");
+        });
+
+        modelBuilder.Entity<BgRoleCategoryMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BgRoleCa__3214EC077444B867");
+
+            entity.ToTable("BgRoleCategoryMapping");
+
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.RoleId).HasMaxLength(450);
+            entity.Property(e => e.RoleName).HasMaxLength(256);
         });
 
         modelBuilder.Entity<ChassisBatteryDetail>(entity =>
@@ -4175,10 +4191,15 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.FameIi)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("FameII");
+            entity.Property(e => e.ItemAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ItemCode)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Margin).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);

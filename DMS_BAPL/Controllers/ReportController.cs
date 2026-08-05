@@ -7,7 +7,7 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2021.DocumentTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using Microsoft.VisualBasic;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -1389,7 +1389,12 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetPartsStockDetailsByDealer([FromQuery] int groupId, [FromQuery] string? dealerCode = null)
+        public async Task<IActionResult> GetPartsStockDetailsByDealer(
+            [FromQuery] int groupId,
+            [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate,
+            [FromQuery] string? dealerCode = null
+            )
         {
             try
             {
@@ -1398,20 +1403,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                // ── Dealer restriction: non-admins always see only their own
-                // dealer. This report includes dealer/customer pricing
-                // (Dlrprice/Custprice), so an unrestricted dealerCode query
-                // param would leak another dealer's commercial pricing. ──
-                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
-                if (!isAdmin)
-                {
-                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
-                    if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
-                }
-                // ─────────────────────────────────────────────────────────────────
-
-                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, dealerCode);
+                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
 
                 return Ok(result);
             }

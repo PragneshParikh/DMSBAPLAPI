@@ -229,5 +229,32 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        [HttpGet("GetPrefixByPagedByDealer")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPrefixByPagedByDealer(
+            [FromQuery] string? searchTerm,
+            [FromQuery] int pageIndex,
+            [FromQuery] int pageSize,
+            [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var prefixs = await _prefixService.GetPrefixByPagedByDealer(pageIndex, pageSize, searchTerm, dealerCode);
+
+                return Ok(prefixs);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

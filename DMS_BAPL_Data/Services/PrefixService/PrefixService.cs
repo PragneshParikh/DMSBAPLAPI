@@ -75,5 +75,6 @@ namespace DMS_BAPL_Data.Services.PrefixService
                 throw;
             }
         }
+        Task<PagedResponse<NumberSequence>> IPrefixService.GetPrefixByPagedByDealer(int pageIndex, int pageSize, string? searchTerms, string? dealerCode) => _prefixRepo.GetPrefixByPagedByDealer(pageIndex, pageSize, searchTerms, dealerCode);
     }
 }

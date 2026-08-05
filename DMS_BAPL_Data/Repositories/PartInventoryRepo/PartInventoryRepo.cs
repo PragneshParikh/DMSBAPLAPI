@@ -1,4 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -28,12 +30,10 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
 
         public async Task UpdateStock(PartsInventory partsInventory)
         {
-            //using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 var lastBatch = await _context.PartsInventories
-                    .Where(x => x.ItemCode == partsInventory.ItemCode)
+                    .Where(x => x.ItemCode == partsInventory.ItemCode && x.VendorCode == partsInventory.VendorCode && x.DealerLocation == partsInventory.DealerLocation)
                     .OrderByDescending(x => x.Id)
                     .FirstOrDefaultAsync();
 
@@ -64,12 +64,12 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                     BatchTransQty = partsInventory.BatchTransQty,
                     BatchClosingQty = closingQty,
                     TransDate = DateOnly.FromDateTime(DateTime.Now),
-                    DealerLocation = lastBatch?.DealerLocation ?? string.Empty,
+                    DealerLocation = partsInventory.DealerLocation ?? string.Empty,
                     VendorCode = partsInventory.VendorCode ?? string.Empty,
                     FinalStockFlag = "Y",
                     TotalRate = lastBatch?.TotalRate ?? 0,
                     PurchaseRate = lastBatch?.PurchaseRate ?? 0,
-                    Potype = lastBatch?.Potype ?? "B2C",
+                    Potype = partsInventory.Potype ?? string.Empty,
                     PostTransaction = lastBatch?.PostTransaction,
                     CreatedBy = partsInventory.CreatedBy,
                     CreatedDate = partsInventory.CreatedDate
@@ -79,14 +79,76 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                     lastBatch.FinalStockFlag = "N";
 
                 _context.PartsInventories.Add(newRecord);
-                //await _context.SaveChangesAsync();
-                //await transaction.CommitAsync();
             }
             catch
             {
-                //await transaction.RollbackAsync();
                 throw;
             }
+        }
+        async Task<IEnumerable<object>> IPartInventoryRepo.Get()
+        {
+            return await _context.PartsInventories
+                .AsNoTracking()
+                .ToListAsync();
+
+        }
+        async Task<IEnumerable<object>> IPartInventoryRepo.GetByItemCode(List<string> itemCodes)
+        {
+            var items = await _context.PartsInventories
+                .Where(x => itemCodes.Contains(x.ItemCode))
+                .AsNoTracking()
+                .ToListAsync();
+
+            return items;
+        }
+        async Task<IEnumerable<object>> IPartInventoryRepo.GetPartsByDealerAndDateRange(InventoryFilterViewModel inventoryFilterViewModel)
+        {
+            var query =
+                from pi in _context.PartsInventories
+                join im in _context.ItemMasters
+                    on pi.ItemCode equals im.Itemcode
+                where (string.IsNullOrWhiteSpace(inventoryFilterViewModel.DealerCode)
+                        || pi.VendorCode == inventoryFilterViewModel.DealerCode)
+                    && (!inventoryFilterViewModel.FromDate.HasValue
+                        || pi.TransDate >= DateOnly.FromDateTime(inventoryFilterViewModel.FromDate.Value))
+                    && (!inventoryFilterViewModel.ToDate.HasValue
+                        || pi.TransDate <= DateOnly.FromDateTime(inventoryFilterViewModel.ToDate.Value))
+                select new
+                {
+                    pi.ItemCode,
+                    im.Itemname,
+                    im.Itemdesc,
+                    im.Hsncode,
+                    ItemType = "Parts",
+                    GroupName = "Spares",
+                    im.Dlrprice,
+                    pi.BatchOpeningQty,
+                    pi.CreatedDate
+                };
+
+            var pageIndex = inventoryFilterViewModel.PageIndex;
+            var pageSize = inventoryFilterViewModel.PageSize;
+
+            var items = await query
+                .AsNoTracking()
+                .OrderBy(x => x.ItemCode)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return items.Select((x, index) => new
+            {
+                SrNo = ((pageIndex - 1) * pageSize) + index + 1,
+                x.ItemCode,
+                x.Itemname,
+                x.Itemdesc,
+                x.Hsncode,
+                x.ItemType,
+                x.GroupName,
+                x.Dlrprice,
+                x.BatchOpeningQty,
+                x.CreatedDate
+            });
         }
     }
 }

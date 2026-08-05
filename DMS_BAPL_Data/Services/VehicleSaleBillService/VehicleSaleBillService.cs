@@ -69,7 +69,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
 
                 var result = await _repo.CreateWithJobUpdateAsync(header);
-               
+
                 if (result != 0)
                 {
                     await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
@@ -87,7 +87,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
             try
             {
                 var data = await _repo.GetVehicleWithMotorDetailsByIdAsync(id);
-                
+
                 return data;
             }
             catch
@@ -400,14 +400,14 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     CreatedDate = DateTime.Now,
                     CreatedBy = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext),
                     Status = model.Status,
-                    RefMobile =model.RefMobile,
+                    RefMobile = model.RefMobile,
                     AccessoryAmount = model.AccessoryAmount,
                     AccessoryBillNo = model.AccessoryBillNo,
                     NoPlateAmount = model.NoPlateAmount,
                     HandlingCharges = model.HandlingCharges,
                     Hpamount = model.Hpamount,
                     StateSubsidyAmount = model.StateSubsidyAmount,
-                    
+
                     DealerCode = model.DealerCode,
 
                     VehicleSaleBillDetails = model.Details.Select(d => new VehicleSaleBillDetail
@@ -502,8 +502,8 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     StateSubsidyAmount = data.StateSubsidyAmount,
                     HandlingCharges = data.HandlingCharges,
                     Hpamount = data.Hpamount,
-                    NoPlateAmount= data.NoPlateAmount,
-                    
+                    NoPlateAmount = data.NoPlateAmount,
+
                     Details = data.VehicleSaleBillDetails.Select(d => new VehicleSaleBillDetailVM
                     {
                         Id = d.Id,
@@ -889,90 +889,54 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
+
+
         public async Task<List<ChassisListWithPDIStatus>> GetAllChassissListWithPDISatatus(string? dealerCode, int ledgerId, string locCode)
         {
             try
             {
-                dynamic customer;
+                var result = await _repo.GetAllChassissListWithPDISatatus(dealerCode);
 
-                var rawData = await _repo.GetAllChassissListWithPDISatatus(dealerCode);
-                customer = await _ledgerRepo.GetLedgerById(ledgerId);
-
+                var customer = await _ledgerRepo.GetLedgerById(ledgerId);
                 var dealerLocation = await _locationRepo.GetLocationByCode(locCode);
-               // var dealerLocation = dealer.Where(i=>i.Loccode == locCode).Select(i=>i.Locname).FirstOrDefault();
-                var result = new List<ChassisListWithPDIStatus>();
 
-                //  group by ItemCode
-                var itemGroups = rawData.GroupBy(x => x.ItemCode);
-
+                // Cache tax details per ItemCode
                 var taxCache = new Dictionary<string, List<TaxDetailViewModel>>();
 
-                foreach (var group in itemGroups)
+                foreach (var itemCode in result.Select(x => x.ItemCode).Distinct())
                 {
-                    var itemCode = group.Key;
-
-                    var tax = await _taxService.GetTaxDetailsAsync(itemCode, dealerLocation.State, customer.stateName);
-                    taxCache[itemCode] = tax;
+                    taxCache[itemCode] = await _taxService.GetTaxDetailsAsync(
+                        itemCode,
+                        dealerLocation.State,
+                        customer.stateName);
                 }
 
-                foreach (var item in rawData)
+                // Only populate tax fields
+                foreach (var item in result)
                 {
-                    var taxes = taxCache[item.ItemCode];
+                    if (!taxCache.TryGetValue(item.ItemCode, out var taxes))
+                        continue;
 
-                    var vm = new ChassisListWithPDIStatus
-                    {
-                        ChassisNo = item.ChassisNo,
-                        ItemCode = item.ItemCode,
-                        ItemColor = item.ItemColor,
-                        ItemName = item.ItemName,
-                        MfgYear = item.MfgYear,
-
-                        KeyNo = item.KeyNo,
-                        BookNo = item.BookNo,
-
-                        BatteryNo = item.BatteryNo,
-                        BatteryChemical = item.BatteryChemical,
-                        BatteryCapacity = item.BatteryCapacity,
-                        BatteryMake = item.BatteryMake,
-
-                        ChargerNo = item.ChargerNo,
-                        ControllerNo = item.ControllerNo,
-                        ConverterNo = item.ConverterNo,
-                        CustomerPrice = item.CustomerPrice,
-                        DealerPrice = item.DealerPrice,
-                        //  PreGstDisc = item.PreGstDisc,
-                        CustomerSaleDate = item.CustomerSaleDate,
-                        PDIStatus = item.PDIStatus,
-                        FameIIAmnt = item.FameIIAmnt,
-                        ProformaCreated = item.ProformaCreated,
-                        LocationCode = item.LocationCode,
-                        IsD2D = item.IsD2D,
-                        RepairBillStatus=item.RepairBillStatus,
-
-
-                    };
-
-                    // Tax Mapping
                     foreach (var tax in taxes)
                     {
                         if (tax.TaxCode.ToUpper().Contains("SGST"))
                         {
-                            vm.SGSTPER = tax.TaxRate;
-                            vm.SGST = tax.TaxRate;
+                            item.SGSTPER = tax.TaxRate;
+                            item.SGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("CGST"))
                         {
-                            vm.CGSTPER = tax.TaxRate;
-                            vm.CGST = tax.TaxRate;
+                            item.CGSTPER = tax.TaxRate;
+                            item.CGST = tax.TaxRate;
                         }
                         if (tax.TaxCode.ToUpper().Contains("IGST"))
                         {
-                            vm.IGSTPER = tax.TaxRate;
-                            vm.IGST = tax.TaxRate;
+                            item.IGSTPER = tax.TaxRate;
+                            item.IGST = tax.TaxRate;
                         }
                     }
-                    result.Add(vm);
                 }
+
                 return result;
             }
             catch
