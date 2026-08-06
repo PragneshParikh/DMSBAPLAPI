@@ -21,5 +21,6 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<List<EmployeeDesignationWiseViewModel>> GetEmployeesByDesignation(string? dealerCode, string designation);
         Task<IEnumerable<EmployeeRoleMapping>> GetRoleMappings(int employeeId);
         Task<byte[]> DownloadEmployeeExcel(string? dealerCode);
+        Task<List<EmployeeMenuGroupViewModel>> GetMenuForRolesAsync(List<string> roleIds);
     }
 }

@@ -26,27 +26,56 @@ namespace DMS_BAPL_Data.Services.RoleWiseMenuRightService
             return _roleWiseMenuRightRepo.Get();
         }
 
+        //public async Task<IEnumerable<RoleWiseMenuRight>> GetMenuRightByRoleId(string? roleId)
+        //{
+
+        //    if (string.IsNullOrEmpty(roleId))
+        //    {
+        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+
+        //        var userRoles = await _identitycontext.Set<IdentityUserRole<string>>()
+        //                                      .Where(x => x.UserId == userId)
+        //                                      .ToListAsync();
+
+        //        roleId = userRoles.Select(x => x.RoleId).FirstOrDefault();
+        //    }
+
+        //    if (string.IsNullOrEmpty(roleId))
+        //    {
+        //        return new List<RoleWiseMenuRight>();
+        //    }
+
+        //    return await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+        //}
+
         public async Task<IEnumerable<RoleWiseMenuRight>> GetMenuRightByRoleId(string? roleId)
         {
-
             if (string.IsNullOrEmpty(roleId))
             {
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
 
-                var userRoles = await _identitycontext.Set<IdentityUserRole<string>>()
-                                              .Where(x => x.UserId == userId)
-                                              .ToListAsync();
+                var roleIds = await _identitycontext.Set<IdentityUserRole<string>>()
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.RoleId)
+                    .Distinct()
+                    .ToListAsync();
 
-                roleId = userRoles.Select(x => x.RoleId).FirstOrDefault();
+                if (roleIds.Count == 0)
+                    return new List<RoleWiseMenuRight>();
+
+                var allRights = new List<RoleWiseMenuRight>();
+                foreach (var rid in roleIds)
+                {
+                    var rights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(rid);
+                    if (rights != null)
+                        allRights.AddRange(rights);
+                }
+
+                return allRights;
             }
 
-            if (string.IsNullOrEmpty(roleId))
-            {
-                return new List<RoleWiseMenuRight>();
-            }
-
-            return await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+            var single = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+            return single ?? new List<RoleWiseMenuRight>();
         }
-
     }
 }

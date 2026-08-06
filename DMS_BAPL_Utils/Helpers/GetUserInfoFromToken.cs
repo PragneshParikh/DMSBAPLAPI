@@ -66,5 +66,10 @@ namespace DMS_BAPL_Utils.Helpers
             // Empty = admin user, no dealer restriction applied
             return string.Empty;
         }
+
+        public static string GetLocationCodeFromToken(HttpContext httpContext)
+        {
+            return httpContext.User?.FindFirst("LocationCode")?.Value ?? string.Empty;
+        }
     }
 }

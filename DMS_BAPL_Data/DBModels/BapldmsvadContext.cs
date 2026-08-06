@@ -222,6 +222,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
+    public virtual DbSet<ZDmsPartDispWarranty> ZDmsPartDispWarranties { get; set; }
+    public virtual DbSet<DmsPartDispatch> DmsPartDispatches { get; set; }
 
 
 
@@ -3619,6 +3621,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.RoleId).HasMaxLength(450);
             entity.Property(e => e.RoleName).HasMaxLength(256);
+            entity.Property(e => e.IsSystemGenerated).HasDefaultValue(false);
         });
 
         modelBuilder.Entity<RoleMenuMapping>(entity =>
@@ -4435,6 +4438,52 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.RoleId).HasMaxLength(450);
             entity.Property(e => e.RoleName).HasMaxLength(256);
         });
+
+        modelBuilder.Entity<ZDmsPartDispWarranty>(entity =>
+        {
+            entity.ToTable("Z_DMS_PartDispWarranty");
+
+            entity.Property(e => e.Invoiceno).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Invoicetype).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Chassisnumber).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Itemcode).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Serialno).HasMaxLength(150).IsUnicode(false);
+            entity.Property(e => e.Dealercode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Devicetype).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Lotno).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Invoiceitemcode).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.Invoicedate).HasColumnType("datetime");
+            entity.Property(e => e.Mfgdate).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<DmsPartDispatch>(entity =>
+        {
+            entity.ToTable("DMS_PartDispatch");
+
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.InvoiceNo).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.PartNo).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ItemHsncode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemMrp).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Sgst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Cgst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Ugst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemDisc).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DiscountType).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.LocCode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         OnModelCreatingPartial(modelBuilder);
 
 

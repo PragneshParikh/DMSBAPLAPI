@@ -102,7 +102,7 @@ namespace DMS_BAPL_API.Controllers
         // TSM ENTRY UPDATE (strict) — PUT api/BgEmployee/TsmEntry/{tsmCode}
         // =====================================================
 
-        [HttpPut("TsmEntry/{tsmCode}")]
+        [HttpPut("TsmEntry")]
         public async Task<IActionResult> UpdateTsmEntry(string tsmCode, [FromBody] TsmEntryPayload payload)
         {
             try

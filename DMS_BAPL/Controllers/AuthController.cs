@@ -99,7 +99,10 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized(new { message = "Invalid password." });
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var role = roles.FirstOrDefault() ?? "";
+                var functionalRoles = roles
+                                    .Where(r => !r.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+                                    .ToList();
+                var role = functionalRoles.FirstOrDefault() ?? roles.FirstOrDefault() ?? "";
 
                 string dealerCode = null;
                 string employeeCode = null;
@@ -143,6 +146,7 @@ namespace DMS_BAPL_Api.Controllers
                     lastLoginDate = user.LastLoginDate,
                     token = token,
                     role = role,
+                    roles = functionalRoles,
                     compName = dealerInfo?.Compname,
                     status = "success",
                     message = "Login successful"
