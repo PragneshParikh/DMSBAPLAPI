@@ -48,7 +48,8 @@ namespace DMS_BAPL_Api.Controllers
                     await _prefixService.UpdateNextNumberByDealerByModule(warrantyJCClaimViewModel.DealerCode, "wclaim_prefix");
                     return Ok(new
                     {
-                        message = StringConstants.WarrantyDetailsSaved
+                        message = StringConstants.WarrantyDetailsSaved,
+                        claimId = result
                     });
                 }
                 else
@@ -64,7 +65,85 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetAllWarrantyJCClaims")]
+        [ProducesResponseType(typeof(List<WarrantyJCClaimListViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllWarrantyJCClaims([FromQuery] string dealerCode)
+        {
+            try
+            {
+                var result = await _WarrantyjobCardClaimRepo.GetAllWarrantyJCClaims(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetAllWarrantyJCClaims");
+                return StatusCode(500, "An error occurred while fetching Warranty Claims.");
+            }
+        }
 
+        // ============================================================
+        // ADD to WarrantyJCClaimController class:
+        // ============================================================
 
+        [HttpPost("SearchWarrantyJCClaims")]
+        [ProducesResponseType(typeof(WarrantyJCClaimSearchResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchWarrantyJCClaims(WarrantyJCClaimSearchViewModel filter)
+        {
+            try
+            {
+                var result = await _WarrantyjobCardClaimRepo.SearchWarrantyJCClaims(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchWarrantyJCClaims");
+                return StatusCode(500, "An error occurred while fetching Warranty Claims.");
+            }
+        }
+
+        // ============================================================
+        // ADD to WarrantyJCClaimController class:
+        // ============================================================
+
+        [HttpPost("PrintWarrantyJCClaimList")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PrintWarrantyJCClaimList(WarrantyJCClaimSearchViewModel filter)
+        {
+            try
+            {
+                var pdfBytes = await _WarrantyjobCardClaimRepo.GenerateWarrantyJCClaimListPdf(filter);
+                return File(pdfBytes, "application/pdf", "WarrantyClaimList.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in PrintWarrantyJCClaimList");
+                return StatusCode(500, $"An error occurred while generating the Warranty Claim List PDF: {ex.Message}");
+            }
+        }
+
+        [HttpGet("PrintWarrantyJCClaim/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PrintWarrantyJCClaim(int id)
+        {
+            try
+            {
+                var pdfBytes = await _WarrantyjobCardClaimRepo.GenerateWarrantyJCClaimPdf(id);
+                return File(pdfBytes, "application/pdf", $"WarrantyClaim_{id}.pdf");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in PrintWarrantyJCClaim");
+                return StatusCode(500, $"An error occurred while generating the Warranty Claim PDF: {ex.Message}");
+            }
+        }
     }
 }
