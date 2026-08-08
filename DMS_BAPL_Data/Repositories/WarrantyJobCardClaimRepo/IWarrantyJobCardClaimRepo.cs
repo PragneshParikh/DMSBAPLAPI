@@ -10,5 +10,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
     public interface IWarrantyJobCardClaimRepo
     {
         Task<int> InsertWarrantyJCClaim(WarrantyJCClaimViewModel model, string userId);
+
+        Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode);
+
+        Task<WarrantyJCClaimSearchResultViewModel> SearchWarrantyJCClaims(WarrantyJCClaimSearchViewModel filter);
+
+        Task<byte[]> GenerateWarrantyJCClaimListPdf(WarrantyJCClaimSearchViewModel filter);
+
+        Task<byte[]> GenerateWarrantyJCClaimPdf(int id);
     }
 }

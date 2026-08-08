@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DMS_BAPL_Data.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 namespace DMS_BAPL_Data.DBModels;
@@ -222,6 +223,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
 
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
+
+    public virtual DbSet<WarrantyOrder> WarrantyOrders { get; set; }
+    public virtual DbSet<WarrantyOrderDetail> WarrantyOrderDetails { get; set; }
+    public virtual DbSet<WarrantyOrderGridDetail> WarrantyOrderGridDetails { get; set; }
 
 
 
@@ -4434,6 +4439,95 @@ public partial class BapldmsvadContext : DbContext
                 .HasFilter("[LocationId] IS NOT NULL");
             entity.Property(e => e.RoleId).HasMaxLength(450);
             entity.Property(e => e.RoleName).HasMaxLength(256);
+        });
+        modelBuilder.Entity<WarrantyOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("WarrantyOrder");
+
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.DateFrom).HasColumnType("datetime");
+            entity.Property(e => e.DateTo).HasColumnType("datetime");
+            entity.Property(e => e.BatchNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+            entity.Property(e => e.OrderNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+            entity.Property(e => e.Location)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ClaimType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<WarrantyOrderDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("WarrantyOrderDetail");
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WarrantyOrderHeader).WithMany(p => p.WarrantyOrderDetails)
+                .HasForeignKey(d => d.WarrantyOrderHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyOrderDetail_WarrantyOrder");
+
+            entity.HasOne(d => d.WarrantyJcclaim).WithMany()
+                .HasForeignKey(d => d.WarrantyJcclaimId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyOrderDetail_WarrantyJcclaim");
+        });
+
+        modelBuilder.Entity<WarrantyOrderGridDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("WarrantyOrderGridDetail");
+
+            entity.Property(e => e.ClaimNo).HasMaxLength(100);
+            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+            entity.Property(e => e.JobCardNo).HasMaxLength(100);
+            entity.Property(e => e.JobCardDate).HasColumnType("datetime");
+            entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.ServiceHead).HasMaxLength(150);
+            entity.Property(e => e.LocationName).HasMaxLength(150);
+            entity.Property(e => e.ChassisNo).HasMaxLength(100);
+            entity.Property(e => e.MotorNo).HasMaxLength(100);
+            entity.Property(e => e.PartyName).HasMaxLength(200);
+            entity.Property(e => e.ItemType).HasMaxLength(50);
+            entity.Property(e => e.PartName).HasMaxLength(150);
+            entity.Property(e => e.PartDescription).HasMaxLength(250);
+            entity.Property(e => e.PartCode).HasMaxLength(100);
+            entity.Property(e => e.LabourCode).HasMaxLength(100);
+            entity.Property(e => e.LabourDescription).HasMaxLength(250);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WarrantyOrderHeader).WithMany()
+                .HasForeignKey(d => d.WarrantyOrderHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyOrderGridDetail_WarrantyOrder");
         });
         OnModelCreatingPartial(modelBuilder);
 
