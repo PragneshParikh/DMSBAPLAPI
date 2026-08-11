@@ -33,8 +33,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public int PurchaseValidity { get; set; }
 
         public DateTime FromDate { get; set; }
-
         public DateTime? ToDate { get; set; }
+
+        // ADDED
+        public string? BatteryPartCode { get; set; }
+
+        // ADDED
+        public string? PartCode { get; set; }
 
         public bool IsActive { get; set; }
 

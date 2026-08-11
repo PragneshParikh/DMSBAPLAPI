@@ -2,13 +2,14 @@ using DMS_BAPL_Api;
 using DMS_BAPL_Data.Configurations;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Middleware;
+using DMS_BAPL_Data.Repositories.EbwInvoiceRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.PartDispatchRepo;
 using DMS_BAPL_Data.Repositories.PartDispWarrantyRepo;
+using DMS_BAPL_Data.Services.EbwInvoiceService;
 using DMS_BAPL_Data.Services.PartDispatchService;
 using DMS_BAPL_Data.Services.PartDispWarrantyService;
 using DMS_BAPL_Utils.Helpers;
-using DocumentFormat.OpenXml.Drawing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -28,12 +29,11 @@ builder.Services.AddCors(options =>
             //       .AllowAnyHeader()
             //       .AllowAnyMethod();
             policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
 
         });
 });
-// Add these if missing
 
 
 // Add services to the container.
@@ -41,13 +41,14 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    options.JsonSerializerOptions.Converters.Add(new FlexibleDateTimeConverter());
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "My API",
         Version = "v1"
@@ -64,12 +65,12 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT"
     });
 
-    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
     {
         Description = "API Key header. Example: 'abc123'",
         Name = "x-api-key",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -104,6 +105,8 @@ builder.Services.AddScoped<IPartDispWarrantyRepo, PartDispWarrantyRepo>();
 builder.Services.AddScoped<IPartDispWarrantyService, PartDispWarrantyService>();
 builder.Services.AddScoped<IPartDispatchRepo, PartDispatchRepo>();
 builder.Services.AddScoped<IPartDispatchService, PartDispatchService>();
+builder.Services.AddScoped<IEbwInvoiceRepo, EbwInvoiceRepo>();
+builder.Services.AddScoped<IEbwInvoiceService, EbwInvoiceService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "Your_Default_Very_Long_Secret_Key_Here");
@@ -126,27 +129,21 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+
 builder.Services.AddHttpClient("TsmApi", client =>
 {
     client.BaseAddress = new Uri("https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/");
     client.Timeout = TimeSpan.FromSeconds(30);
-}); 
+});
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddProjectServices();
 builder.Services.AddHttpClient();
-
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 

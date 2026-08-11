@@ -50,6 +50,9 @@ namespace DMS_BAPL_Data.DBModels
         [JsonPropertyName("lineno")]
         public int? Lineno { get; set; }
 
+        [JsonPropertyName("invoiceAmt")]
+        public decimal? InvoiceAmt { get; set; }
+
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }

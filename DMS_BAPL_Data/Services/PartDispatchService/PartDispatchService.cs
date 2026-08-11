@@ -68,6 +68,18 @@ namespace DMS_BAPL_Data.Services.PartDispatchService
             return await _repo.ImportAsync(items, userId);
         }
 
+        // implementation
+        public async Task<List<DmsPartDispatch>> CreateBulkAsync(List<DmsPartDispatch> items, string userId)
+        {
+            var results = new List<DmsPartDispatch>();
+            foreach (var item in items)
+            {
+                var created = await _repo.CreateAsync(item, userId);
+                results.Add(created);
+            }
+            return results;
+        }
+
         private static DateTime? ParseDate(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;

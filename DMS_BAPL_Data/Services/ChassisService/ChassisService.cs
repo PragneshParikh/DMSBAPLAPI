@@ -17,10 +17,11 @@ namespace DMS_BAPL_Data.Services.ChassisService
         }
         Task<object> IChassisService.GetChassisDataAsync(string chassisNumber) => _chassisRepo.GetChassisDataAsync(chassisNumber);
 
-        public async Task<string>ImportChassisExcelAsync(IFormFile file)
+        Task<object> IChassisService.GetGlobalChassisDataAsync(string chassisNumber) => _chassisRepo.GetGlobalChassisDataAsync(chassisNumber);
+
+        public async Task<string> ImportChassisExcelAsync(IFormFile file)
         {
-            return await _chassisRepo
-                .ImportChassisExcelAsync(file);
+            return await _chassisRepo.ImportChassisExcelAsync(file);
         }
     }
 }

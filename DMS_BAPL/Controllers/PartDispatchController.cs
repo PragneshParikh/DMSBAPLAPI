@@ -62,12 +62,59 @@ namespace DMS_BAPL_Api.Controllers
         /// <summary>
         /// Create a new record. Id is auto-generated — do not send it.
         /// </summary>
+        //[HttpPost("~/api/erppartdispatch/dispatch")]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //public async Task<IActionResult> Create([FromBody] PartDispatchCreateViewModel model)
+        //{
+        //    if (model == null)
+        //        return BadRequest(new { success = false, message = "Invalid data" });
+
+        //    try
+        //    {
+        //        string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+        //        if (string.IsNullOrEmpty(userId))
+        //            return Unauthorized("User not authorized");
+
+        //        var entity = new DmsPartDispatch
+        //        {
+        //            InvoiceDate = model.InvoiceDate,
+        //            InvoiceNo = model.InvoiceNo,
+        //            PartNo = model.PartNo,
+        //            ItemIdno = model.ItemIdno,
+        //            ItemHsncode = model.ItemHsncode,
+        //            ItemRate = model.ItemRate,
+        //            ItemMrp = model.ItemMrp,
+        //            ItemQty = model.ItemQty,
+        //            Sgst = model.Sgst,
+        //            Cgst = model.Cgst,
+        //            Igst = model.Igst,
+        //            Ugst = model.Ugst,
+        //            ItemDisc = model.ItemDisc,
+        //            DiscountType = model.DiscountType,
+        //            LocCode = model.LocCode,
+        //            VendorIdno = model.VendorIdno,
+        //            DealerCode = model.DealerCode
+        //        };
+
+        //        var result = await _service.CreateAsync(entity, userId);
+        //        return Ok(new { success = true, data = result });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+        //    }
+        //}
+        /// <summary>
+        /// Create one or more records. Send a plain JSON array, e.g. [ {...}, {...} ].
+        /// Id is auto-generated — do not send it.
+        /// </summary>
         [HttpPost("~/api/erppartdispatch/dispatch")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create([FromBody] PartDispatchCreateViewModel model)
+        public async Task<IActionResult> Create([FromBody] List<PartDispatchCreateViewModel> models)
         {
-            if (model == null)
+            if (models == null || models.Count == 0)
                 return BadRequest(new { success = false, message = "Invalid data" });
 
             try
@@ -76,7 +123,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var entity = new DmsPartDispatch
+                var entities = models.Select(model => new DmsPartDispatch
                 {
                     InvoiceDate = model.InvoiceDate,
                     InvoiceNo = model.InvoiceNo,
@@ -95,10 +142,10 @@ namespace DMS_BAPL_Api.Controllers
                     LocCode = model.LocCode,
                     VendorIdno = model.VendorIdno,
                     DealerCode = model.DealerCode
-                };
+                }).ToList();
 
-                var result = await _service.CreateAsync(entity, userId);
-                return Ok(new { success = true, data = result });
+                var results = await _service.CreateBulkAsync(entities, userId);
+                return Ok(new { success = true, data = results });
             }
             catch (Exception ex)
             {

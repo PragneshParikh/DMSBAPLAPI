@@ -14,6 +14,7 @@ namespace DMS_BAPL_Data.Repositories.TermConditionMasterRepo
         Task<int> UpdateTermCondition(TermConditionMasterViewModel conditionMasterViewModel, string userId);
         Task<int> DeleteTermCondition(int conditionId);
         Task<List<TermandConditionMaster>> GetAllTermCondition();
+        Task<List<TermandConditionMaster>> GetTermConditionsByModule(int conditionModule);
 
         Task<byte[]> DownloadTermConditionMasterExcel();
     }
