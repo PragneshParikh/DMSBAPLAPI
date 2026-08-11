@@ -10,7 +10,7 @@ namespace DMS_BAPL_Data.Repositories.ChassisRepo
     public interface IChassisRepo
     {
         Task<object> GetChassisDataAsync(string chassisNumber);
-
+        Task<object> GetGlobalChassisDataAsync(string chassisNumber);
         Task<string> ImportChassisExcelAsync(IFormFile file);
     }
 }

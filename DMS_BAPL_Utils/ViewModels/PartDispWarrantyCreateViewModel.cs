@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Utils.ViewModels
@@ -46,5 +47,16 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("lineno")]
         public int? Lineno { get; set; }
+
+        // ADDED
+        [JsonPropertyName("invoiceAmt")]
+        public decimal? InvoiceAmt { get; set; }
+    }
+
+    // ADDED — matches the { "data": [ ... ] } wrapper shape from your sample payload
+    public class PartDispWarrantyBulkCreateViewModel
+    {
+        [JsonPropertyName("data")]
+        public List<PartDispWarrantyCreateViewModel> Data { get; set; } = new();
     }
 }

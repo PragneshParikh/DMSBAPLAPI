@@ -72,5 +72,29 @@ namespace DMS_BAPL_Api.Controllers
                     ex.Message);
             }
         }
+
+        [HttpGet("global/{chassisNumber}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetGlobalChassisDetail(string chassisNumber)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var chassisData = await _chassisService.GetGlobalChassisDataAsync(chassisNumber);
+
+                return Ok(chassisData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An error occurred while getting global chassis data : ${ex.Message}");
+                throw;
+            }
+        }
     }
 }

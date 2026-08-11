@@ -60,14 +60,15 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         /// <summary>
-        /// Create a new record. Id is auto-generated — do not send it.
+        /// Create one or more records. Accepts { "data": [ {...}, {...} ] } — matches
+        /// the exact payload shape used in Postman/live integration testing.
         /// </summary>
         [HttpPost("~/api/dispatch/srd")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create([FromBody] PartDispWarrantyCreateViewModel model)
+        public async Task<IActionResult> Create([FromBody] PartDispWarrantyBulkCreateViewModel payload)
         {
-            if (model == null)
+            if (payload == null || payload.Data == null || payload.Data.Count == 0)
                 return BadRequest(new { success = false, message = "Invalid data" });
 
             try
@@ -76,26 +77,34 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var entity = new ZDmsPartDispWarranty
-                {
-                    Invoicedate = model.Invoicedate,
-                    Invoiceno = model.Invoiceno,
-                    Invoicetype = model.Invoicetype,
-                    Chassisnumber = model.Chassisnumber,
-                    Itemcode = model.Itemcode,
-                    Serialno = model.Serialno,
-                    Vendorid = model.Vendorid,
-                    Dealercode = model.Dealercode,
-                    Devicetype = model.Devicetype,
-                    Itemqty = model.Itemqty,
-                    Lotno = model.Lotno,
-                    Mfgdate = model.Mfgdate,
-                    Invoiceitemcode = model.Invoiceitemcode,
-                    Lineno = model.Lineno
-                };
+                var results = new List<ZDmsPartDispWarranty>();
 
-                var result = await _service.CreateAsync(entity, userId);
-                return Ok(new { success = true, data = result });
+                foreach (var model in payload.Data)
+                {
+                    var entity = new ZDmsPartDispWarranty
+                    {
+                        Invoicedate = model.Invoicedate,
+                        Invoiceno = model.Invoiceno,
+                        Invoicetype = model.Invoicetype,
+                        Chassisnumber = model.Chassisnumber,
+                        Itemcode = model.Itemcode,
+                        Serialno = model.Serialno,
+                        Vendorid = model.Vendorid,
+                        Dealercode = model.Dealercode,
+                        Devicetype = model.Devicetype,
+                        Itemqty = model.Itemqty,
+                        Lotno = model.Lotno,
+                        Mfgdate = model.Mfgdate,
+                        Invoiceitemcode = model.Invoiceitemcode,
+                        Lineno = model.Lineno,
+                        InvoiceAmt = model.InvoiceAmt   // ADDED
+                    };
+
+                    var created = await _service.CreateAsync(entity, userId);
+                    results.Add(created);
+                }
+
+                return Ok(new { success = true, data = results });
             }
             catch (Exception ex)
             {
@@ -176,6 +185,47 @@ namespace DMS_BAPL_Api.Controllers
                 var count = await _service.ImportFromExcelAsync(stream, userId);
 
                 return Ok(new { success = true, message = $"{count} records imported successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("~/api/dispatch/serials-by-itemcode/{itemCode}")]
+        public async Task<IActionResult> GetSerialsByItemCode(string itemCode, [FromQuery] int? excludeInvoiceId)
+        {
+            var result = await _service.GetSerialNosByItemCodeAsync(itemCode, excludeInvoiceId);
+            return Ok(new { data = result });
+        }
+
+
+        [HttpPost("~/api/dispatch/by-itemcodes")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetByItemCodes([FromBody] List<string> itemCodes)
+        {
+            try
+            {
+                var result = await _service.GetByItemCodesAsync(itemCodes);
+                return Ok(new { data = result });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("~/api/dispatch/by-serialno/{serialNo}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetBySerialNo(string serialNo)
+        {
+            try
+            {
+                var result = await _service.GetBySerialNoAsync(serialNo);
+                if (result == null)
+                    return NotFound(new { success = false, message = "No dispatch record found for this serial no." });
+
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {

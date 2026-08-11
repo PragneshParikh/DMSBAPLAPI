@@ -75,5 +75,17 @@ namespace DMS_BAPL_Data.Services.PartDispWarrantyService
 
             return DateTime.TryParse(value, out var fallback) ? fallback : null;
         }
+
+        public Task<List<string>> GetSerialNosByItemCodeAsync(string itemCode, int? excludeInvoiceId = null)
+              => _repo.GetSerialNosByItemCodeAsync(itemCode, excludeInvoiceId);
+
+
+        public Task<List<ZDmsPartDispWarranty>> GetByItemCodesAsync(List<string> itemCodes)
+             => _repo.GetByItemCodesAsync(itemCodes);
+
+
+
+        public Task<ZDmsPartDispWarranty?> GetBySerialNoAsync(string serialNo)
+             => _repo.GetBySerialNoAsync(serialNo);
     }
 }

@@ -37,6 +37,30 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return await Task.FromResult(_context.PartsInwards.Where(p => p.DealerCode == dealerCode && p.IsAccepted == false).ToList());
         }
 
+        // ADDED — same filter as GetPartInwardByDealerAsync, plus PartNo containing "EW"
+        async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetEbwPartInwardByDealerAsync(string dealerCode)
+        {
+            return await Task.FromResult(
+                _context.PartsInwards
+                    .Where(p => p.DealerCode == dealerCode
+                             && p.IsAccepted == false
+                             && p.PartNo != null
+                             && p.PartNo.Contains("EW"))
+                    .ToList());
+        }
+
+        public async Task<PartsInward?> GetLatestByPartNoAsync(string partNo)
+        {
+            try
+            {
+                return await _context.PartsInwards
+                    .Where(x => x.PartNo == partNo)
+                    .OrderByDescending(x => x.InvoiceDate)
+                    .FirstOrDefaultAsync();
+            }
+            catch { throw; }
+        }
+
         async Task<bool> IPartInwardRepo.UpdateByInvoice(PartsInwardDetailsViewModel partsInwardDetailsViewModel)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -72,7 +96,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                         DealerLocation = partsInwardDetailsViewModel.selectedLocation,
                         VendorCode = g.First().DealerCode,
 
-                        // optional calculations
                         TotalRate = g.Sum(x => x.ItemRate * x.ItemQty),
                         PurchaseRate = g.First().ItemRate,
 
@@ -406,4 +429,5 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return data;
         }
     }
+
 }

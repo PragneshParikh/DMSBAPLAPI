@@ -108,6 +108,26 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        // ADDED — fetches only the terms belonging to a specific ConditionModule
+        // (e.g. 8 = "EBW Invoice Creation"), ordered by Id so they print in the
+        // exact sequence they were added — used by ebw-invoice-list.ts's print flow.
+        [HttpGet("GetTermConditionsByModule/{conditionModule}")]
+        [ProducesResponseType(typeof(List<TermConditionMasterViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetTermConditionsByModule(int conditionModule)
+        {
+            try
+            {
+                var result = await _termConditionMasterRepo.GetTermConditionsByModule(conditionModule);
+                return Ok(new { data = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching term conditions by module.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while processing your request.");
+            }
+        }
+
         [HttpGet("GetTermConditionMasterExcel")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

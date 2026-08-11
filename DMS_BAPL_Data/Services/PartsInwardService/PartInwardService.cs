@@ -25,11 +25,13 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
 
         Task<IEnumerable<PartsInward>> IPartInwardService.Get() => _partInwardRepo.Get();
         Task<IEnumerable<PartsInward>> IPartInwardService.GetPartInwardByDealerAsync(string dealerCode) => _partInwardRepo.GetPartInwardByDealerAsync(dealerCode);
+        Task<IEnumerable<PartsInward>> IPartInwardService.GetEbwPartInwardByDealerAsync(string dealerCode) => _partInwardRepo.GetEbwPartInwardByDealerAsync(dealerCode);
         Task<bool> IPartInwardService.UpdateByInvoice(PartsInwardDetailsViewModel partsInwardDetailsViewModel) => _partInwardRepo.UpdateByInvoice(partsInwardDetailsViewModel);
         Task<object> IPartInwardService.PartsInward(PartsInwardViewModel partsInwardViewModel) => _partInwardRepo.PartsInward(partsInwardViewModel);
         Task<IEnumerable<PartsInward>> IPartInwardService.GetPendingPartInwardDetailByLocation(string locationCode) => _partInwardRepo.GetPendingPartInwardDetailByLocation(locationCode);
         Task<object> IPartInwardService.GetInwardPartDetailsByInvoiceNo(string invoiceNo) => _partInwardRepo.GetInwardPartDetailsByInvoiceNo(invoiceNo);
         Task<Object> IPartInwardService.GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode) => _partInwardRepo.GetPartsInwardDetailsByDealer(pageIndex, pageSize, fromDate, toDate, dealerCode);
+        Task<PartsInward?> IPartInwardService.GetLatestByPartNoAsync(string partNo) => _partInwardRepo.GetLatestByPartNoAsync(partNo);
         public async Task<byte[]> DownloadPartsInwardExcel(DateTime fromDate, DateTime toDate, string? dealerCode)
         {
             try
