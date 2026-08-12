@@ -66,6 +66,11 @@ namespace DMS_BAPL_Data.Repositories.ChassisRepo
                                 join cust in _context.LedgerMasters on sh.LedgerId equals cust.Id into custInfo
                                 from cust in custInfo.DefaultIfEmpty()
 
+                                join st in _context.States on cust.State equals st.StateId into stateInfo
+                                from st in stateInfo.DefaultIfEmpty()
+
+                                join ct in _context.Cities on cust.City equals ct.CityId into cityInfo
+                                from ct in cityInfo.DefaultIfEmpty()
 
                                 where cd.ChassisNo == chassisNumber
                                 select new
@@ -74,19 +79,54 @@ namespace DMS_BAPL_Data.Repositories.ChassisRepo
                                     cb.MotorNo,
                                     cd.DealerId,
                                     j.IsPdiSuccess,
-                                    PDIStatus = j == null? "PDI Pending": j.IsPdiSuccess.GetValueOrDefault()? "YES": "NO",
+                                    PDIStatus = j == null ? "PDI Pending" : j.IsPdiSuccess.GetValueOrDefault() ? "YES" : "NO",
                                     c.CustomerName,
                                     c.SaleDate,
                                     i.Itemname,
                                     i.Colorcode,
                                     cl.Colorname,
                                     lc.Locname,
-                                    cust,
-                                    sh,
+
+                                    CustomerName2 = cust != null ? cust.LedgerName : null,
+                                    MobileNo = cust != null ? cust.MobileNumber : null,
+                                    Address = cust != null ? cust.Address : null,
+                                    Pincode = cust != null ? cust.Pin : null,
+                                    StateName = st != null ? st.StateName : null,
+                                    CityName = ct != null ? ct.CityName : null,   // ⚠️ confirm actual property name on City
+
+                                    SaleDate2 = sh != null ? sh.SaleDate : (DateTime?)null,
+                                    DealerCode = sh != null ? sh.DealerCode : null,
+
                                     vi
-
-
                                 }).FirstOrDefaultAsync();
+            return result;
+        }
+
+        // Add to ChassisRepo.cs, right after GetChassisDataAsync
+        public async Task<object> GetGlobalChassisDataAsync(string chassisNumber)
+        {
+            var result = await (from sd in _context.VehicleSaleBillDetails
+                                join sh in _context.VehicleSaleBillHeaders on sd.VehicleSaleBillId equals sh.Id
+                                where sd.ChassisNo == chassisNumber && !sh.IsDeleted
+                                join cust in _context.LedgerMasters on sh.LedgerId equals cust.Id into custInfo
+                                from cust in custInfo.DefaultIfEmpty()
+                                join st in _context.States on cust.State equals st.StateId into stateInfo
+                                from st in stateInfo.DefaultIfEmpty()
+                                join ct in _context.Cities on cust.City equals ct.CityId into cityInfo
+                                from ct in cityInfo.DefaultIfEmpty()
+                                select new
+                                {
+                                    ChassisNo = sd.ChassisNo,
+                                    SaleDate = sh.SaleDate,
+                                    DealerCode = sh.DealerCode,
+                                    CustomerName = sh.CustomerName ?? (cust != null ? cust.LedgerName : null),
+                                    MobileNo = cust != null ? cust.MobileNumber : null,
+                                    Address = cust != null ? cust.Address : null,
+                                    Pincode = cust != null ? cust.Pin : null,
+                                    StateName = st != null ? st.StateName : null,
+                                    CityName = ct != null ? ct.CityName : null
+                                }).FirstOrDefaultAsync();
+
             return result;
         }
 

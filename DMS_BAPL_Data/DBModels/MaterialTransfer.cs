@@ -9,6 +9,9 @@ public partial class MaterialTransfer
 
     public int ItemId { get; set; }
 
+    public string? ItemCode { get; set; }   
+    public string? ItemDesc { get; set; }
+
     public int JobId { get; set; }
 
     public string? MaterialPrefix { get; set; }
@@ -38,6 +41,12 @@ public partial class MaterialTransfer
     public int IssueType { get; set; }
 
     public bool IsDelete { get; set; }
+
+    public string? DealerCode { get; set; }
+
+    public string? DealerLocation { get; set; }
+
+    public decimal? Mrp { get; set; }
 
     public string CreatedBy { get; set; } = null!;
 

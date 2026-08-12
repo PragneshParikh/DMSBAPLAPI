@@ -155,5 +155,13 @@ namespace DMS_BAPL_Data.Repositories.TermConditionMasterRepo
             }
         }
 
+        public async Task<List<TermandConditionMaster>> GetTermConditionsByModule(int conditionModule)
+        {
+            return await _context.TermandConditionMasters
+                .Where(x => x.ConditionModule == conditionModule)
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+        }
+
     }
 }

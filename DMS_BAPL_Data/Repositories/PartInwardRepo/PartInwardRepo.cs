@@ -37,6 +37,30 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return await Task.FromResult(_context.PartsInwards.Where(p => p.DealerCode == dealerCode && p.IsAccepted == false).ToList());
         }
 
+        // ADDED — same filter as GetPartInwardByDealerAsync, plus PartNo containing "EW"
+        async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetEbwPartInwardByDealerAsync(string dealerCode)
+        {
+            return await Task.FromResult(
+                _context.PartsInwards
+                    .Where(p => p.DealerCode == dealerCode
+                             && p.IsAccepted == false
+                             && p.PartNo != null
+                             && p.PartNo.Contains("EW"))
+                    .ToList());
+        }
+
+        public async Task<PartsInward?> GetLatestByPartNoAsync(string partNo)
+        {
+            try
+            {
+                return await _context.PartsInwards
+                    .Where(x => x.PartNo == partNo)
+                    .OrderByDescending(x => x.InvoiceDate)
+                    .FirstOrDefaultAsync();
+            }
+            catch { throw; }
+        }
+
         async Task<bool> IPartInwardRepo.UpdateByInvoice(PartsInwardDetailsViewModel partsInwardDetailsViewModel)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -72,7 +96,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                         DealerLocation = partsInwardDetailsViewModel.selectedLocation,
                         VendorCode = g.First().DealerCode,
 
-                        // optional calculations
                         TotalRate = g.Sum(x => x.ItemRate * x.ItemQty),
                         PurchaseRate = g.First().ItemRate,
 
@@ -113,6 +136,36 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 throw;
             }
 
+        }
+
+        public async Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId, bool isAccepted)
+        {
+            var inward = new PartsInward
+            {
+                InvoiceNo = dispatch.InvoiceNo,
+                InvoiceDate = dispatch.InvoiceDate ?? DateTime.UtcNow,
+                PartNo = dispatch.PartNo,
+                ItemHsncode = dispatch.ItemHsncode,
+                ItemRate = dispatch.ItemRate ?? 0,
+                ItemMrp = dispatch.ItemMrp ?? 0,
+                ItemQty = dispatch.ItemQty ?? 0,
+                ItemDisc = dispatch.ItemDisc ?? 0,
+                DiscountType = dispatch.DiscountType,
+                Cgst = dispatch.Cgst ?? 0,
+                Sgst = dispatch.Sgst ?? 0,
+                Igst = dispatch.Igst ?? 0,
+                LocCode = dispatch.LocCode,
+                DealerCode = dispatch.DealerCode,
+                IsAccepted = isAccepted,        // CHANGED — from payload, not hardcoded false
+                SourceType = "ERP",             // ADDED — fits source_type's 10-char limit (fixes the truncation error)
+                CreatedBy = userId,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _context.PartsInwards.Add(inward);
+            await _context.SaveChangesAsync();
+
+            return inward;
         }
 
         async Task<object> IPartInwardRepo.PartsInward(PartsInwardViewModel partsInwardViewModel)
@@ -406,4 +459,5 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return data;
         }
     }
+
 }

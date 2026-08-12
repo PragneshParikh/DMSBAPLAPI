@@ -12,10 +12,14 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
     {
         Task<IEnumerable<PartsInward>> Get();
         Task<IEnumerable<PartsInward>> GetPartInwardByDealerAsync(string dealerCode);
+        Task<IEnumerable<PartsInward>> GetEbwPartInwardByDealerAsync(string dealerCode);
+        Task<PartsInward?> GetLatestByPartNoAsync(string partNo);
         Task<bool> UpdateByInvoice(PartsInwardDetailsViewModel partsInwardDetailsViewModel);
         Task<object> PartsInward(PartsInwardViewModel partsInwardViewModel);
         Task<IEnumerable<PartsInward>> GetPendingPartInwardDetailByLocation(string locationCode);
         Task<object> GetInwardPartDetailsByInvoiceNo(string invoiceNo);
+        //Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId);
+        Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId, bool isAccepted);
         Task<Object> GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode);
         Task<byte[]> DownloadPartsInwardExcel(DateTime fromDate, DateTime toDate, string? dealerCode);
     }

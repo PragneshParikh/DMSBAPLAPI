@@ -45,6 +45,28 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("NotificationsByDealerEbw/{dealerCode}")]
+        [ProducesResponseType(typeof(IEnumerable<PartsInward>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetEbwByDealer(string dealerCode)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(dealerCode))
+                    return BadRequest("Dealer Code is missing or invalid.");
+
+                var partInwards = await _partInwardService.GetEbwPartInwardByDealerAsync(dealerCode);
+
+                return Ok(partInwards);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching EBW part inward records for dealer {DealerCode}.", dealerCode);
+                throw;
+            }
+        }
+
         [HttpGet("NotificationsByDealer/{dealerCode}")]
         [ProducesResponseType(typeof(IEnumerable<PartsInward>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -223,6 +245,23 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("latest-by-partno/{partNo}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetLatestByPartNo(string partNo)
+        {
+            try
+            {
+                var result = await _partInwardService.GetLatestByPartNoAsync(partNo);
+                if (result == null)
+                    return NotFound(new { success = false, message = "No PartsInward record found for this part." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
 
     }
 }

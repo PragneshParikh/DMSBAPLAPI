@@ -64,7 +64,7 @@ namespace DMS_BAPL_Data.Repositories.PartDispWarrantyRepo
                 existing.Chassisnumber = item.Chassisnumber;
                 existing.Itemcode = item.Itemcode;
                 existing.Serialno = item.Serialno;
-                existing.Vendorid = item.Vendorid;
+                //existing.Vendorid = item.Vendorid;
                 existing.Dealercode = item.Dealercode;
                 existing.Devicetype = item.Devicetype;
                 existing.Itemqty = item.Itemqty;
@@ -113,6 +113,47 @@ namespace DMS_BAPL_Data.Repositories.PartDispWarrantyRepo
                 await _context.SaveChangesAsync();
 
                 return items.Count;
+            }
+            catch { throw; }
+        }
+
+        public async Task<List<string>> GetSerialNosByItemCodeAsync(string itemCode, int? excludeInvoiceId = null)
+        {
+            try
+            {
+                var usedSerials = _context.EbwInvoiceHeaders
+                    .Where(x => excludeInvoiceId == null || x.Id != excludeInvoiceId)
+                    .Select(x => x.SerialNo);
+
+                return await _context.ZDmsPartDispWarranties
+                    .Where(x => x.Itemcode == itemCode
+                             && x.Serialno != null
+                             && !usedSerials.Contains(x.Serialno))
+                    .Select(x => x.Serialno!)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        public async Task<List<ZDmsPartDispWarranty>> GetByItemCodesAsync(List<string> itemCodes)
+        {
+            try
+            {
+                return await _context.ZDmsPartDispWarranties
+                    .Where(x => x.Itemcode != null && itemCodes.Contains(x.Itemcode))
+                    .ToListAsync();
+            }
+            catch { throw; }
+        }
+
+        public async Task<ZDmsPartDispWarranty?> GetBySerialNoAsync(string serialNo)
+        {
+            try
+            {
+                return await _context.ZDmsPartDispWarranties
+                    .FirstOrDefaultAsync(x => x.Serialno == serialNo);
             }
             catch { throw; }
         }

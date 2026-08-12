@@ -53,8 +53,8 @@ namespace DMS_BAPL_Data.DBModels
         [JsonPropertyName("loc_code")]
         public string? LocCode { get; set; }
 
-        [JsonPropertyName("vendor_idno")]
-        public int? VendorIdno { get; set; }
+        //[JsonPropertyName("vendor_idno")]
+        //public int? VendorIdno { get; set; }
 
         [JsonPropertyName("dealer_code")]
         public string? DealerCode { get; set; }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ZDmsPartDispWarranty.cs
+using System;
 using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Data.DBModels
@@ -26,8 +27,8 @@ namespace DMS_BAPL_Data.DBModels
         [JsonPropertyName("serialno")]
         public string? Serialno { get; set; }
 
-        [JsonPropertyName("vendorid")]
-        public int? Vendorid { get; set; }
+        //[JsonPropertyName("vendorid")]
+        //public int? Vendorid { get; set; }
 
         [JsonPropertyName("dealercode")]
         public string? Dealercode { get; set; }
@@ -49,6 +50,9 @@ namespace DMS_BAPL_Data.DBModels
 
         [JsonPropertyName("lineno")]
         public int? Lineno { get; set; }
+
+        [JsonPropertyName("invoiceAmt")]
+        public decimal? InvoiceAmt { get; set; }
 
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
