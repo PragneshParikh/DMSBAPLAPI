@@ -22,7 +22,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel);
         Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
         Task<List<ItemMaster>> GetByItemCodesAsync(List<string> itemCodes);
-        Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId);
+        Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode);
         Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation);
         Task<List<ItemMasterViewModel>> GetItemModelist();
     }

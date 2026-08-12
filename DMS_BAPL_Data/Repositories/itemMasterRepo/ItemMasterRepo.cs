@@ -687,7 +687,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         //    }
         //}
 
-        public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId)
+        public async Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode)
         {
             try
             {
@@ -703,7 +703,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                     from PI in PIGroup.DefaultIfEmpty()
 
-                    where IM.Grpidno == groupId
+                    where IM.Grpidno == groupId &&
+                         (IM.DealerCode == dealerCode || IM.DealerCode == null)
 
                     let stateTaxCode = _context.HsnwiseTaxCodes
                         .Where(x =>
@@ -751,6 +752,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         IM.Itemdesc,
                         IM.Hsncode,
                         IM.Dlrprice,
+                        PI.DealerLocation,
+                        PI.VendorCode,
                         IM.Custprice,
                         IM.Grpidno,
                         IM.Colorcode,
@@ -771,6 +774,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 .Distinct()
                 .ToListAsync();
 
+                if (string.IsNullOrEmpty(dealerCode))
+                {
+                    result = result.Where(i => i.VendorCode == dealerCode).ToList();
+                }
                 return result;
             }
             catch
@@ -790,7 +797,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     .Select(im => new
                     {
                         ItemCode = im.Itemcode,
-                        HSNCode =im.Hsncode,
+                        HSNCode = im.Hsncode,
                         ItemName = im.Itemdesc,
                         ItemMrp = im.Custprice,
                         ItemStock = _context.PartsInventories.Where(p => p.ItemCode == im.Itemcode &&
@@ -841,7 +848,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     ItemName = item.ItemName,
                     ItemMrp = item.ItemMrp,
                     ItemStock = item.ItemStock,
-                    HsnCode =item.HSNCode,
+                    HsnCode = item.HSNCode,
                     SGSTPer = sgstPer,
                     CGSTPer = cgstPer,
                     IGSTPer = igstPer,

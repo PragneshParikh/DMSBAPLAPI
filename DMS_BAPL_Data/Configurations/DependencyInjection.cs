@@ -66,6 +66,7 @@ using DMS_BAPL_Data.Repositories.ServiceTypeRepo;
 using DMS_BAPL_Data.Repositories.StateRepo;
 using DMS_BAPL_Data.Repositories.TaxCodeMasterRepo;
 using DMS_BAPL_Data.Repositories.TermConditionMasterRepo;
+using DMS_BAPL_Data.Repositories.UwLineItemRepo;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Data.Repositories.VehicleInfoRepo;
 using DMS_BAPL_Data.Repositories.VehicleOpeningStockRepo;
@@ -73,7 +74,9 @@ using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
 using DMS_BAPL_Data.Repositories.VehicleQuotationRepo;
 using DMS_BAPL_Data.Repositories.VehicleSaleBillRepo;
 using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
+using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
 using DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo;
+using DMS_BAPL_Data.Repositories.WarrantyOrderRepo;
 using DMS_BAPL_Data.Repositories.ZoneMasterRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
@@ -137,6 +140,7 @@ using DMS_BAPL_Data.Services.VehicleQuotationService;
 using DMS_BAPL_Data.Services.VehicleQuotationService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Data.Services.VehicleStockTransferService;
+using DMS_BAPL_Data.Services.WarrantyOrderService;
 using DMS_BAPL_Data.Services.ZoneMasterService;
 using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
 using Microsoft.Extensions.DependencyInjection;
@@ -226,6 +230,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IEstimateRepo, EstimateRepo>();
             services.AddScoped<IBgRoleRepo, BgRoleRepo>();
             services.AddScoped<IDealerManagerRepo, DealerManagerRepo>();
+            services.AddScoped<IWarrantyOrderRepo, WarrantyOrderRepo>();
+            services.AddScoped<IWarrantyInvoiceRepo, WarrantyInvoiceRepo>();
+            services.AddScoped<IUwLineItemRepo, UwLineItemRepo>();
 
 
             #endregion
@@ -293,6 +300,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IEstimateService, EstimateService>();
             services.AddScoped<IBgRoleService, BgRoleService>();
             services.AddScoped<IDealerManagerService, DealerManagerService>();
+            services.AddScoped<IWarrantyOrderService, WarrantyOrderService>();
 
 
 

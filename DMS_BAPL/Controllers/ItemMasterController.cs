@@ -153,7 +153,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<object>>> GetItemsWithHsnTaxGroupId([FromQuery] int? groupId)
+        public async Task<ActionResult<IEnumerable<object>>> GetItemsWithHsnTaxGroupId([FromQuery] int? groupId, string? dealerCode)
         {
             try
             {
@@ -162,7 +162,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId);
+                var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId,dealerCode);
 
                 return Ok(items);
             }

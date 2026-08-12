@@ -80,12 +80,233 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return result;
         }
-        public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
+        //public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
 
+        //{
+        //    try
+        //    {
+
+        //        if (dealerCode?.Trim().ToLower() == "null")
+        //        {
+        //            dealerCode = null;
+        //        }
+
+        //        bool isSuperAdmin = string.IsNullOrWhiteSpace(dealerCode);
+        //        if (jobTypeId == 1)
+        //        {
+        //            // ===================== PDI =====================
+        //            var data = await (
+        //                from h in _context.LotinspectionHeaders
+
+        //                join d in _context.LotinspectionDetails
+        //                  on h.Id equals d.LotHeaderId
+        //                join v in _context.ChassisDetails
+        //                  on d.ChassisNo equals v.ChassisNo
+
+        //                join dealerLg in _context.LedgerMasters.Where(x => x.LedgerType == "Dealer")
+        //                on v.DealerId equals dealerLg.DealerCode
+
+        //                join i in _context.ItemMasters
+        //                    on v.ItemCode equals i.Itemcode
+
+        //                let vc = _context.ChassisBatteryDetails
+        //                 .Where(x => x.ChassisNo == v.ChassisNo)
+        //                 .OrderByDescending(x => x.CreatedDate)
+        //                 .FirstOrDefault()
+
+
+        //                let existingjobCard = _context.JobCardHeaders
+        //                    .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+        //                    .OrderByDescending(j => j.CreatedDate)
+        //                    .FirstOrDefault()
+
+
+        //                join o in _context.OemmodelMasters
+        //                    on i.Oemmodelname.Trim().ToLower()
+        //                    equals o.ModelName.Trim().ToLower()
+        //                    into oGroup
+
+        //                from o in oGroup.DefaultIfEmpty()
+
+
+        //                where h.IsLotInspected == true
+        //                 && v.SaleDate == null
+        //                //&& (h.IsD2d == true || h.IsD2d == null) 
+        //                && (isSuperAdmin || v.DealerId == dealerCode)
+
+        //                select new LotInspectionChassisVM
+        //                {
+        //                    InvoiceNo = h.InvoiceNo,
+        //                    ChassisNumber = v.ChassisNo,
+
+        //                    CustomerLedgerId = dealerLg.Id,
+        //                    CustomerName = dealerLg.LedgerName,
+        //                    CustomerMobile = dealerLg.MobileNumber,
+        //                    InwardType = h.InwardType,
+        //                    VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
+
+
+        //                    ModelName = i.Itemname,
+        //                    RegisterNo = v.RegNo,
+        //                    BatteryNumber = vc.BatteryNo,
+        //                    ChargerNumber = vc.ChargerNo,
+        //                    ControllerNo = vc.ControllerNo,
+        //                    BatteryMake = vc.BatteryMake,
+        //                    BatteryCapacity = vc.BatteryCapacity,
+        //                    BatteryChemestry = vc.BatteryChemical,
+        //                    ConverterNo = vc.ConverterNo,
+        //                    MotorNo = vc.MotorNo,
+
+        //                    oemModelId = o != null ? o.Id : 0
+        //                }
+        //            ).Distinct().ToListAsync();
+
+        //            return data;
+        //        }
+        //        else
+        //        {
+        //            // ===================== SALE / SERVICE =====================
+        //            var data = await (
+        //            from h in _context.LotinspectionHeaders
+
+        //            join d in _context.LotinspectionDetails
+        //            on h.Id equals d.LotHeaderId
+
+        //            join v in _context.ChassisDetails
+        //            on d.ChassisNo equals v.ChassisNo
+
+        //            join i in _context.ItemMasters
+        //            on v.ItemCode equals i.Itemcode
+
+        //            join vsd in _context.VehicleSaleBillDetails
+        //            on d.ChassisNo equals vsd.ChassisNo
+
+        //            join vsh in _context.VehicleSaleBillHeaders
+        //            on vsd.VehicleSaleBillId equals vsh.Id
+
+        //            join custLg in _context.LedgerMasters
+        //            on v.LedgerId equals custLg.Id
+
+        //            join o in _context.OemmodelMasters
+        //            on i.Oemmodelname.Trim().ToLower()
+        //            equals o.ModelName.Trim().ToLower()
+        //            into oGroup
+
+        //            from o in oGroup.DefaultIfEmpty()
+
+        //            let vc = _context.ChassisBatteryDetails
+        //            .Where(x => x.ChassisNo == v.ChassisNo)
+        //            .OrderByDescending(x => x.CreatedDate)
+        //            .FirstOrDefault()
+
+        //            let existingjobCardaftersale = _context.JobCardHeaders
+        //                .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
+        //                .OrderByDescending(j => j.CreatedDate)
+        //                .FirstOrDefault()
+
+        //            where h.IsLotInspected == true
+        //            && (isSuperAdmin || v.DealerId == dealerCode)
+        //            && v.SaleDate != null
+
+        //            select new LotInspectionChassisVM
+        //            {
+        //                InvoiceNo = h.InvoiceNo,
+        //                ChassisNumber = d.ChassisNo,
+        //                CustomerLedgerId = custLg.Id,
+        //                CustomerName = custLg.LedgerName,
+        //                CustomerMobile = custLg.MobileNumber,
+        //                SaleDate = v.SaleDate,
+        //                ModelName = i.Itemname,
+        //                RegisterNo = v.RegNo,
+        //                InsuranceExpDate = vsd.InsExpDate,
+        //                InwardType = h.InwardType,
+        //                VehiclePrevkms = existingjobCardaftersale != null ? existingjobCardaftersale.Vehiclekms : null,
+
+        //                // Latest Battery Details
+        //                BatteryNumber = vc != null ? vc.BatteryNo : null,
+        //                ChargerNumber = vc != null ? vc.ChargerNo : null,
+        //                ControllerNo = vc != null ? vc.ControllerNo : null,
+        //                BatteryMake = vc != null ? vc.BatteryMake : null,
+        //                BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
+        //                BatteryChemestry = vc != null ? vc.BatteryChemical : null,
+        //                ConverterNo = vc != null ? vc.ConverterNo : null,
+        //                MotorNo = vc != null ? vc.MotorNo : null,
+
+        //                oemModelId = o != null ? o.Id : 0
+        //            }
+        //            ).Distinct().ToListAsync();
+
+        //            foreach (var item in data)
+        //            {
+        //                if (!item.SaleDate.HasValue)
+        //                    continue;
+
+        //                var completedServiceCount = await (
+        //                from jh in _context.JobCardHeaders
+        //                join jc in _context.JobCardCustomers
+        //                on jh.Id equals jc.JobCardHeaderId
+        //                where jc.ChassisNo == item.ChassisNumber
+        //                && jh.Jobtype != 1
+        //                select jh.Id
+        //                ).CountAsync();
+
+        //                var nextSchedule = await _context.ModelwiseServiceSchedules
+        //                .Where(x => x.OemmodelId == item.oemModelId)
+        //                .OrderBy(x => x.Seqno)
+        //                .Skip(completedServiceCount)
+        //                .FirstOrDefaultAsync();
+
+        //                if (nextSchedule != null)
+        //                {
+        //                    item.NextserviceDueDate =
+        //                    item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
+        //                }
+        //            }
+
+        //            var warranties = await _context.OemmodelWarranties
+        //            .GroupBy(x => x.OemmodelId)
+        //            .Select(g => g.OrderByDescending(x => x.EffectiveDate).FirstOrDefault())
+        //            .ToListAsync();
+
+        //            foreach (var item in data)
+        //            {
+        //                var warranty = warranties
+        //                .FirstOrDefault(x => x.OemmodelId == item.oemModelId);
+
+        //                if (warranty != null)
+        //                {
+        //                    item.OdoReading = warranty.Odoreading;
+        //                    item.Duration = warranty.Duration;
+        //                    item.DurationType = warranty.DurationType;
+        //                    item.EffectiveDate = warranty.EffectiveDate;
+
+        //                    item.ExpireWarrentyDate =
+        //                    warranty.EffectiveDate == null
+        //                    ? null
+        //                    : warranty.DurationType == "MONTH"
+        //                    ? warranty.EffectiveDate.Value.AddMonths((int)(warranty.Duration ?? 0))
+        //                    : warranty.DurationType == "YEAR"
+        //                    ? warranty.EffectiveDate.Value.AddYears((int)(warranty.Duration ?? 0))
+        //                    : warranty.EffectiveDate;
+        //                }
+        //            }
+
+        //            return data;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(ex.Message);
+        //        return new List<LotInspectionChassisVM>();
+        //    }
+        //}
+
+        // Method: GetAllInspectedLotChassisAsync
+        // Method: GetAllInspectedLotChassisAsync
+        public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
         {
             try
             {
-
                 if (dealerCode?.Trim().ToLower() == "null")
                 {
                     dealerCode = null;
@@ -114,12 +335,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                          .OrderByDescending(x => x.CreatedDate)
                          .FirstOrDefault()
 
-
+                        // FIXED: was "j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null"
+                        // which due to && binding tighter than ||, matched ANY row with IsDelete == null
+                        // regardless of chassis, causing the same "previous KMS" to leak across every job card.
                         let existingjobCard = _context.JobCardHeaders
-                            .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+                            .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
                             .OrderByDescending(j => j.CreatedDate)
                             .FirstOrDefault()
-
 
                         join o in _context.OemmodelMasters
                             on i.Oemmodelname.Trim().ToLower()
@@ -127,7 +349,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             into oGroup
 
                         from o in oGroup.DefaultIfEmpty()
-
 
                         where h.IsLotInspected == true
                          && v.SaleDate == null
@@ -144,7 +365,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             CustomerMobile = dealerLg.MobileNumber,
                             InwardType = h.InwardType,
                             VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
-
 
                             ModelName = i.Itemname,
                             RegisterNo = v.RegNo,
@@ -199,8 +419,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefault()
 
+                    // FIXED: same operator-precedence bug as above — was matching any row
+                    // with IsDelete == null across ALL chassis instead of just this one.
                     let existingjobCardaftersale = _context.JobCardHeaders
-                        .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null)
+                        .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
                         .OrderByDescending(j => j.CreatedDate)
                         .FirstOrDefault()
 
