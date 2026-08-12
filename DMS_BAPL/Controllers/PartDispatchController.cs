@@ -159,9 +159,9 @@ namespace DMS_BAPL_Api.Controllers
         [HttpPost("~/api/erppartdispatch/dispatch")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create([FromBody] PartDispatchCreateViewModel model)
+        public async Task<IActionResult> Create([FromBody] List<PartDispatchCreateViewModel> models)
         {
-            if (model == null)
+            if (models == null || models.Count == 0)
                 return BadRequest(new { success = false, message = "Invalid data" });
 
             try
@@ -170,35 +170,42 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var entity = new DmsPartDispatch
-                {
-                    InvoiceDate = model.InvoiceDate,
-                    InvoiceNo = model.InvoiceNo,
-                    PartNo = model.PartNo,
-                    ItemIdno = model.ItemIdno,
-                    ItemHsncode = model.ItemHsncode,
-                    ItemRate = model.ItemRate,
-                    ItemMrp = model.ItemMrp,
-                    ItemQty = model.ItemQty,
-                    Sgst = model.Sgst,
-                    Cgst = model.Cgst,
-                    Igst = model.Igst,
-                    Ugst = model.Ugst,
-                    ItemDisc = model.ItemDisc,
-                    DiscountType = model.DiscountType,
-                    LocCode = model.LocCode,
-                    VendorIdno = model.VendorIdno,
-                    DealerCode = model.DealerCode
-                };
+                var results = new List<DmsPartDispatch>();
 
-                var result = await _service.CreateAsync(entity, userId);
-
-                if (!string.IsNullOrEmpty(result.PartNo) && result.PartNo.ToUpper().Contains("EW"))
+                foreach (var model in models)
                 {
-                    await _partInwardService.CreateFromDispatchAsync(result, userId);
+                    var entity = new DmsPartDispatch
+                    {
+                        InvoiceDate = model.InvoiceDate,
+                        InvoiceNo = model.InvoiceNo,
+                        PartNo = model.PartNo,
+                        ItemIdno = model.ItemIdno,
+                        ItemHsncode = model.ItemHsncode,
+                        ItemRate = model.ItemRate,
+                        ItemMrp = model.ItemMrp,
+                        ItemQty = model.ItemQty,
+                        Sgst = model.Sgst,
+                        Cgst = model.Cgst,
+                        Igst = model.Igst,
+                        Ugst = model.Ugst,
+                        ItemDisc = model.ItemDisc,
+                        DiscountType = model.DiscountType,
+                        LocCode = model.LocCode,
+                        VendorIdno = model.VendorIdno,
+                        DealerCode = model.DealerCode
+                    };
+
+                    var result = await _service.CreateAsync(entity, userId);
+
+                    if (!string.IsNullOrEmpty(result.PartNo) && result.PartNo.ToUpper().Contains("EW"))
+                    {
+                        await _partInwardService.CreateFromDispatchAsync(result, userId);
+                    }
+
+                    results.Add(result);
                 }
 
-                return Ok(new { success = true, data = result });
+                return Ok(new { success = true, data = results });
             }
             catch (Exception ex)
             {
