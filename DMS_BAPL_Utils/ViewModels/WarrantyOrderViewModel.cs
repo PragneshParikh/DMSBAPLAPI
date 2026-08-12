@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
-namespace DMS_BAPL_Utils.ViewModels
-{
-
+namespace DMS_BAPL_Utils.ViewModels 
+{ 
     public class WarrantyOrderViewModel
     {
         public int Id { get; set; }
@@ -39,15 +38,12 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [Required(ErrorMessage = "Supplier is required.")]
         public int? SupplierId { get; set; }
-
-
         public bool IsApproved { get; set; } = false;
 
+        public bool IsActive { get; set; } = true;
         public List<int> WarrantyClaimIds { get; set; } = new List<int>();
 
-
         public List<ClaimApprovalViewModel>? ClaimApprovals { get; set; }
-
         public List<WarrantyJCClaimFullViewModel>? Claims { get; set; }
     }
 
@@ -57,7 +53,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool IsApproved { get; set; }
     }
 
-    // All filters optional - used for the list/search screen.
     public class WarrantyOrderSearchViewModel
     {
         public DateTime? DateFrom { get; set; }
@@ -70,12 +65,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? ClaimType { get; set; }
         public int? SupplierId { get; set; }
         public bool? IsApproved { get; set; }
-
+        public bool IncludeInactive { get; set; } = false;
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }
-
-
     public class WarrantyOrderListViewModel
     {
         public int Id { get; set; }
@@ -86,11 +79,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Location { get; set; } = null!;
         public string ClaimType { get; set; } = null!;
         public int SupplierId { get; set; }
+        public decimal TotalMrp { get; set; }
         public int TotalClaims { get; set; }
         public bool IsApproved { get; set; }
+        public bool IsActive { get; set; }
     }
-
-
     public class WarrantyOrderSearchResultViewModel
     {
         public List<WarrantyOrderListViewModel> Items { get; set; } = new List<WarrantyOrderListViewModel>();
@@ -100,13 +93,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
     }
 
-
     public class NextOrderNumberViewModel
     {
         public string BatchNo { get; set; } = null!;
         public string OrderNo { get; set; } = null!;
     }
-
 
     public class WarrantyJCClaimFullViewModel
     {
@@ -123,11 +114,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Kms { get; set; }
         public string? MotorNo { get; set; }
         public string? PartyName { get; set; }
-
         public int? SupplierId { get; set; }
         public string? ServiceLocation { get; set; }
         public string? LocationName { get; set; }
-
         public bool IsApproved { get; set; } = false;
 
         public List<WarrantyJCClaimDetailLineViewModel> Details { get; set; } = new List<WarrantyJCClaimDetailLineViewModel>();
@@ -135,6 +124,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class WarrantyJCClaimDetailLineViewModel
     {
+        public int Id { get; set; }
+
         public string? ItemType { get; set; }
         public string? PartCode { get; set; }
         public string? PartName { get; set; }
@@ -142,14 +133,31 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LabourCode { get; set; }
         public string? LabourDescription { get; set; }
         public decimal Quantity { get; set; }
-
         public decimal CgstPercent { get; set; }
         public decimal CgstAmount { get; set; }
         public decimal SgstPercent { get; set; }
         public decimal SgstAmount { get; set; }
         public decimal IgstPercent { get; set; }
         public decimal IgstAmount { get; set; }
-
         public decimal TotalAmount { get; set; }
+
+        public decimal Amount { get; set; }
+        public decimal Rate { get; set; }
+        public decimal Mrp { get; set; }
+        public string? DealerObservation { get; set; }
+        public string? RootCauseAnalysis { get; set; }
+    }
+
+    public class WarrantyJCClaimUpdateViewModel
+    {
+        public int ClaimId { get; set; }
+        public List<WarrantyJCClaimLineUpdateViewModel> Lines { get; set; } = new();
+    }
+
+    public class WarrantyJCClaimLineUpdateViewModel
+    {
+        public int DetailId { get; set; }
+        public string? DealerObservation { get; set; }
+        public string? RootCauseAnalysis { get; set; }
     }
 }

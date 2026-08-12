@@ -302,6 +302,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         //}
 
         // Method: GetAllInspectedLotChassisAsync
+        // Method: GetAllInspectedLotChassisAsync
         public async Task<List<LotInspectionChassisVM>> GetAllInspectedLotChassisAsync(string dealerCode, int jobTypeId)
         {
             try

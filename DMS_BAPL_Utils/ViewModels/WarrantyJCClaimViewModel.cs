@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace DMS_BAPL_Utils.ViewModels
 {
     public class WarrantyJCClaimViewModel
@@ -21,14 +20,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? FFIRId { get; set; }
         public string? ClaimAccount { get; set; }
         public string? DealerObservation { get; set; }
-
         public string? RootCauseAnalysis { get; set; }
         public string CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }
-
         public List<WarrantyJcclaimDetailViewModel> repairBillDetails { get; set; }
     }
-
     public class WarrantyJCClaimListViewModel
     {
         public int Id { get; set; }
@@ -40,7 +36,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? JobCardNo { get; set; }
         public decimal TotalAmount { get; set; }
     }
-
     // All filters optional.
     public class WarrantyJCClaimSearchViewModel
     {
@@ -49,11 +44,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? DateTo { get; set; }
         public string? ChassisNo { get; set; }
         public int? ClaimNo { get; set; }
-
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
     }
-
     public class WarrantyJCClaimSearchResultViewModel
     {
         public System.Collections.Generic.List<WarrantyJCClaimListViewModel> Items { get; set; } = new();
@@ -62,7 +55,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public int PageSize { get; set; }
         public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
     }
-
     public class WarrantyJcclaimDetailViewModel
     {
         public int RepairBillDetailsId { get; set; }
@@ -76,6 +68,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? LabourQty { get; set; }
         public decimal? LabourRate { get; set; }
         public decimal IgstAmount { get; set; }
+
+        public decimal Mrp { get; set; }
         public decimal? TotalWithTax { get; set; }
         public string? DealerObservation { get; set; }
         public string? RootCauseAnalysis { get; set; }

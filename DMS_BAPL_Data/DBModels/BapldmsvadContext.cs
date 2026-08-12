@@ -230,6 +230,11 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyOrderDetail> WarrantyOrderDetails { get; set; }
     public virtual DbSet<WarrantyOrderGridDetail> WarrantyOrderGridDetails { get; set; }
 
+    public virtual DbSet<WarrantyInvoice> WarrantyInvoices { get; set; }
+    public virtual DbSet<WarrantyInvoiceDetail> WarrantyInvoiceDetails { get; set; }
+    public virtual DbSet<WarrantyInvoiceGridDetail> WarrantyInvoiceGridDetails { get; set; }
+    public virtual DbSet<UwLineItem> UwLineItems { get; set; }
+
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -4578,12 +4583,50 @@ public partial class BapldmsvadContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyOrderGridDetail_WarrantyOrder");
         });
+
+        modelBuilder.Entity<WarrantyInvoice>(entity =>
+        {
+            entity.ToTable("WarrantyInvoice");
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<WarrantyInvoiceDetail>(entity =>
+        {
+            entity.ToTable("WarrantyInvoiceDetail");
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+
+            entity.HasOne(d => d.WarrantyInvoiceHeader)
+                .WithMany(p => p.WarrantyInvoiceDetails)
+                .HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+
+            entity.HasOne(d => d.WarrantyOrderHeader)
+                .WithMany()
+                .HasForeignKey(d => d.WarrantyOrderHeaderId);
+        });
+
+        modelBuilder.Entity<WarrantyInvoiceGridDetail>(entity =>
+        {
+            entity.ToTable("WarrantyInvoiceGridDetail");
+
+            entity.HasOne(d => d.WarrantyInvoiceHeader)
+                .WithMany()
+                .HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+        });
+        modelBuilder.Entity<UwLineItem>(
+    entity =>
+    {
+        entity.ToTable("UwLineItem"); 
+ 
+        entity.HasOne(d => d.WarrantyJcclaim)        
+            .WithMany()
+            .HasForeignKey(d => d.WarrantyJcclaimId) 
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("FK_UwLineItem_WarrantyJcclaim"); 
+    });
         OnModelCreatingPartial(modelBuilder);
 
 
     }
-
-
-
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
