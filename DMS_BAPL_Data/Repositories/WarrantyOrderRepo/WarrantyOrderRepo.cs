@@ -151,93 +151,36 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
         public async Task<bool> DeleteWarrantyOrder(int id, string userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var header = await _context.WarrantyOrders
+                .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
 
-            try
-            {
-                var header = await _context.WarrantyOrders
-                    .FirstOrDefaultAsync(x => x.Id == id);
+            if (header == null)
+                return false;
 
-                if (header == null)
-                {
-                    await transaction.RollbackAsync();
-                    return false;
-                }
+            // Soft delete - keeps this row (and everything referencing it:
+            // WarrantyOrderDetail, WarrantyOrderGridDetail) fully intact in
+            // the DB. Only SearchWarrantyOrders (the List page) filters on
+            // IsActive, so this order disappears from that list specifically
+            // while remaining fully viewable via GetWarrantyOrderById (which
+            // does NOT filter on IsActive) if navigated to directly.
+            header.IsActive = false;
+            header.UpdatedBy = userId;
+            header.UpdatedDate = DateTime.Now;
 
-                // Hard delete - actually removes rows from every related
-                // table, not just flagging the header inactive. Children
-                // must go before the parent to satisfy FK constraints.
-
-                // Capture which claims this order links to BEFORE deleting
-                // WarrantyOrderDetail - needed below to also delete the
-                // claims themselves.
-                var linkedClaimIds = await _context.WarrantyOrderDetails
-                    .Where(d => d.WarrantyOrderHeaderId == id)
-                    .Select(d => d.WarrantyJcclaimId)
-                    .Distinct()
-                    .ToListAsync();
-
-                var gridRows = await _context.WarrantyOrderGridDetails
-                    .Where(g => g.WarrantyOrderHeaderId == id)
-                    .ToListAsync();
-                _context.WarrantyOrderGridDetails.RemoveRange(gridRows);
-
-                var details = await _context.WarrantyOrderDetails
-                    .Where(d => d.WarrantyOrderHeaderId == id)
-                    .ToListAsync();
-                _context.WarrantyOrderDetails.RemoveRange(details);
-
-                _context.WarrantyOrders.Remove(header);
-
-                // Now delete the underlying claims themselves - but only
-                // ones NOT also linked to a different order (the schema
-                // technically allows a claim to appear in more than one
-                // order's WarrantyOrderDetail, even though this app's actual
-                // usage is always one claim -> one order). Deleting a claim
-                // still referenced elsewhere would leave that other order
-                // with a dangling reference.
-                if (linkedClaimIds.Any())
-                {
-                    var claimIdsUsedElsewhere = await _context.WarrantyOrderDetails
-                        .Where(d => d.WarrantyOrderHeaderId != id && linkedClaimIds.Contains(d.WarrantyJcclaimId))
-                        .Select(d => d.WarrantyJcclaimId)
-                        .Distinct()
-                        .ToListAsync();
-
-                    var claimIdsSafeToDelete = linkedClaimIds
-                        .Except(claimIdsUsedElsewhere)
-                        .ToList();
-
-                    if (claimIdsSafeToDelete.Any())
-                    {
-                        var claimDetails = await _context.WarrantyJcclaimDetails
-                            .Where(cd => claimIdsSafeToDelete.Contains(cd.WarrantyJcclaimHeaderId))
-                            .ToListAsync();
-                        _context.WarrantyJcclaimDetails.RemoveRange(claimDetails);
-
-                        var claims = await _context.WarrantyJcclaims
-                            .Where(c => claimIdsSafeToDelete.Contains(c.Id))
-                            .ToListAsync();
-                        _context.WarrantyJcclaims.RemoveRange(claims);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return true;
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<WarrantyOrderViewModel?> GetWarrantyOrderById(int id)
         {
+            // No IsActive filter here, deliberately - a soft-deleted order
+            // (removed only from the List page's search results) should
+            // still be fully viewable if navigated to directly, along with
+            // its WarrantyOrderGridDetail snapshot, which is untouched
+            // either way since DeleteWarrantyOrder no longer removes rows.
             var header = await _context.WarrantyOrders
                 .Include(x => x.WarrantyOrderDetails)
-                .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (header == null)
                 return null;
@@ -296,7 +239,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                                 SgstAmount = g.SgstAmount ?? 0,
                                 IgstPercent = g.IgstPercent ?? 0,
                                 IgstAmount = g.IgstAmount ?? 0,
-                                TotalAmount = g.TotalAmount ?? 0
+                                TotalAmount = g.TotalAmount ?? 0,
+                                Mrp = g.Mrp
                             }).ToList()
                     };
                 })
@@ -328,6 +272,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 ClaimType = header.ClaimType,
                 SupplierId = header.SupplierId,
                 IsApproved = header.IsApproved,
+                IsActive = header.IsActive,
                 WarrantyClaimIds = header.WarrantyOrderDetails.Select(d => d.WarrantyJcclaimId).ToList(),
                 Claims = claims
             };
@@ -337,8 +282,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
         {
             var query = _context.WarrantyOrders
                 .Include(x => x.WarrantyOrderDetails)
-                .Where(x => x.IsActive)
                 .AsQueryable();
+
+            // Default (IncludeInactive = false) keeps the current behavior -
+            // the List page never sees soft-deleted orders. Only the form
+            // page's "show the latest order" fallback passes true, so that
+            // view can still find an order after it's been deleted from the
+            // List specifically.
+            if (!filter.IncludeInactive)
+                query = query.Where(x => x.IsActive);
 
             if (filter.DateFrom.HasValue)
                 query = query.Where(x => x.OrderDate >= filter.DateFrom.Value);
@@ -374,6 +326,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             var items = await query
                 .OrderByDescending(x => x.OrderDate)
+                .ThenByDescending(x => x.Id)
                 .Skip((filter.PageNumber - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .Select(x => new WarrantyOrderListViewModel
@@ -387,7 +340,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     ClaimType = x.ClaimType,
                     SupplierId = x.SupplierId,
                     TotalClaims = x.WarrantyOrderDetails.Count,
-                    IsApproved = x.IsApproved
+                    TotalMrp = _context.WarrantyOrderGridDetails
+                        .Where(g => g.WarrantyOrderHeaderId == x.Id)
+                        .Sum(g => (decimal?)g.Mrp) ?? 0,
+                    IsApproved = x.IsApproved,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -532,8 +489,16 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     bool isLabour = d.ItemType == "Labour";
                     var rbd = d.RepairBillDetail;
 
+                    // Tax % display still comes from the master (Cgst/Sgst/Igst percent
+                    // aren't stored on WarrantyJcclaimDetail), but the actual monetary
+                    // values (Rate, Amount, GST amount, Total, Mrp) MUST come from the
+                    // saved WarrantyJcclaimDetail row (d) - that's the data the user
+                    // actually entered/validated when saving the claim, not whatever the
+                    // original repair bill line happens to show today.
+
                     return new WarrantyJCClaimDetailLineViewModel
                     {
+                        Id = d.Id,
                         ItemType = d.ItemType,
 
                         PartCode = !isLabour ? rbd?.PartItem?.Itemcode : null,
@@ -548,23 +513,27 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                             : null,
 
                         Quantity = d.Qty ?? 0,
+                        Rate = d.Rate ?? 0, 
 
                         CgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0)
                             : (rbd?.PartItem?.Cgst ?? 0),
-                        CgstAmount = rbd?.Cgstamount ?? 0,
-
                         SgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0)
                             : (rbd?.PartItem?.Sgst ?? 0),
-                        SgstAmount = rbd?.Sgstamount ?? 0,
-
                         IgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0)
                             : (rbd?.PartItem?.Igst ?? 0),
-                        IgstAmount = rbd?.Igstamount ?? 0,
+                        CgstAmount = d.ItemType != null && d.TaxAmount.HasValue ? 0 : 0, 
+                        SgstAmount = 0,                                                  
+                        IgstAmount = d.TaxAmount ?? 0,
 
-                        TotalAmount = d.TotalAmount ?? 0
+                        TotalAmount = d.TotalAmount ?? 0,
+                        Amount = d.Amount ?? 0,     
+                        Mrp = d.Mrp ?? 0,           
+
+                        DealerObservation = d.DealerObservation,
+                        RootCauseAnalysis = d.RootCauseAnalysis
                     };
                 }).ToList()
             };
@@ -639,6 +608,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     IgstPercent = line.IgstPercent,
                     IgstAmount = line.IgstAmount,
                     TotalAmount = line.TotalAmount,
+                    Mrp = line.Mrp,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 });

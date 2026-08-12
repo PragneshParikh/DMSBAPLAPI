@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
+using DMS_BAPL_Data.Repositories.UwLineItemRepo;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -19,10 +20,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
     public class WarrantyJobCardClaimRepo : IWarrantyJobCardClaimRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly IUwLineItemRepo _uwLineItemRepo;
 
-        public WarrantyJobCardClaimRepo(BapldmsvadContext context)
+        public WarrantyJobCardClaimRepo(BapldmsvadContext context, IUwLineItemRepo uwLineItemRepo)
         {
             _context = context;
+            _uwLineItemRepo = uwLineItemRepo;
         }
 
         [HttpPost("InsertWarrantyJCClaim")]
@@ -64,49 +67,52 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 //=========================
                 if (model.repairBillDetails != null && model.repairBillDetails.Any())
                 {
-                    var details = model.repairBillDetails.Select(x => new WarrantyJcclaimDetail
+                    var details = model.repairBillDetails.Select(x =>
                     {
-                        WarrantyJcclaimHeaderId = header.Id,
+                        bool isLabour = x.ItemType == "Labour";
 
-                        RepairBillDetailId = x.RepairBillDetailsId,
+                        decimal qty = isLabour ? (x.LabourQty ?? 0) : (x.PartItemQty ?? 0);
+                        decimal rate = isLabour ? (x.LabourRate ?? 0) : (x.PartItemRate ?? 0);
 
-                        ItemType = x.ItemType,
+                        decimal baseAmount = qty * rate;
+                        decimal gstAmount = x.IgstAmount;
 
-                        MaterialId = x.MaterialId,
-                        LabourMasterId = x.LabourId,
-                        PartWiseLabourId = x.PartWiseLabourId,
-                        PartItemId = x.PartItemId,
+                        decimal mrp = x.Mrp > 0 ? x.Mrp : rate;
 
-                        Qty = x.ItemType == "Labour"
-                         ? (x.LabourQty ?? 0)
-                         : x.PartItemQty,
+                        decimal totalAmount = baseAmount + gstAmount;
 
-                        Rate = x.ItemType == "Labour"
-                         ? (x.LabourRate ?? 0)
-                         : (x.PartItemRate ?? 0),
+                        return new WarrantyJcclaimDetail
+                        {
+                            WarrantyJcclaimHeaderId = header.Id,
+                            RepairBillDetailId = x.RepairBillDetailsId,
+                            ItemType = x.ItemType,
+                            MaterialId = x.MaterialId,
+                            LabourMasterId = x.LabourId,
+                            PartWiseLabourId = x.PartWiseLabourId,
+                            PartItemId = x.PartItemId,
 
-                        // Calculate Amount based on whether it is a Labour or Part item
-                        Amount = x.IgstAmount,
+                            Qty = qty,
+                            Rate = rate,
+                            Mrp = mrp,
 
-                        // Calculate TaxAmount (If you have a tax percentage property, e.g., x.TaxPercentage)
-                        // If you don't have tax percentage, you will need to pass it from the model or database.
-                        TaxAmount = x.TotalWithTax ?? 0,
+                            Amount = baseAmount,
+                            TaxAmount = gstAmount,
+                            TotalAmount = totalAmount,
 
-                        // Calculate TotalAmount by adding Amount and TaxAmount
-                        TotalAmount = x.IgstAmount + x.TotalWithTax,
+                            ClaimType = "Warranty",
+                            DealerObservation = x.DealerObservation,
+                            RootCauseAnalysis = x.RootCauseAnalysis,
 
-
-                        ClaimType = "Warranty",
-                        DealerObservation = x.DealerObservation,
-                        RootCauseAnalysis = x.RootCauseAnalysis,
-
-                        CreatedBy = userId,
-                        CreatedDate = DateTime.Now
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        };
                     }).ToList();
-
+                   
                     _context.WarrantyJcclaimDetails.AddRange(details);
                     await _context.SaveChangesAsync();
                 }
+
+                await _uwLineItemRepo.InsertUwLineItem(header.Id, userId);   // <-- the missing call
 
                 await transaction.CommitAsync();
 
@@ -327,10 +333,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 .Include(x => x.Supplier)
                 .Include(x => x.JobCardHeader)
                 .Include(x => x.RepairBillHeader)
-                // ASSUMPTION: CustomerLedger navigation exists on WarrantyJcclaim
-                // (CustomerLedgerId is already a FK on this entity). If this
-                // include fails to compile, check WarrantyJcclaim.cs for the
-                // actual navigation property name and adjust.
                 .Include(x => x.CustomerLedger)
                 .Include(x => x.WarrantyJcclaimDetails)
                     .ThenInclude(d => d.RepairBillDetail)
@@ -347,16 +349,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 ? $"{claim.JobCardHeader.Jobprefix}{claim.JobCardHeader.JobNo}"
                 : "";
 
-            var motorNo = await _context.ChassisBatteryDetails
+            var chassisBattery = await _context.ChassisBatteryDetails
                 .Where(x => x.ChassisNo == claim.ChassisNo)
                 .OrderByDescending(x => x.CreatedDate)
-                .Select(x => x.MotorNo)
                 .FirstOrDefaultAsync();
 
-            // ASSUMPTION: LedgerName is confirmed correct on LedgerMaster.
-            // City/State on LedgerMaster are FK ints (confirmed via LedgerMasterRepo's
-            // own join pattern: "join C in _context.Cities on LM.City equals C.CityId"),
-            // not plain text - resolved below via the same join, no new entity added.
+            var motorNo = chassisBattery?.MotorNo ?? "";
+            var batteryNo = chassisBattery?.BatteryNo ?? "";
+            var chargerNo = chassisBattery?.ChargerNo ?? "";
+
             string customerNameAddress = "";
             if (claim.CustomerLedger != null)
             {
@@ -387,11 +388,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
         }.Where(s => !string.IsNullOrWhiteSpace(s)));
             }
 
-            // MODEL / MODEL CODE / VEHICLE REG NO / DATE OF SALE - all resolved via
-            // ChassisDetail (keyed by ChassisNo, same table VehicleSaleBillRepo uses
-            // for RegNo/SaleDate) then ItemMaster (keyed by ItemCode, same table
-            // ChassisRepo/ItemMasterRepo use for Itemname) - no new entities added,
-            // just the same joins already used elsewhere in this codebase.
             var chassisDetail = await _context.ChassisDetails
                 .FirstOrDefaultAsync(x => x.ChassisNo == claim.ChassisNo);
 
@@ -408,21 +404,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 modelCode = item?.Itemcode ?? "";
             }
 
-            // DATE OF FAILURE and the per-line "Observation" column genuinely don't
-            // exist anywhere in this data model - no field on WarrantyJcclaim,
-            // WarrantyJcclaimDetail, JobCardHeader, or ChassisDetail captures either
-            // of these. Left blank rather than guessing at a value; adding them
-            // would require a new column, which wasn't wanted here.
-
-            // No Dealer-master join is available in this codebase's current model
-            // (DealerCode is stored as a plain string throughout, not a FK with a
-            // navigation property) - showing the code only. Swap in a real
-            // dealer-name lookup here if a Dealer master table becomes available.
             string sellingDealerName = claim.DealerCode ?? "";
             string sellingDealerCode = claim.DealerCode ?? "";
 
-            // Consistent border color/width for every cell across every table -
-            // change once here to restyle the whole form.
+            var termsAndConditions = await _context.TermandConditionMasters
+                .Where(x => x.ConditionModule == 5)
+                .OrderBy(x => x.ConditionEffectiveDate)
+                .Select(x => x.TermCondition)
+                .ToListAsync();
+
             const float borderWidth = 0.75f;
             var borderColor = Colors.Black;
 
@@ -434,9 +424,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                     page.Margin(15);
                     page.DefaultTextStyle(x => x.FontSize(7));
 
-                    // Wraps any cell content in a consistent border, used for every
-                    // cell in every table below so the whole form reads as one
-                    // properly ruled grid instead of outer-box-only borders.
                     QuestPDF.Infrastructure.IContainer Bordered(QuestPDF.Infrastructure.IContainer c) =>
                         c.Border(borderWidth).BorderColor(borderColor).Padding(3);
 
@@ -444,11 +431,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                     {
                         col.Spacing(0);
 
-                        // ---- Title ----
                         col.Item().PaddingBottom(4).AlignCenter().Text("WARRANTY CLAIM").FontSize(14).Bold();
 
-                        // ---- Dealer Code / Year+Month / Sr.No - three separate
-                        // bordered blocks, "NO:" removed entirely ----
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -474,7 +458,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                             Block("SR.NO.", claim.ClaimNo?.ToString() ?? "");
                         });
 
-                        // ---- Selling Dealer / Customer / Parts Despatch row ----
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -511,8 +494,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                             });
                         });
 
-                        // ---- Vehicle Repaired By (its own block) + Model/RegNo/JobNo/
-                        // Service history (1-6 only) as a separate table alongside it ----
                         col.Item().Row(row =>
                         {
                             row.RelativeItem().Table(t =>
@@ -532,10 +513,10 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                             {
                                 table.ColumnsDefinition(columns =>
                                 {
-                                    columns.RelativeColumn(1.3f); // Model
-                                    columns.RelativeColumn();     // Vehicle Reg No
-                                    columns.RelativeColumn();     // Workshop Job No
-                                    for (int i = 0; i < 6; i++) columns.RelativeColumn(0.7f); // 1st-6th Ser KM/DT
+                                    columns.RelativeColumn(1.3f);
+                                    columns.RelativeColumn();
+                                    columns.RelativeColumn();
+                                    for (int i = 0; i < 6; i++) columns.RelativeColumn(0.7f);
                                 });
 
                                 Bordered(table.Cell()).Text("MODEL").FontSize(5).Bold();
@@ -547,17 +528,18 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                                 Bordered(table.Cell()).Text(modelName);
                                 Bordered(table.Cell()).Text(vehicleRegNo);
                                 Bordered(table.Cell()).Text(jobCardNo);
-                                for (int i = 0; i < 6; i++) Bordered(table.Cell()).Text(""); // service history - not tracked
+                                for (int i = 0; i < 6; i++) Bordered(table.Cell()).Text("");
                             });
                         });
 
-                        // ---- VIN / Motor / Dates / KMS row ----
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(1.4f);
-                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.3f);
+                                columns.RelativeColumn(1.1f);
+                                columns.RelativeColumn(1.1f);
+                                columns.RelativeColumn(1.1f);
                                 columns.RelativeColumn();
                                 columns.RelativeColumn();
                                 columns.RelativeColumn();
@@ -567,6 +549,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
 
                             Bordered(table.Cell()).Text("VIN / CHASSIS NO.").FontSize(6).Bold();
                             Bordered(table.Cell()).Text("MOTOR NO").FontSize(6).Bold();
+                            Bordered(table.Cell()).Text("BATTERY NO").FontSize(6).Bold();
+                            Bordered(table.Cell()).Text("CHARGER NO").FontSize(6).Bold();
                             Bordered(table.Cell()).Text("DATE OF SALE").FontSize(6).Bold();
                             Bordered(table.Cell()).Text("DATE OF FAILURE").FontSize(6).Bold();
                             Bordered(table.Cell()).Text("DATE OF REPAIR").FontSize(6).Bold();
@@ -574,71 +558,192 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                             Bordered(table.Cell()).Text("DAYS / KMS. READING AT REPAIR").FontSize(6).Bold();
 
                             Bordered(table.Cell()).Text(claim.ChassisNo ?? "");
-                            Bordered(table.Cell()).Text(motorNo ?? "");
+                            Bordered(table.Cell()).Text(motorNo);
+                            Bordered(table.Cell()).Text(batteryNo);
+                            Bordered(table.Cell()).Text(chargerNo);
                             Bordered(table.Cell()).Text(dateOfSale);
-                            // Date of Failure genuinely doesn't exist anywhere in the
-                            // data model (see chat notes) - left blank.
                             Bordered(table.Cell()).Text("");
                             Bordered(table.Cell()).Text(claim.RepairBillHeader?.CreatedDate?.ToString("dd-MM-yyyy") ?? "");
                             Bordered(table.Cell()).Text(claim.ClaimDate?.ToString("dd-MM-yyyy") ?? "");
                             Bordered(table.Cell()).Text(claim.JobCardHeader?.Vehiclekms?.ToString() ?? "");
                         });
 
-                        // ---- Main parts/labour detail table ----
+                        // ---- Part Item Details ----
+                        var partLines = claim.WarrantyJcclaimDetails.Where(d => d.ItemType == "Part").ToList();
+
+                        col.Item().PaddingTop(6).Text("Part Item Details").FontSize(7).Bold();
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(20);   // Sr.No
-                                columns.RelativeColumn(1.3f); // Part Number
-                                columns.RelativeColumn(1.8f); // Part Description
-                                columns.RelativeColumn(0.8f); // Inward Serial
-                                columns.RelativeColumn(0.8f); // Outward Serial
-                                columns.ConstantColumn(25);    // Qty
-                                columns.RelativeColumn(2f);   // Dealer Observation & RCA
-                                columns.RelativeColumn(0.8f); // Defect Code
-                                columns.RelativeColumn(0.8f); // Decision
-                                columns.RelativeColumn(0.8f); // Lab code
-                                columns.RelativeColumn(0.8f); // Mfg Dt Code
-                                columns.RelativeColumn(0.8f); // Vendor Code
-                                columns.RelativeColumn(1f);   // Observation
+                                columns.ConstantColumn(18);    // Sr.No
+                                columns.RelativeColumn(1.0f);  // Part Code
+                                columns.RelativeColumn(1.3f);  // Part Description
+                                columns.ConstantColumn(20);    // Qty
+                                columns.RelativeColumn(0.75f); // Rate
+                                columns.RelativeColumn(1.0f);  // CGST % / Amt combined
+                                columns.RelativeColumn(1.0f);  // SGST % / Amt combined
+                                columns.RelativeColumn(1.0f);  // IGST % / Amt combined
+                                columns.RelativeColumn(0.85f); // Total GST
+                                columns.RelativeColumn(0.85f); // Amount (base)
+                                columns.RelativeColumn(0.85f); // Total
+                                columns.RelativeColumn(1.6f);  // Observation & RCA - back in-grid
                             });
 
-                            void H(string t) => Bordered(table.Cell()).Background(Colors.Grey.Lighten2).Text(t).FontSize(5.5f).Bold();
+                            void PH(string t) => Bordered(table.Cell()).Background(Colors.Grey.Lighten2).Text(t).FontSize(5f).Bold();
 
-                            H("Sr.No"); H("Part Number"); H("Part Description");
-                            H("Inward Serial"); H("Outward Serial"); H("Qty.");
-                            H("Dealer Observation & RCA");
-                            H("Defect Code"); H("Decision"); H("Lab code");
-                            H("Mfg. Dt.Code"); H("Vendor Code"); H("Observation");
+                            PH("Sr.No"); PH("Part Code"); PH("Part Description"); PH("Qty.");
+                            PH("Rate");
+                            PH("CGST % / Amt"); PH("SGST % / Amt"); PH("IGST % / Amt");
+                            PH("Total GST"); PH("Amount"); PH("Total"); PH("Observation & RCA");
 
                             int srNo = 1;
-                            foreach (var d in claim.WarrantyJcclaimDetails)
+                            decimal partAmountTotal = 0, partCgstTotal = 0, partSgstTotal = 0, partIgstTotal = 0, partGstTotal = 0, partGrandTotal = 0;
+
+                            foreach (var d in partLines)
                             {
-                                bool isLabour = d.ItemType == "Labour";
                                 var rbd = d.RepairBillDetail;
-                                string code = isLabour ? (rbd?.LabourMaster?.LabourCode ?? "") : (rbd?.PartItem?.Itemcode ?? "");
-                                string desc = isLabour ? (rbd?.LabourMaster?.LabourDescription ?? "") : (rbd?.PartItem?.Itemdesc ?? "");
+                                string code = rbd?.PartItem?.Itemcode ?? "";
+                                string desc = rbd?.PartItem?.Itemdesc ?? "";
+
+                                decimal cgstPercent = rbd?.PartItem?.Cgst ?? 0;
+                                decimal cgstAmount = rbd?.Cgstamount ?? 0;
+                                decimal sgstPercent = rbd?.PartItem?.Sgst ?? 0;
+                                decimal sgstAmount = rbd?.Sgstamount ?? 0;
+                                decimal igstPercent = rbd?.PartItem?.Igst ?? 0;
+                                decimal igstAmount = rbd?.Igstamount ?? 0;
+
+                                decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;
+
                                 string observationAndRca = string.Join(" / ", new[] { d.DealerObservation, d.RootCauseAnalysis }
                                     .Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                                Bordered(table.Cell()).Text(srNo++.ToString());
+                                partAmountTotal += d.Amount ?? 0;
+                                partCgstTotal += cgstAmount;
+                                partSgstTotal += sgstAmount;
+                                partIgstTotal += igstAmount;
+                                partGstTotal += totalGstAmount;
+                                partGrandTotal += d.TotalAmount ?? 0;
+
+                                Bordered(table.Cell()).Text(srNo.ToString());
                                 Bordered(table.Cell()).Text(code);
                                 Bordered(table.Cell()).Text(desc);
-                                Bordered(table.Cell()).Text(""); // Inward Serial - not captured
-                                Bordered(table.Cell()).Text(""); // Outward Serial - not captured
                                 Bordered(table.Cell()).Text((d.Qty ?? 0).ToString());
+                                Bordered(table.Cell()).AlignRight().Text((d.Rate ?? 0).ToString("0.00"));
+                                Bordered(table.Cell()).AlignRight().Text($"{cgstPercent:0.##}% / {cgstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text($"{sgstPercent:0.##}% / {sgstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text($"{igstPercent:0.##}% / {igstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text(totalGstAmount.ToString("0.00")).Bold();
+                                Bordered(table.Cell()).AlignRight().Text((d.Amount ?? 0).ToString("0.00"));
+                                Bordered(table.Cell()).AlignRight().Text((d.TotalAmount ?? 0).ToString("0.00"));
                                 Bordered(table.Cell()).Text(observationAndRca);
-                                Bordered(table.Cell()).Text(""); // Defect Code - not captured
-                                Bordered(table.Cell()).Text(""); // Decision - not captured
-                                Bordered(table.Cell()).Text(""); // Lab code - not captured
-                                Bordered(table.Cell()).Text(""); // Mfg Dt Code - not captured
-                                Bordered(table.Cell()).Text(""); // Vendor Code - not captured
-                                Bordered(table.Cell()).Text(""); // Observation - not captured
+
+                                srNo++;
+                            }
+
+                            if (partLines.Any())
+                            {
+                                table.Cell().ColumnSpan(4).Padding(3).AlignRight().Text("Total:").Bold();
+                                table.Cell().Padding(3);
+                                table.Cell().Padding(3).AlignRight().Text(partCgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(partSgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(partIgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(partGstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(partAmountTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(partGrandTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3);
                             }
                         });
 
-                        // ---- Voice of Customer / Analysis Engr ----
+                        // ---- Labour Details ----
+                        var labourLines = claim.WarrantyJcclaimDetails.Where(d => d.ItemType == "Labour").ToList();
+
+                        col.Item().PaddingTop(6).Text("Labour Details").FontSize(7).Bold();
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.ConstantColumn(18);
+                                columns.RelativeColumn(1.0f);
+                                columns.RelativeColumn(1.3f);
+                                columns.ConstantColumn(20);
+                                columns.RelativeColumn(0.75f);
+                                columns.RelativeColumn(1.0f);
+                                columns.RelativeColumn(1.0f);
+                                columns.RelativeColumn(1.0f);
+                                columns.RelativeColumn(0.85f);
+                                columns.RelativeColumn(0.85f);
+                                columns.RelativeColumn(0.85f);
+                                columns.RelativeColumn(1.6f);
+                            });
+
+                            void LH(string t) => Bordered(table.Cell()).Background(Colors.Grey.Lighten2).Text(t).FontSize(5f).Bold();
+
+                            LH("Sr.No"); LH("Labour Code"); LH("Description"); LH("Qty.");
+                            LH("Rate");
+                            LH("CGST % / Amt"); LH("SGST % / Amt"); LH("IGST % / Amt");
+                            LH("Total GST"); LH("Amount"); LH("Total"); LH("Observation & RCA");
+
+                            int srNo = 1;
+                            decimal labourAmountTotal = 0, labourCgstTotal = 0, labourSgstTotal = 0, labourIgstTotal = 0, labourGstTotal = 0, labourGrandTotal = 0;
+
+                            foreach (var d in labourLines)
+                            {
+                                var rbd = d.RepairBillDetail;
+                                string code = rbd?.LabourMaster?.LabourCode ?? "";
+                                string desc = rbd?.LabourMaster?.LabourDescription ?? "";
+
+                                decimal cgstPercent = rbd?.LabourMaster?.Cgst ?? 0;
+                                decimal cgstAmount = rbd?.Cgstamount ?? 0;
+                                decimal sgstPercent = rbd?.LabourMaster?.Sgst ?? 0;
+                                decimal sgstAmount = rbd?.Sgstamount ?? 0;
+                                decimal igstPercent = rbd?.LabourMaster?.Igst ?? 0;
+                                decimal igstAmount = rbd?.Igstamount ?? 0;
+
+                                decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;
+
+                                string observationAndRca = string.Join(" / ", new[] { d.DealerObservation, d.RootCauseAnalysis }
+                                    .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                                labourAmountTotal += d.Amount ?? 0;
+                                labourCgstTotal += cgstAmount;
+                                labourSgstTotal += sgstAmount;
+                                labourIgstTotal += igstAmount;
+                                labourGstTotal += totalGstAmount;
+                                labourGrandTotal += d.TotalAmount ?? 0;
+
+                                Bordered(table.Cell()).Text(srNo.ToString());
+                                Bordered(table.Cell()).Text(code);
+                                Bordered(table.Cell()).Text(desc);
+                                Bordered(table.Cell()).Text((d.Qty ?? 0).ToString());
+                                Bordered(table.Cell()).AlignRight().Text((d.Rate ?? 0).ToString("0.00"));
+                                Bordered(table.Cell()).AlignRight().Text($"{cgstPercent:0.##}% / {cgstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text($"{sgstPercent:0.##}% / {sgstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text($"{igstPercent:0.##}% / {igstAmount:0.00}");
+                                Bordered(table.Cell()).AlignRight().Text(totalGstAmount.ToString("0.00")).Bold();
+                                Bordered(table.Cell()).AlignRight().Text((d.Amount ?? 0).ToString("0.00"));
+                                Bordered(table.Cell()).AlignRight().Text((d.TotalAmount ?? 0).ToString("0.00"));
+                                Bordered(table.Cell()).Text(observationAndRca);
+
+                                srNo++;
+                            }
+
+                            if (labourLines.Any())
+                            {
+                                table.Cell().ColumnSpan(4).Padding(3).AlignRight().Text("Total:").Bold();
+                                table.Cell().Padding(3);
+                                table.Cell().Padding(3).AlignRight().Text(labourCgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(labourSgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(labourIgstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(labourGstTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(labourAmountTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3).AlignRight().Text(labourGrandTotal.ToString("0.00")).Bold();
+                                table.Cell().Padding(3);
+                            }
+                        });
+
+                        var grandTotal = partLines.Sum(d => d.TotalAmount ?? 0) + labourLines.Sum(d => d.TotalAmount ?? 0);
+                        col.Item().PaddingTop(4).AlignRight().Text($"Grand Total: {grandTotal:0.00}").FontSize(8).Bold();
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -647,37 +752,27 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                                 columns.RelativeColumn();
                             });
 
-                            Bordered(table.Cell()).Text("Voice of Customers : "); // not captured - label only
+                            Bordered(table.Cell()).Text("Voice of Customers : ");
                             Bordered(table.Cell()).Text("ANALYSIS\nENGR.").FontSize(6).Bold();
                         });
 
-                        // ---- Notes / Instructions footer (no borders - plain text,
-                        // matching the reference form) ----
-                        col.Item().PaddingTop(6).Row(row =>
+                        col.Item().PaddingTop(6).Column(c =>
                         {
-                            row.RelativeItem().Column(c =>
-                            {
-                                c.Item().Text("NOTE :").Bold();
-                                c.Item().Text("1. This claim form is valid for warranty of all models.");
-                                c.Item().Text("2. Please verify vehicle details filled in warranty claim form with WR.");
-                                c.Item().Text("3. TAG all warranty parts. Tags should be of specified design only.");
-                                c.Item().Text("4. Pack all parts in the same carton box.");
-                                c.Item().Text("5. Affix a sticker indicating dealer code & claim no. on each part.");
-                                c.Item().Text("6. For warranty packing, preferably re-use the carton box sent during spare dispatch to dealer.");
-                                c.Item().Text("7. \"Warranty\" to be written on the boxes so as to identify it as warranty consignment.");
-                            });
+                            c.Item().Text("TERMS & CONDITIONS").Bold();
 
-                            row.RelativeItem().Column(c =>
+                            if (termsAndConditions.Any())
                             {
-                                c.Item().Text("IMPORTANT INSTRUCTIONS").Bold();
-                                c.Item().Text("1. Incomplete claim form in any respect is liable for rejection.");
-                                c.Item().Text("2. The claim form should be system generated (DMS).");
-                                c.Item().Text("3. The material parcel weight upto 5 kgs should be sent by registered post parcel only.");
-                                c.Item().Text("4. All parcels more than 5 kgs to be booked to plant of transporter.");
-                                c.Item().Text("5. Material should be sent only through recommended transporters only.");
-                                c.Item().Text("6. Do not send material through railway/train.");
-                                c.Item().Text("7. Do not change original claim form serial number.");
-                            });
+                                int termNo = 1;
+                                foreach (var term in termsAndConditions)
+                                {
+                                    c.Item().Text($"{termNo}. {term}");
+                                    termNo++;
+                                }
+                            }
+                            else
+                            {
+                                c.Item().Text("No terms and conditions configured for this module.").FontSize(6).Italic();
+                            }
                         });
 
                         col.Item().PaddingTop(10).Row(row =>
@@ -690,6 +785,71 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
             });
 
             return document.GeneratePdf();
+        }
+
+        public async Task<bool> UpdateWarrantyJCClaim(WarrantyJCClaimUpdateViewModel model)
+        {
+            var claim = await _context.WarrantyJcclaims
+                .FirstOrDefaultAsync(x => x.Id == model.ClaimId);
+
+            if (claim == null)
+                return false;
+
+            foreach (var lineUpdate in model.Lines)
+            {
+                var detail = await _context.WarrantyJcclaimDetails
+                    .FirstOrDefaultAsync(d => d.Id == lineUpdate.DetailId && d.WarrantyJcclaimHeaderId == model.ClaimId);
+
+                if (detail == null)
+                    continue;
+
+                detail.DealerObservation = lineUpdate.DealerObservation;
+                detail.RootCauseAnalysis = lineUpdate.RootCauseAnalysis;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<(bool Success, string? ErrorMessage)> DeleteWarrantyJCClaim(int id)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var claim = await _context.WarrantyJcclaims
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (claim == null)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, $"Warranty Claim with Id {id} not found.");
+                }
+
+                var orderLinks = await _context.WarrantyOrderDetails
+                    .Where(d => d.WarrantyJcclaimId == id)
+                    .ToListAsync();
+                _context.WarrantyOrderDetails.RemoveRange(orderLinks);
+                var gridSnapshotRows = await _context.WarrantyOrderGridDetails
+                    .Where(g => g.WarrantyJcclaimId == id)
+                    .ToListAsync();
+                _context.WarrantyOrderGridDetails.RemoveRange(gridSnapshotRows);
+
+                var details = await _context.WarrantyJcclaimDetails
+                    .Where(d => d.WarrantyJcclaimHeaderId == id)
+                    .ToListAsync();
+                _context.WarrantyJcclaimDetails.RemoveRange(details);
+
+                _context.WarrantyJcclaims.Remove(claim);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (true, null);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

@@ -145,5 +145,65 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, $"An error occurred while generating the Warranty Claim PDF: {ex.Message}");
             }
         }
+
+        // ============================================================
+        // ADD to WarrantyJCClaimController class:
+        // ============================================================
+
+        [HttpPut("UpdateWarrantyJCClaim")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateWarrantyJCClaim([FromBody] WarrantyJCClaimUpdateViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var success = await _WarrantyjobCardClaimRepo.UpdateWarrantyJCClaim(model);
+                if (!success)
+                    return NotFound($"Warranty Claim with Id {model.ClaimId} not found.");
+
+                return Ok(new { message = "Warranty Claim updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UpdateWarrantyJCClaim");
+                return StatusCode(500, $"An error occurred while updating the Warranty Claim: {ex.Message}");
+            }
+        }
+
+        // ============================================================
+        // ADD to WarrantyJCClaimController class:
+        // ============================================================
+
+        [HttpDelete("DeleteWarrantyJCClaim/{id}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteWarrantyJCClaim(int id)
+        {
+            try
+            {
+                var (success, errorMessage) = await _WarrantyjobCardClaimRepo.DeleteWarrantyJCClaim(id);
+
+                if (!success)
+                {
+                    // Not-found vs blocked-by-order-link both surface as 400 here -
+                    // the message itself tells the user which case it was.
+                    return BadRequest(errorMessage);
+                }
+
+                return Ok(new { message = "Warranty Claim deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DeleteWarrantyJCClaim");
+                return StatusCode(500, $"An error occurred while deleting the Warranty Claim: {ex.Message}");
+            }
+        }
     }
 }
