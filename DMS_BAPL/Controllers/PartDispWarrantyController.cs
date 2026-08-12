@@ -89,7 +89,6 @@ namespace DMS_BAPL_Api.Controllers
                         Chassisnumber = model.Chassisnumber,
                         Itemcode = model.Itemcode,
                         Serialno = model.Serialno,
-                        Vendorid = model.Vendorid,
                         Dealercode = model.Dealercode,
                         Devicetype = model.Devicetype,
                         Itemqty = model.Itemqty,
@@ -97,7 +96,8 @@ namespace DMS_BAPL_Api.Controllers
                         Mfgdate = model.Mfgdate,
                         Invoiceitemcode = model.Invoiceitemcode,
                         Lineno = model.Lineno,
-                        InvoiceAmt = model.InvoiceAmt   // ADDED
+                        InvoiceAmt = model.InvoiceAmt
+                        // REMOVED: Vendorid = model.Vendorid
                     };
 
                     var created = await _service.CreateAsync(entity, userId);

@@ -191,7 +191,7 @@ namespace DMS_BAPL_Api.Controllers
                         ItemDisc = model.ItemDisc,
                         DiscountType = model.DiscountType,
                         LocCode = model.LocCode,
-                        VendorIdno = model.VendorIdno,
+                        // REMOVED: VendorIdno = model.VendorIdno
                         DealerCode = model.DealerCode
                     };
 
@@ -199,7 +199,8 @@ namespace DMS_BAPL_Api.Controllers
 
                     if (!string.IsNullOrEmpty(result.PartNo) && result.PartNo.ToUpper().Contains("EW"))
                     {
-                        await _partInwardService.CreateFromDispatchAsync(result, userId);
+                        bool isAccepted = model.IsAccepted ?? false;
+                        await _partInwardService.CreateFromDispatchAsync(result, userId, isAccepted);
                     }
 
                     results.Add(result);

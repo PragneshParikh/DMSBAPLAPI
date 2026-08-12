@@ -73,7 +73,7 @@ namespace DMS_BAPL_Data.Repositories.PartDispatchRepo
                 existing.ItemDisc = item.ItemDisc;
                 existing.DiscountType = item.DiscountType;
                 existing.LocCode = item.LocCode;
-                existing.VendorIdno = item.VendorIdno;
+                //existing.VendorIdno = item.VendorIdno;
                 existing.DealerCode = item.DealerCode;
 
                 existing.UpdatedBy = userId;

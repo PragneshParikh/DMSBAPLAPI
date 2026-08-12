@@ -64,7 +64,7 @@ namespace DMS_BAPL_Data.Repositories.PartDispWarrantyRepo
                 existing.Chassisnumber = item.Chassisnumber;
                 existing.Itemcode = item.Itemcode;
                 existing.Serialno = item.Serialno;
-                existing.Vendorid = item.Vendorid;
+                //existing.Vendorid = item.Vendorid;
                 existing.Dealercode = item.Dealercode;
                 existing.Devicetype = item.Devicetype;
                 existing.Itemqty = item.Itemqty;
