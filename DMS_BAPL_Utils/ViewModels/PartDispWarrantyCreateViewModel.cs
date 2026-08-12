@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// PartDispWarrantyCreateViewModel.cs
+using System;
 using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Utils.ViewModels
@@ -24,8 +24,8 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("serialno")]
         public string? Serialno { get; set; }
 
-        [JsonPropertyName("vendorid")]
-        public int? Vendorid { get; set; }
+        //[JsonPropertyName("vendorid")]
+        //public int? Vendorid { get; set; }
 
         [JsonPropertyName("dealercode")]
         public string? Dealercode { get; set; }
@@ -48,15 +48,13 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("lineno")]
         public int? Lineno { get; set; }
 
-        // ADDED
         [JsonPropertyName("invoiceAmt")]
         public decimal? InvoiceAmt { get; set; }
     }
 
-    // ADDED — matches the { "data": [ ... ] } wrapper shape from your sample payload
     public class PartDispWarrantyBulkCreateViewModel
     {
         [JsonPropertyName("data")]
-        public List<PartDispWarrantyCreateViewModel> Data { get; set; } = new();
+        public System.Collections.Generic.List<PartDispWarrantyCreateViewModel> Data { get; set; } = new();
     }
 }

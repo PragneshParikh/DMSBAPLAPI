@@ -138,7 +138,7 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
         }
 
-        public async Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId)
+        public async Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId, bool isAccepted)
         {
             var inward = new PartsInward
             {
@@ -156,7 +156,8 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 Igst = dispatch.Igst ?? 0,
                 LocCode = dispatch.LocCode,
                 DealerCode = dispatch.DealerCode,
-                IsAccepted = false,          
+                IsAccepted = isAccepted,        // CHANGED — from payload, not hardcoded false
+                SourceType = "ERP",             // ADDED — fits source_type's 10-char limit (fixes the truncation error)
                 CreatedBy = userId,
                 CreatedDate = DateTime.UtcNow
             };

@@ -50,8 +50,11 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("loc_code")]
         public string? LocCode { get; set; }
 
-        [JsonPropertyName("vendor_idno")]
-        public int? VendorIdno { get; set; }
+        //[JsonPropertyName("vendor_idno")]
+        //public int? VendorIdno { get; set; }
+
+        [JsonPropertyName("isAccepted")]
+        public bool? IsAccepted { get; set; }
 
         [JsonPropertyName("dealer_code")]
         public string? DealerCode { get; set; }

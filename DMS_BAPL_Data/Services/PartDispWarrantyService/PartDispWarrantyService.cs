@@ -48,7 +48,7 @@ namespace DMS_BAPL_Data.Services.PartDispWarrantyService
                     Chassisnumber = row.Cell(4).GetString(),
                     Itemcode = row.Cell(5).GetString(),
                     Serialno = row.Cell(6).GetString(),
-                    Vendorid = int.TryParse(row.Cell(7).GetString(), out var vid) ? vid : (int?)null,
+                    //Vendorid = int.TryParse(row.Cell(7).GetString(), out var vid) ? vid : (int?)null,
                     Dealercode = row.Cell(8).GetString(),
                     Devicetype = row.Cell(9).GetString(),
                     Itemqty = int.TryParse(row.Cell(10).GetString(), out var qty) ? qty : (int?)null,

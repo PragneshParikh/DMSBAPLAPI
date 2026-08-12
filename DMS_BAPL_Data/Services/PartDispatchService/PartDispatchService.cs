@@ -58,7 +58,7 @@ namespace DMS_BAPL_Data.Services.PartDispatchService
                     ItemDisc = ParseDecimal(row.Cell(13).GetString()),
                     DiscountType = row.Cell(14).GetString(),
                     LocCode = row.Cell(15).GetString(),
-                    VendorIdno = ParseInt(row.Cell(16).GetString()),
+                    //VendorIdno = ParseInt(row.Cell(16).GetString()),
                     DealerCode = row.Cell(17).GetString()
                 };
 
