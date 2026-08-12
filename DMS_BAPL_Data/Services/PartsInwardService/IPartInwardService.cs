@@ -18,6 +18,7 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<object> PartsInward(PartsInwardViewModel partsInwardViewModel);
         Task<IEnumerable<PartsInward>> GetPendingPartInwardDetailByLocation(string locationCode);
         Task<object> GetInwardPartDetailsByInvoiceNo(string invoiceNo);
+        Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId);
         Task<Object> GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode);
         Task<byte[]> DownloadPartsInwardExcel(DateTime fromDate, DateTime toDate, string? dealerCode);
     }

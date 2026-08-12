@@ -32,6 +32,8 @@ namespace DMS_BAPL_Data.Services.PartsInwardService
         Task<object> IPartInwardService.GetInwardPartDetailsByInvoiceNo(string invoiceNo) => _partInwardRepo.GetInwardPartDetailsByInvoiceNo(invoiceNo);
         Task<Object> IPartInwardService.GetPartsInwardDetailsByDealer(int pageIndex, int pageSize, DateTime fromDate, DateTime toDate, string? dealerCode) => _partInwardRepo.GetPartsInwardDetailsByDealer(pageIndex, pageSize, fromDate, toDate, dealerCode);
         Task<PartsInward?> IPartInwardService.GetLatestByPartNoAsync(string partNo) => _partInwardRepo.GetLatestByPartNoAsync(partNo);
+        public Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId)
+             => _partInwardRepo.CreateFromDispatchAsync(dispatch, userId);
         public async Task<byte[]> DownloadPartsInwardExcel(DateTime fromDate, DateTime toDate, string? dealerCode)
         {
             try

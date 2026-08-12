@@ -138,6 +138,35 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
         }
 
+        public async Task<PartsInward> CreateFromDispatchAsync(DmsPartDispatch dispatch, string userId)
+        {
+            var inward = new PartsInward
+            {
+                InvoiceNo = dispatch.InvoiceNo,
+                InvoiceDate = dispatch.InvoiceDate ?? DateTime.UtcNow,
+                PartNo = dispatch.PartNo,
+                ItemHsncode = dispatch.ItemHsncode,
+                ItemRate = dispatch.ItemRate ?? 0,
+                ItemMrp = dispatch.ItemMrp ?? 0,
+                ItemQty = dispatch.ItemQty ?? 0,
+                ItemDisc = dispatch.ItemDisc ?? 0,
+                DiscountType = dispatch.DiscountType,
+                Cgst = dispatch.Cgst ?? 0,
+                Sgst = dispatch.Sgst ?? 0,
+                Igst = dispatch.Igst ?? 0,
+                LocCode = dispatch.LocCode,
+                DealerCode = dispatch.DealerCode,
+                IsAccepted = false,          
+                CreatedBy = userId,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _context.PartsInwards.Add(inward);
+            await _context.SaveChangesAsync();
+
+            return inward;
+        }
+
         async Task<object> IPartInwardRepo.PartsInward(PartsInwardViewModel partsInwardViewModel)
         {
             var exist = await _context.PartsInwards
