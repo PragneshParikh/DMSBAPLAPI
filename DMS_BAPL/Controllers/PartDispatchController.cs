@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.PartDispatchService;
+using DMS_BAPL_Data.Services.PartsInwardService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
@@ -12,10 +13,12 @@ namespace DMS_BAPL_Api.Controllers
     public class PartDispatchController : ControllerBase
     {
         private readonly IPartDispatchService _service;
+        private readonly IPartInwardService _partInwardService;
 
-        public PartDispatchController(IPartDispatchService service)
+        public PartDispatchController(IPartDispatchService service, IPartInwardService partInwardService)
         {
             _service = service;
+            _partInwardService = partInwardService;
         }
 
         /// <summary>
@@ -109,12 +112,56 @@ namespace DMS_BAPL_Api.Controllers
         /// Create one or more records. Send a plain JSON array, e.g. [ {...}, {...} ].
         /// Id is auto-generated — do not send it.
         /// </summary>
+        //[HttpPost("~/api/erppartdispatch/dispatch")]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //public async Task<IActionResult> Create([FromBody] List<PartDispatchCreateViewModel> models)
+        //{
+        //    if (models == null || models.Count == 0)
+        //        return BadRequest(new { success = false, message = "Invalid data" });
+
+        //    try
+        //    {
+        //        string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+        //        if (string.IsNullOrEmpty(userId))
+        //            return Unauthorized("User not authorized");
+
+        //        var entities = models.Select(model => new DmsPartDispatch
+        //        {
+        //            InvoiceDate = model.InvoiceDate,
+        //            InvoiceNo = model.InvoiceNo,
+        //            PartNo = model.PartNo,
+        //            ItemIdno = model.ItemIdno,
+        //            ItemHsncode = model.ItemHsncode,
+        //            ItemRate = model.ItemRate,
+        //            ItemMrp = model.ItemMrp,
+        //            ItemQty = model.ItemQty,
+        //            Sgst = model.Sgst,
+        //            Cgst = model.Cgst,
+        //            Igst = model.Igst,
+        //            Ugst = model.Ugst,
+        //            ItemDisc = model.ItemDisc,
+        //            DiscountType = model.DiscountType,
+        //            LocCode = model.LocCode,
+        //            VendorIdno = model.VendorIdno,
+        //            DealerCode = model.DealerCode
+        //        }).ToList();
+
+        //        var results = await _service.CreateBulkAsync(entities, userId);
+        //        return Ok(new { success = true, data = results });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+        //    }
+        //}
+
         [HttpPost("~/api/erppartdispatch/dispatch")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create([FromBody] List<PartDispatchCreateViewModel> models)
+        public async Task<IActionResult> Create([FromBody] PartDispatchCreateViewModel model)
         {
-            if (models == null || models.Count == 0)
+            if (model == null)
                 return BadRequest(new { success = false, message = "Invalid data" });
 
             try
@@ -123,7 +170,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var entities = models.Select(model => new DmsPartDispatch
+                var entity = new DmsPartDispatch
                 {
                     InvoiceDate = model.InvoiceDate,
                     InvoiceNo = model.InvoiceNo,
@@ -142,10 +189,16 @@ namespace DMS_BAPL_Api.Controllers
                     LocCode = model.LocCode,
                     VendorIdno = model.VendorIdno,
                     DealerCode = model.DealerCode
-                }).ToList();
+                };
 
-                var results = await _service.CreateBulkAsync(entities, userId);
-                return Ok(new { success = true, data = results });
+                var result = await _service.CreateAsync(entity, userId);
+
+                if (!string.IsNullOrEmpty(result.PartNo) && result.PartNo.ToUpper().Contains("EW"))
+                {
+                    await _partInwardService.CreateFromDispatchAsync(result, userId);
+                }
+
+                return Ok(new { success = true, data = result });
             }
             catch (Exception ex)
             {
