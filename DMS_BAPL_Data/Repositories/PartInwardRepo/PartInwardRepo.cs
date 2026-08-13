@@ -32,12 +32,21 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return await Task.FromResult(_context.PartsInwards.ToList());
         }
 
+        //async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetPartInwardByDealerAsync(string dealerCode)
+        //{
+        //    return await Task.FromResult(_context.PartsInwards.Where(p => p.DealerCode == dealerCode && p.IsAccepted == false).ToList());
+        //}
+
         async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetPartInwardByDealerAsync(string dealerCode)
         {
-            return await Task.FromResult(_context.PartsInwards.Where(p => p.DealerCode == dealerCode && p.IsAccepted == false).ToList());
+            return await Task.FromResult(
+                _context.PartsInwards
+                    .Where(p => p.DealerCode == dealerCode
+                             && p.IsAccepted == false
+                             && (p.PartNo == null || !p.PartNo.Contains("EW")))   // ADDED — exclude EW parts, they belong only in the EBW tab
+                    .ToList());
         }
 
-        // ADDED — same filter as GetPartInwardByDealerAsync, plus PartNo containing "EW"
         async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetEbwPartInwardByDealerAsync(string dealerCode)
         {
             return await Task.FromResult(

@@ -335,6 +335,7 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                 {
                     rows.Add(new
                     {
+                        HeaderId = h.Id,
                         DealerCode = h.DealerCode,
                         LocationCode = h.LocationCode,
                         LocationName = locationName,
