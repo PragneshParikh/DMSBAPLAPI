@@ -237,6 +237,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyInvoiceGridDetail> WarrantyInvoiceGridDetails { get; set; }
     public virtual DbSet<UwLineItem> UwLineItems { get; set; }
 
+    public virtual DbSet<WarrantyPackingSlip> WarrantyPackingSlips { get; set; }
+    public virtual DbSet<WarrantyPackingSlipBox> WarrantyPackingSlipBoxes { get; set; }
+    public virtual DbSet<WarrantyPackingSlipDetail> WarrantyPackingSlipDetails { get; set; }
+
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -4710,6 +4714,88 @@ public partial class BapldmsvadContext : DbContext
             .OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("FK_UwLineItem_WarrantyJcclaim"); 
     });
+
+        modelBuilder.Entity<WarrantyPackingSlip>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("WarrantyPackingSlip");
+
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SlipPrefix)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SlipNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SlipDate).HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WarrantyInvoiceHeader).WithMany()
+                .HasForeignKey(d => d.WarrantyInvoiceHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyPackingSlip_WarrantyInvoice");
+        });
+
+        modelBuilder.Entity<WarrantyPackingSlipBox>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("WarrantyPackingSlipBox");
+
+            entity.Property(e => e.BoxNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BoxType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Length).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Width).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Height).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Weight).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WarrantyPackingSlipHeader).WithMany(p => p.WarrantyPackingSlipBoxes)
+                .HasForeignKey(d => d.WarrantyPackingSlipHeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyPackingSlipBox_Header");
+        });
+
+        modelBuilder.Entity<WarrantyPackingSlipDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("WarrantyPackingSlipDetail");
+
+            entity.Property(e => e.PrnNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WarrantyPackingSlipBox).WithMany(p => p.WarrantyPackingSlipDetails)
+                .HasForeignKey(d => d.WarrantyPackingSlipBoxId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyPackingSlipDetail_Box");
+
+            entity.HasOne(d => d.WarrantyOrderGridDetail).WithMany()
+                .HasForeignKey(d => d.WarrantyOrderGridDetailId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyPackingSlipDetail_OrderGridDetail");
+        });
         OnModelCreatingPartial(modelBuilder);
 
 

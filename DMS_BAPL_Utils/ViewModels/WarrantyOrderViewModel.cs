@@ -160,4 +160,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerObservation { get; set; }
         public string? RootCauseAnalysis { get; set; }
     }
+
+    public class LocationDropdownItemViewModel
+    {
+        public string? Loccode { get; set; }
+        public string? Locname { get; set; }
+    }
+
 }

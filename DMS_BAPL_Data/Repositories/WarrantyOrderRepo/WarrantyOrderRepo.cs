@@ -60,10 +60,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
                     _context.WarrantyOrderDetails.AddRange(details);
                     await _context.SaveChangesAsync();
-
-                    // Snapshot fully-resolved grid rows now, while everything
-                    // is known-good - reading the grid later never needs to
-                    // re-join JobCardHeader/RepairBillHeader/etc again.
                     foreach (var claimId in model.WarrantyClaimIds)
                     {
                         await SnapshotClaimGridRows(header.Id, claimId, userId);
@@ -106,13 +102,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 header.IsApproved = model.IsApproved;
                 header.UpdatedBy = userId;
                 header.UpdatedDate = DateTime.Now;
-
-                // Replace the claim links wholesale - simplest correct approach
-                // for a batch editor where the claim list can be re-selected.
                 _context.WarrantyOrderDetails.RemoveRange(header.WarrantyOrderDetails);
-
-                // Also clear the old grid snapshot - it'll be rebuilt below
-                // for whatever the new claim list ends up being.
                 var oldGridRows = await _context.WarrantyOrderGridDetails
                     .Where(g => g.WarrantyOrderHeaderId == header.Id)
                     .ToListAsync();
@@ -156,13 +146,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             if (header == null)
                 return false;
-
-            // Soft delete - keeps this row (and everything referencing it:
-            // WarrantyOrderDetail, WarrantyOrderGridDetail) fully intact in
-            // the DB. Only SearchWarrantyOrders (the List page) filters on
-            // IsActive, so this order disappears from that list specifically
-            // while remaining fully viewable via GetWarrantyOrderById (which
-            // does NOT filter on IsActive) if navigated to directly.
             header.IsActive = false;
             header.UpdatedBy = userId;
             header.UpdatedDate = DateTime.Now;
@@ -173,26 +156,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
         public async Task<WarrantyOrderViewModel?> GetWarrantyOrderById(int id)
         {
-            // No IsActive filter here, deliberately - a soft-deleted order
-            // (removed only from the List page's search results) should
-            // still be fully viewable if navigated to directly, along with
-            // its WarrantyOrderGridDetail snapshot, which is untouched
-            // either way since DeleteWarrantyOrder no longer removes rows.
             var header = await _context.WarrantyOrders
                 .Include(x => x.WarrantyOrderDetails)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (header == null)
                 return null;
-
-            // Read straight from the snapshot - no live joins, so display is
-            // immune to any future changes/mismatches in the source data.
             var gridRows = await _context.WarrantyOrderGridDetails
                 .Where(g => g.WarrantyOrderHeaderId == id)
                 .ToListAsync();
-
-            // Per-claim approval lives on WarrantyOrderDetail (the link table),
-            // not the grid snapshot - merged in below by claim id.
             var approvalByClaimId = header.WarrantyOrderDetails
                 .ToDictionary(d => d.WarrantyJcclaimId, d => d.IsApproved);
 
@@ -204,10 +176,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     return new WarrantyJCClaimFullViewModel
                     {
                         Id = grp.Key,
-                        // Snapshot stores the already-combined "{Prefix}{Number}"
-                        // display string in ClaimNo (see SnapshotClaimGridRows) -
-                        // put it in ClaimPrefix and leave ClaimNo null, since the
-                        // frontend just concatenates both back together anyway.
                         ClaimPrefix = first.ClaimNo,
                         ClaimNo = null,
                         ClaimDate = first.ClaimDate,
@@ -223,7 +191,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                         PartyName = first.PartyName,
                         IsApproved = approvalByClaimId.TryGetValue(grp.Key, out var approved) && approved,
                         Details = grp
-                            .Where(g => g.ItemType != null) // skip the empty-details placeholder row
+                            .Where(g => g.ItemType != null) 
                             .Select(g => new WarrantyJCClaimDetailLineViewModel
                             {
                                 ItemType = g.ItemType,
@@ -240,16 +208,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                                 IgstPercent = g.IgstPercent ?? 0,
                                 IgstAmount = g.IgstAmount ?? 0,
                                 TotalAmount = g.TotalAmount ?? 0,
-                                Mrp = g.Mrp
+                                Mrp = g.Mrp,
+                                Rate = g.Mrp
                             }).ToList()
                     };
                 })
                 .ToList();
 
-            // Resolved unscoped - header.Location can legitimately belong to
-            // a different dealer than the one viewing this order (the exact
-            // gap that left the Location dropdown blank: it was only ever
-            // searched within the current user's own dealer's locations).
             var headerLocationName = !string.IsNullOrWhiteSpace(header.Location)
                 ? await _context.LocationMasters
                     .Where(l => l.Loccode == header.Location)
@@ -284,11 +249,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 .Include(x => x.WarrantyOrderDetails)
                 .AsQueryable();
 
-            // Default (IncludeInactive = false) keeps the current behavior -
-            // the List page never sees soft-deleted orders. Only the form
-            // page's "show the latest order" fallback passes true, so that
-            // view can still find an order after it's been deleted from the
-            // List specifically.
             if (!filter.IncludeInactive)
                 query = query.Where(x => x.IsActive);
 
@@ -347,8 +307,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     IsActive = x.IsActive
                 })
                 .ToListAsync();
-
-            // Temporary result wrapper - see note on WarrantyOrderSearchResultViewModel.
             return new WarrantyOrderSearchResultViewModel
             {
                 Items = items,
@@ -360,15 +318,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
         public async Task<NextOrderNumberViewModel> GetNextOrderNumbers(string dealerCode)
         {
-            // Indian financial year: April -> March. Aug 2026 => FY "26-27".
             var today = DateTime.Now;
             int fyStartYear = today.Month >= 4 ? today.Year : today.Year - 1;
             int fyEndYear = fyStartYear + 1;
             string fySuffix = $"{fyStartYear % 100:D2}-{fyEndYear % 100:D2}";
             string batchSuffix = $"BT/{fySuffix}";
-
-            // Batch No format: "{seq}/BT/26-27" - seq resets each FY since the
-            // suffix changes, scoped per dealer.
             var existingBatchNos = await _context.WarrantyOrders
                 .Where(x => x.DealerCode == dealerCode && x.BatchNo.EndsWith("/" + batchSuffix))
                 .Select(x => x.BatchNo)
@@ -382,8 +336,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     maxBatchSeq = seq;
             }
             string nextBatchNo = $"{maxBatchSeq + 1}/{batchSuffix}";
-
-            // Order No: plain running integer starting at 1, scoped per dealer.
             var existingOrderNos = await _context.WarrantyOrders
                 .Where(x => x.DealerCode == dealerCode)
                 .Select(x => x.OrderNo)
@@ -409,9 +361,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             return await BuildClaimFullViewModel(id);
         }
 
-        // Extracted so both the live-lookup endpoint (GetWarrantyJCClaimById,
-        // used while a claim is still pending/unsaved) and the save-time
-        // snapshot (SnapshotClaimGridRows) share exactly one resolution path.
         private async Task<WarrantyJCClaimFullViewModel?> BuildClaimFullViewModel(int id)
         {
             var claim = await _context.WarrantyJcclaims
@@ -432,20 +381,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             if (claim == null)
                 return null;
-
-            // Motor No - same lookup JobCardRepo.GetIssueTypebasedJobDetail uses
-            // for the original Warranty JobCard Claim screen: latest
-            // ChassisBatteryDetail row for this chassis.
             var motorNo = await _context.ChassisBatteryDetails
                 .Where(x => x.ChassisNo == claim.ChassisNo)
                 .OrderByDescending(x => x.CreatedDate)
                 .Select(x => x.MotorNo)
                 .FirstOrDefaultAsync();
 
-            // Location name - same join key (Serviceloc = Loccode) the Job
-            // Search on Warranty JobCard Claim already resolves successfully.
-            // No locareaidno filter here - that's for dropdown options only,
-            // not for identifying what this job's actual location is.
             var locationName = claim.JobCardHeader != null
                 ? await _context.LocationMasters
                     .Where(l => l.Loccode == claim.JobCardHeader.Serviceloc)
@@ -466,9 +407,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     : null,
                 JobCardDate = claim.JobCardHeader?.JobinDate?.ToDateTime(TimeOnly.MinValue),
 
-                // Defaulting to the repair bill as "Invoice" - see note in
-                // WarrantyJCClaimFullViewModel.cs if JobCardHeader.InvoiceNo
-                // (the original vehicle-sale invoice) is what's actually meant.
                 InvoiceNo = claim.RepairBillHeader != null
                     ? $"{claim.RepairBillHeader.Prefix}{claim.RepairBillHeader.BillNo}"
                     : null,
@@ -489,12 +427,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     bool isLabour = d.ItemType == "Labour";
                     var rbd = d.RepairBillDetail;
 
-                    // Tax % display still comes from the master (Cgst/Sgst/Igst percent
-                    // aren't stored on WarrantyJcclaimDetail), but the actual monetary
-                    // values (Rate, Amount, GST amount, Total, Mrp) MUST come from the
-                    // saved WarrantyJcclaimDetail row (d) - that's the data the user
-                    // actually entered/validated when saving the claim, not whatever the
-                    // original repair bill line happens to show today.
+                    var cgstAmount = rbd?.Cgstamount ?? 0;
+                    var sgstAmount = rbd?.Sgstamount ?? 0;
+                    var dlrPrice = !isLabour
+                        ? (rbd?.PartItem?.Dlrprice ?? 0)
+                        : ((rbd?.LabourMaster?.LabourRate ?? rbd?.PartWiseLabour?.LabourRate) ?? 0);
+                    var mrp = cgstAmount + sgstAmount + dlrPrice;
 
                     return new WarrantyJCClaimDetailLineViewModel
                     {
@@ -513,25 +451,25 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                             : null,
 
                         Quantity = d.Qty ?? 0,
-                        Rate = d.Rate ?? 0, 
 
                         CgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0)
                             : (rbd?.PartItem?.Cgst ?? 0),
+                        CgstAmount = cgstAmount,
+
                         SgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0)
                             : (rbd?.PartItem?.Sgst ?? 0),
+                        SgstAmount = sgstAmount,
+
                         IgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0)
                             : (rbd?.PartItem?.Igst ?? 0),
-                        CgstAmount = d.ItemType != null && d.TaxAmount.HasValue ? 0 : 0, 
-                        SgstAmount = 0,                                                  
-                        IgstAmount = d.TaxAmount ?? 0,
+                        IgstAmount = rbd?.Igstamount ?? 0,
 
                         TotalAmount = d.TotalAmount ?? 0,
-                        Amount = d.Amount ?? 0,     
-                        Mrp = d.Mrp ?? 0,           
-
+                        Mrp = mrp,
+                        Rate = mrp,
                         DealerObservation = d.DealerObservation,
                         RootCauseAnalysis = d.RootCauseAnalysis
                     };
@@ -539,10 +477,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             };
         }
 
-        // Resolves a claim once via BuildClaimFullViewModel, then persists
-        // its fully-resolved data into WarrantyOrderGridDetail - one row per
-        // part/labour line, or a single placeholder row (ItemType = null) if
-        // the claim has no line items, so it still appears in the grid.
+    
         private async Task SnapshotClaimGridRows(int orderHeaderId, int claimId, string userId)
         {
             var claim = await BuildClaimFullViewModel(claimId);
@@ -569,7 +504,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     ChassisNo = claim.ChassisNo,
                     MotorNo = claim.MotorNo,
                     PartyName = claim.PartyName,
-                    ItemType = null, // placeholder - no line items on this claim
+                    ItemType = null, 
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 });
@@ -752,6 +687,63 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             });
 
             return document.GeneratePdf();
+        }
+
+   
+
+        public async Task<List<string>> SearchBatchNos(string dealerCode, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return new List<string>();
+
+            return await _context.WarrantyOrders
+                .Where(x => x.DealerCode == dealerCode && x.BatchNo.Contains(searchText))
+                .Select(x => x.BatchNo)
+                .Distinct()
+                .OrderByDescending(b => b)
+                .Take(20)
+                .ToListAsync();
+        }
+
+        public async Task<List<string>> SearchOrderNos(string dealerCode, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return new List<string>();
+
+            return await _context.WarrantyOrders
+                .Where(x => x.DealerCode == dealerCode && x.OrderNo.Contains(searchText))
+                .Select(x => x.OrderNo)
+                .Distinct()
+                .OrderByDescending(o => o)
+                .Take(20)
+                .ToListAsync();
+        }
+        public async Task<List<LocationDropdownItemViewModel>> GetDistinctOrderLocations(string dealerCode)
+        {
+            var distinctCodes = await _context.WarrantyOrders
+                .Where(x => x.DealerCode == dealerCode && x.IsActive && !string.IsNullOrWhiteSpace(x.Location))
+                .Select(x => x.Location)
+                .Distinct()
+                .ToListAsync();
+
+            if (distinctCodes.Count == 0)
+                return new List<LocationDropdownItemViewModel>();
+
+            var names = await _context.LocationMasters
+                .Where(l => distinctCodes.Contains(l.Loccode))
+                .Select(l => new { l.Loccode, l.Locname })
+                .ToListAsync();
+
+            var nameByCode = names.ToDictionary(n => n.Loccode, n => n.Locname);
+
+            return distinctCodes
+                .Select(code => new LocationDropdownItemViewModel
+                {
+                    Loccode = code,
+                    Locname = nameByCode.TryGetValue(code, out var name) ? name : code
+                })
+                .OrderBy(l => l.Locname)
+                .ToList();
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Api.Controllers
@@ -224,6 +225,57 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error in PrintWarrantyOrder");
                 return StatusCode(500, $"An error occurred while generating the Warranty Order PDF: {ex.Message}");
+            }
+        }
+
+        [HttpGet("SearchBatchNos")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchBatchNos([FromQuery] string dealerCode, [FromQuery] string searchText)
+        {
+            try
+            {
+                var result = await _warrantyOrderService.SearchBatchNos(dealerCode, searchText);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchBatchNos");
+                return StatusCode(500, $"An error occurred while searching batch numbers: {ex.Message}");
+            }
+        }
+
+        [HttpGet("SearchOrderNos")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchOrderNos([FromQuery] string dealerCode, [FromQuery] string searchText)
+        {
+            try
+            {
+                var result = await _warrantyOrderService.SearchOrderNos(dealerCode, searchText);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchOrderNos");
+                return StatusCode(500, $"An error occurred while searching order numbers: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetDistinctOrderLocations")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetDistinctOrderLocations([FromQuery] string dealerCode)
+        {
+            try
+            {
+                var result = await _warrantyOrderService.GetDistinctOrderLocations(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetDistinctOrderLocations");
+                return StatusCode(500, $"An error occurred while loading order locations: {ex.Message}");
             }
         }
     }

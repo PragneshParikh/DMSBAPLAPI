@@ -64,5 +64,20 @@ namespace DMS_BAPL_Data.Services.WarrantyOrderService
         {
             return await _warrantyOrderRepo.GenerateWarrantyOrderPdf(id);
         }
+
+        public async Task<List<string>> SearchBatchNos(string dealerCode, string searchText)
+        {
+            return await _warrantyOrderRepo.SearchBatchNos(dealerCode, searchText);
+        }
+
+        public async Task<List<string>> SearchOrderNos(string dealerCode, string searchText)
+        {
+            return await _warrantyOrderRepo.SearchOrderNos(dealerCode, searchText);
+        }
+
+        public async Task<List<LocationDropdownItemViewModel>> GetDistinctOrderLocations(string dealerCode)
+        {
+            return await _warrantyOrderRepo.GetDistinctOrderLocations(dealerCode);
+        }
     }
 }

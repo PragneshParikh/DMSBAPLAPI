@@ -45,7 +45,6 @@ namespace DMS_BAPL_Data.DBModels
         public decimal? IgstPercent { get; set; }
         public decimal? IgstAmount { get; set; }
         public decimal? TotalAmount { get; set; }
-
         public decimal Mrp { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }

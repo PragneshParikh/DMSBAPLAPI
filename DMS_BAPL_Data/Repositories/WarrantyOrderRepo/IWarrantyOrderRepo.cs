@@ -12,7 +12,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
         Task<WarrantyOrderSearchResultViewModel> SearchWarrantyOrders(WarrantyOrderSearchViewModel filter);
         Task<NextOrderNumberViewModel> GetNextOrderNumbers(string dealerCode);
         Task<WarrantyJCClaimFullViewModel?> GetWarrantyJCClaimById(int id);
-
         Task<byte[]> GenerateWarrantyOrderPdf(int id);
+        Task<List<string>> SearchBatchNos(string dealerCode, string searchText);
+        Task<List<string>> SearchOrderNos(string dealerCode, string searchText);
+        Task<List<LocationDropdownItemViewModel>> GetDistinctOrderLocations(string dealerCode);
     }
 }

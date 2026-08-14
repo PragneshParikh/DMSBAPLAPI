@@ -16,5 +16,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
         Task<WarrantyInvoiceSearchResultViewModel> SearchWarrantyInvoices(WarrantyInvoiceSearchViewModel filter);
         Task<(string BatchNo, string InvoicePrefix, string InvoiceNo)> GetNextInvoiceNumbers(string dealerCode);
 
+        Task<List<string>> SearchInvoiceBatchNos(string dealerCode, string searchText);
+        Task<List<string>> SearchInvoiceNos(string dealerCode, string searchText);
+        Task<List<LocationDropdownItemViewModel>> GetDistinctInvoiceLocations(string dealerCode);
+
+        Task<List<string>> SearchClaimInvoiceNos(string dealerCode, string searchText);
+
     }
 }
