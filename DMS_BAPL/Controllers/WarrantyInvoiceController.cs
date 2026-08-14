@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -153,5 +154,74 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, $"An error occurred while generating invoice numbers: {ex.Message}");
             }
         }
+
+        [HttpGet("SearchInvoiceBatchNos")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchInvoiceBatchNos([FromQuery] string dealerCode, [FromQuery] string searchText)
+        {
+            try
+            {
+                var result = await _warrantyInvoiceRepo.SearchInvoiceBatchNos(dealerCode, searchText);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchInvoiceBatchNos");
+                return StatusCode(500, $"An error occurred while searching batch numbers: {ex.Message}");
+            }
+        }
+
+        [HttpGet("SearchInvoiceNos")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchInvoiceNos([FromQuery] string dealerCode, [FromQuery] string searchText)
+        {
+            try
+            {
+                var result = await _warrantyInvoiceRepo.SearchInvoiceNos(dealerCode, searchText);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchInvoiceNos");
+                return StatusCode(500, $"An error occurred while searching invoice numbers: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetDistinctInvoiceLocations")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetDistinctInvoiceLocations([FromQuery] string dealerCode)
+        {
+            try
+            {
+                var result = await _warrantyInvoiceRepo.GetDistinctInvoiceLocations(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetDistinctInvoiceLocations");
+                return StatusCode(500, $"An error occurred while loading invoice locations: {ex.Message}");
+            }
+        }
+
+        [HttpGet("SearchClaimInvoiceNos")]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SearchClaimInvoiceNos([FromQuery] string dealerCode, [FromQuery] string searchText)
+        {
+            try
+            {
+                var result = await _warrantyInvoiceRepo.SearchClaimInvoiceNos(dealerCode, searchText);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SearchClaimInvoiceNos");
+                return StatusCode(500, $"An error occurred while searching claim invoice numbers: {ex.Message}");
+            }
+        }
     }
+    
 }

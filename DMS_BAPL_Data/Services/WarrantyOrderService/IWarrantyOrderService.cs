@@ -14,5 +14,9 @@ namespace DMS_BAPL_Data.Services.WarrantyOrderService
         Task<WarrantyJCClaimFullViewModel?> GetWarrantyJCClaimById(int id);
 
         Task<byte[]> GenerateWarrantyOrderPdf(int id);
+
+        Task<List<string>> SearchBatchNos(string dealerCode, string searchText);
+        Task<List<string>> SearchOrderNos(string dealerCode, string searchText);
+        Task<List<LocationDropdownItemViewModel>> GetDistinctOrderLocations(string dealerCode);
     }
 }

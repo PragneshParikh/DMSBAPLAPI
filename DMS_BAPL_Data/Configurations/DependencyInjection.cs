@@ -77,6 +77,7 @@ using DMS_BAPL_Data.Repositories.VehicleStockTransferRepo;
 using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
 using DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo;
 using DMS_BAPL_Data.Repositories.WarrantyOrderRepo;
+using DMS_BAPL_Data.Repositories.WarrantyPackingRepo;
 using DMS_BAPL_Data.Repositories.ZoneMasterRepo;
 using DMS_BAPL_Data.Services.AgreetaxcodeService;
 using DMS_BAPL_Data.Services.APITrackingService;
@@ -233,6 +234,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IWarrantyOrderRepo, WarrantyOrderRepo>();
             services.AddScoped<IWarrantyInvoiceRepo, WarrantyInvoiceRepo>();
             services.AddScoped<IUwLineItemRepo, UwLineItemRepo>();
+            services.AddScoped<IWarrantyPackingRepo, WarrantyPackingRepo>();
 
 
             #endregion
