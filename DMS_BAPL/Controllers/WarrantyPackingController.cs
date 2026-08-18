@@ -216,5 +216,7 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred while generating the Warranty Packing Slip PDF: {ex.Message}");
             }
         }
+
+
     }
 }

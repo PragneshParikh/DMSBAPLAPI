@@ -9,6 +9,8 @@ namespace DMS_BAPL_Utils.ViewModels
     public class WarrantyJCClaimViewModel
     {
         public string? DealerCode { get; set; }
+        public string? LocationCode { get; set; }   // <-- add
+        public string? LocationName { get; set; }   // <-- add
         public string? ClaimPrefix { get; set; }
         public int? ClaimNo { get; set; }
         public DateTime? ClaimDate { get; set; }

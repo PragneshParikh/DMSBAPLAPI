@@ -90,8 +90,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                          .Include(r => r.PartItem)
                          .FirstOrDefaultAsync(r => r.Id == d.RepairBillDetailId);
 
-
-
                 var jobCardHeader = c.JobCardHeaderId.HasValue
                     ? await _context.JobCardHeaders
                         .Include(j => j.ServiceheadNavigation)
@@ -109,26 +107,19 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                         .FirstOrDefaultAsync()
                     : null;
 
-                // Customer - LedgerMaster row linked on the claim itself.
                 var customerLedger = c.CustomerLedgerId.HasValue
                     ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == c.CustomerLedgerId.Value)
                     : null;
 
-                // Repair Bill Header - same source WarrantyOrderRepo.BuildClaimFullViewModel
-                // uses for "Invoice No / Invoice Date".
                 var repairBillHeader = c.RepairBillHeaderId.HasValue
                     ? await _context.RepairBillHeaders.FirstOrDefaultAsync(r => r.Id == c.RepairBillHeaderId.Value)
                     : null;
 
-                // Motor No - latest ChassisBatteryDetails row for this chassis,
-                // same lookup used in GenerateWarrantyJCClaimPdf.
                 var chassisBattery = await _context.ChassisBatteryDetails
                     .Where(x => x.ChassisNo == c.ChassisNo)
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefaultAsync();
 
-                // Sale Date - ChassisDetails row for this chassis, same lookup used
-                // in GenerateWarrantyJCClaimPdf.
                 var chassisDetail = await _context.ChassisDetails
                     .FirstOrDefaultAsync(x => x.ChassisNo == c.ChassisNo);
 
@@ -150,7 +141,8 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     JobCardDate = jobCardHeader?.CreatedDate,
 
                     DealerCompanyName = dealerCompanyName,
-                    LocationName = null, // unchanged - see original note
+                    LocationCode = c.LocationCode,      
+                    LocationName = c.LocationName,     
 
                     ItemType = d.ItemType,
                     ItemCode = isLabour ? rbd?.LabourMaster?.LabourCode : rbd?.PartItem?.Itemcode,
@@ -169,27 +161,19 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     GstAmount = d.TaxAmount ?? 0,
                     Amount = d.Amount ?? 0,
 
-                    // NEW - added per explicit request. Mrp comes directly
-                    // from WarrantyJcclaimDetail.Mrp (confirmed real on the
-                    // entity). Cgst/Sgst/Igst amounts come from the
-                    // already-fetched RepairBillDetail - same confirmed
-                    // source GenerateWarrantyJCClaimPdf already uses.
                     Mrp = d.Mrp ?? 0,
                     Cgst = rbd?.Cgstamount ?? 0,
                     Sgst = rbd?.Sgstamount ?? 0,
                     Igst = rbd?.Igstamount ?? 0,
 
-                    // Percentages - same isLabour-based source split
-                    // GenerateWarrantyJCClaimPdf already uses: PartItem
-                    // for parts, LabourMaster for labour.
                     CgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0),
                     SgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0),
                     IgstPercent = isLabour ? (rbd?.LabourMaster?.Igst ?? 0) : (rbd?.PartItem?.Igst ?? 0),
 
-                    DeviceInward = null,   // not sourced anywhere yet - see ViewModel note
-                    DeviceOutward = null,  // not sourced anywhere yet - see ViewModel note
-                    ServiceType = null,    // not sourced anywhere yet - see ViewModel note
-                    FailureDate = null,    // not sourced anywhere yet - see ViewModel note
+                    DeviceInward = null,
+                    DeviceOutward = null,
+                    ServiceType = null,
+                    FailureDate = null,
 
                     ServiceHead = jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
                     MotorNo = chassisBattery?.MotorNo,
@@ -210,7 +194,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     ClaimType = d.ClaimType,
                     DealerObservation = d.DealerObservation,
                     Rca = d.RootCauseAnalysis,
-
                 });
             }
 
@@ -276,80 +259,47 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
             var today =
                 DateTime.Now;
 
-
             // ============================================================
             // CREATE WARRANTY ORDER
             // ============================================================
 
-            var orderNumbers =
-                await _warrantyOrderRepo
-                    .GetNextOrderNumbers(dealerCode);
+            var orderNumbers = await _warrantyOrderRepo.GetNextOrderNumbers(dealerCode);
 
-            var orderModel =
-                new WarrantyOrderViewModel
+            var orderModel = new WarrantyOrderViewModel
+            {
+                Id = 0,
+                DealerCode = dealerCode,
+                DateFrom = today,
+                DateTo = today,
+                BatchNo = orderNumbers.BatchNo,
+                BatchDate = today,
+                OrderNo = orderNumbers.OrderNo,
+                OrderDate = today,
+                Location = serviceLocation,
+                ClaimType = "Warranty",
+                SupplierId = claim.SupplierId,
+                IsApproved = false,
+                WarrantyClaimIds = new List<int> { claim.Id },
+                ClaimApprovals = new List<ClaimApprovalViewModel>
                 {
-                    Id = 0,
+                    new ClaimApprovalViewModel { ClaimId = claim.Id, IsApproved = false }
+                }
+            };
 
-                    DealerCode =
-                        dealerCode,
+            var orderId = await _warrantyOrderRepo.InsertWarrantyOrder(orderModel, userId ?? "system");
 
-                    DateFrom =
-                        today,
+            // ============================================================
+            // UPDATE UW LINE ITEM
+            // ============================================================
 
-                    DateTo =
-                        today,
+            lineItem.Status = "Approved";
+            lineItem.RejectionReason = null;
+            lineItem.ActionBy = userId;
+            lineItem.ActionDate = DateTime.Now;
 
-                    BatchNo =
-                        orderNumbers.BatchNo,
+            await _context.SaveChangesAsync();
 
-                    BatchDate =
-                        today,
-
-                    OrderNo =
-                        orderNumbers.OrderNo,
-
-                    OrderDate =
-                        today,
-
-                    Location =
-                        serviceLocation,
-
-                    ClaimType =
-                        "Warranty",
-
-                    SupplierId =
-                        claim.SupplierId,
-
-                    IsApproved =
-                        false,
-
-                    WarrantyClaimIds =
-                        new List<int>
-                        {
-                    claim.Id
-                        },
-
-                    ClaimApprovals =
-                        new List<ClaimApprovalViewModel>
-                        {
-                    new ClaimApprovalViewModel
-                    {
-                        ClaimId =
-                            claim.Id,
-
-                        IsApproved =
-                            false
-                    }
-                        }
-                };
-
-
-            var orderId =
-                await _warrantyOrderRepo
-                    .InsertWarrantyOrder(
-                        orderModel,
-                        userId ?? "system");
-
+            return (true, null);
 
             // ============================================================
             // CREATE WARRANTY INVOICE

@@ -859,7 +859,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
                     Couponno = jobCardDetails.JobCardHeader.Couponno,
                     InwardType = jobCardDetails.JobCardHeader.InwardType,
-                    Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
+                    Jobprefix = NormalizeJobPrefix(jobCardDetails.JobCardHeader.Jobprefix),
                     JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
                     JobinTime = jobCardDetails.JobCardHeader.JobinTime,
                     JobNo = jobCardDetails.JobCardHeader.JobNo,
@@ -986,6 +986,18 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw;
             }
         }
+
+        private static string? NormalizeJobPrefix(string? jobPrefix)
+        {
+            if (string.IsNullOrWhiteSpace(jobPrefix))
+                return jobPrefix;
+
+            return System.Text.RegularExpressions.Regex.Replace(
+                jobPrefix,
+                @"\d+$",
+                ""
+            );
+        }
         public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -1007,7 +1019,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 header.Serviceloc = updateJobCardDetails.JobCardHeader.Serviceloc;
                 header.Couponno = updateJobCardDetails.JobCardHeader.Couponno;
                 header.InwardType = updateJobCardDetails.JobCardHeader.InwardType;
-                header.Jobprefix = updateJobCardDetails.JobCardHeader.Jobprefix;
+                header.Jobprefix = NormalizeJobPrefix(updateJobCardDetails.JobCardHeader.Jobprefix);
                 header.JobinDate = updateJobCardDetails.JobCardHeader.JobinDate;
                 header.JobinTime = updateJobCardDetails.JobCardHeader.JobinTime;
                 header.JobNo = updateJobCardDetails.JobCardHeader.JobNo;
@@ -2409,6 +2421,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         JobType = x.jt.JobTypeName,
                         JobInDate = x.jh.JobinDate,
                         JobLocation = x.loc.Locname,
+                        JobLocationCode = x.jh.Serviceloc,
                         serviceHead = x.sh.ServiceHeadName,
                         serviceType = x.st.ServiceTypeName,
                         CustomerLedgerId = x.lg.Id,

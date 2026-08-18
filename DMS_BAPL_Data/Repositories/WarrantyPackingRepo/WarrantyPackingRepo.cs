@@ -537,13 +537,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                         col.Item().PaddingTop(8).Row(row =>
                         {
                             row.RelativeItem().Text($"Packing Slip No : {data.Header.SlipPrefix}{data.Header.SlipNo}");
-                            row.RelativeItem().Text($"Invoice / Sales Order No. : {data.Invoice.InvoicePrefix}{data.Invoice.InvoiceNo}");
-                            row.RelativeItem().Text($"Batch No. : {data.Invoice.BatchNo}");
+                            row.RelativeItem().Text($"Invoice No : {data.Invoice.InvoicePrefix}{data.Invoice.InvoiceNo}");
+                            row.RelativeItem().Text($"Batch No. : {FormatBatchNoForDisplay(data.Invoice.BatchNo)}");
                         });
                         col.Item().Row(row =>
                         {
                             row.RelativeItem().Text($"Packing Slip Date : {data.Header.SlipDate:dd-MM-yyyy}");
-                            row.RelativeItem().Text($"Invoice / Sales Order Date : {data.Invoice.InvoiceDate:dd-MM-yyyy}");
+                            row.RelativeItem().Text($"Invoice Date : {data.Invoice.InvoiceDate:dd-MM-yyyy}");
                             row.RelativeItem().Text($"Batch Date : {data.Invoice.BatchDate:dd-MM-yyyy}");
                         });
 
@@ -594,6 +594,24 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
             });
 
             return document.GeneratePdf();
+        }
+        private static string FormatBatchNoForDisplay(string? batchNo)
+        {
+            if (string.IsNullOrWhiteSpace(batchNo))
+                return batchNo ?? "";
+
+            var parts = batchNo.Split('/');
+            if (parts.Length != 3)
+                return batchNo;
+            int btIndex = Array.FindIndex(parts, p => string.Equals(p, "BT", StringComparison.OrdinalIgnoreCase));
+            if (btIndex < 0)
+                return batchNo; // doesn't contain a recognizable "BT" segment - leave as-is
+
+            var remaining = parts.Where((p, i) => i != btIndex).ToArray();
+            string fy = remaining.FirstOrDefault(p => p.Contains('-')) ?? remaining[0];
+            string seq = remaining.FirstOrDefault(p => p != fy) ?? remaining[remaining.Length - 1];
+
+            return $"BT/{fy}/{seq}";
         }
     }
 }

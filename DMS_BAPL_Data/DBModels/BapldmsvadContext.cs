@@ -241,6 +241,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyPackingSlipBox> WarrantyPackingSlipBoxes { get; set; }
     public virtual DbSet<WarrantyPackingSlipDetail> WarrantyPackingSlipDetails { get; set; }
 
+    public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
+
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -4299,13 +4301,14 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.DealerCode)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.LocationCode).HasMaxLength(50).IsUnicode(false).HasColumnName("LocationCode");
+            entity.Property(e => e.LocationName).HasMaxLength(150).IsUnicode(false).HasColumnName("LocationName");
             entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
             entity.Property(e => e.IsWjcclaimApproved).HasColumnName("IsWJCClaimApproved");
             entity.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
-
             entity.HasOne(d => d.CustomerLedger).WithMany(p => p.WarrantyJcclaimCustomerLedgers)
                 .HasForeignKey(d => d.CustomerLedgerId)
                 .HasConstraintName("FK_WarrantyJCClaim_CustomerLedger");
@@ -4795,6 +4798,35 @@ public partial class BapldmsvadContext : DbContext
                 .HasForeignKey(d => d.WarrantyOrderGridDetailId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyPackingSlipDetail_OrderGridDetail");
+        });
+
+        modelBuilder.Entity<DispatchMaster>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("DispatchMaster");
+
+            entity.HasIndex(e => new { e.MasterType, e.MasterName }, "UQ_DispatchMaster_Type_Name").IsUnique();
+
+            entity.Property(e => e.MasterType)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.MasterName)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate)
+                .HasColumnType("datetime");
         });
         OnModelCreatingPartial(modelBuilder);
 

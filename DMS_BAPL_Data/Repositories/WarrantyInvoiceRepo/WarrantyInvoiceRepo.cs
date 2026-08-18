@@ -419,18 +419,25 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
         {
             var today = DateTime.Now;
             var financialYearSuffix = GetFinancialYearSuffix(today);
+            var batchPrefix = $"BT/{financialYearSuffix}/";
 
-            var lastBatchSeq = await _context.WarrantyInvoices
-                .Where(x => x.DealerCode == dealerCode)
-                .CountAsync() + 1;
+            var existingBatchNos = await _context.WarrantyInvoices
+                .Where(x => x.DealerCode == dealerCode && x.BatchNo.StartsWith(batchPrefix))
+                .Select(x => x.BatchNo)
+                .ToListAsync();
 
-            var lastInvoiceSeq = lastBatchSeq;
+            int maxBatchSeq = 0;
+            foreach (var b in existingBatchNos)
+            {
+                var parts = b.Split('/');
+                var numPart = parts.Length > 0 ? parts[parts.Length - 1] : null;
+                if (int.TryParse(numPart, out int seq) && seq > maxBatchSeq)
+                    maxBatchSeq = seq;
+            }
 
-            var batchNo = $"{lastBatchSeq}/BT/{financialYearSuffix}";
-
+            var batchNo = $"{batchPrefix}{maxBatchSeq + 1}";
             var invoicePrefix = $"WR/{financialYearSuffix}/";
-
-            var invoiceNo = $"{lastInvoiceSeq}";
+            var invoiceNo = $"{maxBatchSeq + 1}";
 
             return (batchNo, invoicePrefix, invoiceNo);
         }
@@ -449,6 +456,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             public DateTime? ClaimDate { get; set; }
             public string? ChassisNo { get; set; }
             public string? ModelName { get; set; }
+            public string? BatteryType { get; set; }
             public string? PartCode { get; set; }
             public string? PartDescription { get; set; }
             public string? LabourCode { get; set; }
@@ -461,6 +469,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             public decimal TotalAmount { get; set; }
             public string? DealerCode { get; set; }
             public string? JobCardNo { get; set; }
+            public DateTime? SaleDate { get; set; }
+            public DateTime? FailureDate { get; set; }
+            public int? Kms { get; set; }
         }
 
         private class InvoicePdfData
@@ -525,6 +536,38 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 var chassisDetail = !string.IsNullOrWhiteSpace(g.ChassisNo)
                     ? await _context.ChassisDetails.FirstOrDefaultAsync(c => c.ChassisNo == g.ChassisNo)
                     : null;
+
+                // Battery chemistry ("Battery Type" on the reference layout) -
+                // latest ChassisBatteryDetails row for this chassis, same
+                // lookup pattern GenerateWarrantyJCClaimPdf already uses for
+                // Motor/Battery/Charger numbers.
+                string? batteryType = !string.IsNullOrWhiteSpace(g.ChassisNo)
+                    ? await _context.ChassisBatteryDetails
+                        .Where(x => x.ChassisNo == g.ChassisNo)
+                        .OrderByDescending(x => x.CreatedDate)
+                        .Select(x => x.BatteryChemical)
+                        .FirstOrDefaultAsync()
+                    : null;
+
+                // Date of Failure - via this line's own claim -> FFIR
+                // (WarrantyJcclaim.Ffirid -> Ffirheader.FailureDate).
+                // WarrantyOrderGridDetail carries WarrantyJcclaimId (confirmed
+                // real - already used to group claims in GetWarrantyOrderById),
+                // so this resolves per-line correctly rather than assuming one
+                // claim per invoice.
+                DateTime? failureDate = null;
+                var claimFfirId = await _context.WarrantyJcclaims
+                    .Where(c => c.Id == g.WarrantyJcclaimId)
+                    .Select(c => c.Ffirid)
+                    .FirstOrDefaultAsync();
+                if (claimFfirId.HasValue)
+                {
+                    failureDate = await _context.Ffirheaders
+                        .Where(f => f.Id == claimFfirId.Value)
+                        .Select(f => f.FailureDate)
+                        .FirstOrDefaultAsync();
+                }
+
                 if (!string.IsNullOrWhiteSpace(chassisDetail?.ItemCode))
                 {
                     var item = await _context.ItemMasters.FirstOrDefaultAsync(i => i.Itemcode == chassisDetail.ItemCode);
@@ -553,6 +596,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     ClaimDate = g.ClaimDate,
                     ChassisNo = g.ChassisNo,
                     ModelName = modelName,
+                    BatteryType = batteryType,
                     PartCode = g.PartCode,
                     PartDescription = g.PartDescription,
                     LabourCode = g.LabourCode,
@@ -560,13 +604,16 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     Hsn = hsn,
                     Qty = g.Quantity ?? 0,
                     Rate = g.TotalAmount.HasValue && (g.Quantity ?? 0) > 0
-                        ? Math.Round((g.TotalAmount.Value - (g.IgstAmount ?? 0)) / (g.Quantity ?? 1), 2)
-                        : 0,
+        ? Math.Round((g.TotalAmount.Value - (g.IgstAmount ?? 0)) / (g.Quantity ?? 1), 2)
+        : 0,
                     IgstPercent = g.IgstPercent ?? 0,
                     IgstAmount = g.IgstAmount ?? 0,
                     TotalAmount = g.TotalAmount ?? 0,
                     DealerCode = header.DealerCode,
-                    JobCardNo = g.JobCardNo
+                    JobCardNo = g.JobCardNo,
+                    SaleDate = chassisDetail?.SaleDate,
+                    FailureDate = failureDate,
+                    Kms = (int?)g.Kms,
                 };
 
                 if (isLabour) labourLines.Add(line);
@@ -610,6 +657,17 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 {
                     row.RelativeItem().Text($"Batch No : {data.Header.BatchNo}");
                     row.RelativeItem().AlignRight().Text($"Batch Date : {data.Header.BatchDate:dd-MM-yyyy}");
+                });
+
+                // NEW: present in every reference PDF, but no confirmed source
+                // field exists yet on WarrantyInvoice - left blank. This may
+                // map to the "ERP Invoice No" field already flagged as
+                // unconfirmed in warranty-invoice-list.component.html -
+                // confirm and wire in once known.
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().Text("Invoice Ref. No. : ");
+                    row.RelativeItem().AlignRight().Text("");
                 });
 
                 col.Item().PaddingTop(6).Row(row =>
@@ -657,6 +715,10 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     {
                         col.Item().Element(c => RenderInvoiceHeader(c, data, "Warranty Invoice"));
 
+                        // FIX: restructured from 11 columns to 10, matching the
+                        // reference layout - Qty and Rate are merged into a
+                        // single two-line cell, and Model Name now includes
+                        // Battery Type on a second line beneath it.
                         col.Item().PaddingTop(8).Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -664,12 +726,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                                 columns.ConstantColumn(25);    // Sr.No
                                 columns.RelativeColumn(1.3f);  // Claim No/Date
                                 columns.RelativeColumn(1.2f);  // Chassis No
-                                columns.RelativeColumn(1.0f);  // Model Name
+                                columns.RelativeColumn(1.1f);  // Model Name / Battery Type
                                 columns.RelativeColumn(2.0f);  // Part/Labour Number Description
                                 columns.RelativeColumn(0.9f);  // Inward/Outward Serial
                                 columns.RelativeColumn(0.8f);  // HSN/SAC
-                                columns.RelativeColumn(0.6f);  // Qty
-                                columns.RelativeColumn(0.8f);  // Rate
+                                columns.RelativeColumn(0.9f);  // Qty / Rate (merged)
                                 columns.RelativeColumn(0.9f);  // IGST
                                 columns.RelativeColumn(0.9f);  // Amount
                             });
@@ -679,12 +740,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                             HeaderCell("Sr.No");
                             HeaderCell("Claim No\nClaim Date");
                             HeaderCell("Chassis No");
-                            HeaderCell("Model Name");
+                            HeaderCell("Model Name\nBattery Type");
                             HeaderCell(isLabour ? "Labour Code\nDescription" : "Part Number\nDescription");
                             HeaderCell("Inward Serial\nOutward Serial");
                             HeaderCell("HSN/SAC Code");
-                            HeaderCell("Qty");
-                            HeaderCell("Rate");
+                            HeaderCell("Qty\nRate");
                             HeaderCell("IGST");
                             HeaderCell("Amount");
 
@@ -694,28 +754,27 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                                 table.Cell().Border(1).Padding(3).Text(srNo++.ToString());
                                 table.Cell().Border(1).Padding(3).Text($"{line.ClaimNoDisplay}\n{line.ClaimDate:dd-MM-yyyy}");
                                 table.Cell().Border(1).Padding(3).Text(line.ChassisNo ?? "");
-                                table.Cell().Border(1).Padding(3).Text(line.ModelName ?? "");
+                                table.Cell().Border(1).Padding(3).Text(
+                                    string.IsNullOrWhiteSpace(line.BatteryType) ? (line.ModelName ?? "") : $"{line.ModelName}\n{line.BatteryType}");
                                 table.Cell().Border(1).Padding(3).Text(
                                     isLabour ? $"{line.LabourCode}\n{line.LabourDescription}" : $"{line.PartCode}\n{line.PartDescription}");
                                 // Inward/Outward Serial - GENUINELY UNCONFIRMED, left blank.
                                 table.Cell().Border(1).Padding(3).Text("");
                                 table.Cell().Border(1).Padding(3).Text(line.Hsn ?? "");
-                                table.Cell().Border(1).AlignRight().Padding(3).Text(line.Qty.ToString("0.##"));
-                                table.Cell().Border(1).AlignRight().Padding(3).Text(line.Rate.ToString("0.00"));
+                                table.Cell().Border(1).AlignRight().Padding(3).Text($"{line.Qty:0.##}\n{line.Rate:0.00}");
                                 table.Cell().Border(1).AlignRight().Padding(3).Text($"({line.IgstPercent:0.##})\n{line.IgstAmount:0.00}");
                                 table.Cell().Border(1).AlignRight().Padding(3).Text(line.TotalAmount.ToString("0.00"));
                             }
 
                             table.Cell().ColumnSpan(7).Border(1).Padding(3).AlignRight().Text("TOTAL").Bold();
-                            table.Cell().Border(1).AlignRight().Padding(3).Text(totalQty.ToString("0.##")).Bold();
-                            table.Cell().Border(1).AlignRight().Padding(3).Text(totalRate.ToString("0.00")).Bold();
+                            table.Cell().Border(1).AlignRight().Padding(3).Text($"{totalQty:0.##}\n{totalRate:0.00}").Bold();
                             table.Cell().Border(1).AlignRight().Padding(3).Text(totalIgst.ToString("0.00")).Bold();
                             table.Cell().Border(1).AlignRight().Padding(3).Text(totalAmount.ToString("0.00")).Bold();
 
-                            table.Cell().ColumnSpan(10).Border(1).Padding(3).AlignRight().Text("Round Off");
+                            table.Cell().ColumnSpan(9).Border(1).Padding(3).AlignRight().Text("Round Off");
                             table.Cell().Border(1).AlignRight().Padding(3).Text(roundOff.ToString("0.00"));
 
-                            table.Cell().ColumnSpan(10).Border(1).Padding(3).AlignRight().Text("Net Amount").Bold();
+                            table.Cell().ColumnSpan(9).Border(1).Padding(3).AlignRight().Text("Net Amount").Bold();
                             table.Cell().Border(1).AlignRight().Padding(3).Text(roundedAmount.ToString("0.00")).Bold();
                         });
 
@@ -923,9 +982,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                                         table.Cell().Border(1).Padding(4).Text("");
                                 }
 
+                                // FIX: Date of Sale, Date of Failure, and Failure
+                                // Kms now use the values resolved onto the line
+                                // in BuildInvoicePdfData, instead of staying
+                                // permanently blank.
                                 Row("WTY.CLAIM NO.", line.ClaimNoDisplay ?? "", "MODEL", line.ModelName ?? "");
-                                Row("JOB CARD NO.", line.JobCardNo ?? "", "DATE OF FAILURE", ""); // failure date - unconfirmed source
-                                Row("DATE OF SALE", "", "FAILURE Kms", ""); // both unconfirmed sources
+                                Row("JOB CARD NO.", line.JobCardNo ?? "", "DATE OF FAILURE", line.FailureDate?.ToString("dd-MM-yyyy") ?? "");
+                                Row("DATE OF SALE", line.SaleDate?.ToString("dd-MM-yyyy") ?? "", "FAILURE Kms", line.Kms?.ToString() ?? "");
                                 Row("DATE OF REPAIR", line.ClaimDate?.ToString("dd-MM-yyyy") ?? "");
                                 Row("VIN", line.ChassisNo ?? "");
                                 Row("PART NO.", line.PartCode ?? "");

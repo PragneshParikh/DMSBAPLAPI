@@ -22,5 +22,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 
         Task<List<string>> SearchClaimInvoiceNos(string dealerCode, string searchText);
 
+        Task<byte[]> GenerateWarrantyInvoicePartPdf(int invoiceId);
+        Task<byte[]> GenerateWarrantyInvoiceLabourPdf(int invoiceId);
+        Task<byte[]> GenerateWarrantyClaimTagPdf(int invoiceId);
+
     }
 }

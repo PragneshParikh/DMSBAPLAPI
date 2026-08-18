@@ -44,6 +44,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 var header = new WarrantyJcclaim
                 {
                     DealerCode = model.DealerCode,
+                    LocationCode = model.LocationCode,   
+                    LocationName = model.LocationName,   
                     ClaimPrefix = model.ClaimPrefix,
                     ClaimNo = model.ClaimNo,
                     ClaimDate = model.ClaimDate,

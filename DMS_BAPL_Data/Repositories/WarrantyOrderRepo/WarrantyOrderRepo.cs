@@ -322,20 +322,29 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             int fyStartYear = today.Month >= 4 ? today.Year : today.Year - 1;
             int fyEndYear = fyStartYear + 1;
             string fySuffix = $"{fyStartYear % 100:D2}-{fyEndYear % 100:D2}";
-            string batchSuffix = $"BT/{fySuffix}";
+
+            // FIX: format changed from "{seq}/BT/{fy}" to "BT/{fy}/{seq}" - the
+            // prefix now leads, so matching existing batch numbers for this
+            // dealer/year switches from EndsWith to StartsWith, and the sequence
+            // is parsed from the LAST segment instead of the first.
+            string batchPrefix = $"BT/{fySuffix}/";
+
             var existingBatchNos = await _context.WarrantyOrders
-                .Where(x => x.DealerCode == dealerCode && x.BatchNo.EndsWith("/" + batchSuffix))
+                .Where(x => x.DealerCode == dealerCode && x.BatchNo.StartsWith(batchPrefix))
                 .Select(x => x.BatchNo)
                 .ToListAsync();
 
             int maxBatchSeq = 0;
             foreach (var b in existingBatchNos)
             {
-                var numPart = b.Split('/')[0];
+                var parts = b.Split('/');
+                var numPart = parts.Length > 0 ? parts[parts.Length - 1] : null;
                 if (int.TryParse(numPart, out int seq) && seq > maxBatchSeq)
                     maxBatchSeq = seq;
             }
-            string nextBatchNo = $"{maxBatchSeq + 1}/{batchSuffix}";
+
+            string nextBatchNo = $"{batchPrefix}{maxBatchSeq + 1}";
+
             var existingOrderNos = await _context.WarrantyOrders
                 .Where(x => x.DealerCode == dealerCode)
                 .Select(x => x.OrderNo)
@@ -427,18 +436,10 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                     bool isLabour = d.ItemType == "Labour";
                     var rbd = d.RepairBillDetail;
 
-                    var cgstAmount = rbd?.Cgstamount ?? 0;
-                    var sgstAmount = rbd?.Sgstamount ?? 0;
-                    var dlrPrice = !isLabour
-                        ? (rbd?.PartItem?.Dlrprice ?? 0)
-                        : ((rbd?.LabourMaster?.LabourRate ?? rbd?.PartWiseLabour?.LabourRate) ?? 0);
-                    var mrp = cgstAmount + sgstAmount + dlrPrice;
-
                     return new WarrantyJCClaimDetailLineViewModel
                     {
                         Id = d.Id,
                         ItemType = d.ItemType,
-
                         PartCode = !isLabour ? rbd?.PartItem?.Itemcode : null,
                         PartName = !isLabour ? rbd?.PartItem?.Itemname : null,
                         PartDescription = !isLabour ? rbd?.PartItem?.Itemdesc : null,
@@ -451,25 +452,24 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                             : null,
 
                         Quantity = d.Qty ?? 0,
-
                         CgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0)
                             : (rbd?.PartItem?.Cgst ?? 0),
-                        CgstAmount = cgstAmount,
-
+                        CgstAmount = rbd?.Cgstamount ?? 0,
                         SgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0)
                             : (rbd?.PartItem?.Sgst ?? 0),
-                        SgstAmount = sgstAmount,
-
+                        SgstAmount = rbd?.Sgstamount ?? 0,
                         IgstPercent = isLabour
                             ? (rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0)
                             : (rbd?.PartItem?.Igst ?? 0),
-                        IgstAmount = rbd?.Igstamount ?? 0,
-
+                        IgstAmount = (rbd?.Igstamount ?? 0) > 0
+                                    ? rbd.Igstamount.Value
+                                    : ((rbd?.Cgstamount ?? 0) + (rbd?.Sgstamount ?? 0)),
                         TotalAmount = d.TotalAmount ?? 0,
-                        Mrp = mrp,
-                        Rate = mrp,
+                        Rate = d.Rate ?? 0,
+                        Mrp = d.Mrp ?? 0,
+
                         DealerObservation = d.DealerObservation,
                         RootCauseAnalysis = d.RootCauseAnalysis
                     };

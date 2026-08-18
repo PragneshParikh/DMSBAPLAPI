@@ -453,6 +453,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? RootCauseAnalysis { get; set; }
 
+        public string? JobLocationCode { get; set; }
+
 
         public List<IssueTypebasedJobDetails> RepairBillDetails { get; set; }
     }

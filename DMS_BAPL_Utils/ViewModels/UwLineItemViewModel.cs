@@ -16,6 +16,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? JobCardNo { get; set; }
         public DateTime? JobCardDate { get; set; }
         public string? DealerCompanyName { get; set; }
+        public string? LocationCode { get; set; }
         public string? LocationName { get; set; }
         public string? ItemType { get; set; }
         public string? ItemCode { get; set; }

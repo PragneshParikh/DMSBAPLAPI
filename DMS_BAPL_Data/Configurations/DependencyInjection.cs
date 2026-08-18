@@ -19,6 +19,7 @@ using DMS_BAPL_Data.Repositories.DealerManagerRepo;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
 using DMS_BAPL_Data.Repositories.DepartmentRepo;
 using DMS_BAPL_Data.Repositories.DesignationRepo;
+using DMS_BAPL_Data.Repositories.DispatchMasterRepo;
 using DMS_BAPL_Data.Repositories.EmployeeMasterRepo;
 using DMS_BAPL_Data.Repositories.EmployeeProfileMasterRepo;
 using DMS_BAPL_Data.Repositories.EstimateRepo;
@@ -96,6 +97,7 @@ using DMS_BAPL_Data.Services.DealerManagerService;
 using DMS_BAPL_Data.Services.DealerMasterService;
 using DMS_BAPL_Data.Services.DepartmentService;
 using DMS_BAPL_Data.Services.DesignationService;
+using DMS_BAPL_Data.Services.DispatchMasterService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Data.Services.EstimateService;
@@ -235,6 +237,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IWarrantyInvoiceRepo, WarrantyInvoiceRepo>();
             services.AddScoped<IUwLineItemRepo, UwLineItemRepo>();
             services.AddScoped<IWarrantyPackingRepo, WarrantyPackingRepo>();
+            services.AddScoped<IDispatchMasterRepo, DispatchMasterRepo>();
 
 
             #endregion
@@ -303,6 +306,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IBgRoleService, BgRoleService>();
             services.AddScoped<IDealerManagerService, DealerManagerService>();
             services.AddScoped<IWarrantyOrderService, WarrantyOrderService>();
+            services.AddScoped<IDispatchMasterService, DispatchMasterService>();
 
 
 

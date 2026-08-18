@@ -222,6 +222,72 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, $"An error occurred while searching claim invoice numbers: {ex.Message}");
             }
         }
+
+        [HttpGet("GenerateWarrantyInvoicePartPdf/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GenerateWarrantyInvoicePartPdf(int id)
+        {
+            try
+            {
+                var pdfBytes = await _warrantyInvoiceRepo.GenerateWarrantyInvoicePartPdf(id);
+                return File(pdfBytes, "application/pdf", $"WarrantyInvoicePart_{id}.pdf");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GenerateWarrantyInvoicePartPdf");
+                return StatusCode(500, $"An error occurred while generating the Part Invoice PDF: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GenerateWarrantyInvoiceLabourPdf/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GenerateWarrantyInvoiceLabourPdf(int id)
+        {
+            try
+            {
+                var pdfBytes = await _warrantyInvoiceRepo.GenerateWarrantyInvoiceLabourPdf(id);
+                return File(pdfBytes, "application/pdf", $"WarrantyInvoiceLabour_{id}.pdf");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GenerateWarrantyInvoiceLabourPdf");
+                return StatusCode(500, $"An error occurred while generating the Labour Invoice PDF: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GenerateWarrantyClaimTagPdf/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GenerateWarrantyClaimTagPdf(int id)
+        {
+            try
+            {
+                var pdfBytes = await _warrantyInvoiceRepo.GenerateWarrantyClaimTagPdf(id);
+                return File(pdfBytes, "application/pdf", $"WarrantyClaimTag_{id}.pdf");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GenerateWarrantyClaimTagPdf");
+                return StatusCode(500, $"An error occurred while generating the Warranty Claim Tag PDF: {ex.Message}");
+            }
+        }
     }
     
 }
