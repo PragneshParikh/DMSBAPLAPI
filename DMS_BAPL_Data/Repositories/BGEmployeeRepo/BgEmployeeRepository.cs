@@ -64,7 +64,8 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
-        // UPDATE
+        // UPDATE — FIXED: now copies every field MapToEntity sets,
+        // and honors the caller's UpdatedBy instead of hardcoding it.
         // =====================================================
 
         async Task<int> IBgEmployeeMasterRepo.Update(BgEmployeeMaster bgEmployee)
@@ -77,6 +78,9 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 if (existing == null)
                     return 0;
 
+                existing.EmployeeCode = bgEmployee.EmployeeCode;
+                existing.TsmCode = bgEmployee.TsmCode;
+                existing.AreaOfficeId = bgEmployee.AreaOfficeId;
                 existing.FirstName = bgEmployee.FirstName;
                 existing.LastName = bgEmployee.LastName;
                 existing.Gender = bgEmployee.Gender;
@@ -92,12 +96,25 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 existing.Department = bgEmployee.Department;
                 existing.ProfileId = bgEmployee.ProfileId;
                 existing.EmailId = bgEmployee.EmailId;
+                existing.Email = bgEmployee.Email;
                 existing.MappedZones = bgEmployee.MappedZones;
                 existing.MappedZoneIds = bgEmployee.MappedZoneIds;
+                existing.MappedEmployeeIds = bgEmployee.MappedEmployeeIds;
+                existing.MappedEmployees = bgEmployee.MappedEmployees;
                 existing.ProfileImage = bgEmployee.ProfileImage;
                 existing.DealerCode = bgEmployee.DealerCode;
                 existing.LocationCode = bgEmployee.LocationCode;
-                existing.UpdatedBy = "admin";
+
+                // ---- NEW ----
+                existing.Address1 = bgEmployee.Address1;
+                existing.Address2 = bgEmployee.Address2;
+                existing.IsAccepted = bgEmployee.IsAccepted;
+
+                // FIXED: was hardcoded to "admin", silently discarding
+                // "system" (conflict-resolution) and "TSM-Sync" tags.
+                existing.UpdatedBy = string.IsNullOrWhiteSpace(bgEmployee.UpdatedBy)
+                    ? "admin"
+                    : bgEmployee.UpdatedBy;
                 existing.UpdatedDate = DateTime.Now;
 
                 if (!string.IsNullOrWhiteSpace(bgEmployee.Password))
@@ -109,10 +126,7 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
         }
 
         // =====================================================
-        // UPDATE STATUS ONLY — NEW.
-        // Deliberately touches nothing but IsActive/UpdatedBy/UpdatedDate.
-        // Used by the list page's status toggle, which never has (and
-        // shouldn't need) the full employee record on hand.
+        // UPDATE STATUS ONLY
         // =====================================================
 
         async Task<int> IBgEmployeeMasterRepo.UpdateStatus(int id, bool isActive)

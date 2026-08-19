@@ -659,17 +659,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     row.RelativeItem().AlignRight().Text($"Batch Date : {data.Header.BatchDate:dd-MM-yyyy}");
                 });
 
-                // NEW: present in every reference PDF, but no confirmed source
-                // field exists yet on WarrantyInvoice - left blank. This may
-                // map to the "ERP Invoice No" field already flagged as
-                // unconfirmed in warranty-invoice-list.component.html -
-                // confirm and wire in once known.
-                col.Item().Row(row =>
-                {
-                    row.RelativeItem().Text("Invoice Ref. No. : ");
-                    row.RelativeItem().AlignRight().Text("");
-                });
-
+            
                 col.Item().PaddingTop(6).Row(row =>
                 {
                     row.RelativeItem().Column(c =>
@@ -1080,6 +1070,111 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             .OrderByDescending(c => c)
             .Take(20)
             .ToListAsync();
+        }
+
+        // Builds the per-line payload to submit to the ERP for a given Warranty
+        // Invoice. Field mapping follows the ONLY confirmed ERP contract
+        // available (the GET /erpreport/wcjo report shape) - see
+        // ErpWarrantyClaimLineViewModel for which fields are solid vs
+        // genuinely unconfirmed/blank.
+        public async Task<List<ErpWarrantyClaimLineViewModel>> BuildErpWarrantyClaimPayload(int invoiceId)
+        {
+            var header = await _context.WarrantyInvoices.FirstOrDefaultAsync(x => x.Id == invoiceId);
+            if (header == null)
+                throw new InvalidOperationException($"Warranty Invoice with Id {invoiceId} not found.");
+
+            var dealer = !string.IsNullOrWhiteSpace(header.DealerCode)
+                ? await _context.DealerMasters.FirstOrDefaultAsync(d => d.Dealercode == header.DealerCode)
+                : null;
+
+            var orderIds = await _context.WarrantyInvoiceDetails
+                .Where(d => d.WarrantyInvoiceHeaderId == invoiceId)
+                .Select(d => d.WarrantyOrderHeaderId)
+                .ToListAsync();
+
+            var gridRows = await _context.WarrantyOrderGridDetails
+                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
+                .ToListAsync();
+
+            var lines = new List<ErpWarrantyClaimLineViewModel>();
+            int srNo = 1;
+
+            foreach (var g in gridRows)
+            {
+                var isLabour = g.ItemType == "Labour";
+
+                var chassisDetail = !string.IsNullOrWhiteSpace(g.ChassisNo)
+                    ? await _context.ChassisDetails.FirstOrDefaultAsync(c => c.ChassisNo == g.ChassisNo)
+                    : null;
+
+                string? modelName = null;
+                if (!string.IsNullOrWhiteSpace(chassisDetail?.ItemCode))
+                {
+                    var item = await _context.ItemMasters.FirstOrDefaultAsync(i => i.Itemcode == chassisDetail.ItemCode);
+                    modelName = item?.Itemname ?? item?.Displayname;
+                }
+
+                // Same claim -> FFIR resolution already used for the PDF's Failure Date.
+                DateTime? failureDate = null;
+                var claimFfirId = await _context.WarrantyJcclaims
+                    .Where(c => c.Id == g.WarrantyJcclaimId)
+                    .Select(c => c.Ffirid)
+                    .FirstOrDefaultAsync();
+                if (claimFfirId.HasValue)
+                {
+                    failureDate = await _context.Ffirheaders
+                        .Where(f => f.Id == claimFfirId.Value)
+                        .Select(f => f.FailureDate)
+                        .FirstOrDefaultAsync();
+                }
+
+                decimal totalTax = (g.CgstAmount ?? 0) + (g.SgstAmount ?? 0) + (g.IgstAmount ?? 0);
+                decimal qty = g.Quantity ?? 0;
+                decimal rate = qty > 0 ? Math.Round(((g.TotalAmount ?? 0) - totalTax) / qty, 2) : 0;
+
+                lines.Add(new ErpWarrantyClaimLineViewModel
+                {
+                    SlNo = (srNo++).ToString(),
+                    DealerName = dealer?.Compname,
+                    DealerCode = header.DealerCode,
+                    Location = g.LocationName,
+                    LocationCity = null, // UNCONFIRMED - see ViewModel comment
+                    JobNo = g.JobCardNo,
+                    JobDate = g.JobCardDate?.ToString("dd-MM-yyyy"),
+                    ClaimNo = g.ClaimNo,
+                    ClaimDate = g.ClaimDate?.ToString("dd-MM-yyyy"),
+                    Kms = g.Kms?.ToString(),
+                    VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy"),
+                    PartFailureDate = failureDate?.ToString("dd-MM-yyyy"),
+                    ServiceType = g.ServiceHead, // best-effort stand-in, see ViewModel comment
+                    ChassisNo = g.ChassisNo,
+                    ModelName = modelName,
+                    Variants = null, // UNCONFIRMED
+                    PartCode = isLabour ? g.LabourCode : g.PartCode,
+                    PartName = isLabour ? g.LabourDescription : g.PartName,
+                    Qty = qty.ToString("0.##"),
+                    Rate = rate.ToString("0.00"),
+                    CgstPercent = (g.CgstPercent ?? 0).ToString("0.##"),
+                    CgstAmount = (g.CgstAmount ?? 0).ToString("0.00"),
+                    SgstPercent = (g.SgstPercent ?? 0).ToString("0.##"),
+                    SgstAmount = (g.SgstAmount ?? 0).ToString("0.00"),
+                    IgstPercent = (g.IgstPercent ?? 0).ToString("0.##"),
+                    IgstAmount = (g.IgstAmount ?? 0).ToString("0.00"),
+                    Amount = (g.TotalAmount ?? 0).ToString("0.00"),
+                    DealerObservation = null, // UNCONFIRMED - see ViewModel comment
+                    Rca = null,               // UNCONFIRMED
+                    InvoiceRefNo = null,      // UNCONFIRMED
+                    InvoiceNo = g.InvoiceNo,
+                    InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy"),
+                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}", // ASSUMPTION - see ViewModel comment
+                    DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy"),
+                    VendorPoNo = null,   // UNCONFIRMED
+                    VendorPoDate = null, // UNCONFIRMED
+                    Total = null         // UNCONFIRMED
+                });
+            }
+
+            return lines;
         }
     }
 }

@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
+using DMS_BAPL_Data.Services.ErpIntegration;
+using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
-using DMS_BAPL_Utils.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -15,11 +17,18 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IWarrantyInvoiceRepo _warrantyInvoiceRepo;
         private readonly ILogger<WarrantyInvoiceController> _logger;
+        private readonly IErpIntegrationService _erpIntegrationService;
+        private readonly IConfiguration _configuration;
 
-        public WarrantyInvoiceController(IWarrantyInvoiceRepo warrantyInvoiceRepo, ILogger<WarrantyInvoiceController> logger)
+        public WarrantyInvoiceController(IWarrantyInvoiceRepo warrantyInvoiceRepo, 
+            ILogger<WarrantyInvoiceController> logger, 
+            IErpIntegrationService erpIntegrationService,
+            IConfiguration configuration)
         {
             _warrantyInvoiceRepo = warrantyInvoiceRepo;
             _logger = logger;
+            _erpIntegrationService = erpIntegrationService;
+            _configuration = configuration;
         }
 
         // Adjust this to however the rest of the app resolves the current
@@ -286,6 +295,45 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error in GenerateWarrantyClaimTagPdf");
                 return StatusCode(500, $"An error occurred while generating the Warranty Claim Tag PDF: {ex.Message}");
+            }
+        }
+
+        [HttpPost("SendWarrantyInvoiceToErp/{id}")]
+        [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SendWarrantyInvoiceToErp(int id)
+        {
+            try
+            {
+                var lines = await _warrantyInvoiceRepo.BuildErpWarrantyClaimPayload(id);
+
+                // CONFIRM: VendorId/SubVendorCode source. Hardcoded from config here
+                // as placeholders since no per-dealer or per-request source was
+                // specified - the documented API requires SubVendorCode only when
+                // "API privacy is true", which is also unconfirmed for this account.
+                var request = new ErpWarrantyClaimSubmitRequest
+                {
+                    VendorId = _configuration.GetValue<int>("ErpIntegration:VendorId"),
+                    SubVendorCode = _configuration["ErpIntegration:SubVendorCode"],
+                    Value = lines
+                };
+
+                var result = await _erpIntegrationService.SubmitWarrantyClaimLines(request);
+
+                if (!result.Success)
+                    return StatusCode(500, result);
+
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SendWarrantyInvoiceToErp");
+                return StatusCode(500, $"An error occurred while sending the Warranty Invoice to ERP: {ex.Message}");
             }
         }
     }
