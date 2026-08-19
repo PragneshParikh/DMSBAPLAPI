@@ -100,6 +100,7 @@ using DMS_BAPL_Data.Services.DesignationService;
 using DMS_BAPL_Data.Services.DispatchMasterService;
 using DMS_BAPL_Data.Services.EmailService;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
+using DMS_BAPL_Data.Services.ErpIntegration;
 using DMS_BAPL_Data.Services.EstimateService;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.ExtendedBatteryWarrantyService;
@@ -307,6 +308,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IDealerManagerService, DealerManagerService>();
             services.AddScoped<IWarrantyOrderService, WarrantyOrderService>();
             services.AddScoped<IDispatchMasterService, DispatchMasterService>();
+            services.AddScoped<IErpIntegrationService, ErpIntegrationService>();
 
 
 

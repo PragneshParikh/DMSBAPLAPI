@@ -38,9 +38,7 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         }
 
         // =====================================================
-        // TSM ERP LOOKUP (GET, pull) — currently 404ing upstream,
-        // route/casing unconfirmed. Kept for once the real route
-        // is found.
+        // TSM ERP LOOKUP (GET, pull)
         // =====================================================
 
         public async Task<TsmEntryViewModel?> FetchTsmDetailsAsync(string tsmCode)
@@ -97,11 +95,9 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         }
 
         // =====================================================
-        // TSM ENTRY CONSUMER (POST, push) — external TSM system
-        // sends data here; we upsert BgEmployeeMaster keyed on TsmCode.
+        // TSM ENTRY CONSUMER (POST, push/upsert)
         // =====================================================
 
-       
         public async Task<BgEmployeeMaster> ConsumeTsmEntryAsync(TsmEntryPayload payload)
         {
             if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
@@ -129,17 +125,22 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 MappedZoneIds = existing?.MappedZoneIds ?? string.Empty,
                 MappedEmployeeIds = existing?.MappedEmployeeIds,
                 MappedEmployees = existing?.MappedEmployees,
-                Pincode = existing?.Pincode,
+                Pincode = payload.Pincode ?? existing?.Pincode,
                 DealerCode = existing?.DealerCode,
                 LocationCode = existing?.LocationCode,
-                Department = existing?.Department,
+                Department = payload.Department ?? existing?.Department,
                 ProfileId = existing?.ProfileId,
                 EmployeeCode = !string.IsNullOrWhiteSpace(existing?.EmployeeCode)
                                 ? existing!.EmployeeCode
                                 : payload.TsmCode,
 
                 Email = existing?.Email,
-                Password = existing?.Password,
+                Password = !string.IsNullOrWhiteSpace(payload.Pwd) ? payload.Pwd : existing?.Password,
+
+                // ---- NEW ----
+                Address1 = payload.Address1 ?? existing?.Address1,
+                Address2 = payload.Address2 ?? existing?.Address2,
+                IsAccepted = payload.IsAccepted ?? existing?.IsAccepted ?? false,
             };
 
             // Split tsmname -> firstName/lastName
@@ -156,17 +157,14 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 model.LastName = string.Empty;
             }
 
-            // Dates — now safely nullable end-to-end, no sentinel value needed
+            // Dates
             model.DateOfJoin = ParseDate(payload.Doa) ?? existing?.DateOfJoin;
             model.DateOfBirth = ParseDate(payload.Dob) ?? existing?.DateOfBirth;
             model.EffectiveDate = ParseDate(payload.Doe) ?? existing?.EffectiveDate;
 
-            // State/City: payload sends names, entity wants int? —
-            // no lookup table wired yet, so preserve existing FK.
-            // TODO: resolve payload.State / payload.City by name once
-            // a State/City lookup service is available.
-            model.State = existing?.State;
-            model.City = existing?.City;
+            // FIXED: payload now sends numeric FK ids directly, no lookup needed.
+            model.State = payload.State ?? existing?.State;
+            model.City = payload.City ?? existing?.City;
 
             if (existing != null)
             {
@@ -179,8 +177,11 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             }
         }
 
-        
-        public async Task<BgEmployeeMaster> UpdateTsmEntryAsync(TsmEntryPayload payload)
+        // =====================================================
+        // TSM ENTRY UPDATE (PUT, update-only — no implicit insert)
+        // =====================================================
+
+        public async Task<BgEmployeeMaster?> UpdateTsmEntryAsync(TsmEntryPayload payload)
         {
             if (payload == null || string.IsNullOrWhiteSpace(payload.TsmCode))
                 throw new ArgumentException("tsmcode is required.");
@@ -188,9 +189,15 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
             var existing = (await _repo.Get())
                 .FirstOrDefault(e => e.TsmCode == payload.TsmCode);
 
+            // FIXED: previously fell through to Create() with a null
+            // EmployeeCode when no match was found. PUT should never
+            // create — the caller (controller) turns this into 404.
+            if (existing == null)
+                return null;
+
             var model = new BgEmployeeViewModel
             {
-                Id = existing?.Id ?? 0,
+                Id = existing.Id,
                 TsmCode = payload.TsmCode,
                 AreaOfficeId = payload.AreaOfficeId,
                 Gender = payload.Gender,
@@ -198,60 +205,46 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 EmailId = payload.Email?.Trim().ToLowerInvariant(),
                 ReportingTo = payload.TsmHeadCode,
                 IsActive = payload.EStatus != "N",
-                ProfileImage = string.IsNullOrWhiteSpace(payload.Photo) ? existing?.ProfileImage : payload.Photo,
-                CreatedBy = existing?.CreatedBy ?? "TSM-Sync",
+                ProfileImage = string.IsNullOrWhiteSpace(payload.Photo) ? existing.ProfileImage : payload.Photo,
+                CreatedBy = existing.CreatedBy,
                 UpdatedBy = "TSM-Sync",
-                CreatedDate = existing?.CreatedDate ?? DateTime.Now,
+                CreatedDate = existing.CreatedDate,
                 UpdatedDate = DateTime.Now,
-                MappedZones = existing?.MappedZones ?? string.Empty,
-                MappedZoneIds = existing?.MappedZoneIds ?? string.Empty,
-                MappedEmployeeIds = existing?.MappedEmployeeIds,
-                MappedEmployees = existing?.MappedEmployees,
-                Pincode = existing?.Pincode,
-                DealerCode = existing?.DealerCode,
-                LocationCode = existing?.LocationCode,
-                Department = existing?.Department,
-                ProfileId = existing?.ProfileId,
-                EmployeeCode = existing?.EmployeeCode,
-                Email = existing?.Email,
-                Password = existing?.Password,
+                MappedZones = existing.MappedZones ?? string.Empty,
+                MappedZoneIds = existing.MappedZoneIds ?? string.Empty,
+                MappedEmployeeIds = existing.MappedEmployeeIds,
+                MappedEmployees = existing.MappedEmployees,
+                Pincode = payload.Pincode ?? existing.Pincode,
+                DealerCode = existing.DealerCode,
+                LocationCode = existing.LocationCode,
+                Department = payload.Department ?? existing.Department,
+                ProfileId = existing.ProfileId,
+                EmployeeCode = existing.EmployeeCode,
+                Email = existing.Email,
+                Password = !string.IsNullOrWhiteSpace(payload.Pwd) ? payload.Pwd : existing.Password,
+
+                // ---- NEW ----
+                Address1 = payload.Address1 ?? existing.Address1,
+                Address2 = payload.Address2 ?? existing.Address2,
+                IsAccepted = payload.IsAccepted ?? existing.IsAccepted,
             };
 
             // Split tsmname -> firstName/lastName
             var fullName = (payload.TsmName ?? string.Empty).Trim();
             var spaceIdx = fullName.IndexOf(' ');
-            if (spaceIdx > -1)
-            {
-                model.FirstName = fullName.Substring(0, spaceIdx);
-                model.LastName = fullName.Substring(spaceIdx + 1);
-            }
-            else
-            {
-                model.FirstName = fullName;
-                model.LastName = string.Empty;
-            }
+            model.FirstName = spaceIdx > -1 ? fullName.Substring(0, spaceIdx) : fullName;
+            model.LastName = spaceIdx > -1 ? fullName.Substring(spaceIdx + 1) : string.Empty;
 
-            // Dates — now safely nullable end-to-end, no sentinel value needed
-            model.DateOfJoin = ParseDate(payload.Doa) ?? existing?.DateOfJoin;
-            model.DateOfBirth = ParseDate(payload.Dob) ?? existing?.DateOfBirth;
-            model.EffectiveDate = ParseDate(payload.Doe) ?? existing?.EffectiveDate;
+            model.DateOfJoin = ParseDate(payload.Doa) ?? existing.DateOfJoin;
+            model.DateOfBirth = ParseDate(payload.Dob) ?? existing.DateOfBirth;
+            model.EffectiveDate = ParseDate(payload.Doe) ?? existing.EffectiveDate;
 
-            // State/City: payload sends names, entity wants int? —
-            // no lookup table wired yet, so preserve existing FK.
-            // TODO: resolve payload.State / payload.City by name once
-            // a State/City lookup service is available.
-            model.State = existing?.State;
-            model.City = existing?.City;
+            // FIXED: honor payload.State / payload.City directly.
+            model.State = payload.State ?? existing.State;
+            model.City = payload.City ?? existing.City;
 
-            if (existing != null)
-            {
-                await Update(model);
-                return (await _repo.GetById(existing.Id))!;
-            }
-            else
-            {
-                return await Create(model);
-            }
+            await Update(model);
+            return await _repo.GetById(existing.Id);
         }
 
         private static DateTime? ParseDate(string? value)
@@ -406,6 +399,11 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 CreatedDate = model.CreatedDate,
                 UpdatedBy = model.UpdatedBy,
                 UpdatedDate = model.UpdatedDate,
+
+                // ---- NEW ----
+                Address1 = model.Address1,
+                Address2 = model.Address2,
+                IsAccepted = model.IsAccepted,
             };
         }
 

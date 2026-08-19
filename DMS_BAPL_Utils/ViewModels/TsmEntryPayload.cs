@@ -4,20 +4,20 @@ namespace DMS_BAPL_Utils.ViewModels
 {
     public class TsmEntryPayload
     {
-        [JsonPropertyName("tsmcode")]
+        [JsonPropertyName("employeeCode")]
         public string? TsmCode { get; set; }
 
-        [JsonPropertyName("tsmname")]
+        [JsonPropertyName("employeeName")]
         public string? TsmName { get; set; }
 
         [JsonPropertyName("mobileno")]
         public string? MobileNo { get; set; }
 
         [JsonPropertyName("state")]
-        public string? State { get; set; }
+        public int? State { get; set; }
 
         [JsonPropertyName("city")]
-        public string? City { get; set; }
+        public int? City { get; set; }
 
         [JsonPropertyName("estatus")]
         public string? EStatus { get; set; }
@@ -37,6 +37,9 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("email")]
         public string? Email { get; set; }
 
+        [JsonPropertyName("pwd")]
+        public string? Pwd { get; set; }
+
         [JsonPropertyName("areaoffidno")]
         public string? AreaOfficeId { get; set; }
 
@@ -45,5 +48,23 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("tsmheadcode")]
         public string? TsmHeadCode { get; set; }
+
+        [JsonPropertyName("reportingTo")]
+        public int? ReportingTo { get; set; }
+
+        [JsonPropertyName("department")]
+        public int? Department { get; set; }
+
+        [JsonPropertyName("isAccepted")]
+        public bool? IsAccepted { get; set; }
+
+        [JsonPropertyName("address1")]
+        public string? Address1 { get; set; }
+
+        [JsonPropertyName("address2")]
+        public string? Address2 { get; set; }
+
+        [JsonPropertyName("pincode")]
+        public string? Pincode { get; set; }
     }
 }
