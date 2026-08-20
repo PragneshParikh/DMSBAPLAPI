@@ -86,11 +86,34 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized(new { message = "Username not found." });
 
                 // find by username OR email
+                //var user = await _userManager.FindByNameAsync(normalizedUsername)
+                //           ?? await _userManager.FindByEmailAsync(normalizedUsername);
+
+                //if (user == null)
+                //    return Unauthorized(new { message = "Username not found." });
+                // find by username OR email
                 var user = await _userManager.FindByNameAsync(normalizedUsername)
                            ?? await _userManager.FindByEmailAsync(normalizedUsername);
 
                 if (user == null)
-                    return Unauthorized(new { message = "Username not found." });
+                {
+                    // No AspNetUsers login yet — check if this email belongs to a dealer in
+                    // DealerMaster that was never linked (e.g. added via ERP/SQL import), and
+                    // auto-provision their login + Dealer role on the spot.
+                    try
+                    {
+                        user = await _dealerMasterService.EnsureDealerUserFromEmailAsync(normalizedUsername);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Auto-provisioning dealer login failed for {normalizedUsername}: {ex.Message}");
+                        return StatusCode(StatusCodes.Status500InternalServerError,
+                            new { success = false, message = "Failed to provision dealer login." });
+                    }
+
+                    if (user == null)
+                        return Unauthorized(new { message = "Username not found." });
+                }
 
                 var result = await _signInManager.CheckPasswordSignInAsync(
                     user, model.Password, lockoutOnFailure: false);

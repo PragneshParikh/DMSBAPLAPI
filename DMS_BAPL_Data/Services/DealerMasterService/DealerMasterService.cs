@@ -250,6 +250,140 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
         }
 
+        public async Task<object> SyncAllDealerLoginsAsync()
+        {
+            var dealers = await _dealerMasterRepo.GetAllDealersAsync(null);
+
+            var created = new List<string>();
+            var alreadyLinked = new List<string>();
+            var skippedNoEmail = new List<string>();
+            var failed = new List<object>();
+
+            foreach (var dealer in dealers)
+            {
+                if (string.IsNullOrWhiteSpace(dealer.Dealercode))
+                    continue;
+
+                if (string.IsNullOrWhiteSpace(dealer.Email))
+                {
+                    skippedNoEmail.Add(dealer.Dealercode);
+                    continue;
+                }
+
+                try
+                {
+                    // Match by DealerCode first (authoritative), fall back to email
+                    var existingUser = _userManager.Users.FirstOrDefault(u => u.DealerCode == dealer.Dealercode)
+                                        ?? await _userManager.FindByEmailAsync(dealer.Email);
+
+                    if (existingUser != null)
+                    {
+                        bool needsUpdate = false;
+
+                        if (string.IsNullOrEmpty(existingUser.DealerCode))
+                        {
+                            existingUser.DealerCode = dealer.Dealercode;
+                            needsUpdate = true;
+                        }
+
+                        if (needsUpdate)
+                            await _userManager.UpdateAsync(existingUser);
+
+                        if (!await _userManager.IsInRoleAsync(existingUser, StringConstants.DealerText))
+                            await _userManager.AddToRoleAsync(existingUser, StringConstants.DealerText);
+
+                        alreadyLinked.Add(dealer.Dealercode);
+                        continue;
+                    }
+
+                    var newUser = new ApplicationUser
+                    {
+                        UserName = dealer.Email,
+                        Email = dealer.Email,
+                        EmailConfirmed = true,
+                        DealerCode = dealer.Dealercode
+                    };
+
+                    var userResult = await _userManager.CreateAsync(newUser, StringConstants.DealerDefaultPassword);
+
+                    if (!userResult.Succeeded)
+                    {
+                        failed.Add(new { dealer.Dealercode, dealer.Email, errors = userResult.Errors.Select(e => e.Description) });
+                        continue;
+                    }
+
+                    var roleResult = await _userManager.AddToRoleAsync(newUser, StringConstants.DealerText);
+
+                    if (!roleResult.Succeeded)
+                    {
+                        failed.Add(new { dealer.Dealercode, dealer.Email, errors = roleResult.Errors.Select(e => e.Description) });
+                        continue;
+                    }
+
+                    created.Add(dealer.Dealercode);
+                }
+                catch (Exception ex)
+                {
+                    failed.Add(new { dealer.Dealercode, dealer.Email, error = ex.Message });
+                }
+            }
+
+            return new
+            {
+                totalDealers = dealers.Count,
+                createdCount = created.Count,
+                alreadyLinkedCount = alreadyLinked.Count,
+                skippedNoEmailCount = skippedNoEmail.Count,
+                failedCount = failed.Count,
+                created,
+                skippedNoEmail,
+                failed
+            };
+        }
+
+        public async Task<ApplicationUser> EnsureDealerUserFromEmailAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return null;
+
+            var dealer = await _dealerMasterRepo.GetDealerByEmail(email);
+
+            if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
+                return null; // no matching dealer — caller stays Unauthorized
+
+            // Double-check no user already exists for this dealer/email (race-condition safety)
+            var existingUser = _userManager.Users.FirstOrDefault(u => u.DealerCode == dealer.Dealercode)
+                                ?? await _userManager.FindByEmailAsync(dealer.Email);
+
+            if (existingUser != null)
+            {
+                if (!await _userManager.IsInRoleAsync(existingUser, StringConstants.DealerText))
+                    await _userManager.AddToRoleAsync(existingUser, StringConstants.DealerText);
+
+                return existingUser;
+            }
+
+            var newUser = new ApplicationUser
+            {
+                UserName = dealer.Email,
+                Email = dealer.Email,
+                EmailConfirmed = true,
+                DealerCode = dealer.Dealercode
+            };
+
+            var userResult = await _userManager.CreateAsync(newUser, StringConstants.DealerDefaultPassword);
+
+            if (!userResult.Succeeded)
+                throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
+
+            var roleResult = await _userManager.AddToRoleAsync(newUser, StringConstants.DealerText);
+
+            if (!roleResult.Succeeded)
+                throw new Exception("Role assignment failed for auto-provisioned dealer login");
+
+            return newUser;
+        }
+
         public Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel) => _dealerMasterRepo.UpdateByDealerCode(userId, dealerMasterViewModel);
         Task<PagedResponse<DealerMaster>> IDealerMasterService.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode) => _dealerMasterRepo.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode);
     }

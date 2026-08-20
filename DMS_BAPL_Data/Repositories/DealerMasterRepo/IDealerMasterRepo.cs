@@ -27,5 +27,6 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate);
         Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
         Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
+        Task<DealerMaster> GetDealerByEmail(string email);
     }
 }

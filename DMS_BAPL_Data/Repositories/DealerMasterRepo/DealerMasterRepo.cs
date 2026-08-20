@@ -425,5 +425,18 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 TotalRecords = totalRecords
             };
         }
+
+        public async Task<DealerMaster> GetDealerByEmail(string email)
+        {
+            try
+            {
+                return await _context.DealerMasters
+                    .FirstOrDefaultAsync(d => d.Email.ToLower() == email.ToLower());
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

@@ -342,5 +342,26 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        /// <summary>
+        /// One-time/repeatable backfill: creates an AspNetUsers login with the Dealer role
+        /// for every dealer in DealerMaster that doesn't already have one.
+        /// Safe to re-run — dealers that already have a login/role are skipped, not duplicated.
+        /// </summary>
+        [HttpPost("sync-dealer-logins")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SyncDealerLogins()
+        {
+            try
+            {
+                var result = await _dealerMasterService.SyncAllDealerLoginsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
     }
 }
