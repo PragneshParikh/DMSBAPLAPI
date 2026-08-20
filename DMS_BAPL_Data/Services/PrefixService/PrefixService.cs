@@ -30,6 +30,11 @@ namespace DMS_BAPL_Data.Services.PrefixService
         Task<int> IPrefixService.InsertPrefix(NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.InsertPrefix(numberSequenceViewModel);
         Task<int> IPrefixService.AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.AddPrefixForDealers(numberSequenceViewModel);
         Task<int> IPrefixService.UpdateNextNumberByDealerByModule(string dealerCode, string moduleName) => _prefixRepo.UpdateNextNumberByDealerByModule(dealerCode, moduleName);
+        Task<NumberSequence?> IPrefixService.GetById(int id) => _prefixRepo.GetById(id);
+        Task<int> IPrefixService.UpdatePrefix(int id, NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.UpdatePrefix(id, numberSequenceViewModel);
+        Task<bool> IPrefixService.DeletePrefix(int id) => _prefixRepo.DeletePrefix(id);
+        Task<bool> IPrefixService.CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId)
+            => _prefixRepo.CheckDuplicate(dealerCode, moduleName, year, prefix, excludeId);
         public async Task<byte[]> DownloadExcel()
         {
             try

@@ -52,8 +52,6 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                     .Take(pageSize)
                     .ToListAsync();
 
-                int startSrNo = (pageIndex * pageSize) + 1;
-
                 return new PagedResponse<NumberSequence>
                 {
                     Data = prefixes,
@@ -75,6 +73,29 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 .Where(x => x.DealerCode == dealerCode && x.SequenceName == moduleName)
                 .FirstOrDefaultAsync();
         }
+
+        // ADDED
+        public async Task<NumberSequence?> GetById(int id)
+        {
+            return await _context.NumberSequences
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        // ADDED — used by the frontend to disable Save when a duplicate would be created.
+        // excludeId lets edit mode ignore the record being edited itself.
+        public async Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId)
+        {
+            return await _context.NumberSequences.AnyAsync(x =>
+                x.DealerCode == dealerCode &&
+                x.SequenceName == moduleName &&
+                x.Year == year &&
+                x.SequenceCode.Contains(prefix) &&
+                x.IsActive == true &&
+                (excludeId == null || x.Id != excludeId.Value)
+            );
+        }
+
         public async Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel)
         {
             try
@@ -112,7 +133,23 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
         {
             try
             {
-                var newNumberSequences = (new NumberSequence
+                // ADDED — deactivate any existing active sequence for this
+                // dealer + module before inserting the new one, so only the
+                // newest configuration is ever "live" at a time.
+                var previousActive = await _context.NumberSequences
+                    .Where(x => x.DealerCode == numberSequenceViewModel.DealerCode
+                             && x.SequenceName == numberSequenceViewModel.SequenceName
+                             && x.IsActive == true)
+                    .ToListAsync();
+
+                foreach (var old in previousActive)
+                {
+                    old.IsActive = false;
+                    old.UpdatedBy = numberSequenceViewModel.CreatedBy;
+                    old.UpdatedDate = DateTime.UtcNow;
+                }
+
+                var newNumberSequence = new NumberSequence
                 {
                     SequenceCode = numberSequenceViewModel.SequenceCode.Replace("DealerCode", numberSequenceViewModel.DealerCode.Length >= 3 ? numberSequenceViewModel.DealerCode[^3..] : numberSequenceViewModel.DealerCode),
                     SequenceName = numberSequenceViewModel.SequenceName,
@@ -124,14 +161,56 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                     IsActive = numberSequenceViewModel.IsActive,
                     CreatedBy = numberSequenceViewModel.CreatedBy,
                     CreatedDate = numberSequenceViewModel.CreatedDate
-                });
+                };
 
-                await _context.NumberSequences.AddAsync(newNumberSequences);
-                int rowsInserted = await _context.SaveChangesAsync();
-                return rowsInserted;
+                await _context.NumberSequences.AddAsync(newNumberSequence);
+                await _context.SaveChangesAsync();
+
+                return newNumberSequence.Id;
             }
             catch { throw; }
         }
+
+        // ADDED — edit an existing sequence in place (no deactivation logic needed,
+        // since we're modifying the same row, not creating a competing one)
+        public async Task<int> UpdatePrefix(int id, NumberSequenceViewModel numberSequenceViewModel)
+        {
+            try
+            {
+                var existing = await _context.NumberSequences.FirstOrDefaultAsync(x => x.Id == id);
+                if (existing == null) return 0;
+
+                existing.SequenceCode = numberSequenceViewModel.SequenceCode.Replace(
+                    "DealerCode",
+                    numberSequenceViewModel.DealerCode.Length >= 3 ? numberSequenceViewModel.DealerCode[^3..] : numberSequenceViewModel.DealerCode
+                );
+                existing.SequenceName = numberSequenceViewModel.SequenceName;
+                existing.Format = numberSequenceViewModel.Format;
+                existing.Year = numberSequenceViewModel.Year;
+                existing.DealerCode = numberSequenceViewModel.DealerCode;
+                existing.NextNo = numberSequenceViewModel.NextNo;
+                existing.Increment = numberSequenceViewModel.Increment;
+                existing.IsActive = numberSequenceViewModel.IsActive;
+                existing.UpdatedBy = numberSequenceViewModel.CreatedBy;
+                existing.UpdatedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return existing.Id;
+            }
+            catch { throw; }
+        }
+
+        // ADDED
+        public async Task<bool> DeletePrefix(int id)
+        {
+            var existing = await _context.NumberSequences.FirstOrDefaultAsync(x => x.Id == id);
+            if (existing == null) return false;
+
+            _context.NumberSequences.Remove(existing);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName)
         {
             var existing = await _context.NumberSequences

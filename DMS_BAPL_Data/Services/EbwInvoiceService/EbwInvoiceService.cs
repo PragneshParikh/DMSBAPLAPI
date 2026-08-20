@@ -24,5 +24,6 @@ namespace DMS_BAPL_Data.Services.EbwInvoiceService
         public Task<List<object>> GetReportDataAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
              => _repo.GetReportDataAsync(dealerCode, fromDate, toDate);
         public Task<(string PrefixNo, int NextNo)> GetNextPrefixNoAsync(string dealerCode) => _repo.GetNextPrefixNoAsync(dealerCode);
+        public Task<object?> GetLatestByChassisNoAsync(string chassisNo) => _repo.GetLatestByChassisNoAsync(chassisNo); // FIXED: added public
     }
 }

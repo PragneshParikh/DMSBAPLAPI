@@ -106,6 +106,22 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("by-chassis/{chassisNo}")]
+        public async Task<IActionResult> GetLatestByChassisNo(string chassisNo)
+        {
+            try
+            {
+                var result = await _service.GetLatestByChassisNoAsync(chassisNo);
+                if (result == null)
+                    return Ok(null); // no EBW purchased for this chassis — not an error
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpGet("dealer-info/{dealerCode}")]
         public async Task<IActionResult> GetDealerInfo(string dealerCode)
         {

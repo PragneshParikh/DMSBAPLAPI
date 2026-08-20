@@ -17,6 +17,23 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
             {
                 EbwInvoiceHeader header;
 
+                // Fetch the scheme's Duration/DurationType (both int) once, used in both branches below
+                DateTime? warrantyEndDate = null;
+                if (model.SchemeId.HasValue && model.ChassisSaleDate.HasValue)
+                {
+                    var scheme = await _context.ExtendedBatteryWarranties
+                        .FirstOrDefaultAsync(x => x.Id == model.SchemeId.Value);
+
+                    if (scheme != null)
+                    {
+                        warrantyEndDate = CalculateWarrantyEndDate(
+                            model.ChassisSaleDate.Value,
+                            scheme.Duration,       // int
+                            scheme.DurationType    // int
+                        );
+                    }
+                }
+
                 if (model.Id > 0)
                 {
                     // ===== UPDATE =====
@@ -39,6 +56,7 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                     header.SoldByDealerCode = model.SoldByDealerCode;
                     header.ChassisSaleDate = model.ChassisSaleDate;
                     header.ValidityExpiryDate = model.ValidityExpiryDate;
+                    header.WarrantyEndDate = warrantyEndDate;   // ADDED
                     header.PartyName = model.PartyName;
                     header.PartyMobile = model.PartyMobile;
                     header.PartyAddress = model.PartyAddress;
@@ -55,7 +73,6 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                     header.UpdatedBy = userId;
                     header.UpdatedDate = DateTime.UtcNow;
 
-                    // Replace all detail rows with the new set
                     _context.EbwInvoiceDetails.RemoveRange(header.EbwInvoiceDetails);
                     await _context.SaveChangesAsync();
 
@@ -87,7 +104,7 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                 }
                 else
                 {
-                    // ===== INSERT (your existing logic, unchanged) =====
+                    // ===== INSERT =====
                     header = new EbwInvoiceHeader
                     {
                         DealerCode = model.DealerCode,
@@ -103,6 +120,7 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                         SoldByDealerCode = model.SoldByDealerCode,
                         ChassisSaleDate = model.ChassisSaleDate,
                         ValidityExpiryDate = model.ValidityExpiryDate,
+                        WarrantyEndDate = warrantyEndDate,   // ADDED
                         PartyName = model.PartyName,
                         PartyMobile = model.PartyMobile,
                         PartyAddress = model.PartyAddress,
@@ -160,6 +178,19 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        /// <summary>
+        /// DurationType: 1 = Month, 2 = Year
+        /// </summary>
+        private static DateTime CalculateWarrantyEndDate(DateTime saleDate, int duration, int durationType)
+        {
+            return durationType switch
+            {
+                1 => saleDate.AddMonths(duration),
+                2 => saleDate.AddYears(duration),
+                _ => saleDate.AddYears(duration)
+            };
         }
 
         public async Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
@@ -246,6 +277,12 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
             if (header == null)
                 return null;
 
+            var batteryNumber = await _context.ChassisBatteryDetails
+                .Where(x => x.ChassisNo == header.ChassisNo)
+                .OrderByDescending(x => x.CreatedDate)
+                .Select(x => x.BatteryNo)
+                .FirstOrDefaultAsync();
+
             return new
             {
                 header.Id,
@@ -271,10 +308,12 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                 header.DealerState,
                 header.IsInterstate,
                 header.SerialNo,
+                header.WarrantyEndDate,
                 header.ItemCode,
                 header.PartsAmount,
                 header.NetAmount,
                 header.Remarks,
+                BatteryNumber = batteryNumber,   // ADDED
                 EbwInvoiceDetails = header.EbwInvoiceDetails.Select(d => new
                 {
                     d.ItemCode,
@@ -347,6 +386,7 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
                         PartNo = d.ItemCode,
                         ItemDesc = d.Description,
                         SerialNo = h.SerialNo,
+                        WarrantyEndDate = h.WarrantyEndDate,
                         RBillNo = h.BillNo,                     // same invoice — no separate repair bill link exists
                         RBillDate = h.InvoiceDate,
                         PartyName = h.PartyName,
@@ -356,6 +396,34 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
             }
 
             return rows;
+        }
+
+        public async Task<object?> GetLatestByChassisNoAsync(string chassisNo)
+        {
+            var header = await _context.EbwInvoiceHeaders
+                .Where(x => x.ChassisNo == chassisNo)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            if (header == null)
+                return null;
+
+            var batteryNumber = await _context.ChassisBatteryDetails
+                .Where(x => x.ChassisNo == chassisNo)
+                .OrderByDescending(x => x.CreatedDate)
+                .Select(x => x.BatteryNo)
+                .FirstOrDefaultAsync();
+
+            return new
+            {
+                header.Id,
+                header.BillNo,
+                header.SchemeName,
+                header.ChassisNo,
+                header.ChassisSaleDate,
+                header.WarrantyEndDate,
+                BatteryNumber = batteryNumber
+            };
         }
 
         public async Task<(string PrefixNo, int NextNo)> GetNextPrefixNoAsync(string dealerCode)

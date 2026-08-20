@@ -15,5 +15,9 @@ namespace DMS_BAPL_Data.Services.PrefixService
         Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName);
         Task<byte[]> DownloadExcel();
         Task<PagedResponse<NumberSequence>> GetPrefixByPagedByDealer(int pageIndex, int pageSize, string? searchTerms, string? dealerCode);
+        Task<NumberSequence?> GetById(int id);
+        Task<int> UpdatePrefix(int id, NumberSequenceViewModel numberSequenceViewModel);
+        Task<bool> DeletePrefix(int id);
+        Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId);
     }
 }

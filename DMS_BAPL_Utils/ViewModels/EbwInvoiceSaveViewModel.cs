@@ -16,7 +16,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string LocationCode { get; set; }
         public string BillType { get; set; }
         public int? CashAccountId { get; set; }
-        public int SchemeId { get; set; }
+        public int? SchemeId { get; set; }
         public string SchemeName { get; set; }
         public string ChassisNo { get; set; }
         public string SoldByDealerCode { get; set; }

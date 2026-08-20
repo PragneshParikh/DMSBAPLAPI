@@ -19,7 +19,7 @@ namespace DMS_BAPL_Data.DBModels
         public string BillType { get; set; } = null!;
         public int? CashAccountId { get; set; }
 
-        public int SchemeId { get; set; }
+        public int? SchemeId { get; set; }
         public string? SchemeName { get; set; }
 
         public string ChassisNo { get; set; } = null!;
@@ -45,6 +45,7 @@ namespace DMS_BAPL_Data.DBModels
 
         public string? Remarks { get; set; }
         public string Status { get; set; } = "Saved";
+        public DateTime? WarrantyEndDate { get; set; }
 
         public string CreatedBy { get; set; } = null!;
         public DateTime CreatedDate { get; set; }

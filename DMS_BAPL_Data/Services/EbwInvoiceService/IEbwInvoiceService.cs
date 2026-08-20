@@ -18,5 +18,6 @@ namespace DMS_BAPL_Data.Services.EbwInvoiceService
         Task<object?> GetDealerInfoAsync(string dealerCode);
         Task<List<object>> GetReportDataAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<(string PrefixNo, int NextNo)> GetNextPrefixNoAsync(string dealerCode);
+        Task<object?> GetLatestByChassisNoAsync(string chassisNo);
     }
 }
