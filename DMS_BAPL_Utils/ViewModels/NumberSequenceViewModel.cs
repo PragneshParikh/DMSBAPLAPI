@@ -21,6 +21,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string Year { get; set; } = null!;
 
         public bool IsActive { get; set; }
+        public int? BillingType { get; set; }
 
         public string? DealerCode { get; set; } = null!;
 

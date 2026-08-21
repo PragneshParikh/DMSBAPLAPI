@@ -33,8 +33,15 @@ namespace DMS_BAPL_Data.Services.PrefixService
         Task<NumberSequence?> IPrefixService.GetById(int id) => _prefixRepo.GetById(id);
         Task<int> IPrefixService.UpdatePrefix(int id, NumberSequenceViewModel numberSequenceViewModel) => _prefixRepo.UpdatePrefix(id, numberSequenceViewModel);
         Task<bool> IPrefixService.DeletePrefix(int id) => _prefixRepo.DeletePrefix(id);
-        Task<bool> IPrefixService.CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId)
-            => _prefixRepo.CheckDuplicate(dealerCode, moduleName, year, prefix, excludeId);
+        Task<bool> IPrefixService.CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? billingType, int? excludeId)
+            => _prefixRepo.CheckDuplicate(dealerCode, moduleName, year, prefix, billingType, excludeId);
+        //Task<bool> IPrefixService.CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId)
+        //    => _prefixRepo.CheckDuplicate(dealerCode, moduleName, year, prefix, excludeId);
+        Task<NumberSequence?> IPrefixService.GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType)
+            => _prefixRepo.GetPrefixByDealerCodeModuleNameBillingType(dealerCode, moduleName, billingType);
+
+        Task<int> IPrefixService.UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType)
+            => _prefixRepo.UpdateNextNumberByDealerByModuleBillingType(dealerCode, moduleName, billingType);
         public async Task<byte[]> DownloadExcel()
         {
             try

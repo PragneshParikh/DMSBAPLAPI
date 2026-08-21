@@ -328,6 +328,7 @@ namespace DMS_BAPL_Api.Controllers
             [FromQuery] string moduleName,
             [FromQuery] string year,
             [FromQuery] string prefix,
+            [FromQuery] int? billingType,
             [FromQuery] int? excludeId)
         {
             try
@@ -335,12 +336,69 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var result = await _prefixService.CheckDuplicate(dealerCode, moduleName, year, prefix, excludeId);
+                var result = await _prefixService.CheckDuplicate(dealerCode, moduleName, year, prefix, billingType, excludeId);
                 return Ok(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error while checking duplicate: {ex.Message}");
+                throw;
+            }
+        }
+
+        // ADDED — returns the formatted next prefix string, scoped to BillingType
+        [HttpGet("{dealerCode}/modules/{moduleName}/billingType/{billingType}")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<string>> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int billingType)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var sequence = await _prefixService.GetPrefixByDealerCodeModuleNameBillingType(dealerCode, moduleName, billingType);
+
+                if (sequence == null)
+                    return NotFound("Sequence not found");
+
+                string prefix = sequence.SequenceCode;
+                int nextNo = sequence.NextNo;
+
+                int digitCount = prefix.Count(c => c == '#');
+                string formattedNo = nextNo.ToString().PadLeft(digitCount, '0');
+                string result = prefix.Replace(new string('#', digitCount), formattedNo);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while fetching prefix number by dealer/module/billingType: {ex.Message}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPut("{dealerCode}/modules/{moduleName}/billingType/{billingType}")]
+        [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<int>> UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int billingType)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _prefixService.UpdateNextNumberByDealerByModuleBillingType(dealerCode, moduleName, billingType);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while updating the next number by billing type: {ex.Message}");
                 throw;
             }
         }

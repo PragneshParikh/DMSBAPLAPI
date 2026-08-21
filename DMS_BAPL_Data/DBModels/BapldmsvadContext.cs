@@ -2977,6 +2977,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Year)
                 .HasMaxLength(30)
                 .IsUnicode(false);
+            entity.Property(e => e.BillingType);   // ADDED
         });
 
         modelBuilder.Entity<OccupationMaster>(entity =>

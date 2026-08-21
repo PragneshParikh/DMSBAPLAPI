@@ -15,6 +15,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? TotalAmount { get; set; }
         public string Location { get; set; }
         public DateTime SaleDate { get; set; }
+        public DateTime CreatedDate { get; set; }
         public string SaleType { get; set; }
         public int? BillType { get; set; }
         public string BillFrom { get; set; }

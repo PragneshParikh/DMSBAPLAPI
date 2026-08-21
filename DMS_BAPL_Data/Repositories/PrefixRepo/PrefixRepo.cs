@@ -133,12 +133,10 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
         {
             try
             {
-                // ADDED — deactivate any existing active sequence for this
-                // dealer + module before inserting the new one, so only the
-                // newest configuration is ever "live" at a time.
                 var previousActive = await _context.NumberSequences
                     .Where(x => x.DealerCode == numberSequenceViewModel.DealerCode
                              && x.SequenceName == numberSequenceViewModel.SequenceName
+                             && x.BillingType == numberSequenceViewModel.BillingType   // ADDED
                              && x.IsActive == true)
                     .ToListAsync();
 
@@ -159,6 +157,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                     NextNo = numberSequenceViewModel.NextNo,
                     Increment = numberSequenceViewModel.Increment,
                     IsActive = numberSequenceViewModel.IsActive,
+                    BillingType = numberSequenceViewModel.BillingType,   // ADDED
                     CreatedBy = numberSequenceViewModel.CreatedBy,
                     CreatedDate = numberSequenceViewModel.CreatedDate
                 };
@@ -191,6 +190,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 existing.NextNo = numberSequenceViewModel.NextNo;
                 existing.Increment = numberSequenceViewModel.Increment;
                 existing.IsActive = numberSequenceViewModel.IsActive;
+                existing.BillingType = numberSequenceViewModel.BillingType;   // ADDED
                 existing.UpdatedBy = numberSequenceViewModel.CreatedBy;
                 existing.UpdatedDate = DateTime.UtcNow;
 
@@ -273,5 +273,59 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
             }
         }
 
+        // CheckDuplicate — now also matches on BillingType when provided.
+        // For "Vehicle Sale Bill", two rows with the same Module+Year+Prefix are
+        // allowed as long as BillingType differs (1 = Dealer Sale/Institutional,
+        // 2 = Counter Sale[Single]) — that's the whole point of this feature.
+        public async Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? billingType, int? excludeId)
+        {
+            return await _context.NumberSequences.AnyAsync(x =>
+                x.DealerCode == dealerCode &&
+                x.SequenceName == moduleName &&
+                x.Year == year &&
+                x.SequenceCode.Contains(prefix) &&
+                x.IsActive == true &&
+                x.BillingType == billingType &&
+                (excludeId == null || x.Id != excludeId.Value)
+            );
+        }
+
+        // ADDED — scoped by BillingType so "Dealer Sale/Institutional" and
+        // "Counter Sale[Single]" each maintain their own independent sequence for
+        // the same Module (sale_bill), continuing from where THAT billing type left off.
+        public async Task<NumberSequence?> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType)
+        {
+            return await _context.NumberSequences
+                .AsNoTracking()
+                .Where(x => x.DealerCode == dealerCode
+                         && x.SequenceName == moduleName
+                         && x.BillingType == billingType
+                         && x.IsActive == true)
+                .OrderByDescending(x => x.CreatedDate)
+                .FirstOrDefaultAsync();
+        }
+
+        // ADDED — increments NextNo only for the sequence matching this specific
+        // BillingType, so saving a "Dealer Sale/Institutional" bill never bumps the
+        // "Counter Sale[Single]" counter and vice versa.
+        public async Task<int> UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType)
+        {
+            var existing = await _context.NumberSequences
+                .FirstOrDefaultAsync(x => x.DealerCode == dealerCode
+                                        && x.SequenceName == moduleName
+                                        && x.BillingType == billingType
+                                        && x.IsActive == true);
+
+            if (existing == null)
+            {
+                return 0;
+            }
+
+            existing.NextNo += existing.Increment;
+
+            await _context.SaveChangesAsync();
+
+            return existing.Id;
+        }
     }
 }

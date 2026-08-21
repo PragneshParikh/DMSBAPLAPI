@@ -10,13 +10,15 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
         Task<PagedResponse<NumberSequence>> GetPrefixByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
         Task<IEnumerable<NumberSequence>> GetPrefixByDealerCode(string dealerCode);
         Task<NumberSequence> GetPrefixByDealerCodeModuleName(string dealerCode, string moduleName);
-        Task<NumberSequence?> GetById(int id);   // ADDED
+        Task<NumberSequence?> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType);   // ADDED
+        Task<NumberSequence?> GetById(int id);
         Task<int> InsertPrefix(NumberSequenceViewModel numberSequence);
-        Task<int> UpdatePrefix(int id, NumberSequenceViewModel numberSequence);   // ADDED
-        Task<bool> DeletePrefix(int id);   // ADDED
-        Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId);   // ADDED
+        Task<int> UpdatePrefix(int id, NumberSequenceViewModel numberSequence);
+        Task<bool> DeletePrefix(int id);
+        Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? billingType, int? excludeId);
         Task<int> AddPrefixForDealers(NumberSequenceViewModel numberSequenceViewModel);
         Task<int> UpdateNextNumberByDealerByModule(string dealerCode, string moduleName);
+        Task<int> UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType);   // ADDED
         Task<PagedResponse<NumberSequence>> GetPrefixByPagedByDealer(int pageIndex, int pageSize, string? searchTerms, string? dealerCode);
     }
 }

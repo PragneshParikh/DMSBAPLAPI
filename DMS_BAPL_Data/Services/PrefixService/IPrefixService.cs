@@ -18,6 +18,9 @@ namespace DMS_BAPL_Data.Services.PrefixService
         Task<NumberSequence?> GetById(int id);
         Task<int> UpdatePrefix(int id, NumberSequenceViewModel numberSequenceViewModel);
         Task<bool> DeletePrefix(int id);
-        Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId);
+        Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? billingType, int? excludeId);
+        //Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId);
+        Task<NumberSequence?> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType);
+        Task<int> UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType);
     }
 }

@@ -72,7 +72,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
 
                 if (result != 0)
                 {
-                    await _prefixRepo.UpdateNextNumberByDealerByModule(model.DealerCode, "sale_bill");
+                    await _prefixRepo.UpdateNextNumberByDealerByModuleBillingType(model.DealerCode, "sale_bill", model.BillType);
                 }
                 return result;
             }
@@ -469,7 +469,6 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         {
             try
             {
-
                 return new VehicleSaleBillResponseViewModel
                 {
                     Id = data.Id,
@@ -478,6 +477,7 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                     TotalAmount = data.TotalAmount ?? 0,
                     Location = data.Location,
                     SaleDate = data.SaleDate,
+                    CreatedDate = data.CreatedDate,   // ADDED
                     SaleType = data.SaleType,
                     BillType = data.BillType,
                     BillingName = data.BillingName,
