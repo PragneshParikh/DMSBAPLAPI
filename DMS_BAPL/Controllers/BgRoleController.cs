@@ -188,9 +188,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // CHANGED — added `module` and `area` query params, passed through
-        // as the 3rd and 4th arguments, matching IBgRoleService's updated
-        // signature (mirrors DealerManagerController.GetMenuAccess).
         [HttpGet("location/{locationId}/menu-access")]
         public async Task<IActionResult> GetLocationMenuAccess(int locationId, [FromQuery] string? roleId, [FromQuery] string? module, [FromQuery] string? area)
         {

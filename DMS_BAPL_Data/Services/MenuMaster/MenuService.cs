@@ -136,10 +136,20 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
 
                 var menus = await _menuRepo.GetMenuItems();
 
+
+                var roleIds = new List<string>();
+
+                var locationRoleId = _httpContextAccessor.HttpContext?.User?.FindFirst("LocationRoleId")?.Value;
+                if (!string.IsNullOrWhiteSpace(locationRoleId))
+                {
+                    roleIds.Add(locationRoleId);
+                }
+
                 var userRoles = await _context.Set<IdentityUserRole<string>>()
                     .Where(x => x.UserId == userId)
                     .ToListAsync();
-                var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
+                roleIds.AddRange(userRoles.Select(x => x.RoleId));
+                roleIds = roleIds.Distinct().ToList();
 
                 var roleRights = new List<RoleWiseMenuRight>();
                 foreach (var rid in roleIds)
