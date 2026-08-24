@@ -1,449 +1,256 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.Services.DealerMasterService;
+using DMS_BAPL_Data.Services.LocationMasterService;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Spreadsheet;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
 
-namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
+namespace DMS_BAPL_Api.Controllers
 {
-    public class LocationMasterRepo : ILocationMasterRepo
+    [Route("api/[controller]")]
+    [ApiController]
+    public class LocationMasterController : ControllerBase
     {
-        private readonly BapldmsvadContext _context;
-        public LocationMasterRepo(BapldmsvadContext context)
+        private readonly IDealerMasterService _dealerService;
+        private readonly ILocationMasterService _locationMasterService;
+        private readonly ILogger<LocationMasterController> _logger;
+
+        public LocationMasterController(ILocationMasterService locationMasterService, IDealerMasterService dealerMasterService, ILogger<LocationMasterController> logger)
         {
-            _context = context;
-        }
-        public async Task<List<LocationMasterViewModel>> GetAllLocationMaster()
-        {
-            var data = await _context.LocationMasters.ToListAsync();
-
-            List<LocationMasterViewModel> list = new List<LocationMasterViewModel>();
-
-            foreach (var item in data)
-            {
-                LocationMasterViewModel locationMasterViewModel = new LocationMasterViewModel();
-
-                locationMasterViewModel.Id = item.Id;
-                locationMasterViewModel.Action = item.Action;
-                locationMasterViewModel.Loccode = item.Loccode;
-                locationMasterViewModel.Locname = item.Locname;
-                locationMasterViewModel.Locareaidno = item.Locareaidno;
-                locationMasterViewModel.Add1 = item.Add1;
-                locationMasterViewModel.Add2 = item.Add2;
-                locationMasterViewModel.State = item.State;
-                locationMasterViewModel.City = item.City;
-                locationMasterViewModel.Pincode = item.Pincode;
-                locationMasterViewModel.Gstinno = item.Gstinno;
-                locationMasterViewModel.Email = item.Email;
-                locationMasterViewModel.Mobileno = item.Mobileno;
-                locationMasterViewModel.Contpername1 = item.Contpername1;
-                locationMasterViewModel.Contpername2 = item.Contpername2;
-                locationMasterViewModel.Contpermob1 = item.Contpermob1;
-                locationMasterViewModel.Contpermob2 = item.Contpermob2;
-                locationMasterViewModel.Contperemail1 = item.Contperemail1;
-                locationMasterViewModel.Contperemail2 = item.Contperemail2;
-                locationMasterViewModel.Compid = item.Compid;
-                locationMasterViewModel.Acntidno = item.Acntidno;
-                locationMasterViewModel.Formtype = item.Formtype;
-                locationMasterViewModel.Dealercode = item.Dealercode;
-                locationMasterViewModel.Lineno = item.Lineno;
-                locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
-                locationMasterViewModel.Active = item.Active;
-                locationMasterViewModel.CreatedBy = item.CreatedBy;
-                locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
-                locationMasterViewModel.UpdateBy = item.UpdatedBy;
-                locationMasterViewModel.UpdatedDate = item.UpdatedDate;
-
-                list.Add(locationMasterViewModel);
-            }
-
-            return list;
-        }
-        public async Task<LocationMasterViewModel> GetLocationMasterById(int id)
-        {
-            var item = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Id == id);
-
-            if (item == null)
-                return null;
-
-            LocationMasterViewModel locationMasterViewModel = new LocationMasterViewModel();
-
-            locationMasterViewModel.Id = item.Id;
-            locationMasterViewModel.Action = item.Action;
-            locationMasterViewModel.Loccode = item.Loccode;
-            locationMasterViewModel.Locname = item.Locname;
-            locationMasterViewModel.Locareaidno = item.Locareaidno;
-            locationMasterViewModel.Add1 = item.Add1;
-            locationMasterViewModel.Add2 = item.Add2;
-            locationMasterViewModel.State = item.State;
-            locationMasterViewModel.City = item.City;
-            locationMasterViewModel.Pincode = item.Pincode;
-            locationMasterViewModel.Gstinno = item.Gstinno;
-            locationMasterViewModel.Email = item.Email;
-            locationMasterViewModel.Mobileno = item.Mobileno;
-            locationMasterViewModel.Contpername1 = item.Contpername1;
-            locationMasterViewModel.Contpername2 = item.Contpername2;
-            locationMasterViewModel.Contpermob1 = item.Contpermob1;
-            locationMasterViewModel.Contpermob2 = item.Contpermob2;
-            locationMasterViewModel.Contperemail1 = item.Contperemail1;
-            locationMasterViewModel.Contperemail2 = item.Contperemail2;
-            locationMasterViewModel.Compid = item.Compid;
-            locationMasterViewModel.Acntidno = item.Acntidno;
-            locationMasterViewModel.Formtype = item.Formtype;
-            locationMasterViewModel.Dealercode = item.Dealercode;
-            locationMasterViewModel.Lineno = item.Lineno;
-            locationMasterViewModel.Rrglocationidno = item.Rrglocationidno;
-            locationMasterViewModel.Active = item.Active;
-            locationMasterViewModel.CreatedBy = item.CreatedBy;
-            locationMasterViewModel.CreatedDate = item.CreatedDate ?? DateTime.Now;
-            locationMasterViewModel.UpdateBy = item.UpdatedBy;
-            locationMasterViewModel.UpdatedDate = item.UpdatedDate;
-
-            return locationMasterViewModel;
-        }
-        public async Task<bool> AddLocationMaster(LocationMasterViewModel model)
-        {
-            LocationMaster locationMaster = new LocationMaster();
-
-            locationMaster.Action = model.Action;
-            locationMaster.Loccode = model.Loccode;
-            locationMaster.Locname = model.Locname;
-            locationMaster.Locareaidno = model.Locareaidno;
-            locationMaster.Add1 = model.Add1;
-            locationMaster.Add2 = model.Add2;
-            locationMaster.State = model.State;
-            locationMaster.City = model.City;
-            locationMaster.Pincode = model.Pincode;
-            locationMaster.Gstinno = model.Gstinno;
-            locationMaster.Email = model.Email;
-            locationMaster.Mobileno = model.Mobileno;
-            locationMaster.Contpername1 = model.Contpername1;
-            locationMaster.Contpername2 = model.Contpername2;
-            locationMaster.Contpermob1 = model.Contpermob1;
-            locationMaster.Contpermob2 = model.Contpermob2;
-            locationMaster.Contperemail1 = model.Contperemail1;
-            locationMaster.Contperemail2 = model.Contperemail2;
-            locationMaster.Compid = model.Compid;
-            locationMaster.Acntidno = model.Acntidno;
-            locationMaster.Formtype = model.Formtype;
-            locationMaster.Dealercode = model.Dealercode;
-            locationMaster.Lineno = model.Lineno;
-            locationMaster.Rrglocationidno = model.Rrglocationidno;
-            locationMaster.Active = model.Active;
-            locationMaster.CreatedBy = model.CreatedBy ?? "CUS0345A";
-            locationMaster.CreatedDate = DateTime.Now;
-
-            await _context.LocationMasters.AddAsync(locationMaster);
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-        public async Task<bool> UpdateLocationMaster(LocationMasterViewModel model)
-        {
-            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Loccode == model.Loccode);
-
-            if (location == null)
-            {
-                var locationMaster = new LocationMaster
-                {
-                    Action = model.Action,
-                    Loccode = model.Loccode,
-                    Locname = model.Locname,
-                    Locareaidno = model.Locareaidno,
-                    Add1 = model.Add1,
-                    Add2 = model.Add2,
-                    State = model.State,
-                    City = model.City,
-                    Pincode = model.Pincode,
-                    Gstinno = model.Gstinno,
-                    Email = model.Email,
-                    Mobileno = model.Mobileno,
-                    Contpername1 = model.Contpername1,
-                    Contpername2 = model.Contpername2,
-                    Contpermob1 = model.Contpermob1,
-                    Contpermob2 = model.Contpermob2,
-                    Contperemail1 = model.Contperemail1,
-                    Contperemail2 = model.Contperemail2,
-                    Compid = model.Compid,
-                    Acntidno = model.Acntidno,
-                    Formtype = model.Formtype,
-                    Dealercode = model.Dealercode,
-                    Lineno = model.Lineno,
-                    Rrglocationidno = model.Rrglocationidno,
-                    Active = model.Active,
-                    CreatedBy = model.CreatedBy ?? "CUS0345A",
-                    CreatedDate = DateTime.Now,
-                };
-
-                await _context.LocationMasters.AddAsync(locationMaster);
-            }
-            else
-            {
-
-                location.Action = model.Action;
-                location.Loccode = model.Loccode;
-                location.Locname = model.Locname;
-                location.Locareaidno = model.Locareaidno;
-                location.Add1 = model.Add1;
-                location.Add2 = model.Add2;
-                location.State = model.State;
-                location.City = model.City;
-                location.Pincode = model.Pincode;
-                location.Gstinno = model.Gstinno;
-                location.Email = model.Email;
-                location.Mobileno = model.Mobileno;
-                location.Contpername1 = model.Contpername1;
-                location.Contpername2 = model.Contpername2;
-                location.Contpermob1 = model.Contpermob1;
-                location.Contpermob2 = model.Contpermob2;
-                location.Contperemail1 = model.Contperemail1;
-                location.Contperemail2 = model.Contperemail2;
-                location.Compid = model.Compid;
-                location.Acntidno = model.Acntidno;
-                location.Formtype = model.Formtype;
-                location.Dealercode = model.Dealercode;
-                location.Lineno = model.Lineno;
-                location.Rrglocationidno = model.Rrglocationidno;
-                location.Active = model.Active;
-                location.UpdatedBy = model.UpdateBy;
-                location.UpdatedDate = DateTime.Now;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return true;
+            _dealerService = dealerMasterService;
+            _locationMasterService = locationMasterService;
+            _logger = logger;
         }
 
-        public async Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode)
+        [HttpGet("GetAllLocationMaster")]
+        public async Task<IActionResult> GetAllLocationMaster()
+        {
+            var result = await _locationMasterService.GetAllLocationMaster();
+            return Ok(result);
+        }
+
+        [HttpGet("GetLocationMasterById/{id}")]
+        public async Task<IActionResult> GetLocationMasterById(int id)
         {
             try
             {
-                var data = await _context.LocationMasters
-                            .Where(x => x.Dealercode == dealerCode && x.Locareaidno == 1)
-                            .ToListAsync();
-
-                List<LocationNameViewModel> list = new List<LocationNameViewModel>();
-
-                foreach (var item in data)
-                {
-                    LocationNameViewModel locationName = new LocationNameViewModel();
-
-                    locationName.Loccode = item.Loccode;
-                    locationName.Locname = item.Locname;
-
-                    list.Add(locationName);
-                }
-
-                return list;
+                var result = await _locationMasterService.GetLocationMasterById(id);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                throw new Exception("Error while fetching location names", ex);
+                throw;
             }
         }
 
-        public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string? dealerCode)
-        {
-            Console.WriteLine($"DealerCode = '{dealerCode}'");
-            var result = await _context.LocationMasters
-                .Where(x => x.Active == "Y" &&
-                            (dealerCode == "null" || x.Dealercode == dealerCode))
-                .Select(x => new LocationTypewiseNameViewModel
-                {
-                    locname = x.Locname,
-                    locCode = x.Loccode,
-                    locareadidNo = x.Locareaidno
-                })
-                .ToListAsync();
-
-            return result;
-        }
-
-        public async Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
-        {
-            var locCode = locationMasterViewModel.Loccode?.Trim().ToUpper();
-
-            var _existingLocation = await _context.LocationMasters
-                .FirstOrDefaultAsync(x => x.Loccode.ToUpper() == locCode);
-
-            if (_existingLocation == null)
-            {
-                var locationMaster = new LocationMaster
-                {
-                    Action = locationMasterViewModel.Action,
-                    Loccode = locationMasterViewModel.Loccode,
-                    Locname = locationMasterViewModel.Locname,
-                    Locareaidno = locationMasterViewModel.Locareaidno,
-                    Add1 = locationMasterViewModel.Add1,
-                    Add2 = locationMasterViewModel.Add2,
-                    State = locationMasterViewModel.State,
-                    City = locationMasterViewModel.City,
-                    Pincode = locationMasterViewModel.Pincode,
-                    Gstinno = locationMasterViewModel.Gstinno,
-                    Email = locationMasterViewModel.Email,
-                    Mobileno = locationMasterViewModel.Mobileno,
-                    Contpername1 = locationMasterViewModel.Contpername1,
-                    Contpername2 = locationMasterViewModel.Contpername2,
-                    Contpermob1 = locationMasterViewModel.Contpermob1,
-                    Contpermob2 = locationMasterViewModel.Contpermob2,
-                    Contperemail1 = locationMasterViewModel.Contperemail1,
-                    Contperemail2 = locationMasterViewModel.Contperemail2,
-                    Compid = locationMasterViewModel.Compid,
-                    Acntidno = locationMasterViewModel.Acntidno,
-                    Formtype = locationMasterViewModel.Formtype,
-                    Dealercode = locationMasterViewModel.Dealercode,
-                    Lineno = locationMasterViewModel.Lineno,
-                    Rrglocationidno = locationMasterViewModel.Rrglocationidno,
-                    Active = locationMasterViewModel.Active,
-                    CreatedBy = locationMasterViewModel.CreatedBy ?? "CUS0345A",
-                    CreatedDate = DateTime.Now,
-                };
-
-                await _context.LocationMasters.AddAsync(locationMaster);
-            }
-            else
-            {
-
-                _existingLocation.Action = locationMasterViewModel.Action;
-                _existingLocation.Loccode = locationMasterViewModel.Loccode;
-                _existingLocation.Locname = locationMasterViewModel.Locname;
-                _existingLocation.Locareaidno = locationMasterViewModel.Locareaidno;
-                _existingLocation.Add1 = locationMasterViewModel.Add1;
-                _existingLocation.Add2 = locationMasterViewModel.Add2;
-                _existingLocation.State = locationMasterViewModel.State;
-                _existingLocation.City = locationMasterViewModel.City;
-                _existingLocation.Pincode = locationMasterViewModel.Pincode;
-                _existingLocation.Gstinno = locationMasterViewModel.Gstinno;
-                _existingLocation.Email = locationMasterViewModel.Email;
-                _existingLocation.Mobileno = locationMasterViewModel.Mobileno;
-                _existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
-                _existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
-                _existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
-                _existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
-                _existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
-                _existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
-                _existingLocation.Compid = locationMasterViewModel.Compid;
-                _existingLocation.Acntidno = locationMasterViewModel.Acntidno;
-                _existingLocation.Formtype = locationMasterViewModel.Formtype;
-                _existingLocation.Dealercode = locationMasterViewModel.Dealercode;
-                _existingLocation.Lineno = locationMasterViewModel.Lineno;
-                _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
-                _existingLocation.Active = locationMasterViewModel.Active;
-                _existingLocation.UpdatedBy = userId;
-                _existingLocation.UpdatedDate = DateTime.Now;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return _existingLocation;
-        }
-
-        public async Task<LocationMaster?> GetLocationByCode(string loccode)
-        {
-            return await _context.LocationMasters
-                .FirstOrDefaultAsync(x => x.Loccode == loccode);
-        }
-
-        public async Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string? dealerCode, int areaId)
+        [HttpPost("AddLocationMaster")]
+        public async Task<IActionResult> AddLocationMaster(LocationMasterViewModel model)
         {
             try
             {
-                var data = await _context.LocationMasters
-                    .Where(x => (dealerCode == null || x.Dealercode == dealerCode)
-                             && x.Locareaidno == areaId)
-                    .ToListAsync();
+                var result = await _locationMasterService.AddLocationMaster(model);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
 
-                List<LocationNameViewModel> list = new();
+        [HttpPut("UpdateLocationMaster")]
+        public async Task<IActionResult> UpdateLocationMaster(LocationMasterViewModel model)
+        {
+            try
+            {
+                var result = await _locationMasterService.UpdateLocationMaster(model);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
 
-                foreach (var item in data)
+        [HttpGet("DownloadLocationMasterExcel")]
+        public async Task<IActionResult> DownloadLocationMasterExcel()
+        {
+            try
+            {
+                var file = await _locationMasterService.DownloadLocationMasterExcel();
+
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "LocationMaster.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetAllShowroomLocationsofCurrentDelaer")]
+        public async Task<IActionResult> GetAllShowroomlocation(string dealerCode)
+        {
+            try
+            {
+                var result = await _locationMasterService.GetLocationByDealerCode(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+
+        }
+
+        [HttpGet("GetLocationByDealerCode/{dealerCode}")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLocationByDealerCode(string dealerCode)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetLocationByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetLocationDropdownByDealerCode")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLocationDropdownByDealerCode([FromQuery] string? dealerCode = null)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetLocationDropdownByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetLocationTypeWiseNameByDealerCode")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLocationTypeWiseNameByDealerCode(string? dealerCode)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetLocationNameTypewiseListAsync(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetLocationByDealerByAreaId")]
+        [ProducesResponseType(typeof(IEnumerable<LocationNameViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<LocationNameViewModel>> GetLocationByDealerByAreaId([FromQuery] string? dealerCode, [FromQuery] int areaId)
+        {
+            try
+            {
+                if (dealerCode == "null")
                 {
-                    list.Add(new LocationNameViewModel
-                    {
-                        Loccode = item.Loccode,
-                        Locname = item.Locname,
-                        DealerCode = item.Dealercode
-                    });
+                    dealerCode = null;
                 }
 
-                return list;
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var locations = await _locationMasterService.GetLocationByDealerByAreaId(dealerCode, areaId);
+
+                return Ok(locations);
             }
-            catch { throw; }
-        }
-        async Task<IEnumerable<object>> ILocationMasterRepo.GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode)
-        {
-            var query = await _context.LocationMasters
-                .Where(x => x.Locareaidno == areaId &&
-                x.Loccode.EndsWith(locCode) &&
-                (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
-                .ToListAsync();
-
-            return query.Select(x => new LocationMasterViewModel
+            catch (Exception ex)
             {
-                Id = x.Id,
-                Loccode = x.Loccode,
-                Locname = x.Locname,
-                Locareaidno = x.Locareaidno,
-                Dealercode = x.Dealercode,
-                State = x.State
-            });
-        }
-
-        public async Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode)
-        {
-            var data = await _context.LocationMasters
-                        .Where(x => x.Dealercode == dealerCode)
-                        .ToListAsync();
-
-            return data.Select(item => new LocationNameViewModel
-            {
-                Loccode = item.Loccode,
-                Locname = item.Locname
-            }).ToList();
-        }
-        public async Task<IEnumerable<LocationMasterViewModel>> GetLocationDropdownByDealerCode(string? dealerCode)
-        {
-            var query = _context.LocationMasters.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(dealerCode))
-            {
-                query = query.Where(x => x.Dealercode == dealerCode);
+                throw;
             }
-
-            return await query
-                .Select(x => new LocationMasterViewModel
-                {
-                    Id = x.Id,
-                    Locname = x.Locname,
-                    Dealercode = x.Dealercode,
-                    Locareaidno = x.Locareaidno,
-                    Loccode = x.Loccode
-                })
-                .ToListAsync();
         }
 
-        public async Task<(string? RoleId, string? RoleName)> GetRoleByDealerAndLocationCodeAsync(string? dealerCode, string? locationCode)
+        /// <summary>
+        /// Insert/Update data from the ERP
+        /// </summary>
+        /// <param name="locationMasterViewModel"></param>
+        /// <returns></returns>
+        [HttpPut("UpdateByLocationCode")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<object>> UpdateByLocationCode([FromBody] LocationMasterViewModel locationMasterViewModel)
         {
-            if (string.IsNullOrWhiteSpace(dealerCode) || string.IsNullOrWhiteSpace(locationCode))
-                return (null, null);
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
-            var location = await _context.LocationMasters
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l =>
-                    l.Dealercode == dealerCode &&
-                    l.Loccode == locationCode);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
 
-            if (location == null || string.IsNullOrWhiteSpace(location.Loccode))
-                return (null, null);
+                var location = await _locationMasterService.UpdateByLocationCode(userId, locationMasterViewModel);
 
-            var role = await _context.AspNetRoles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == location.Loccode);
-            return role != null ? (location.Loccode, role.Name) : (null, null);
+                if (location == null)
+                    return NotFound("Location not found");
+
+                return Ok(location);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetDealerPrimaryLocationByAreaId")]
+        [ProducesResponseType(typeof(IEnumerable<LocationMasterViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<object>>> GetDealerPrimaryLocationByAreaId([FromQuery] int areaId, [FromQuery] string locCode, [FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var locations = await _locationMasterService.GetDealerPrimaryLocationByAreaId(areaId, locCode, dealerCode);
+
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        [HttpGet("GetAllLocationByDealerCode/{dealerCode}")]
+        public async Task<IActionResult> GetAllLocationByDealerCode(string dealerCode)
+        {
+            try
+            {
+                var data = await _locationMasterService.GetAllLocationByDealerCode(dealerCode);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
     }
