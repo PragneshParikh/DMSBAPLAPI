@@ -49,9 +49,6 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
                 .Distinct()
                 .ToList();
 
-            // Batch-load the linked login users for this page of dealers,
-            // via the existing AspNetUser.DealerCode bridge — same one used
-            // everywhere else in this app (storageService.getDealerCode()).
             var linkedUsers = dealerCodes.Count == 0
                 ? new List<AspNetUser>()
                 : await _context.AspNetUsers
@@ -181,6 +178,26 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             return DealerRoleAssignResult.Success;
         }
 
+        public async Task<DealerRoleAssignResult> UnassignRoleAsync(int dealerId)
+        {
+            var dealer = await _context.DealerMasters.FirstOrDefaultAsync(d => d.Id == dealerId);
+            if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
+                return DealerRoleAssignResult.DealerNotFound;
+
+            var user = await _context.AspNetUsers
+                .Include(u => u.Roles)
+                .Where(u => u.DealerCode == dealer.Dealercode)
+                .OrderBy(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return DealerRoleAssignResult.NoLinkedUser;
+
+            user.Roles.Clear();
+            await _context.SaveChangesAsync();
+            return DealerRoleAssignResult.Success;
+        }
+
         private async Task<(string? RoleId, string? RoleName)> ResolveDealerRoleAsync(int dealerId)
         {
             var dealer = await _context.DealerMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dealerId);
@@ -198,7 +215,55 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             return (role?.Id, role?.Name);
         }
 
-        public async Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId)
+        // CHANGED — now accepts an optional `area`. Final hierarchy is
+        // Role -> Area -> Module, so once an Area (ShowRoom/WorkShop/
+        // Account) is chosen, the Module dropdown must only offer modules
+        // that actually contain at least one form tagged with that Area —
+        // "Area-wise Module". Passing null/empty preserves the original
+        // "every top-level module" behavior for any other caller.
+        public async Task<List<string>> GetAvailableModulesAsync(string? area)
+        {
+            var topMenus = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId == null && m.MenuName != null)
+                .OrderBy(m => m.SerialNo)
+                .ToListAsync();
+
+            if (string.IsNullOrWhiteSpace(area))
+            {
+                return topMenus.Select(m => m.MenuName!).Distinct().ToList();
+            }
+
+            var topMenuIds = topMenus.Select(m => m.Id).ToList();
+
+            var moduleIdsWithArea = await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId.HasValue
+                         && topMenuIds.Contains(m.ParentMenuId.Value)
+                         && m.ModuleName != null
+                         && m.ModuleName.ToLower() == area.ToLower())
+                .Select(m => m.ParentMenuId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            return topMenus
+                .Where(m => moduleIdsWithArea.Contains(m.Id))
+                .Select(m => m.MenuName!)
+                .ToList();
+        }
+
+        public async Task<List<string>> GetAvailableAreasAsync()
+        {
+            return await _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId != null && m.ModuleName != null && m.ModuleName != "")
+                .Select(m => m.ModuleName!)
+                .Distinct()
+                .OrderBy(a => a)
+                .ToListAsync();
+        }
+
+        public async Task<DealerMenuAccessResponseViewModel?> GetMenuAccessAsync(int dealerId, string? roleId, string? module, string? area)
         {
             var dealerExists = await _context.DealerMasters.AnyAsync(d => d.Id == dealerId);
             if (!dealerExists) return null;
@@ -208,32 +273,85 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
 
             if (!string.IsNullOrWhiteSpace(effectiveRoleId))
             {
-                // Explicit role picked from the modal's dropdown — look it up directly.
                 var role = await _context.AspNetRoles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == effectiveRoleId);
                 effectiveRoleName = role?.Name;
-                if (role == null) effectiveRoleId = null; // bad/stale id — fall through as "no role selected"
+                if (role == null) effectiveRoleId = null;
             }
             else
             {
-                // No role specified — default to whatever role is currently
-                // assigned to this dealer's linked login, same as before.
                 var (resolvedRoleId, resolvedRoleName) = await ResolveDealerRoleAsync(dealerId);
                 effectiveRoleId = resolvedRoleId;
                 effectiveRoleName = resolvedRoleName;
             }
 
-            var topMenus = await _context.MenuMasters
-                .AsNoTracking()
-                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
-                .ToListAsync();
+            var groups = await BuildMenuAccessGroupsAsync(effectiveRoleId, module, area);
 
+            return new DealerMenuAccessResponseViewModel
+            {
+                DealerId = dealerId,
+                RoleId = effectiveRoleId,
+                RoleName = effectiveRoleName,
+                Groups = groups
+            };
+        }
+
+        // NEW — used by DealerManagerController.GetMyAccess for a Location
+        // Login session. That call has a roleId straight from the JWT's
+        // LocationRoleId claim and no dealerId at all, so it can't go through
+        // GetMenuAccessAsync above: that method's dealerId-exists guard
+        // (`_context.DealerMasters.AnyAsync(d => d.Id == dealerId)`) would
+        // never pass for a placeholder id like 0, making this resolve to
+        // null every time regardless of what the location was actually
+        // granted. This skips that guard entirely — a location's role
+        // doesn't need a dealerId to be valid.
+        public async Task<DealerMenuAccessResponseViewModel?> GetMenuAccessByRoleIdAsync(string roleId, string? module, string? area)
+        {
+            if (string.IsNullOrWhiteSpace(roleId))
+                return null;
+
+            var role = await _context.AspNetRoles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == roleId);
+            if (role == null)
+                return null;
+
+            var groups = await BuildMenuAccessGroupsAsync(roleId, module, area);
+
+            return new DealerMenuAccessResponseViewModel
+            {
+                DealerId = 0,
+                RoleId = roleId,
+                RoleName = role.Name,
+                Groups = groups
+            };
+        }
+
+        // NEW — the actual Module/Area/RoleWiseMenuRights tree-building logic,
+        // extracted out of GetMenuAccessAsync so GetMenuAccessByRoleIdAsync can
+        // reuse it verbatim instead of duplicating it (and risking the two
+        // drifting apart later).
+        private async Task<List<DealerMenuAccessGroupViewModel>> BuildMenuAccessGroupsAsync(string? effectiveRoleId, string? module, string? area)
+        {
+            var topMenusQuery = _context.MenuMasters
+                .AsNoTracking()
+                .Where(m => m.ParentMenuId == null);
+
+            if (!string.IsNullOrWhiteSpace(module))
+            {
+                topMenusQuery = topMenusQuery.Where(m => m.MenuName != null && m.MenuName.ToLower() == module.ToLower());
+            }
+
+            var topMenus = await topMenusQuery.OrderBy(m => m.SerialNo).ToListAsync();
             var topMenuIds = topMenus.Select(m => m.Id).ToList();
 
-            var subMenus = await _context.MenuMasters
+            var subMenusQuery = _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
-                .OrderBy(m => m.SerialNo)
-                .ToListAsync();
+                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value));
+
+            if (!string.IsNullOrWhiteSpace(area))
+            {
+                subMenusQuery = subMenusQuery.Where(m => m.ModuleName != null && m.ModuleName.ToLower() == area.ToLower());
+            }
+
+            var subMenus = await subMenusQuery.OrderBy(m => m.SerialNo).ToListAsync();
 
             var subMenuIds = subMenus.Select(s => s.Id).ToList();
 
@@ -246,7 +364,7 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
                     .ToListAsync())
                   .ToHashSet();
 
-            var groups = topMenus.Select(top => new DealerMenuAccessGroupViewModel
+            return topMenus.Select(top => new DealerMenuAccessGroupViewModel
             {
                 TopMenuId = top.Id,
                 TopMenuName = top.MenuName ?? string.Empty,
@@ -257,24 +375,20 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
                         SubMenuId = s.Id,
                         MenuName = s.MenuName ?? string.Empty,
                         PathName = s.PathName,
+                        ModuleName = s.ModuleName,
                         IsGranted = grantedSubMenuIds.Contains(s.Id)
                     })
                     .ToList()
             }).ToList();
-
-            return new DealerMenuAccessResponseViewModel
-            {
-                DealerId = dealerId,
-                RoleId = effectiveRoleId,
-                RoleName = effectiveRoleName,
-                Groups = groups
-            };
         }
 
-        public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        public async Task<(bool Success, string? Error)> UpdateMenuAccessAsync(int dealerId, string roleId, List<int> grantedSubMenuIds, string module, string? area, string updatedBy)
         {
             if (string.IsNullOrWhiteSpace(roleId))
                 return (false, "Please select a role.");
+
+            if (string.IsNullOrWhiteSpace(module))
+                return (false, "Please select a module.");
 
             var dealerExists = await _context.DealerMasters.AnyAsync(d => d.Id == dealerId);
             if (!dealerExists)
@@ -284,16 +398,23 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             if (!roleExists)
                 return (false, "Selected role no longer exists.");
 
-            var topMenus = await _context.MenuMasters
+            var topMenu = await _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
-                .ToListAsync();
-            var topMenuIds = topMenus.Select(m => m.Id).ToList();
+                .FirstOrDefaultAsync(m => m.ParentMenuId == null && m.MenuName != null && m.MenuName.ToLower() == module.ToLower());
 
-            var validSubMenus = await _context.MenuMasters
+            if (topMenu == null)
+                return (false, $"Module '{module}' not found.");
+
+            var validSubMenusQuery = _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
-                .ToDictionaryAsync(m => m.Id, m => m.ParentMenuId!.Value);
+                .Where(m => m.ParentMenuId == topMenu.Id);
+
+            if (!string.IsNullOrWhiteSpace(area))
+            {
+                validSubMenusQuery = validSubMenusQuery.Where(m => m.ModuleName != null && m.ModuleName.ToLower() == area.ToLower());
+            }
+
+            var validSubMenus = await validSubMenusQuery.ToDictionaryAsync(m => m.Id, m => m.ParentMenuId!.Value);
 
             var requestedIds = grantedSubMenuIds.Where(id => validSubMenus.ContainsKey(id)).ToHashSet();
 
@@ -351,8 +472,6 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
                 return (false, "Dealer not found.");
 
-            // Only ever touches locations that genuinely belong to THIS dealer —
-            // a tampered payload can't flip another dealer's location status.
             var locations = await _context.LocationMasters
                 .Where(l => locationIds.Contains(l.Id) && l.Dealercode == dealer.Dealercode)
                 .ToListAsync();

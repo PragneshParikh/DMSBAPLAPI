@@ -34,5 +34,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task DeleteDetailsByPOAsync(string poNumber);
         Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel);
         Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode);
+
+        Task<TaxCodeMaster> GetTaxMasterAsync(string taxCode, DateTime effectiveAsOf);
     }
 }

@@ -426,5 +426,25 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 .ToListAsync();
         }
 
+        public async Task<(string? RoleId, string? RoleName)> GetRoleByDealerAndLocationCodeAsync(string? dealerCode, string? locationCode)
+        {
+            if (string.IsNullOrWhiteSpace(dealerCode) || string.IsNullOrWhiteSpace(locationCode))
+                return (null, null);
+
+            var location = await _context.LocationMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l =>
+                    l.Dealercode == dealerCode &&
+                    l.Loccode == locationCode);
+
+            if (location == null)
+                return (null, null);
+            var mapping = await _context.BgRoleCategoryMappings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.LocationId == location.Id);
+
+            return (mapping?.RoleId, mapping?.RoleName);
+        }
+
     }
 }

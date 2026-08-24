@@ -1,4 +1,4 @@
-using DMS_BAPL_Data.CustomModel;
+﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.Color;
 using DMS_BAPL_Data.Repositories.DealerMasterRepository;
@@ -37,6 +37,98 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             _excelService = excelService;
         }
 
+        // ── Tax calculation ─────────────────────────────────────────────────
+        // Canonical tax "bucket" a TaxCode belongs to - "CGST", "SGST", or
+        // null. (IGST is intentionally not resolved here - see below.)
+        private static string? GetTaxBucket(string? taxCode)
+        {
+            if (string.IsNullOrEmpty(taxCode)) return null;
+            var upper = taxCode.ToUpperInvariant();
+            if (upper.Contains("CGST")) return "CGST";
+            if (upper.Contains("SGST")) return "SGST";
+            if (upper.Contains("IGST")) return "IGST";
+            return null;
+        }
+
+        private static bool IsCgstOrSgstCode(string? taxCode)
+        {
+            var bucket = GetTaxBucket(taxCode);
+            return bucket == "CGST" || bucket == "SGST";
+        }
+
+        // Selects at most one CGST row and one SGST row from an AtaxCode
+        // group's tax codes (collapsing any duplicate/rate-suffixed rows,
+        // e.g. "CGST" and "CGST9" both present, down to one per bucket).
+        // Any separately-tagged "IGST" row in the same group is deliberately
+        // ignored here - it is never used as the source of the IGST rate.
+        private static List<AggregateTaxCode> SelectLocalCgstSgstTaxes(List<AggregateTaxCode> aggregateTaxes)
+        {
+            return aggregateTaxes
+                .Where(agg => IsCgstOrSgstCode(agg.TaxCode))
+                .GroupBy(agg => GetTaxBucket(agg.TaxCode))
+                .Select(g => g.OrderBy(x => x.SrNo).First())
+                .ToList();
+        }
+
+        // Computes the tax line(s) to apply to `lineAmount` (Dealer Price x
+        // Qty). IGST is ALWAYS derived as CGST% + SGST% - under GST law the
+        // interstate rate equals the combined intrastate rate for the same
+        // HSN, so there is no independent "IGST rate" to look up. This is
+        // what previously went wrong: a separately-maintained "IGST"
+        // AggregateTaxCode row (9%) disagreed with the correct combined rate
+        // (CGST 9% + SGST 9% = 18%). By deriving IGST here instead of
+        // reading a second, independently-maintained row, the rate shown
+        // when a part is added and the rate actually persisted on save can
+        // never disagree again - both come from the same CGST/SGST source.
+        private async Task<List<(string TaxCode, decimal TaxRate, decimal TaxAmount)>> ComputeTaxLinesAsync(
+            string hsnCode, bool isInterState, DateTime poDate, decimal lineAmount)
+        {
+            // Always resolve the LOCAL (intrastate, StateFlag "S") HSN tax
+            // mapping - this is where CGST and SGST are configured, and is
+            // the single source of truth regardless of transaction direction.
+            var localHsnTax = await _repo.GetHSNTaxWithFallbackAsync(hsnCode, "S", poDate);
+            if (localHsnTax == null)
+                throw new Exception($"{StringConstants.NoTaxConfig} {hsnCode} on {poDate}");
+
+            var aggregateTaxes = await _repo.GetAggregateTaxesAsync(localHsnTax.AtaxCode);
+            var localTaxes = SelectLocalCgstSgstTaxes(aggregateTaxes);
+
+            decimal cgstRate = 0, sgstRate = 0;
+
+            foreach (var agg in localTaxes)
+            {
+                // Date-aware lookup: the rate applied is always the one
+                // effective as of THIS PO's date, so re-saving a different
+                // PO later (after the tax master changes) can never change
+                // what an already-saved PO computed.
+                var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode, poDate);
+                if (taxMaster == null) continue;
+
+                var bucket = GetTaxBucket(taxMaster.TaxCode);
+                if (bucket == "CGST") cgstRate = taxMaster.TaxRate;
+                else if (bucket == "SGST") sgstRate = taxMaster.TaxRate;
+            }
+
+            var lines = new List<(string, decimal, decimal)>();
+
+            if (isInterState)
+            {
+                decimal igstRate = cgstRate + sgstRate;
+                decimal igstAmount = (lineAmount * igstRate) / 100;
+                lines.Add(("IGST", igstRate, igstAmount));
+            }
+            else
+            {
+                if (cgstRate > 0)
+                    lines.Add(("CGST", cgstRate, (lineAmount * cgstRate) / 100));
+                if (sgstRate > 0)
+                    lines.Add(("SGST", sgstRate, (lineAmount * sgstRate) / 100));
+            }
+
+            return lines;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         /// <summary>
         /// Creates a new Purchase Order with details and tax calculations.
         /// </summary>
@@ -65,6 +157,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 string companyState = StringConstants.CompanyLocation;
 
                 string preferredFlag = dealerState == companyState ? "S" : "O";
+                bool isInterState = preferredFlag == "O";
 
                 // Create PO Header
                 var po = new DBModels.PurchaseOrder
@@ -80,7 +173,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     LocCode = model.LocCode,
                     LedgerCode = model.LedgerCode,
                     Status = false,
-                   
+
                     SubOrderType = model.SubOrderType,
                     IsAgainstKit = model.IsAgainstKit,
                     JobId = model.JobId
@@ -91,15 +184,12 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 foreach (var item in model.Items)
                 {
                     var itemMaster = await _repo.GetItemAsync(item.ItemCode);
-
                     if (itemMaster == null)
                         throw new Exception($"{StringConstants.ItemNotFound} {item.ItemCode}");
-
                     decimal rate = itemMaster.Dlrprice;
+                    decimal mrpPerUnit = itemMaster.Custprice;
                     decimal lineAmount = item.Qty * rate;
-
-                    //if (itemMaster.Itemtype == 2)
-                    //    lineAmount -= 20;
+                    decimal mrpTotal = item.Qty * mrpPerUnit;
 
                     var detail = new PurchaseOrderDetail
                     {
@@ -108,8 +198,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
-                        Mrp =item.MRP,
-                        //LineAmount = lineAmount,
+                        Mrp = mrpTotal,
                         LineNumber = lineNumber,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
@@ -118,39 +207,22 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
 
                     await _repo.AddPODetailAsync(detail);
 
-                    // TAX FLOW
                     if (itemMaster.Hsncode == null)
                         throw new Exception($"{StringConstants.HSNCodeMissing} {item.ItemCode}");
 
                     var hsn = await _repo.GetHSNByCodeAsync(itemMaster.Hsncode);
-
                     if (hsn == null)
                         throw new Exception(StringConstants.HSNNotFound);
 
-                    var hsnTax = await _repo.GetHSNTaxWithFallbackAsync(
-                        hsn.Hsncode,
-                        preferredFlag,
-                        model.PODate
-                    );
-
-                    if (hsnTax == null)
-                        throw new Exception(
-                            $"{StringConstants.NoTaxConfig} {hsn.Hsncode} on {model.PODate}"
-                        );
-
-                    var aggregateTaxes = await _repo.GetAggregateTaxesAsync(hsnTax.AtaxCode);
+                    // lineAmount here is Dealer Price x Qty - the IGST (or
+                    // CGST+SGST) rate is applied against this figure.
+                    var taxLines = await ComputeTaxLinesAsync(hsn.Hsncode, isInterState, model.PODate, lineAmount);
 
                     int taxLine = 1;
                     decimal totalTax = 0;
 
-                    foreach (var agg in aggregateTaxes)
+                    foreach (var (taxCode, taxRate, taxAmount) in taxLines)
                     {
-                        var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode);
-
-                        if (taxMaster == null)
-                            continue;
-
-                        decimal taxAmount = (lineAmount * taxMaster.TaxRate) / 100;
                         totalTax += taxAmount;
 
                         await _repo.AddTaxAsync(new TaxDetail
@@ -159,20 +231,20 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             ItemCode = item.ItemCode,
                             PodetailsLineNumber = lineNumber,
                             TaxLineNumber = taxLine++,
-                            TaxCode = taxMaster.TaxCode,
-                            TaxRate = taxMaster.TaxRate,
+                            TaxCode = taxCode,
+                            TaxRate = taxRate,
                             TaxAmount = taxAmount,
                             CreatedBy = userId,
                             CreatedDate = DateTime.Now
                         });
                     }
+                    detail.LineAmount = lineAmount + totalTax;
 
                     totalAmount += lineAmount + totalTax;
                     baseAmount += lineAmount;
                     lineNumber++;
                 }
-
-                await _repo.UpdatePOAmountAsync(model.PONumber, baseAmount);
+                await _repo.UpdatePOAmountAsync(model.PONumber, totalAmount);
 
                 await _repo.CommitTransactionAsync();
                 return true;
@@ -206,6 +278,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 string dealerState = dealer.State?.Trim().ToLower();
                 string companyState = StringConstants.CompanyLocation;
                 string preferredFlag = dealerState == companyState ? "S" : "O";
+                bool isInterState = preferredFlag == "O";
 
                 // Create PO Header
                 var po = new DBModels.PurchaseOrder
@@ -234,7 +307,9 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         throw new Exception($"Item {item.ItemCode} is not a part (ItemType != 2).");
 
                     decimal rate = itemMaster.Dlrprice;
+                    decimal mrpPerUnit = itemMaster.Custprice;
                     decimal lineAmount = item.Qty * rate;
+                    decimal mrpTotal = item.Qty * mrpPerUnit;
 
                     var detail = new PurchaseOrderDetail
                     {
@@ -243,7 +318,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = 0, // Subsidy only for Vehicles (itemtype 11)
                         Rate = rate,
-                        Mrp=item.MRP,
+                        Mrp = mrpTotal,
                         LineAmount = lineAmount,
                         LineNumber = lineNumber,
                         CreatedBy = model.CreatedBy,
@@ -257,26 +332,13 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     if (itemMaster.Hsncode == null)
                         throw new Exception($"{StringConstants.HSNCodeMissing} {item.ItemCode}");
 
-                    var hsnTax = await _repo.GetHSNTaxWithFallbackAsync(
-                        itemMaster.Hsncode,
-                        preferredFlag,
-                        model.PODate
-                    );
-
-                    if (hsnTax == null)
-                        throw new Exception($"{StringConstants.NoTaxConfig} {itemMaster.Hsncode}");
-
-                    var aggregateTaxes = await _repo.GetAggregateTaxesAsync(hsnTax.AtaxCode);
+                    var taxLines = await ComputeTaxLinesAsync(itemMaster.Hsncode, isInterState, model.PODate, lineAmount);
 
                     int taxLine = 1;
                     decimal totalTax = 0;
 
-                    foreach (var agg in aggregateTaxes)
+                    foreach (var (taxCode, taxRate, taxAmount) in taxLines)
                     {
-                        var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode);
-                        if (taxMaster == null) continue;
-
-                        decimal taxAmount = (lineAmount * taxMaster.TaxRate) / 100;
                         totalTax += taxAmount;
 
                         await _repo.AddTaxAsync(new TaxDetail
@@ -285,13 +347,15 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             ItemCode = item.ItemCode,
                             PodetailsLineNumber = lineNumber,
                             TaxLineNumber = taxLine++,
-                            TaxCode = taxMaster.TaxCode,
-                            TaxRate = taxMaster.TaxRate,
+                            TaxCode = taxCode,
+                            TaxRate = taxRate,
                             TaxAmount = taxAmount,
                             CreatedBy = model.CreatedBy,
                             CreatedDate = model.CreatedDate ?? DateTime.Now
                         });
                     }
+
+                    detail.LineAmount = lineAmount + totalTax;
 
                     totalAmount += lineAmount + totalTax;
                     lineNumber++;
@@ -404,15 +468,17 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                 string dealerState = dealer.State?.Trim().ToLower();
                 string companyState = StringConstants.CompanyLocation;
                 string preferredFlag = dealerState == companyState ? "S" : "O";
+                bool isInterState = preferredFlag == "O";
 
                 foreach (var item in model.Items)
                 {
                     var itemMaster = await _repo.GetItemAsync(item.ItemCode);
                     if (itemMaster == null)
                         throw new Exception($"{StringConstants.ItemNotFound} {item.ItemCode}");
-
                     decimal rate = itemMaster.Dlrprice;
+                    decimal mrpPerUnit = itemMaster.Custprice;
                     decimal lineAmount = item.Qty * rate;
+                    decimal mrpTotal = item.Qty * mrpPerUnit;
 
                     var detail = new PurchaseOrderDetail
                     {
@@ -421,7 +487,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                         Qty = (int)item.Qty,
                         Subsidy = itemMaster.Itemtype == 11 ? itemMaster.Fame2amount * item.Qty : 0,
                         Rate = rate,
-                        LineAmount = lineAmount,
+                        Mrp = mrpTotal,
                         LineNumber = lineNumber,
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
@@ -431,7 +497,6 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     };
                     await _repo.AddPODetailAsync(detail);
 
-                    // TAX FLOW
                     if (itemMaster.Hsncode == null)
                         throw new Exception($"{StringConstants.HSNCodeMissing} {item.ItemCode}");
 
@@ -439,20 +504,12 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                     if (hsn == null)
                         throw new Exception(StringConstants.HSNNotFound);
 
-                    var hsnTax = await _repo.GetHSNTaxWithFallbackAsync(hsn.Hsncode, preferredFlag, model.PODate);
-                    if (hsnTax == null)
-                        throw new Exception($"{StringConstants.NoTaxConfig} {hsn.Hsncode} on {model.PODate}");
-
-                    var aggregateTaxes = await _repo.GetAggregateTaxesAsync(hsnTax.AtaxCode);
+                    var taxLines = await ComputeTaxLinesAsync(hsn.Hsncode, isInterState, model.PODate, lineAmount);
 
                     int taxLine = 1;
                     decimal totalTax = 0;
-                    foreach (var agg in aggregateTaxes)
+                    foreach (var (taxCode, taxRate, taxAmount) in taxLines)
                     {
-                        var taxMaster = await _repo.GetTaxMasterAsync(agg.TaxCode);
-                        if (taxMaster == null) continue;
-
-                        decimal taxAmount = (lineAmount * taxMaster.TaxRate) / 100;
                         totalTax += taxAmount;
 
                         await _repo.AddTaxAsync(new TaxDetail
@@ -461,8 +518,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             ItemCode = item.ItemCode,
                             PodetailsLineNumber = lineNumber,
                             TaxLineNumber = taxLine++,
-                            TaxCode = taxMaster.TaxCode,
-                            TaxRate = taxMaster.TaxRate,
+                            TaxCode = taxCode,
+                            TaxRate = taxRate,
                             TaxAmount = taxAmount,
                             CreatedBy = userId,
                             CreatedDate = DateTime.Now,
@@ -470,6 +527,8 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
                             UpdatedDate = DateTime.Now
                         });
                     }
+
+                    detail.LineAmount = lineAmount + totalTax;
 
                     totalAmount += lineAmount + totalTax;
                     lineNumber++;
@@ -625,5 +684,7 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         }
 
         public Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode) => _repo.GetOrderDetailsByItemCode(itemCode, dealerCode);
+
+
     }
 }

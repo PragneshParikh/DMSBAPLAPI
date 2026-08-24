@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,9 +32,6 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
 
         public async Task<List<BgRoleCategoryMapping>> GetMappingsByCategory(string category)
         {
-            // CHANGED — excludes location-specific assignment rows (LocationId
-            // populated), so a location's own role assignment never shows up
-            // as a phantom extra entry in the general registered-role list.
             return await _context.BgRoleCategoryMappings
                 .Where(m => m.Category == category && m.LocationId == null)
                 .ToListAsync();
@@ -41,10 +39,6 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
 
         public async Task<List<BgRoleCategoryMapping>> GetAllMappings()
         {
-            // CHANGED — same LocationId == null filter. This backs BG Role
-            // Master's own list screen AND every role-search dropdown
-            // (Dealer Edit, Location Edit) — all of them must only ever see
-            // the general registered roles, never per-location assignments.
             return await _context.BgRoleCategoryMappings
                 .Where(m => m.LocationId == null)
                 .OrderBy(m => m.Category)
@@ -116,16 +110,12 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
 
             if (!string.IsNullOrWhiteSpace(model.RoleId))
             {
-                // The chosen role must already exist as a registered BG Role
-                // Master entry (a row with this RoleId and LocationId == null) —
-                // same validation boundary the Dealer feature already enforces.
                 var registered = await _context.BgRoleCategoryMappings
                     .FirstOrDefaultAsync(m => m.RoleId == model.RoleId && m.LocationId == null);
 
                 if (registered == null)
                     return (false, "Selected role is not registered in BG Role Master.");
 
-                // Upsert this location's own assignment row.
                 var locMapping = await _context.BgRoleCategoryMappings
                     .FirstOrDefaultAsync(m => m.LocationId == locationId);
 
@@ -153,7 +143,14 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
             return (true, null);
         }
 
-        public async Task<(string? RoleId, string? RoleName, List<DealerMenuAccessGroupViewModel> Groups)?> GetLocationMenuAccessAsync(int locationId, string? roleId)
+        // CHANGED — added `module` and `area`, and removed the hardcoded
+        // restriction to only "Process"/"Reports" top-level categories.
+        // Mirrors DealerManagerRepo.GetMenuAccessAsync exactly: `module`
+        // narrows to one top-level MenuMaster category (Master, Process,
+        // Reports, Services, Accounts, Utility, Warranty Claim, Stocks,
+        // EBW Process, BG Warranty, ...); `area` further narrows to one
+        // business area (ShowRoom/WorkShop/Account) via ModuleName.
+        public async Task<(string? RoleId, string? RoleName, List<DealerMenuAccessGroupViewModel> Groups)?> GetLocationMenuAccessAsync(int locationId, string? roleId, string? module, string? area)
         {
             var locExists = await _context.LocationMasters.AnyAsync(l => l.Id == locationId);
             if (!locExists) return null;
@@ -176,18 +173,28 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
                 effectiveRoleName = mapping?.RoleName;
             }
 
-            var topMenus = await _context.MenuMasters
+            var topMenusQuery = _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
-                .ToListAsync();
+                .Where(m => m.ParentMenuId == null);
 
+            if (!string.IsNullOrWhiteSpace(module))
+            {
+                topMenusQuery = topMenusQuery.Where(m => m.MenuName != null && m.MenuName.ToLower() == module.ToLower());
+            }
+
+            var topMenus = await topMenusQuery.OrderBy(m => m.SerialNo).ToListAsync();
             var topMenuIds = topMenus.Select(m => m.Id).ToList();
 
-            var subMenus = await _context.MenuMasters
+            var subMenusQuery = _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
-                .OrderBy(m => m.SerialNo)
-                .ToListAsync();
+                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value));
+
+            if (!string.IsNullOrWhiteSpace(area))
+            {
+                subMenusQuery = subMenusQuery.Where(m => m.ModuleName != null && m.ModuleName.ToLower() == area.ToLower());
+            }
+
+            var subMenus = await subMenusQuery.OrderBy(m => m.SerialNo).ToListAsync();
 
             var subMenuIds = subMenus.Select(s => s.Id).ToList();
 
@@ -211,6 +218,7 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
                         SubMenuId = s.Id,
                         MenuName = s.MenuName ?? string.Empty,
                         PathName = s.PathName,
+                        ModuleName = s.ModuleName,
                         IsGranted = grantedSubMenuIds.Contains(s.Id)
                     })
                     .ToList()
@@ -219,10 +227,20 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
             return (effectiveRoleId, effectiveRoleName, groups);
         }
 
-        public async Task<(bool Success, string? Error)> UpdateLocationMenuAccessAsync(int locationId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        // CHANGED — added `module` (required) and `area` (optional), and
+        // `validSubMenus` is now scoped to that single top-level Module's
+        // Id (plus Area, when supplied) instead of every Process/Reports
+        // child everywhere. Without this scoping, saving one Module+Area
+        // combination's checkboxes would treat every OTHER module's
+        // existing grants for this role as "not requested" and delete
+        // them — same bug class already fixed on the Dealer side.
+        public async Task<(bool Success, string? Error)> UpdateLocationMenuAccessAsync(int locationId, string roleId, List<int> grantedSubMenuIds, string module, string? area, string updatedBy)
         {
             if (string.IsNullOrWhiteSpace(roleId))
                 return (false, "Please select a role.");
+
+            if (string.IsNullOrWhiteSpace(module))
+                return (false, "Please select a module.");
 
             var locExists = await _context.LocationMasters.AnyAsync(l => l.Id == locationId);
             if (!locExists) return (false, "Location not found.");
@@ -230,16 +248,23 @@ namespace DMS_BAPL_Data.Repositories.BgRoleRepo
             var roleExists = await _context.AspNetRoles.AnyAsync(r => r.Id == roleId);
             if (!roleExists) return (false, "Selected role no longer exists.");
 
-            var topMenus = await _context.MenuMasters
+            var topMenu = await _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId == null && (m.MenuName == "Process" || m.MenuName == "Reports"))
-                .ToListAsync();
-            var topMenuIds = topMenus.Select(m => m.Id).ToList();
+                .FirstOrDefaultAsync(m => m.ParentMenuId == null && m.MenuName != null && m.MenuName.ToLower() == module.ToLower());
 
-            var validSubMenus = await _context.MenuMasters
+            if (topMenu == null)
+                return (false, $"Module '{module}' not found.");
+
+            var validSubMenusQuery = _context.MenuMasters
                 .AsNoTracking()
-                .Where(m => m.ParentMenuId.HasValue && topMenuIds.Contains(m.ParentMenuId.Value))
-                .ToDictionaryAsync(m => m.Id, m => m.ParentMenuId!.Value);
+                .Where(m => m.ParentMenuId == topMenu.Id);
+
+            if (!string.IsNullOrWhiteSpace(area))
+            {
+                validSubMenusQuery = validSubMenusQuery.Where(m => m.ModuleName != null && m.ModuleName.ToLower() == area.ToLower());
+            }
+
+            var validSubMenus = await validSubMenusQuery.ToDictionaryAsync(m => m.Id, m => m.ParentMenuId!.Value);
 
             var requestedIds = grantedSubMenuIds.Where(id => validSubMenus.ContainsKey(id)).ToHashSet();
 

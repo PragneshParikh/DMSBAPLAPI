@@ -19,5 +19,8 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
         Task<IEnumerable<EmployeeRoleMapping>> GetRoleMappings(int employeeId);
 
         Task<List<EmployeeMenuGroupViewModel>> GetMenuForRolesAsync(List<string> roleIds);
+
+        Task<EmployeeMaster?> GetEmployeeByLocationLoginId(string locationLoginId);
+
     }
 }

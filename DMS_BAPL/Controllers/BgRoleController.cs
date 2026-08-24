@@ -188,15 +188,18 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        // CHANGED — added `module` and `area` query params, passed through
+        // as the 3rd and 4th arguments, matching IBgRoleService's updated
+        // signature (mirrors DealerManagerController.GetMenuAccess).
         [HttpGet("location/{locationId}/menu-access")]
-        public async Task<IActionResult> GetLocationMenuAccess(int locationId, [FromQuery] string? roleId)
+        public async Task<IActionResult> GetLocationMenuAccess(int locationId, [FromQuery] string? roleId, [FromQuery] string? module, [FromQuery] string? area)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var result = await _bgRoleService.GetLocationMenuAccessAsync(locationId, roleId);
+                var result = await _bgRoleService.GetLocationMenuAccessAsync(locationId, roleId, module, area);
                 if (result == null) return NotFound(new { message = "Location not found." });
 
                 return Ok(new
@@ -214,6 +217,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+
         [HttpPut("location/{locationId}/menu-access")]
         public async Task<IActionResult> UpdateLocationMenuAccess(int locationId, [FromBody] UpdateLocationMenuAccessViewModel model)
         {
@@ -222,7 +226,7 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var (success, error) = await _bgRoleService.UpdateLocationMenuAccessAsync(locationId, model.RoleId, model.GrantedSubMenuIds, userId);
+                var (success, error) = await _bgRoleService.UpdateLocationMenuAccessAsync(locationId, model.RoleId, model.GrantedSubMenuIds, model.Module, model.Area, userId);
                 if (!success) return BadRequest(new { message = error });
 
                 return Ok(new { message = "Menu access updated." });
@@ -233,5 +237,7 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(500, "An error occurred while updating menu access.");
             }
         }
+
+
     }
 }

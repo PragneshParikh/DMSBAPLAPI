@@ -1,4 +1,4 @@
-using DMS_BAPL_Data.CustomModel;
+﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
@@ -250,6 +250,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     .Where(x => x.Hsncode == hsnCode && x.EffectiveDate.Date <= poDate.Date)
                     .OrderByDescending(x => x.StateFlag == preferredFlag)
                     .ThenByDescending(x => x.EffectiveDate)
+                    .ThenByDescending(x => x.Id)   
                     .FirstOrDefaultAsync();
 
                 if (result == null)
@@ -307,7 +308,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     LedgerCode = po.LedgerCode,
                     IsAgainstKit = po.IsAgainstKit,
                     LocationName = _context.LocationMasters
-                        .FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
+        .FirstOrDefault(l => l.Loccode == po.LocCode)?.Locname,
 
                     Items = details.Select(d =>
                     {
@@ -318,6 +319,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                             ItemCode = d.ItemCode,
                             Qty = d.Qty,
                             Rate = d.Rate,
+                            MRP = d.Mrp,              
                             LineAmount = d.LineAmount,
                             Subsidy = d.Subsidy,
                             ItemDescription = item?.Itemdesc,
@@ -438,19 +440,18 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                         ItemCode = d.ItemCode,
                         Qty = d.Qty,
                         Rate = d.Rate.GetValueOrDefault(),
+                        MRP = d.Mrp.GetValueOrDefault(),
                         LineAmount = d.LineAmount.GetValueOrDefault(),
-
                         Taxes = taxes
-                            .Where(t => t.Ponumber == po.Ponumber &&
-                                        t.ItemCode == d.ItemCode &&
-                                        t.PodetailsLineNumber == d.LineNumber)
-                            .Select(t => new TaxViewModel
-                            {
-                                TaxCode = t.TaxCode,
-                                TaxRate = t.TaxRate,
-                                TaxAmount = t.TaxAmount
-                            })
-                            .ToList()
+                        .Where(t => t.Ponumber == po.Ponumber &&
+                                    t.ItemCode == d.ItemCode &&
+                                    t.PodetailsLineNumber == d.LineNumber)
+                        .Select(t => new TaxViewModel
+                        {
+                            TaxCode = t.TaxCode,
+                            TaxRate = t.TaxRate,
+                            TaxAmount = t.TaxAmount
+                        }).ToList()
 
                     }).ToList()
                 };
@@ -679,5 +680,25 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
 
             return result;
         }
+
+        public async Task<TaxCodeMaster> GetTaxMasterAsync(string taxCode, DateTime effectiveAsOf)
+        {
+            try
+            {
+                return await _context.TaxCodeMasters
+                    .Where(x => x.TaxCode == taxCode
+                             && x.EffectiveDate.HasValue
+                             && x.EffectiveDate.Value.Date <= effectiveAsOf.Date)
+                    .OrderByDescending(x => x.EffectiveDate)
+                    .FirstOrDefaultAsync()
+                    ?? throw new Exception(StringConstants.TaxCodeNotFound);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
+
+
 }

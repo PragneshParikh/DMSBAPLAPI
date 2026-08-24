@@ -114,14 +114,16 @@ namespace DMS_BAPL_Data.Services.BgRoleService
             return await _bgRoleRepo.UpdateLocationDetailAsync(locationId, model, updatedBy);
         }
 
-        public async Task<(string? RoleId, string? RoleName, List<DealerMenuAccessGroupViewModel> Groups)?> GetLocationMenuAccessAsync(int locationId, string? roleId)
+        // CHANGED — added `module` and `area`, passed straight through.
+        public async Task<(string? RoleId, string? RoleName, List<DealerMenuAccessGroupViewModel> Groups)?> GetLocationMenuAccessAsync(int locationId, string? roleId, string? module, string? area)
         {
-            return await _bgRoleRepo.GetLocationMenuAccessAsync(locationId, roleId);
+            return await _bgRoleRepo.GetLocationMenuAccessAsync(locationId, roleId, module, area);
         }
 
-        public async Task<(bool Success, string? Error)> UpdateLocationMenuAccessAsync(int locationId, string roleId, List<int> grantedSubMenuIds, string updatedBy)
+        // CHANGED — added `module` and `area`.
+        public async Task<(bool Success, string? Error)> UpdateLocationMenuAccessAsync(int locationId, string roleId, List<int> grantedSubMenuIds, string module, string? area, string updatedBy)
         {
-            return await _bgRoleRepo.UpdateLocationMenuAccessAsync(locationId, roleId, grantedSubMenuIds ?? new List<int>(), updatedBy);
+            return await _bgRoleRepo.UpdateLocationMenuAccessAsync(locationId, roleId, grantedSubMenuIds ?? new List<int>(), module, area, updatedBy);
         }
     }
 }

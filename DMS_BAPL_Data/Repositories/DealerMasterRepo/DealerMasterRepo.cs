@@ -36,6 +36,8 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
                 var regDate = DateTime.ParseExact(dealer.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
 
+
+
                 var newDealer = new DealerMaster
                 {
                     Compname = dealer.Compname,

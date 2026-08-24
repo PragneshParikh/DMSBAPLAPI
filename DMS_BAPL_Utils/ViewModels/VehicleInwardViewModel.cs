@@ -225,5 +225,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? InwardType { get; set; }
         public string? IssuedDealerName { get; set; }
         public string? IssuedDealerCode { get; set; }
+
+        public string? LrNo { get; set; }
+
+        public DateTime? LrDate { get; set; }
+
+        public string? TruckNo { get; set; }
+
+        public string? TransporterName { get; set; }
     }
 }

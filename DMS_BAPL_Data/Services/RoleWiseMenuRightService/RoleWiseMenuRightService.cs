@@ -48,17 +48,58 @@ namespace DMS_BAPL_Data.Services.RoleWiseMenuRightService
         //    return await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
         //}
 
+        //    public async Task<IEnumerable<RoleWiseMenuRight>> GetMenuRightByRoleId(string? roleId)
+        //    {
+        //        if (string.IsNullOrEmpty(roleId))
+        //        {
+        //            var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+
+        //            var roleIds = await _identitycontext.Set<IdentityUserRole<string>>()
+        //                .Where(x => x.UserId == userId)
+        //                .Select(x => x.RoleId)
+        //                .Distinct()
+        //                .ToListAsync();
+
+        //            if (roleIds.Count == 0)
+        //                return new List<RoleWiseMenuRight>();
+
+        //            var allRights = new List<RoleWiseMenuRight>();
+        //            foreach (var rid in roleIds)
+        //            {
+        //                var rights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(rid);
+        //                if (rights != null)
+        //                    allRights.AddRange(rights);
+        //            }
+
+        //            return allRights;
+        //        }
+
+        //        var single = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
+        //        return single ?? new List<RoleWiseMenuRight>();
+        //    }
+        //}
+
         public async Task<IEnumerable<RoleWiseMenuRight>> GetMenuRightByRoleId(string? roleId)
         {
             if (string.IsNullOrEmpty(roleId))
             {
-                var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+                var roleIds = new List<string>();
 
-                var roleIds = await _identitycontext.Set<IdentityUserRole<string>>()
+                var locationRoleId = _httpContextAccessor.HttpContext?.User?.FindFirst("LocationRoleId")?.Value;
+                if (!string.IsNullOrWhiteSpace(locationRoleId))
+                {
+                    roleIds.Add(locationRoleId);
+                }
+
+                var userId = GetUserInfoFromToken.GetUserIdFromToken(_httpContextAccessor.HttpContext);
+                var identityRoleIds = await _identitycontext.Set<IdentityUserRole<string>>()
                     .Where(x => x.UserId == userId)
                     .Select(x => x.RoleId)
                     .Distinct()
                     .ToListAsync();
+
+                roleIds.AddRange(identityRoleIds);
+                roleIds = roleIds.Distinct().ToList();
 
                 if (roleIds.Count == 0)
                     return new List<RoleWiseMenuRight>();
@@ -70,10 +111,8 @@ namespace DMS_BAPL_Data.Services.RoleWiseMenuRightService
                     if (rights != null)
                         allRights.AddRange(rights);
                 }
-
                 return allRights;
             }
-
             var single = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(roleId);
             return single ?? new List<RoleWiseMenuRight>();
         }

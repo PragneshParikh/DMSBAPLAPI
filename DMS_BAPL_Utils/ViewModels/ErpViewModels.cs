@@ -3,12 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
-    // One line of the payload sent to the ERP. Field names follow the ONLY
-    // confirmed ERP contract available - the GET /erpreport/wcjo REPORT
-    // response shape - since no POST/submit contract was provided.
-    // CONFIRM the real submit endpoint's expected field names before
-    // relying on this: a report-fetch response shape is not a guaranteed
-    // match for a push/submit request shape.
+
     public class ErpWarrantyClaimLineViewModel
     {
         [JsonPropertyName("Sl.No")]
@@ -23,9 +18,6 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("Location")]
         public string? Location { get; set; }
 
-        // UNCONFIRMED: WarrantyOrderGridDetail only stores LocationName
-        // (display text), never a raw Loccode - so this can't be resolved
-        // to LocationMaster.City without that code. Left blank.
         [JsonPropertyName("Loc. City")]
         public string? LocationCity { get; set; }
 

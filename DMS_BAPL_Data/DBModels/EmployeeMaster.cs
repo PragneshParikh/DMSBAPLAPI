@@ -55,5 +55,9 @@ public partial class EmployeeMaster
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? LocationLoginId { get; set; }
+
+    public string? LocationPasswordHash { get; set; }
+
     public virtual ICollection<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; } = new List<BgEmployeeProfileMapping>();
 }

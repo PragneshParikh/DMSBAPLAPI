@@ -141,5 +141,8 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
                 throw;
             }
         }
+
+        public Task<(string? RoleId, string? RoleName)> GetRoleByDealerAndLocationCodeAsync(string? dealerCode, string? locationCode)
+    => _locationMasterRepo.GetRoleByDealerAndLocationCodeAsync(dealerCode, locationCode);
     }
 }

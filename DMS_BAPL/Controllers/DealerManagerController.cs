@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.Services.DealerManagerService;
+﻿using DMS_BAPL_Data.Repositories.DealerManagerRepo;
+using DMS_BAPL_Data.Services.DealerManagerService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,13 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IDealerManagerService _service;
         private readonly ILogger<DealerManagerController> _logger;
+        private readonly IDealerManagerRepo _dealerManagerRepo;
 
-        public DealerManagerController(IDealerManagerService service, ILogger<DealerManagerController> logger)
+        public DealerManagerController(IDealerManagerService service, ILogger<DealerManagerController> logger, IDealerManagerRepo dealerManagerRepo)
         {
             _service = service;
             _logger = logger;
+            _dealerManagerRepo = dealerManagerRepo;
         }
 
         [HttpGet]
@@ -33,6 +36,45 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error fetching dealers");
                 return StatusCode(500, "An error occurred while fetching dealers.");
+            }
+        }
+
+        // CHANGED — accepts `area`, so the Module dropdown reflects only
+        // "Area-wise Module" once an Area (ShowRoom/WorkShop/Account) has
+        // been chosen. Omitting it returns every top-level module, unchanged.
+        [HttpGet("modules")]
+        public async Task<IActionResult> GetAvailableModules([FromQuery] string? area)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var modules = await _service.GetAvailableModulesAsync(area);
+                return Ok(modules);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching available modules");
+                return StatusCode(500, "An error occurred while fetching modules.");
+            }
+        }
+
+        [HttpGet("areas")]
+        public async Task<IActionResult> GetAvailableAreas()
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var areas = await _service.GetAvailableAreasAsync();
+                return Ok(areas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching available areas");
+                return StatusCode(500, "An error occurred while fetching areas.");
             }
         }
 
@@ -116,15 +158,35 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpGet("{id}/menu-access")]
-        public async Task<IActionResult> GetMenuAccess(int id, [FromQuery] string? roleId)
+        [HttpDelete("{id}/assign-role")]
+        public async Task<IActionResult> UnassignRole(int id)
         {
             try
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var result = await _service.GetMenuAccessAsync(id, roleId);
+                var (success, error) = await _service.UnassignRoleAsync(id);
+                if (!success) return BadRequest(new { message = error });
+
+                return Ok(new { message = "Role removed from dealer." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing role from dealer");
+                return StatusCode(500, "An error occurred while removing the role.");
+            }
+        }
+
+        [HttpGet("{id}/menu-access")]
+        public async Task<IActionResult> GetMenuAccess(int id, [FromQuery] string? roleId, [FromQuery] string? module, [FromQuery] string? area)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+
+                var result = await _service.GetMenuAccessAsync(id, roleId, module, area);
                 if (result == null) return NotFound(new { message = "Dealer not found." });
 
                 return Ok(result);
@@ -144,7 +206,7 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
 
-                var (success, error) = await _service.UpdateMenuAccessAsync(id, model.RoleId, model.GrantedSubMenuIds, userId);
+                var (success, error) = await _service.UpdateMenuAccessAsync(id, model.RoleId, model.GrantedSubMenuIds, model.Module, model.Area, userId);
                 if (!success) return BadRequest(new { message = error });
 
                 return Ok(new { message = "Menu access updated." });
@@ -191,6 +253,36 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error updating location status");
                 return StatusCode(500, "An error occurred while updating location status.");
+            }
+        }
+
+        [HttpGet("my-access")]
+        public async Task<IActionResult> GetMyAccess()
+        {
+            try
+            {
+                var roleId = User.FindFirst("LocationRoleId")?.Value;
+
+                if (string.IsNullOrWhiteSpace(roleId))
+                    return Ok(new { groups = Array.Empty<object>() });
+                var full = await _dealerManagerRepo.GetMenuAccessByRoleIdAsync(roleId, module: null, area: null);
+
+                if (full == null)
+                    return Ok(new { groups = Array.Empty<object>() });
+
+                var grantedOnly = full.Groups.Select(g => new
+                {
+                    g.TopMenuId,
+                    g.TopMenuName,
+                    Items = g.Items.Where(i => i.IsGranted).ToList()
+                }).Where(g => g.Items.Count > 0).ToList();
+
+                return Ok(new { roleId, groups = grantedOnly });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching location menu access");
+                return StatusCode(500, "An error occurred while fetching your access.");
             }
         }
     }

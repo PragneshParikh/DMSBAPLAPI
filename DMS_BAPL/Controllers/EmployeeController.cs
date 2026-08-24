@@ -106,6 +106,9 @@ namespace DMS_BAPL_Api.Controllers
                     user.UpdatedBy,
                     user.UpdatedDate,
 
+                    // NEW — Location Login ID only; the hash itself never goes to the client.
+                    user.LocationLoginId,
+
                     selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
                     roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
 
@@ -220,6 +223,14 @@ namespace DMS_BAPL_Api.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        // NOTE: Location Login authentication now lives in AuthController
+        // (POST /api/auth/location-login), next to the regular email/password
+        // Login action — that's where JWT issuance already happens, and a
+        // location-scoped token needs the same treatment (DealerCode/roles/
+        // LocationCode claims) to actually be usable against other endpoints.
+        // GetEmployeeByLocationLoginId below is what that new endpoint calls
+        // into via IEmployeeService.
 
         private async Task EnsureEmployeeLogin(EmployeeMaster emp)
         {

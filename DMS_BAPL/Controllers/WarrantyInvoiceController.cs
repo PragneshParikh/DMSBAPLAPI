@@ -20,8 +20,8 @@ namespace DMS_BAPL_Api.Controllers
         private readonly IErpIntegrationService _erpIntegrationService;
         private readonly IConfiguration _configuration;
 
-        public WarrantyInvoiceController(IWarrantyInvoiceRepo warrantyInvoiceRepo, 
-            ILogger<WarrantyInvoiceController> logger, 
+        public WarrantyInvoiceController(IWarrantyInvoiceRepo warrantyInvoiceRepo,
+            ILogger<WarrantyInvoiceController> logger,
             IErpIntegrationService erpIntegrationService,
             IConfiguration configuration)
         {
@@ -35,6 +35,12 @@ namespace DMS_BAPL_Api.Controllers
         // user id (e.g. from claims/JWT) - left as a placeholder mirroring
         // the pattern likely already used in WarrantyOrderController.
         private string CurrentUserId => User?.Identity?.Name ?? "system";
+
+        // Kill-switch for the auto-send-on-save behavior below, without
+        // needing a redeploy if the ERP integration ever needs to be
+        // paused (e.g. during an ERP-side outage or a bad payload causing
+        // repeated failures). Defaults to on.
+        private bool AutoSubmitToErpEnabled => _configuration.GetValue("ErpIntegration:AutoSubmitOnSave", true);
 
         [HttpPost("InsertWarrantyInvoice")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -51,7 +57,23 @@ namespace DMS_BAPL_Api.Controllers
             try
             {
                 var invoiceId = await _warrantyInvoiceRepo.InsertWarrantyInvoice(model, CurrentUserId);
-                return Ok(new { message = "Warranty Invoice saved successfully.", invoiceId });
+
+                // Auto-push to ERP right after the save commits. This is
+                // best-effort: the invoice is already saved by this point,
+                // so a failed/unreachable ERP call must not turn a
+                // successful save into a 500 - the failure is only
+                // surfaced in the response. Retrying means building the
+                // payload again (e.g. re-fetch via GetWarrantyInvoiceById
+                // and re-run BuildErpWarrantyClaimPayload on the caller's
+                // side, or re-save) and posting it to SendErpPayload.
+                var erpResult = await TrySubmitToErpAfterSave(invoiceId);
+
+                return Ok(new
+                {
+                    message = "Warranty Invoice saved successfully.",
+                    invoiceId,
+                    erp = erpResult
+                });
             }
             catch (Exception ex)
             {
@@ -79,7 +101,16 @@ namespace DMS_BAPL_Api.Controllers
                 if (!success)
                     return NotFound($"Warranty Invoice with Id {model.Id} not found or is not active.");
 
-                return Ok(new { message = "Warranty Invoice updated successfully." });
+                // Same best-effort auto-push as InsertWarrantyInvoice - an
+                // update usually means the line data changed, so ERP gets
+                // the latest snapshot without a separate manual step.
+                var erpResult = await TrySubmitToErpAfterSave(model.Id);
+
+                return Ok(new
+                {
+                    message = "Warranty Invoice updated successfully.",
+                    erp = erpResult
+                });
             }
             catch (Exception ex)
             {
@@ -298,27 +329,20 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPost("SendWarrantyInvoiceToErp/{id}")]
+        [HttpPost("SendErpPayload")]
         [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> SendWarrantyInvoiceToErp(int id)
+        public async Task<IActionResult> SendErpPayload([FromBody] ErpWarrantyClaimSubmitRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (request?.Value == null || request.Value.Count == 0)
+                return BadRequest("At least one claim line (Value) is required.");
+
             try
             {
-                var lines = await _warrantyInvoiceRepo.BuildErpWarrantyClaimPayload(id);
-
-                // CONFIRM: VendorId/SubVendorCode source. Hardcoded from config here
-                // as placeholders since no per-dealer or per-request source was
-                // specified - the documented API requires SubVendorCode only when
-                // "API privacy is true", which is also unconfirmed for this account.
-                var request = new ErpWarrantyClaimSubmitRequest
-                {
-                    VendorId = _configuration.GetValue<int>("ErpIntegration:VendorId"),
-                    SubVendorCode = _configuration["ErpIntegration:SubVendorCode"],
-                    Value = lines
-                };
-
                 var result = await _erpIntegrationService.SubmitWarrantyClaimLines(request);
 
                 if (!result.Success)
@@ -326,16 +350,51 @@ namespace DMS_BAPL_Api.Controllers
 
                 return Ok(result);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                _logger.LogError(ex, "Error in SendErpPayload");
+                return StatusCode(500, $"An error occurred while sending the payload to ERP: {ex.Message}");
+            }
+        }
+
+        private async Task<ErpSubmitResult> BuildAndSubmitErpPayload(int invoiceId)
+        {
+            var lines = await _warrantyInvoiceRepo.BuildErpWarrantyClaimPayload(invoiceId);
+
+            var request = new ErpWarrantyClaimSubmitRequest
+            {
+                VendorId = _configuration.GetValue<int>("ErpIntegration:VendorId"),
+                SubVendorCode = _configuration["ErpIntegration:SubVendorCode"],
+                Value = lines
+            };
+
+            return await _erpIntegrationService.SubmitWarrantyClaimLines(request);
+        }
+        private async Task<ErpSubmitResult?> TrySubmitToErpAfterSave(int invoiceId)
+        {
+            if (!AutoSubmitToErpEnabled)
+            {
+                _logger.LogInformation(
+                    "Skipping auto ERP submit for Warranty Invoice {InvoiceId} - ErpIntegration:AutoSubmitOnSave is disabled.",
+                    invoiceId);
+                return null;
+            }
+
+            try
+            {
+                return await BuildAndSubmitErpPayload(invoiceId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in SendWarrantyInvoiceToErp");
-                return StatusCode(500, $"An error occurred while sending the Warranty Invoice to ERP: {ex.Message}");
+                _logger.LogError(ex, "Auto-submit to ERP failed for saved Warranty Invoice {InvoiceId}", invoiceId);
+                return new ErpSubmitResult
+                {
+                    Success = false,
+                    Message = $"Warranty Invoice saved, but sending it to ERP failed: {ex.Message}",
+                    LinesSent = 0
+                };
             }
         }
     }
-    
+
 }

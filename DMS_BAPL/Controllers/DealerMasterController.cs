@@ -40,9 +40,8 @@ namespace DMS_BAPL_Api.Controllers
                     return BadRequest(StringConstants.BadRequest);
 
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
-
                 if (string.IsNullOrEmpty(userId))
-                    return BadRequest(StringConstants.UserUnauthorized);
+                    return Unauthorized(StringConstants.UserUnauthorized);
 
                 var result = await _dealerMasterService.AddDealerAsync(dealer, userId);
 

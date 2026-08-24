@@ -32,6 +32,7 @@ using DMS_BAPL_Data.Repositories.GroupMasterRepo;
 using DMS_BAPL_Data.Repositories.HSNCodeMaterRepo;
 using DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo;
 using DMS_BAPL_Data.Repositories.HSRPRepo;
+using DMS_BAPL_Data.Repositories.InvoiceDispatchRepo;
 using DMS_BAPL_Data.Repositories.itemMasterRepo;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.JobSourceMasterRepo;
@@ -239,6 +240,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IUwLineItemRepo, UwLineItemRepo>();
             services.AddScoped<IWarrantyPackingRepo, WarrantyPackingRepo>();
             services.AddScoped<IDispatchMasterRepo, DispatchMasterRepo>();
+            services.AddScoped<IInvoiceDispatchRepo, InvoiceDispatchRepo>();
 
 
             #endregion

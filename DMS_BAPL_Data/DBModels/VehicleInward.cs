@@ -118,4 +118,12 @@ public partial class VehicleInward
     public bool? IsD2d { get; set; }
 
     public string? InwardType { get; set; }
+
+    public string? LrNo { get; set; }
+
+    public DateTime? LrDate { get; set; }
+
+    public string? TruckNo { get; set; }
+
+    public string? TransporterName { get; set; }
 }

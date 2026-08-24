@@ -25,12 +25,15 @@
     {
         public string LocCode { get; set; } = string.Empty;
         public string LocName { get; set; } = string.Empty;
+
         public string? RoleId { get; set; }
     }
 
     public class UpdateLocationMenuAccessViewModel
     {
         public string RoleId { get; set; } = string.Empty;
+        public string Module { get; set; }
+        public string? Area { get; set; }
         public List<int> GrantedSubMenuIds { get; set; } = new();
     }
 }

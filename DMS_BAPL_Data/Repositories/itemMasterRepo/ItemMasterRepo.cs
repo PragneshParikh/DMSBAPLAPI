@@ -706,17 +706,17 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     where IM.Grpidno == groupId &&
                          (IM.DealerCode == dealerCode || IM.DealerCode == null)
 
+                    // Only the LOCAL (intrastate, StateFlag "S") mapping is needed -
+                    // this is where CGST and SGST live, and is now the single
+                    // source of truth for BOTH intrastate and interstate rates.
+                    // The old "otherTaxCode" (StateFlag "O") lookup that fed a
+                    // separately-configured IGST rate has been removed entirely -
+                    // that separate rate is what disagreed with the correct
+                    // CGST+SGST total in the first place.
                     let stateTaxCode = _context.HsnwiseTaxCodes
                         .Where(x =>
                             x.Hsncode == IM.Hsncode &&
                             x.StateFlag.Trim() == "S")
-                        .OrderByDescending(x => x.EffectiveDate)
-                        .FirstOrDefault()
-
-                    let otherTaxCode = _context.HsnwiseTaxCodes
-                        .Where(x =>
-                            x.Hsncode == IM.Hsncode &&
-                            x.StateFlag.Trim() == "O")
                         .OrderByDescending(x => x.EffectiveDate)
                         .FirstOrDefault()
 
@@ -733,14 +733,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                             stateTaxCode != null &&
                             x.AtaxCode == stateTaxCode.AtaxCode &&
                             x.TaxCode.StartsWith("SGST"))
-                        .Select(x => (decimal?)x.TaxRate)
-                        .FirstOrDefault() ?? 0
-
-                    let igstPercentage = _context.AggregateTaxCodes
-                        .Where(x =>
-                            otherTaxCode != null &&
-                            x.AtaxCode == otherTaxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("IGST"))
                         .Select(x => (decimal?)x.TaxRate)
                         .FirstOrDefault() ?? 0
 
@@ -765,10 +757,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                         CgstPercentage = cgstPercentage,
                         SgstPercentage = sgstPercentage,
-                        IgstPercentage = igstPercentage,
+                        // IGST is ALWAYS CGST% + SGST%, never looked up separately -
+                        // matches ComputeTaxLinesAsync on the save side exactly.
+                        IgstPercentage = cgstPercentage + sgstPercentage,
 
                         TotalGSTSameState = cgstPercentage + sgstPercentage,
-                        TotalGSTOtherState = igstPercentage
+                        TotalGSTOtherState = cgstPercentage + sgstPercentage
                     }
                 )
                 .Distinct()

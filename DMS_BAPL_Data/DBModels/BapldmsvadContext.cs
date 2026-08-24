@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DMS_BAPL_Data.Middleware;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 
 namespace DMS_BAPL_Data.DBModels;
@@ -240,7 +241,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyPackingSlip> WarrantyPackingSlips { get; set; }
     public virtual DbSet<WarrantyPackingSlipBox> WarrantyPackingSlipBoxes { get; set; }
     public virtual DbSet<WarrantyPackingSlipDetail> WarrantyPackingSlipDetails { get; set; }
-
+    public virtual DbSet<InvoiceDispatch> InvoiceDispatches { get; set; }
     public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
 
 
@@ -458,6 +459,8 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+
 
             entity.HasOne(d => d.CityNavigation).WithMany(p => p.BgEmployeeMasters)
                 .HasForeignKey(d => d.City)
@@ -1230,6 +1233,8 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.LocationLoginId).HasMaxLength(50).HasColumnName("locationLoginId");
+            entity.Property(e => e.LocationPasswordHash).HasMaxLength(256).HasColumnName("locationPasswordHash");
         });
 
         modelBuilder.Entity<EmployeeProfileMaster>(entity =>
@@ -3999,6 +4004,18 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Voltage)
                 .HasMaxLength(20)
                 .HasColumnName("voltage");
+            entity.Property(e => e.LrNo)
+            .HasMaxLength(50)
+            .HasColumnName("LRNo");
+            entity.Property(e => e.LrDate)
+                .HasColumnType("datetime")
+                .HasColumnName("LRDate");
+            entity.Property(e => e.TruckNo)
+                .HasMaxLength(50)
+                .HasColumnName("TruckNo");
+            entity.Property(e => e.TransporterName)
+                .HasMaxLength(200)
+                .HasColumnName("TransporterName");
         });
 
         modelBuilder.Entity<VehicleQuotation>(entity =>
@@ -4828,6 +4845,45 @@ public partial class BapldmsvadContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<InvoiceDispatch>(entity =>
+        {
+            entity.ToTable("InvoiceDispatch");
+
+            entity.Property(e => e.InvoiceNo).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.DispatchType).HasMaxLength(20).IsUnicode(false);
+
+            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.LocCode).HasMaxLength(50).IsUnicode(false);
+
+            // Part-specific
+            entity.Property(e => e.PartNo).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ItemHsncode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemMrp).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ItemDisc).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DiscountType).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.Cgst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Sgst).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Igst).HasColumnType("decimal(18, 2)");
+
+            // Vehicle-specific
+            entity.Property(e => e.ChasisNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.MotorNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ItemCode).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ColrCode).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.MfgYear).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.MfgMonth).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.Dlrprice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Custprice).HasColumnType("decimal(18, 2)");
+
+            // Shared status / audit
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
         OnModelCreatingPartial(modelBuilder);
 

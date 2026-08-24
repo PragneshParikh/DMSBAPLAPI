@@ -26,6 +26,9 @@ namespace DMS_BAPL_Data.Services.EmployeeMasterService
         Task<List<EmployeeDesignationWiseViewModel>> IEmployeeService.GetEmployeesByDesignation(string? dealerCode, string designation) => _employeeMasterRepo.GetEmployeesByDesignation(dealerCode, designation);
         Task<EmployeeMaster?> IEmployeeService.GetEmployeeByEmail(string email) => _employeeMasterRepo.GetEmployeeByEmail(email);
 
+        // NEW — location-login lookup, same passthrough pattern as everything else here.
+        Task<EmployeeMaster?> IEmployeeService.GetEmployeeByLocationLoginId(string locationLoginId) => _employeeMasterRepo.GetEmployeeByLocationLoginId(locationLoginId);
+
         Task<IEnumerable<EmployeeRoleMapping>> IEmployeeService.GetRoleMappings(int employeeId)
             => _employeeMasterRepo.GetRoleMappings(employeeId);
 
