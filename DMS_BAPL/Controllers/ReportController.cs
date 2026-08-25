@@ -1364,6 +1364,96 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpPost("warranty-register")]
+        [ProducesResponseType(typeof(WarrantyRegisterPagedResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetWarrantyRegisterReport([FromBody] WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                // ── Dealer + location restriction: same lockdown every other
+                // report on this controller applies — non-admins can never
+                // widen the report beyond their own dealer/location via the
+                // request body. ──
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.LocationCode = liveLocationCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("Warranty Register Report API called");
+
+                var result = await _reportService.GetWarrantyRegisterReportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching warranty register report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Export Warranty Register Report (unpaged, full dataset matching current filters)</summary>
+        [HttpPost("warranty-register/export")]
+        [ProducesResponseType(typeof(List<WarrantyRegisterViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportWarrantyRegisterReport([FromBody] WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                if (filter == null)
+                    return BadRequest(new { success = false, message = "Filter model is null" });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.IsNullOrEmpty(tokenDealerCode))
+                        filter.DealerCode = tokenDealerCode;
+
+                    string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
+                    string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
+                    if (!string.IsNullOrEmpty(liveLocationCode))
+                        filter.LocationCode = liveLocationCode;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
+                _logger.LogInformation("Warranty Register Report Export API called");
+
+                var result = await _reportService.GetWarrantyRegisterReportForExportAsync(filter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting warranty register report");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
 
     }
 }

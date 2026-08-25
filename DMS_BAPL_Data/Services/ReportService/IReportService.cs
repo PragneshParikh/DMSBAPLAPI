@@ -84,6 +84,9 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
         Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode);
+
+        Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter);
+        Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter);
     }
     public class JobReportSummaryStats
     {
