@@ -559,5 +559,36 @@ namespace DMS_BAPL_Data.Services.ReportService
         }
 
         Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
+
+        public async Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                filter ??= new WarrantyRegisterFilterModel();
+                if (filter.PageIndex < 1) filter.PageIndex = 1;
+                if (filter.PageSize < 1) filter.PageSize = 20;
+
+                return await _reportRepo.GetWarrantyRegisterReportAsync(filter);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching warranty register report");
+                throw;
+            }
+        }
+
+        public async Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                filter ??= new WarrantyRegisterFilterModel();
+                return await _reportRepo.GetWarrantyRegisterReportForExportAsync(filter);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting warranty register report");
+                throw;
+            }
+        }
     }
 }

@@ -26,9 +26,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
             _warrantyInvoiceRepo = warrantyInvoiceRepo;
         }
 
-        // Called from InsertWarrantyJCClaim, right after the claim itself
-        // is saved - this is the "once JCClaim submitted it will reflect
-        // in UW-Line Items window" behavior, per explicit request.
         public async Task InsertUwLineItem(int warrantyJcclaimId, string? userId)
         {
             _context.UwLineItems.Add(new UwLineItem
@@ -126,6 +123,15 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
                 var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
 
+                decimal cgstAmount = rbd?.Cgstamount ?? 0;
+                decimal sgstAmount = rbd?.Sgstamount ?? 0;
+                decimal igstAmount = rbd?.Igstamount ?? 0;
+                decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;
+
+                decimal baseAmount = d.Amount ?? 0;
+                decimal lineTotalAmount = baseAmount + totalGstAmount;
+                // ─────────────────────────────────────────────────────────────
+
                 items.Add(new UwLineItemListViewModel
                 {
                     Id = u.Id,
@@ -141,14 +147,14 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     JobCardDate = jobCardHeader?.CreatedDate,
 
                     DealerCompanyName = dealerCompanyName,
-                    LocationCode = c.LocationCode,      
-                    LocationName = c.LocationName,     
+                    LocationCode = c.LocationCode,
+                    LocationName = c.LocationName,
 
                     ItemType = d.ItemType,
                     ItemCode = isLabour ? rbd?.LabourMaster?.LabourCode : rbd?.PartItem?.Itemcode,
                     ItemDescription = isLabour ? rbd?.LabourMaster?.LabourDescription : rbd?.PartItem?.Itemdesc,
 
-                    TotalAmount = d.TotalAmount ?? 0,
+                    TotalAmount = lineTotalAmount,
 
                     Status = u.Status,
                     RejectionReason = u.RejectionReason,
@@ -158,13 +164,13 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
 
                     Qty = d.Qty ?? 0,
                     Rate = d.Rate ?? 0,
-                    GstAmount = d.TaxAmount ?? 0,
-                    Amount = d.Amount ?? 0,
+                    GstAmount = totalGstAmount,
+                    Amount = baseAmount,
 
                     Mrp = d.Mrp ?? 0,
-                    Cgst = rbd?.Cgstamount ?? 0,
-                    Sgst = rbd?.Sgstamount ?? 0,
-                    Igst = rbd?.Igstamount ?? 0,
+                    Cgst = cgstAmount,
+                    Sgst = sgstAmount,
+                    Igst = igstAmount,
 
                     CgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0),
                     SgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0),

@@ -4203,5 +4203,513 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
+
+        public async Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                var allRows = await BuildWarrantyRegisterRowsAsync(filter);
+
+                var totalRecords = allRows.Count;
+
+                var paged = allRows
+                    .Skip((filter.PageIndex - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
+                foreach (var row in paged)
+                    row.SrNo = (srNo++).ToString();
+
+                return new WarrantyRegisterPagedResponse
+                {
+                    Data = paged,
+                    TotalRecords = totalRecords,
+                    PageIndex = filter.PageIndex,
+                    PageSize = filter.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching warranty register report: " + ex.Message, ex);
+            }
+        }
+
+        public async Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter)
+        {
+            try
+            {
+                var allRows = await BuildWarrantyRegisterRowsAsync(filter);
+
+                int srNo = 1;
+                foreach (var row in allRows)
+                    row.SrNo = (srNo++).ToString();
+
+                return allRows;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error exporting warranty register report: " + ex.Message, ex);
+            }
+        }
+
+        private async Task<List<WarrantyRegisterViewModel>> BuildWarrantyRegisterRowsAsync(WarrantyRegisterFilterModel filter)
+        {
+            // ── Phase 1: claim header query, with the proven-safe triple
+            // Include chain for Part/Labour resolution (same pattern used in
+            // WarrantyOrderRepo.BuildClaimFullViewModel). ──
+            var claimsQuery = _context.WarrantyJcclaims
+                .AsNoTracking()
+                .Include(c => c.Supplier)
+                .Include(c => c.JobCardHeader)
+                .Include(c => c.RepairBillHeader)
+                .Include(c => c.WarrantyJcclaimDetails).ThenInclude(d => d.RepairBillDetail).ThenInclude(rb => rb.PartItem)
+                .Include(c => c.WarrantyJcclaimDetails).ThenInclude(d => d.RepairBillDetail).ThenInclude(rb => rb.LabourMaster)
+                .Include(c => c.WarrantyJcclaimDetails).ThenInclude(d => d.RepairBillDetail).ThenInclude(rb => rb.PartWiseLabour)
+                .AsQueryable();
+
+            if (HasDealerFilter(filter.DealerCode))
+                claimsQuery = claimsQuery.Where(c => c.DealerCode == filter.DealerCode);
+
+            if (!string.IsNullOrWhiteSpace(filter.LocationCode))
+                claimsQuery = claimsQuery.Where(c => c.LocationCode == filter.LocationCode);
+
+            if (filter.FromDate.HasValue)
+                claimsQuery = claimsQuery.Where(c => c.ClaimDate.HasValue && c.ClaimDate.Value.Date >= filter.FromDate.Value.Date);
+
+            if (filter.ToDate.HasValue)
+                claimsQuery = claimsQuery.Where(c => c.ClaimDate.HasValue && c.ClaimDate.Value.Date <= filter.ToDate.Value.Date);
+
+            if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+                claimsQuery = claimsQuery.Where(c => c.ChassisNo != null && c.ChassisNo.Contains(filter.ChassisNo));
+
+            if (filter.ClaimNo.HasValue)
+                claimsQuery = claimsQuery.Where(c => c.ClaimNo == filter.ClaimNo.Value);
+
+            var claims = await claimsQuery.ToListAsync();
+            var claimIds = claims.Select(c => c.Id).ToList();
+
+            if (claimIds.Count == 0)
+                return new List<WarrantyRegisterViewModel>();
+
+            // ── Vehicle Model resolution: ChassisDetails.ItemCode -> ItemMaster,
+            // same chain already proven in WarrantyInvoiceRepo.BuildInvoicePdfData.
+            // Model is a property of the vehicle/chassis, so it's the same for
+            // every line under one claim. ──
+            var chassisNos = claims
+                .Select(c => c.ChassisNo)
+                .Where(cn => !string.IsNullOrWhiteSpace(cn))
+                .Select(cn => cn!)
+                .Distinct()
+                .ToList();
+
+            var chassisRows = chassisNos.Count == 0
+                ? new List<(string ChassisNo, string? ItemCode)>()
+                : (await _context.ChassisDetails.AsNoTracking()
+                        .Where(cd => chassisNos.Contains(cd.ChassisNo))
+                        .Select(cd => new { cd.ChassisNo, cd.ItemCode })
+                        .ToListAsync())
+                    .Select(cd => (cd.ChassisNo, cd.ItemCode))
+                    .ToList();
+
+            var chassisItemCodeByChassisNo = chassisRows
+                .GroupBy(cd => cd.ChassisNo, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().ItemCode, StringComparer.OrdinalIgnoreCase);
+
+            var modelItemCodes = chassisItemCodeByChassisNo.Values
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Select(code => code!)
+                .Distinct()
+                .ToList();
+
+            var modelItemRows = modelItemCodes.Count == 0
+                ? new List<(string Itemcode, string? Itemname, string? Displayname, string? Itemdesc)>()
+                : (await _context.ItemMasters.AsNoTracking()
+                        .Where(im => modelItemCodes.Contains(im.Itemcode))
+                        .Select(im => new { im.Itemcode, im.Itemname, im.Displayname, im.Itemdesc })
+                        .ToListAsync())
+                    .Select(im => (im.Itemcode, im.Itemname, im.Displayname, im.Itemdesc))
+                    .ToList();
+
+            var modelItemsByCode = modelItemRows
+                .GroupBy(im => im.Itemcode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            // ── Phase 2: batch-resolve UW approval (+ approver name), Order,
+            // Invoice, Packing Slip / PRN — everything that needs a hop this
+            // query graph can't express as a single Include. ──
+
+            var uwByClaimId = (await _context.UwLineItems.AsNoTracking()
+                    .Where(u => claimIds.Contains(u.WarrantyJcclaimId))
+                    .ToListAsync())
+                .GroupBy(u => u.WarrantyJcclaimId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(u => u.CreatedDate).First());
+
+            // ── Approver name lookup ────────────────────────────────────────
+            // Trimmed + case-insensitive on purpose: ActionBy is written from
+            // whatever claim GetUserInfoFromToken.GetUserIdFromToken() reads
+            // off the JWT, not a hard FK, so byte-for-byte equality with
+            // AspNetUsers.Id isn't guaranteed. Falls back through
+            // UserName -> Email -> PhoneNumber for the display value.
+            var approverUserIds = uwByClaimId.Values
+                .Select(u => u.ActionBy)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // AspNetUser has no dedicated "display name" column (confirmed —
+            // just Id/UserName/Email/PhoneNumber/DealerCode), and we don't
+            // know for certain which of Id/UserName/Email the ActionBy claim
+            // actually stores. So rather than assuming it's Id, match against
+            // all three at once — whichever one it turns out to be will hit.
+            var approverUsers = approverUserIds.Count == 0
+                ? new List<(string Id, string? UserName, string? Email, string? PhoneNumber)>()
+                : (await _context.AspNetUsers.AsNoTracking()
+                        .Where(u =>
+                            approverUserIds.Contains(u.Id) ||
+                            (u.UserName != null && approverUserIds.Contains(u.UserName)) ||
+                            (u.Email != null && approverUserIds.Contains(u.Email)))
+                        .Select(u => new { u.Id, u.UserName, u.Email, u.PhoneNumber })
+                        .ToListAsync())
+                    .Select(u => (u.Id, u.UserName, u.Email, u.PhoneNumber))
+                    .ToList();
+
+            // Every one of a user's Id/UserName/Email maps to the SAME
+            // resolved display name, so a lookup by whichever value ActionBy
+            // actually holds succeeds regardless of which one that is.
+            var approverNameById = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var u in approverUsers)
+            {
+                string? displayName = !string.IsNullOrWhiteSpace(u.UserName) ? u.UserName
+                                     : !string.IsNullOrWhiteSpace(u.Email) ? u.Email
+                                     : u.PhoneNumber;
+
+                if (!string.IsNullOrWhiteSpace(u.Id) && !approverNameById.ContainsKey(u.Id))
+                    approverNameById[u.Id] = displayName;
+                if (!string.IsNullOrWhiteSpace(u.UserName) && !approverNameById.ContainsKey(u.UserName))
+                    approverNameById[u.UserName] = displayName;
+                if (!string.IsNullOrWhiteSpace(u.Email) && !approverNameById.ContainsKey(u.Email))
+                    approverNameById[u.Email] = displayName;
+            }
+
+            var orderDetails = await _context.WarrantyOrderDetails.AsNoTracking()
+                .Where(od => claimIds.Contains(od.WarrantyJcclaimId))
+                .ToListAsync();
+            var orderHeaderIds = orderDetails.Select(od => od.WarrantyOrderHeaderId).Distinct().ToList();
+
+            var ordersById = orderHeaderIds.Count == 0
+                ? new Dictionary<int, WarrantyOrder>()
+                : (await _context.WarrantyOrders.AsNoTracking()
+                        .Where(o => orderHeaderIds.Contains(o.Id)).ToListAsync())
+                    .ToDictionary(o => o.Id, o => o);
+
+            var latestOrderByClaimId = orderDetails
+                .Where(od => ordersById.ContainsKey(od.WarrantyOrderHeaderId))
+                .GroupBy(od => od.WarrantyJcclaimId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => ordersById[g.OrderByDescending(od => od.CreatedDate).First().WarrantyOrderHeaderId]);
+
+            var invoiceDetails = orderHeaderIds.Count == 0
+                ? new List<WarrantyInvoiceDetail>()
+                : await _context.WarrantyInvoiceDetails.AsNoTracking()
+                    .Where(id => orderHeaderIds.Contains(id.WarrantyOrderHeaderId))
+                    .ToListAsync();
+            var invoiceHeaderIds = invoiceDetails.Select(id => id.WarrantyInvoiceHeaderId).Distinct().ToList();
+
+            var invoicesById = invoiceHeaderIds.Count == 0
+                ? new Dictionary<int, WarrantyInvoice>()
+                : (await _context.WarrantyInvoices.AsNoTracking()
+                        .Where(i => invoiceHeaderIds.Contains(i.Id)).ToListAsync())
+                    .ToDictionary(i => i.Id, i => i);
+
+            var latestInvoiceByOrderId = invoiceDetails
+                .Where(id => invoicesById.ContainsKey(id.WarrantyInvoiceHeaderId))
+                .GroupBy(id => id.WarrantyOrderHeaderId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => invoicesById[g.OrderByDescending(id => id.CreatedDate).First().WarrantyInvoiceHeaderId]);
+
+            var packingSlipsByInvoiceId = invoiceHeaderIds.Count == 0
+                ? new Dictionary<int, WarrantyPackingSlip>()
+                : (await _context.WarrantyPackingSlips.AsNoTracking()
+                        .Where(s => invoiceHeaderIds.Contains(s.WarrantyInvoiceHeaderId) && s.IsActive)
+                        .ToListAsync())
+                    .GroupBy(s => s.WarrantyInvoiceHeaderId)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.CreatedDate).First());
+
+            var gridRows = await _context.WarrantyOrderGridDetails.AsNoTracking()
+                .Where(g => claimIds.Contains(g.WarrantyJcclaimId))
+                .ToListAsync();
+            var gridRowsByClaimId = gridRows.GroupBy(g => g.WarrantyJcclaimId).ToDictionary(g => g.Key, g => g.ToList());
+            var gridRowIds = gridRows.Select(g => g.Id).ToList();
+
+            var packingDetails = gridRowIds.Count == 0
+                ? new List<WarrantyPackingSlipDetail>()
+                : await _context.WarrantyPackingSlipDetails.AsNoTracking()
+                    .Where(pd => gridRowIds.Contains(pd.WarrantyOrderGridDetailId))
+                    .ToListAsync();
+
+            var boxIds = packingDetails.Select(pd => pd.WarrantyPackingSlipBoxId).Distinct().ToList();
+            var boxesById = boxIds.Count == 0
+                ? new Dictionary<int, WarrantyPackingSlipBox>()
+                : (await _context.WarrantyPackingSlipBoxes.AsNoTracking()
+                        .Where(b => boxIds.Contains(b.Id)).ToListAsync())
+                    .ToDictionary(b => b.Id, b => b);
+
+            var slipHeaderIdsFromBoxes = boxesById.Values.Select(b => b.WarrantyPackingSlipHeaderId).Distinct().ToList();
+            var slipsById = slipHeaderIdsFromBoxes.Count == 0
+                ? new Dictionary<int, WarrantyPackingSlip>()
+                : (await _context.WarrantyPackingSlips.AsNoTracking()
+                        .Where(s => slipHeaderIdsFromBoxes.Contains(s.Id) && s.IsActive).ToListAsync())
+                    .ToDictionary(s => s.Id, s => s);
+
+            // grid-row-id -> (prnNo, slip) — most recently created matching,
+            // active packing slip only.
+            var packingByGridRowId = new Dictionary<int, (string? PrnNo, WarrantyPackingSlip Slip)>();
+            foreach (var grp in packingDetails.GroupBy(pd => pd.WarrantyOrderGridDetailId))
+            {
+                var best = grp
+                    .Where(pd => boxesById.ContainsKey(pd.WarrantyPackingSlipBoxId) &&
+                                 slipsById.ContainsKey(boxesById[pd.WarrantyPackingSlipBoxId].WarrantyPackingSlipHeaderId))
+                    .OrderByDescending(pd => pd.CreatedDate)
+                    .FirstOrDefault();
+
+                if (best != null)
+                {
+                    var slip = slipsById[boxesById[best.WarrantyPackingSlipBoxId].WarrantyPackingSlipHeaderId];
+                    packingByGridRowId[grp.Key] = (best.PrnNo, slip);
+                }
+            }
+
+            // ── Phase 3: map to view models, one row per claim line (or one
+            // header-only row for a claim with no lines yet). ──
+            var result = new List<WarrantyRegisterViewModel>();
+
+            foreach (var c in claims)
+            {
+                var order = latestOrderByClaimId.TryGetValue(c.Id, out var ord) ? ord : null;
+                var invoice = order != null && latestInvoiceByOrderId.TryGetValue(order.Id, out var inv) ? inv : null;
+                var invoicePackingSlip = invoice != null && packingSlipsByInvoiceId.TryGetValue(invoice.Id, out var slp) ? slp : null;
+                var uw = uwByClaimId.TryGetValue(c.Id, out var uwVal) ? uwVal : null;
+                var claimGridRows = gridRowsByClaimId.TryGetValue(c.Id, out var grList) ? grList : new List<WarrantyOrderGridDetail>();
+
+                string claimStatus = uw?.Status ?? "Pending";
+                string orderStatus = order == null ? "" : (order.IsApproved ? "Approved" : "Pending");
+                string invoiceStatus = invoice == null ? "" : (invoice.IsApproved ? "Approved" : "Pending");
+
+                string? approverName = null;
+                if (uw != null && !string.IsNullOrWhiteSpace(uw.ActionBy))
+                {
+                    var key = uw.ActionBy.Trim();
+                    approverName = approverNameById.TryGetValue(key, out var nm) && !string.IsNullOrWhiteSpace(nm)
+                        ? nm
+                        // Diagnostic fallback: the AspNetUsers match failed —
+                        // show the raw stored value rather than a blank cell,
+                        // so it's visible in the UI while you track down why
+                        // (see the DIAGNOSING comment above). Remove once the
+                        // real cause is confirmed and fixed.
+                        : uw.ActionBy;
+                }
+
+                string? modelName = null;
+                string? modelDescription = null;
+
+                if (!string.IsNullOrWhiteSpace(c.ChassisNo) &&
+                    chassisItemCodeByChassisNo.TryGetValue(c.ChassisNo, out var modelItemCode) &&
+                    !string.IsNullOrWhiteSpace(modelItemCode) &&
+                    modelItemsByCode.TryGetValue(modelItemCode!, out var modelItem))
+                {
+                    modelName = modelItem.Itemname ?? modelItem.Displayname;
+                    modelDescription = modelItem.Itemdesc;
+                }
+
+                List<WarrantyJcclaimDetail?> lines = (c.WarrantyJcclaimDetails != null && c.WarrantyJcclaimDetails.Any())
+                    ? c.WarrantyJcclaimDetails.Cast<WarrantyJcclaimDetail?>().ToList()
+                    : new List<WarrantyJcclaimDetail?> { null };
+
+                foreach (var d in lines)
+                {
+                    bool isLabour = d?.ItemType == "Labour";
+                    var rbd = d?.RepairBillDetail;
+
+                    string? itemCode = d == null
+                        ? null
+                        : (isLabour ? (rbd?.LabourMaster?.LabourCode ?? rbd?.PartWiseLabour?.LabourCode) : rbd?.PartItem?.Itemcode);
+
+                    string? itemDesc = d == null
+                        ? null
+                        : (isLabour ? (rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName) : rbd?.PartItem?.Itemdesc);
+
+                    // ── Part / Labour name + description, split out distinctly
+                    // (rather than folded into the generic Item/Description
+                    // pair above) so Part and Labour lines each show their own
+                    // dedicated columns. ──
+                    string? partName = (d == null || isLabour) ? null : rbd?.PartItem?.Itemname;
+                    string? partDescription = (d == null || isLabour) ? null : rbd?.PartItem?.Itemdesc;
+
+                    // ASSUMPTION: LabourMaster has no distinct "name" column
+                    // separate from LabourCode/LabourDescription — using
+                    // Labour Code as the closest identifying label. Swap for
+                    // a real name field if one exists on your LabourMaster.
+                    string? labourName = (d == null || !isLabour) ? null : (rbd?.LabourMaster?.LabourCode ?? rbd?.PartWiseLabour?.LabourCode);
+                    string? labourDescription = (d == null || !isLabour) ? null : (rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName);
+
+                    var matchingGridRow = d == null
+                        ? claimGridRows.FirstOrDefault()
+                        : (claimGridRows.FirstOrDefault(g => g.ItemType == d.ItemType &&
+                                (isLabour ? g.LabourCode == itemCode : g.PartCode == itemCode))
+                           ?? claimGridRows.FirstOrDefault());
+
+                    string? prnNo = null;
+                    WarrantyPackingSlip? packingSlipForLine = invoicePackingSlip;
+
+                    if (matchingGridRow != null && packingByGridRowId.TryGetValue(matchingGridRow.Id, out var packingMatch))
+                    {
+                        prnNo = packingMatch.PrnNo;
+                        packingSlipForLine = packingMatch.Slip;
+                    }
+
+                    // ── Rate calculation: MRP / Rate / Qty / Taxable Amount /
+                    // Total Amount straight off the claim line; CGST/SGST/IGST
+                    // percent + amount from the linked RepairBillDetail. ──
+                    decimal qty = d?.Qty ?? 0;
+                    decimal rate = d?.Rate ?? 0;
+                    decimal mrp = d?.Mrp ?? 0;
+                    decimal taxableAmount = d?.Amount ?? 0;
+                    decimal claimTotalAmount = d?.TotalAmount ?? 0;
+                    decimal claimTaxAmount = d?.TaxAmount ?? 0;
+
+                    decimal cgstPercent = 0, sgstPercent = 0, igstPercent = 0;
+                    decimal cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+
+                    if (d != null)
+                    {
+                        cgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0);
+                        sgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0);
+                        igstPercent = isLabour ? (rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0) : (rbd?.PartItem?.Igst ?? 0);
+
+                        cgstAmount = rbd?.Cgstamount ?? 0;
+                        sgstAmount = rbd?.Sgstamount ?? 0;
+                        igstAmount = rbd?.Igstamount ?? 0;
+                    }
+
+                    // Prefer the tax total actually recorded against the claim
+                    // line (the figure it was approved with); fall back to
+                    // summing the three components if that's not set.
+                    decimal totalGstAmount = claimTaxAmount > 0 ? claimTaxAmount : (cgstAmount + sgstAmount + igstAmount);
+                    decimal totalAmount = claimTotalAmount > 0 ? claimTotalAmount : (taxableAmount + totalGstAmount);
+
+                    result.Add(new WarrantyRegisterViewModel
+                    {
+                        Id = d?.Id ?? 0,
+                        ClaimType = d?.ClaimType ?? "Warranty",
+
+                        JobNo = c.JobCardHeader != null ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}" : null,
+                        JobDate = c.JobCardHeader != null && c.JobCardHeader.JobinDate.HasValue
+                            ? c.JobCardHeader.JobinDate.Value.ToDateTime(TimeOnly.MinValue)
+                            : (DateTime?)null,
+
+                        RbillNo = c.RepairBillHeader != null ? $"{c.RepairBillHeader.Prefix}{c.RepairBillHeader.BillNo}" : null,
+                        RbillDate = c.RepairBillHeader?.CreatedDate,
+
+                        ItemName = itemCode,
+                        Description = itemDesc,
+
+                        PartName = partName,
+                        PartDescription = partDescription,
+                        LabourName = labourName,
+                        LabourDescription = labourDescription,
+                        ModelName = modelName,
+                        ModelDescription = modelDescription,
+
+                        Qty = qty,
+                        Rate = rate,
+                        Mrp = mrp,
+                        TaxableAmount = taxableAmount,
+                        CgstPercent = cgstPercent,
+                        CgstAmount = cgstAmount,
+                        SgstPercent = sgstPercent,
+                        SgstAmount = sgstAmount,
+                        IgstPercent = igstPercent,
+                        IgstAmount = igstAmount,
+                        TotalGstAmount = totalGstAmount,
+                        TotalAmount = totalAmount,
+
+                        WarrantyClaimNo = $"{c.ClaimPrefix}{c.ClaimNo}",
+                        WarrantyClaimDate = c.ClaimDate,
+                        ChasisNo = c.ChassisNo,
+                        PartyName = c.Supplier?.LedgerName,
+
+                        WarrantyClaimStatus = claimStatus,
+                        ApproverEngineerName = approverName,
+                        ClaimAcceptRejectReason = uw?.RejectionReason,
+
+                        PrnNo = prnNo,
+
+                        WarrantyOrderStatus = orderStatus,
+                        WarrantyOrderNo = order?.OrderNo,
+                        WarrantyOrderDate = order?.OrderDate,
+
+                        WarrantyInvoiceStatus = invoiceStatus,
+                        WarrantyInvoiceNo = invoice != null ? $"{invoice.InvoicePrefix}{invoice.InvoiceNo}" : null,
+                        WarrantyInvoiceDate = invoice?.InvoiceDate,
+
+                        PackingSlipNo = packingSlipForLine != null ? $"{packingSlipForLine.SlipPrefix}{packingSlipForLine.SlipNo}" : null,
+                        PackingSlipDate = packingSlipForLine?.SlipDate,
+
+                        // GENUINELY UNCONFIRMED — see class-level comment.
+                        DispatchNo = null,
+                        DispatchDate = null,
+                        DispatchReceivedStatus = null,
+                        DispatchReceivedDate = null,
+                        DispatchReceivedRemarks = null,
+                        VerificationDate = null,
+                        PackingConcern = null,
+                        PackingConcernType = null,
+                        PackingConcernRemarks = null,
+                        MaterialConcern = null,
+                        MaterialConcernType = null,
+                        MaterialConcernRemarks = null
+                    });
+                }
+            }
+
+            // ── Post-shape filters: these depend on values resolved in Phase 3
+            // (formatted job no, derived statuses), so they run in-memory. ──
+            if (!string.IsNullOrWhiteSpace(filter.JobNo))
+                result = result.Where(r => (r.JobNo ?? "").IndexOf(filter.JobNo, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.WarrantyClaimStatus))
+                result = result.Where(r => string.Equals(r.WarrantyClaimStatus, filter.WarrantyClaimStatus, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.WarrantyOrderStatus))
+                result = result.Where(r => string.Equals(r.WarrantyOrderStatus, filter.WarrantyOrderStatus, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.WarrantyInvoiceStatus))
+                result = result.Where(r => string.Equals(r.WarrantyInvoiceStatus, filter.WarrantyInvoiceStatus, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var s = filter.Search.Trim();
+                result = result.Where(r =>
+                    (r.ChasisNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.WarrantyClaimNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.JobNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.RbillNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.PartyName ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.WarrantyOrderNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.WarrantyInvoiceNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.ApproverEngineerName ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
+                ).ToList();
+            }
+
+            return result
+                .OrderByDescending(r => r.WarrantyClaimDate)
+                .ThenByDescending(r => r.WarrantyClaimNo)
+                .ToList();
+        }
     }
 }
+
