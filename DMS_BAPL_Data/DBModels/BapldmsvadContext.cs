@@ -243,6 +243,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<WarrantyPackingSlipDetail> WarrantyPackingSlipDetails { get; set; }
     public virtual DbSet<InvoiceDispatch> InvoiceDispatches { get; set; }
     public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
+    public virtual DbSet<ImpersonationLog> ImpersonationLogs { get; set; }
 
 
 
@@ -4885,6 +4886,17 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
+
+        modelBuilder.Entity<ImpersonationLog>(entity =>
+        {
+            entity.ToTable("ImpersonationLog");
+            entity.Property(e => e.SuperAdminEmail).HasMaxLength(256);
+            entity.Property(e => e.TargetDealerCode).HasMaxLength(50);
+            entity.Property(e => e.TargetDealerEmail).HasMaxLength(256);
+            entity.Property(e => e.StartedDate).HasColumnType("datetime");
+            entity.Property(e => e.EndedDate).HasColumnType("datetime");
+        });
+
         OnModelCreatingPartial(modelBuilder);
 
 
