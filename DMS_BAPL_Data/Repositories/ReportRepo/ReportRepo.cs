@@ -1936,7 +1936,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var inwardLookup = await GetLatestVehicleInwardByChassisAsync(chassisNos);
                 var locationLookup = await GetLocationLookupAsync();
                 var colorLookup = await GetColorLookupAsync();
-           
+
 
 
 
@@ -4166,10 +4166,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             MRP = im.Dlrprice +
                             ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
-
-
-                            //SaleCount = sc != null ? sc.SaleCount : 0,
-                            //PurchaseCount = pc != null ? pc.PurchaseCount : 0
                             SaleCount = (int?)sc.SaleCount ?? 0,
                             PurchaseCount = (int?)pc.PurchaseCount ?? 0
                         })
@@ -4203,6 +4199,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
+        
+        // ═════════════════════════════════════════════════════════════════════
+        // WARRANTY REGISTER REPORT
+        // ═════════════════════════════════════════════════════════════════════
 
         public async Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter)
         {
@@ -4255,9 +4255,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         private async Task<List<WarrantyRegisterViewModel>> BuildWarrantyRegisterRowsAsync(WarrantyRegisterFilterModel filter)
         {
-            // ── Phase 1: claim header query, with the proven-safe triple
-            // Include chain for Part/Labour resolution (same pattern used in
-            // WarrantyOrderRepo.BuildClaimFullViewModel). ──
+
             var claimsQuery = _context.WarrantyJcclaims
                 .AsNoTracking()
                 .Include(c => c.Supplier)
@@ -4292,10 +4290,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             if (claimIds.Count == 0)
                 return new List<WarrantyRegisterViewModel>();
 
-            // ── Vehicle Model resolution: ChassisDetails.ItemCode -> ItemMaster,
-            // same chain already proven in WarrantyInvoiceRepo.BuildInvoicePdfData.
-            // Model is a property of the vehicle/chassis, so it's the same for
-            // every line under one claim. ──
             var chassisNos = claims
                 .Select(c => c.ChassisNo)
                 .Where(cn => !string.IsNullOrWhiteSpace(cn))
@@ -4335,9 +4329,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .GroupBy(im => im.Itemcode, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-            // ── Phase 2: batch-resolve UW approval (+ approver name), Order,
-            // Invoice, Packing Slip / PRN — everything that needs a hop this
-            // query graph can't express as a single Include. ──
 
             var uwByClaimId = (await _context.UwLineItems.AsNoTracking()
                     .Where(u => claimIds.Contains(u.WarrantyJcclaimId))
@@ -4345,12 +4336,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .GroupBy(u => u.WarrantyJcclaimId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(u => u.CreatedDate).First());
 
-            // ── Approver name lookup ────────────────────────────────────────
-            // Trimmed + case-insensitive on purpose: ActionBy is written from
-            // whatever claim GetUserInfoFromToken.GetUserIdFromToken() reads
-            // off the JWT, not a hard FK, so byte-for-byte equality with
-            // AspNetUsers.Id isn't guaranteed. Falls back through
-            // UserName -> Email -> PhoneNumber for the display value.
             var approverUserIds = uwByClaimId.Values
                 .Select(u => u.ActionBy)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -4358,11 +4343,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // AspNetUser has no dedicated "display name" column (confirmed —
-            // just Id/UserName/Email/PhoneNumber/DealerCode), and we don't
-            // know for certain which of Id/UserName/Email the ActionBy claim
-            // actually stores. So rather than assuming it's Id, match against
-            // all three at once — whichever one it turns out to be will hit.
             var approverUsers = approverUserIds.Count == 0
                 ? new List<(string Id, string? UserName, string? Email, string? PhoneNumber)>()
                 : (await _context.AspNetUsers.AsNoTracking()
@@ -4375,9 +4355,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .Select(u => (u.Id, u.UserName, u.Email, u.PhoneNumber))
                     .ToList();
 
-            // Every one of a user's Id/UserName/Email maps to the SAME
-            // resolved display name, so a lookup by whichever value ActionBy
-            // actually holds succeeds regardless of which one that is.
             var approverNameById = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             foreach (var u in approverUsers)
             {
@@ -4465,8 +4442,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         .Where(s => slipHeaderIdsFromBoxes.Contains(s.Id) && s.IsActive).ToListAsync())
                     .ToDictionary(s => s.Id, s => s);
 
-            // grid-row-id -> (prnNo, slip) — most recently created matching,
-            // active packing slip only.
             var packingByGridRowId = new Dictionary<int, (string? PrnNo, WarrantyPackingSlip Slip)>();
             foreach (var grp in packingDetails.GroupBy(pd => pd.WarrantyOrderGridDetailId))
             {
@@ -4483,8 +4458,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 }
             }
 
-            // ── Phase 3: map to view models, one row per claim line (or one
-            // header-only row for a claim with no lines yet). ──
             var result = new List<WarrantyRegisterViewModel>();
 
             foreach (var c in claims)
@@ -4505,11 +4478,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     var key = uw.ActionBy.Trim();
                     approverName = approverNameById.TryGetValue(key, out var nm) && !string.IsNullOrWhiteSpace(nm)
                         ? nm
-                        // Diagnostic fallback: the AspNetUsers match failed —
-                        // show the raw stored value rather than a blank cell,
-                        // so it's visible in the UI while you track down why
-                        // (see the DIAGNOSING comment above). Remove once the
-                        // real cause is confirmed and fixed.
                         : uw.ActionBy;
                 }
 
@@ -4541,18 +4509,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     string? itemDesc = d == null
                         ? null
                         : (isLabour ? (rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName) : rbd?.PartItem?.Itemdesc);
-
-                    // ── Part / Labour name + description, split out distinctly
-                    // (rather than folded into the generic Item/Description
-                    // pair above) so Part and Labour lines each show their own
-                    // dedicated columns. ──
                     string? partName = (d == null || isLabour) ? null : rbd?.PartItem?.Itemname;
                     string? partDescription = (d == null || isLabour) ? null : rbd?.PartItem?.Itemdesc;
 
-                    // ASSUMPTION: LabourMaster has no distinct "name" column
-                    // separate from LabourCode/LabourDescription — using
-                    // Labour Code as the closest identifying label. Swap for
-                    // a real name field if one exists on your LabourMaster.
                     string? labourName = (d == null || !isLabour) ? null : (rbd?.LabourMaster?.LabourCode ?? rbd?.PartWiseLabour?.LabourCode);
                     string? labourDescription = (d == null || !isLabour) ? null : (rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName);
 
@@ -4571,9 +4530,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         packingSlipForLine = packingMatch.Slip;
                     }
 
-                    // ── Rate calculation: MRP / Rate / Qty / Taxable Amount /
-                    // Total Amount straight off the claim line; CGST/SGST/IGST
-                    // percent + amount from the linked RepairBillDetail. ──
                     decimal qty = d?.Qty ?? 0;
                     decimal rate = d?.Rate ?? 0;
                     decimal mrp = d?.Mrp ?? 0;
@@ -4595,9 +4551,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         igstAmount = rbd?.Igstamount ?? 0;
                     }
 
-                    // Prefer the tax total actually recorded against the claim
-                    // line (the figure it was approved with); fall back to
-                    // summing the three components if that's not set.
                     decimal totalGstAmount = claimTaxAmount > 0 ? claimTaxAmount : (cgstAmount + sgstAmount + igstAmount);
                     decimal totalAmount = claimTotalAmount > 0 ? claimTotalAmount : (taxableAmount + totalGstAmount);
 
@@ -4640,6 +4593,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         WarrantyClaimNo = $"{c.ClaimPrefix}{c.ClaimNo}",
                         WarrantyClaimDate = c.ClaimDate,
                         ChasisNo = c.ChassisNo,
+
+                        // Read directly off the claim - no lookup/join needed.
+                        LocationCode = c.LocationCode,
+                        LocationName = c.LocationName,
+
                         PartyName = c.Supplier?.LedgerName,
 
                         WarrantyClaimStatus = claimStatus,
@@ -4698,6 +4656,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     (r.WarrantyClaimNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (r.JobNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (r.RbillNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.LocationCode ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (r.LocationName ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (r.PartyName ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (r.WarrantyOrderNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (r.WarrantyInvoiceNo ?? "").IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0 ||

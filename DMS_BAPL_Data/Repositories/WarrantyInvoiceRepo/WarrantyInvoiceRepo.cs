@@ -9,6 +9,7 @@ using DMS_BAPL_Utils.Helpers;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 {
@@ -1072,11 +1073,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             .ToListAsync();
         }
 
-        // Builds the per-line payload to submit to the ERP for a given Warranty
-        // Invoice. Field mapping follows the ONLY confirmed ERP contract
-        // available (the GET /erpreport/wcjo report shape) - see
-        // ErpWarrantyClaimLineViewModel for which fields are solid vs
-        // genuinely unconfirmed/blank.
         public async Task<List<ErpWarrantyClaimLineViewModel>> BuildErpWarrantyClaimPayload(int invoiceId)
         {
             var header = await _context.WarrantyInvoices.FirstOrDefaultAsync(x => x.Id == invoiceId);
@@ -1138,7 +1134,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     DealerName = dealer?.Compname,
                     DealerCode = header.DealerCode,
                     Location = g.LocationName,
-                    LocationCity = null, // UNCONFIRMED - see ViewModel comment
+                    LocationCity = null, 
                     JobNo = g.JobCardNo,
                     JobDate = g.JobCardDate?.ToString("dd-MM-yyyy"),
                     ClaimNo = g.ClaimNo,
@@ -1146,10 +1142,10 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     Kms = g.Kms?.ToString(),
                     VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy"),
                     PartFailureDate = failureDate?.ToString("dd-MM-yyyy"),
-                    ServiceType = g.ServiceHead, // best-effort stand-in, see ViewModel comment
+                    ServiceType = g.ServiceHead, 
                     ChassisNo = g.ChassisNo,
                     ModelName = modelName,
-                    Variants = null, // UNCONFIRMED
+                    Variants = null, 
                     PartCode = isLabour ? g.LabourCode : g.PartCode,
                     PartName = isLabour ? g.LabourDescription : g.PartName,
                     Qty = qty.ToString("0.##"),
@@ -1161,16 +1157,17 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     IgstPercent = (g.IgstPercent ?? 0).ToString("0.##"),
                     IgstAmount = (g.IgstAmount ?? 0).ToString("0.00"),
                     Amount = (g.TotalAmount ?? 0).ToString("0.00"),
-                    DealerObservation = null, // UNCONFIRMED - see ViewModel comment
-                    Rca = null,               // UNCONFIRMED
-                    InvoiceRefNo = null,      // UNCONFIRMED
+                    DealerObservation = null, 
+                    Rca = null,              
+                    InvoiceRefNo = null,     
                     InvoiceNo = g.InvoiceNo,
                     InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy"),
-                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}", // ASSUMPTION - see ViewModel comment
+                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}", 
                     DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy"),
-                    VendorPoNo = null,   // UNCONFIRMED
-                    VendorPoDate = null, // UNCONFIRMED
-                    Total = null         // UNCONFIRMED
+                    VendorPoNo = null,   
+                    VendorPoDate = null, 
+                    Total = null,
+                    UniqueId= g.Id
                 });
             }
 

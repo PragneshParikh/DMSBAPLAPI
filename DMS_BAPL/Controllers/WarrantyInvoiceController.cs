@@ -62,10 +62,9 @@ namespace DMS_BAPL_Api.Controllers
                 // best-effort: the invoice is already saved by this point,
                 // so a failed/unreachable ERP call must not turn a
                 // successful save into a 500 - the failure is only
-                // surfaced in the response. Retrying means building the
-                // payload again (e.g. re-fetch via GetWarrantyInvoiceById
-                // and re-run BuildErpWarrantyClaimPayload on the caller's
-                // side, or re-save) and posting it to SendErpPayload.
+                // surfaced in the response. If it fails here, the frontend
+                // can retry via POST UATWarrantyData without re-saving the
+                // invoice.
                 var erpResult = await TrySubmitToErpAfterSave(invoiceId);
 
                 return Ok(new
@@ -329,7 +328,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPost("SendErpPayload")]
+        [HttpPost("BAPLWarrantyData")]
         [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -354,6 +353,37 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error in SendErpPayload");
                 return StatusCode(500, $"An error occurred while sending the payload to ERP: {ex.Message}");
+            }
+        }
+
+
+        [HttpPost("UATWarrantyData")]
+        [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SendWarrantyInvoiceToErp([FromBody] SendWarrantyInvoiceToErpRequest request)
+        {
+            if (request == null || request.InvoiceId <= 0)
+                return BadRequest("A valid invoiceId is required.");
+
+            try
+            {
+                var result = await BuildAndSubmitErpPayload(request.InvoiceId);
+
+                if (!result.Success)
+                    return StatusCode(500, result);
+
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UATWarrantyData for invoice {InvoiceId}", request.InvoiceId);
+                return StatusCode(500, $"An error occurred while sending Warranty Invoice {request.InvoiceId} to ERP: {ex.Message}");
             }
         }
 

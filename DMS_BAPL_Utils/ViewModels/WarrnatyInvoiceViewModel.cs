@@ -117,4 +117,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public int PageSize { get; set; }
         public int TotalPages { get; set; }
     }
+
+    public class SendWarrantyInvoiceToErpRequest
+    {
+        public int InvoiceId { get; set; }
+    }
 }

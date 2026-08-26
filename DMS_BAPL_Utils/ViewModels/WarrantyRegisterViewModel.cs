@@ -38,6 +38,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string WarrantyClaimNo { get; set; }
         public DateTime? WarrantyClaimDate { get; set; }
         public string ChasisNo { get; set; }
+
+        public string? LocationCode { get; set; }
+        public string? LocationName { get; set; }
+
         public string PartyName { get; set; }
         public string WarrantyClaimStatus { get; set; }
         public string? ApproverEngineerName { get; set; }

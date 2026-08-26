@@ -26,6 +26,9 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
             _warrantyInvoiceRepo = warrantyInvoiceRepo;
         }
 
+        // Called from InsertWarrantyJCClaim, right after the claim itself
+        // is saved - this is the "once JCClaim submitted it will reflect
+        // in UW-Line Items window" behavior, per explicit request.
         public async Task InsertUwLineItem(int warrantyJcclaimId, string? userId)
         {
             _context.UwLineItems.Add(new UwLineItem
@@ -123,6 +126,26 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
                 var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
 
+                // ── Rate / tax calculation ──────────────────────────────────
+                // FIX: previously GstAmount/TotalAmount were read straight off
+                // WarrantyJcclaimDetail.TaxAmount/TotalAmount, which were
+                // computed ONCE at claim-submission time
+                // (WarrantyJobCardClaimRepo.InsertWarrantyJCClaim) from a
+                // single incoming "IgstAmount" DTO field. For an intrastate
+                // repair (real IGST = 0, CGST+SGST apply instead), if the
+                // claim form didn't apply the same IGST-absorbs-CGST+SGST
+                // fallback used elsewhere in this codebase
+                // (WarrantyOrderRepo.BuildClaimFullViewModel), that stored
+                // TaxAmount/TotalAmount silently drops the CGST+SGST tax
+                // entirely — showing an "Amount" that's too low with no way
+                // to recover the missing tax from that field.
+                //
+                // Fix: compute Total Gst / Total Amount from the SAME real
+                // RepairBillDetail.Cgstamount/Sgstamount/Igstamount already
+                // used for the Cgst/Sgst/Igst columns below, so the grid is
+                // always internally consistent — Total Gst always equals
+                // Cgst + Sgst + Igst, and Amount always equals the taxable
+                // value plus that real total.
                 decimal cgstAmount = rbd?.Cgstamount ?? 0;
                 decimal sgstAmount = rbd?.Sgstamount ?? 0;
                 decimal igstAmount = rbd?.Igstamount ?? 0;
@@ -160,6 +183,11 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     RejectionReason = u.RejectionReason,
                     ActionBy = u.ActionBy,
                     ActionDate = u.ActionDate,
+
+                    // Pre-formatted server-side so the client displays these
+                    // as plain strings — see UwLineItemListViewModel for why.
+                    ActionDateDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("dd-MM-yyyy") : null,
+                    ActionTimeDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("HH:mm:ss") : null,
                     Hsn = isLabour ? rbd?.LabourMaster?.Hsncode : rbd?.PartItem?.Hsncode,
 
                     Qty = d.Qty ?? 0,
@@ -266,33 +294,74 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 DateTime.Now;
 
             // ============================================================
-            // CREATE WARRANTY ORDER
+            // CREATE OR REUSE WARRANTY ORDER
             // ============================================================
+            // FIX: previously this always called InsertWarrantyOrder,
+            // creating a brand-new WarrantyOrder row every single time —
+            // including when re-approving a claim that had been rejected
+            // before. RejectUwLineItem only deactivates the existing order
+            // (IsActive = false) via DeactivateDownstreamRecordsIfNoActive
+            // ClaimsAsync above; it never deletes the WarrantyOrderDetail
+            // link. So now: if this claim already has an order linked to
+            // it, that SAME order is reactivated and refreshed instead of a
+            // new one being inserted. A brand-new order is only created the
+            // first time a given claim is ever approved.
+            var existingOrderDetail = await _context.WarrantyOrderDetails
+                .FirstOrDefaultAsync(od => od.WarrantyJcclaimId == claim.Id);
 
-            var orderNumbers = await _warrantyOrderRepo.GetNextOrderNumbers(dealerCode);
+            int orderId;
 
-            var orderModel = new WarrantyOrderViewModel
+            if (existingOrderDetail != null &&
+                await _context.WarrantyOrders.AnyAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId))
             {
-                Id = 0,
-                DealerCode = dealerCode,
-                DateFrom = today,
-                DateTo = today,
-                BatchNo = orderNumbers.BatchNo,
-                BatchDate = today,
-                OrderNo = orderNumbers.OrderNo,
-                OrderDate = today,
-                Location = serviceLocation,
-                ClaimType = "Warranty",
-                SupplierId = claim.SupplierId,
-                IsApproved = false,
-                WarrantyClaimIds = new List<int> { claim.Id },
-                ClaimApprovals = new List<ClaimApprovalViewModel>
-                {
-                    new ClaimApprovalViewModel { ClaimId = claim.Id, IsApproved = false }
-                }
-            };
+                var existingOrder = await _context.WarrantyOrders
+                    .FirstAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId);
 
-            var orderId = await _warrantyOrderRepo.InsertWarrantyOrder(orderModel, userId ?? "system");
+                // Reactivate + refresh the existing order rather than
+                // inserting a new one. BatchNo/OrderNo/BatchDate/OrderDate
+                // are deliberately left untouched — this is the SAME order
+                // document coming back into use, not a new one, so its
+                // original numbering and creation date are preserved.
+                existingOrder.IsActive = true;
+                existingOrder.DateFrom = today;
+                existingOrder.DateTo = today;
+                existingOrder.Location = serviceLocation ?? existingOrder.Location;
+                existingOrder.SupplierId = claim.SupplierId ?? existingOrder.SupplierId;
+                existingOrder.IsApproved = false; // needs its own separate approval step again
+                existingOrder.UpdatedBy = userId ?? "system";
+                existingOrder.UpdatedDate = today;
+
+                existingOrderDetail.IsApproved = false;
+
+                orderId = existingOrder.Id;
+            }
+            else
+            {
+                var orderNumbers = await _warrantyOrderRepo.GetNextOrderNumbers(dealerCode);
+
+                var orderModel = new WarrantyOrderViewModel
+                {
+                    Id = 0,
+                    DealerCode = dealerCode,
+                    DateFrom = today,
+                    DateTo = today,
+                    BatchNo = orderNumbers.BatchNo,
+                    BatchDate = today,
+                    OrderNo = orderNumbers.OrderNo,
+                    OrderDate = today,
+                    Location = serviceLocation,
+                    ClaimType = "Warranty",
+                    SupplierId = claim.SupplierId,
+                    IsApproved = false,
+                    WarrantyClaimIds = new List<int> { claim.Id },
+                    ClaimApprovals = new List<ClaimApprovalViewModel>
+                    {
+                        new ClaimApprovalViewModel { ClaimId = claim.Id, IsApproved = false }
+                    }
+                };
+
+                orderId = await _warrantyOrderRepo.InsertWarrantyOrder(orderModel, userId ?? "system");
+            }
 
             // ============================================================
             // UPDATE UW LINE ITEM
@@ -401,27 +470,145 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
         }
         public async Task<(bool Success, string? ErrorMessage)> RejectUwLineItem(UwLineItemActionViewModel model, string? userId)
         {
-            var lineItem = await _context.UwLineItems.FirstOrDefaultAsync(u => u.Id == model.Id);
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (lineItem == null)
+            try
             {
+                var lineItem = await _context.UwLineItems.FirstOrDefaultAsync(u => u.Id == model.Id);
+
+                if (lineItem == null)
+                {
+                    return (
+                        false,
+                        $"UW Line Item with Id {model.Id} not found."
+                    );
+                }
+
+                bool wasApproved = lineItem.Status == "Approved";
+
+                lineItem.Status = "Rejected";
+                lineItem.RejectionReason = model.RejectionReason;
+                lineItem.ActionBy = userId;
+                lineItem.ActionDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                // Per explicit request: rejecting a claim that had already
+                // been approved — and therefore already has an
+                // Order/Invoice/Packing Slip generated from it — now cleans
+                // up that downstream data instead of leaving it dangling.
+                if (wasApproved)
+                {
+                    await DeactivateDownstreamRecordsIfNoActiveClaimsAsync(lineItem.WarrantyJcclaimId, userId);
+                }
+
+                await transaction.CommitAsync();
+
                 return (
-                    false,
-                    $"UW Line Item with Id {model.Id} not found."
+                    true, null
                 );
             }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
 
+        // ════════════════════════════════════════════════════════════════════
+        // After a claim is rejected, deactivates (IsActive = false) any
+        // Order/Invoice/Packing Slip that claim was the LAST remaining
+        // ACTIVE claim/order on.
+        //
+        // Deliberately does NOT touch or delete any WarrantyOrderDetail /
+        // WarrantyOrderGridDetail / WarrantyInvoiceDetail /
+        // WarrantyInvoiceGridDetail / WarrantyPackingSlipDetail link or
+        // snapshot rows — those links are kept fully intact so that if this
+        // same claim is approved again later, ApproveUwLineItem can find and
+        // REACTIVATE that same order instead of creating a duplicate (see
+        // the "CREATE OR REUSE WARRANTY ORDER" block there).
+        //
+        // SAFETY: an Order can bundle multiple claims and an Invoice can
+        // bundle multiple Orders via the general Warranty Order/Invoice
+        // management screens (not just this UW Line Item flow) — so a
+        // header is only deactivated once NONE of its linked claims/orders
+        // are still Approved/active. A record still legitimately shared
+        // with another active claim is left completely untouched.
+        // ════════════════════════════════════════════════════════════════════
+        private async Task DeactivateDownstreamRecordsIfNoActiveClaimsAsync(int claimId, string? userId)
+        {
+            var now = DateTime.Now;
+            var actingUser = userId ?? "system";
 
-            lineItem.Status = "Rejected";
-            lineItem.RejectionReason = model.RejectionReason;
-            lineItem.ActionBy = userId;
-            lineItem.ActionDate = DateTime.Now;
+            var orderDetails = await _context.WarrantyOrderDetails
+                .Where(od => od.WarrantyJcclaimId == claimId)
+                .ToListAsync();
 
+            foreach (var orderDetail in orderDetails)
+            {
+                var orderHeaderId = orderDetail.WarrantyOrderHeaderId;
+
+                var otherActiveClaimExists = await (
+                    from od in _context.WarrantyOrderDetails
+                    join u in _context.UwLineItems on od.WarrantyJcclaimId equals u.WarrantyJcclaimId
+                    where od.WarrantyOrderHeaderId == orderHeaderId
+                          && od.WarrantyJcclaimId != claimId
+                          && u.Status == "Approved"
+                    select od.Id
+                ).AnyAsync();
+
+                if (otherActiveClaimExists)
+                    continue; // order is still legitimately in use for another claim - leave it alone
+
+                var orderHeader = await _context.WarrantyOrders.FirstOrDefaultAsync(o => o.Id == orderHeaderId);
+                if (orderHeader != null && orderHeader.IsActive)
+                {
+                    orderHeader.IsActive = false;
+                    orderHeader.UpdatedBy = actingUser;
+                    orderHeader.UpdatedDate = now;
+                }
+
+                var invoiceDetails = await _context.WarrantyInvoiceDetails
+                    .Where(id => id.WarrantyOrderHeaderId == orderHeaderId)
+                    .ToListAsync();
+
+                foreach (var invoiceDetail in invoiceDetails)
+                {
+                    var invoiceHeaderId = invoiceDetail.WarrantyInvoiceHeaderId;
+
+                    var otherActiveOrderExists = await (
+                        from id2 in _context.WarrantyInvoiceDetails
+                        join o2 in _context.WarrantyOrders on id2.WarrantyOrderHeaderId equals o2.Id
+                        where id2.WarrantyInvoiceHeaderId == invoiceHeaderId
+                              && id2.WarrantyOrderHeaderId != orderHeaderId
+                              && o2.IsActive
+                        select id2.Id
+                    ).AnyAsync();
+
+                    if (otherActiveOrderExists)
+                        continue;
+
+                    var invoiceHeader = await _context.WarrantyInvoices.FirstOrDefaultAsync(i => i.Id == invoiceHeaderId);
+                    if (invoiceHeader != null && invoiceHeader.IsActive)
+                    {
+                        invoiceHeader.IsActive = false;
+                        invoiceHeader.UpdatedBy = actingUser;
+                        invoiceHeader.UpdatedDate = now;
+                    }
+
+                    var packingSlips = await _context.WarrantyPackingSlips
+                        .Where(s => s.WarrantyInvoiceHeaderId == invoiceHeaderId && s.IsActive)
+                        .ToListAsync();
+                    foreach (var slip in packingSlips)
+                    {
+                        slip.IsActive = false;
+                        slip.UpdatedBy = actingUser;
+                        slip.UpdatedDate = now;
+                    }
+                }
+            }
 
             await _context.SaveChangesAsync();
-            return (
-                true, null
-            );
         }
 
         public async Task<(bool Success, string? ErrorMessage)> DeleteUwLineItem(int id)
