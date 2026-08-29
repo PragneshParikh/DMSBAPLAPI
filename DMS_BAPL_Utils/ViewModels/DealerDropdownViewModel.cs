@@ -11,5 +11,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public int Id { get; set; }
         public string DealerCode { get; set; }
         public string DealerName { get; set; }
+        public string CompName { get; set; } = null!;
+        public string UserId { get; set; } = null!;
+        public string? RoleId { get; set; }
+        public string? RoleName { get; set; }
     }
+
 }
