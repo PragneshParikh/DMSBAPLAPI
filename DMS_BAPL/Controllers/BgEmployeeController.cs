@@ -105,9 +105,6 @@ namespace DMS_BAPL_Data.Controllers
         // =====================================================
         // TSM ERP INTEGRATION
         // =====================================================
-
-        // POST: upsert — creates a new employee if the TSM code
-        // doesn't exist yet, otherwise updates the existing one.
         [HttpPost("TsmEntry")]
         public async Task<IActionResult> ConsumeTsmEntry([FromBody] TsmEntryPayload payload)
         {

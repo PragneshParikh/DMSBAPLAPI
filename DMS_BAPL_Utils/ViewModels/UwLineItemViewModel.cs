@@ -26,6 +26,22 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? RejectionReason { get; set; }
         public string? ActionBy { get; set; }
         public DateTime? ActionDate { get; set; }
+
+        // --- NEW: pre-formatted display strings for ActionDate ---
+        // ActionDate is the single timestamp column both ApproveUwLineItem
+        // and RejectUwLineItem write to (DMS_BAPL_Data.Repositories.
+        // UwLineItemRepo) — there is no separate ApprovedDate/RejectedDate
+        // column in the database. These two fields serve BOTH the
+        // "Approved"/"Rejected" sub-display in the Actions column and the
+        // "Updated Date:/Time:" column, formatted server-side so the client
+        // just displays the string as-is rather than re-parsing/re-piping a
+        // raw DateTime value (which was getting its time component stripped
+        // somewhere client-side before render — see the frontend
+        // investigation; this sidesteps that entirely instead of depending
+        // on finding it).
+        public string? ActionDateDisplay { get; set; } // e.g. "25-08-2026"
+        public string? ActionTimeDisplay { get; set; } // e.g. "14:48:04"
+
         public string? Hsn { get; set; }
         public decimal Qty { get; set; }
         public decimal Rate { get; set; }
@@ -52,23 +68,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerObservation { get; set; }
         public string? Rca { get; set; }
 
-        // --- NEW: added per explicit request ---
-        // Mrp comes directly from WarrantyJcclaimDetail.Mrp (confirmed
-        // real on the entity, wasn't populated before this).
+        // --- Mrp / Cgst / Sgst / Igst amounts + percentages ---
         public decimal Mrp { get; set; }
-
-        // Cgst/Sgst/Igst amounts come from the already-fetched
-        // RepairBillDetail (rbd.Cgstamount/Sgstamount/Igstamount) - same
-        // confirmed source GenerateWarrantyJCClaimPdf already uses, just
-        // not previously surfaced on this ViewModel.
         public decimal Cgst { get; set; }
         public decimal Sgst { get; set; }
         public decimal Igst { get; set; }
-
-        // Percentages, per explicit request - same confirmed source as
-        // the amounts above: rbd.PartItem.Cgst/Sgst/Igst for parts,
-        // rbd.LabourMaster.Cgst/Sgst/Igst for labour (exact pattern
-        // GenerateWarrantyJCClaimPdf already uses).
         public decimal CgstPercent { get; set; }
         public decimal SgstPercent { get; set; }
         public decimal IgstPercent { get; set; }

@@ -42,9 +42,6 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("Part Failure Date")]
         public string? PartFailureDate { get; set; }
 
-        // UNCONFIRMED: only ServiceHead is stored on WarrantyOrderGridDetail,
-        // not a separate ServiceType - reusing ServiceHead as a best-effort
-        // stand-in. Confirm whether ERP actually wants ServiceType distinctly.
         [JsonPropertyName("Service Type")]
         public string? ServiceType { get; set; }
 
@@ -92,13 +89,6 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("Amount")]
         public string? Amount { get; set; }
 
-        // UNCONFIRMED: DealerObservation/RootCauseAnalysis live on
-        // WarrantyJcclaimDetail, but are never copied onto
-        // WarrantyOrderGridDetail at snapshot time - so they aren't
-        // available here without an additional join back to the claim
-        // detail table (fragile: would need to match by claim+part/labour,
-        // since WarrantyOrderGridDetail doesn't store the WarrantyJcclaimDetailId).
-        // Left blank; wire in a proper FK if these are required by ERP.
         [JsonPropertyName("Dealer Observation")]
         public string? DealerObservation { get; set; }
 
@@ -115,11 +105,6 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("Invoice Date")]
         public string? InvoiceDate { get; set; }
 
-        // ASSUMPTION: mapped to this Warranty Invoice's own
-        // InvoicePrefix+InvoiceNo/InvoiceDate. CONFIRM this is actually
-        // what ERP means by "Doc No/Date" here - it could just as
-        // plausibly mean something else entirely (e.g. a GST e-invoice
-        // document number).
         [JsonPropertyName("Doc. No")]
         public string? DocNo { get; set; }
 
@@ -132,29 +117,21 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("Vendor PO Date")]
         public string? VendorPoDate { get; set; }
-
-        // UNCONFIRMED: meaning of this field in the sample response is
-        // unclear (appears constant per-record in the example, possibly a
-        // total-row-count artifact rather than a per-line value).
+        
         [JsonPropertyName("Total")]
         public string? Total { get; set; }
+        public int UniqueId { get; set; }
     }
 
-    // Request body shape - GENUINELY UNCONFIRMED for a submit/push
-    // endpoint. Built by analogy to the GET report's own request params
-    // (vendorid, subvendorcode) plus the line data as "Value", since no
-    // real submit contract was provided. Adjust field names/shape once
-    // the actual endpoint is documented.
+
     public class ErpWarrantyClaimSubmitRequest
     {
         public int VendorId { get; set; }
-        public string? SubVendorCode { get; set; } // base64, per the documented GET contract
+        public string? SubVendorCode { get; set; }
         public List<ErpWarrantyClaimLineViewModel> Value { get; set; } = new();
     }
 
-    // Matches the documented ERP response envelope from the GET report
-    // spec ({ Valid, Description, Value }) - reused defensively here since
-    // no separate submit-response schema is documented either.
+
     public class ErpApiResponse<T>
     {
         public bool Valid { get; set; }
