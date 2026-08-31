@@ -144,6 +144,7 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
             return result;
         }
 
+
         public async Task SaveMenuRightsAsync(string roleId, List<MenuRightItem> rights, string updatedBy)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -154,7 +155,9 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                     .Where(r => r.RoleId == roleId)
                     .ToListAsync();
 
-                var existingLookup = existing.ToDictionary(r => (r.MenuId, r.SubMenuId), r => r);
+                var existingLookup = existing
+                    .GroupBy(r => (r.MenuId, r.SubMenuId))
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 foreach (var item in rights)
                 {
