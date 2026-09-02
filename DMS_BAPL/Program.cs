@@ -50,6 +50,14 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
 {
+    // Use the full namespace-qualified name for schema IDs instead of the bare
+    // class name. Without this, two different classes that share a short name
+    // (e.g. two "DealerImportRowError" types in different namespaces) make
+    // Swashbuckle throw a "Conflicting schemaIds" exception while building
+    // swagger.json, which is what causes Swagger UI's "Failed to load API
+    // definition" / 500 error.
+    c.CustomSchemaIds(type => type.FullName);
+
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "My API",
@@ -135,6 +143,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddHttpClient("TsmApi", client =>
+{
+    client.BaseAddress = new Uri("https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddHttpClient("ErpApi", client =>
 {
     client.BaseAddress = new Uri("https://bapldmsai-e6f0hzhmg4achue9.centralindia-01.azurewebsites.net/");
     client.Timeout = TimeSpan.FromSeconds(30);

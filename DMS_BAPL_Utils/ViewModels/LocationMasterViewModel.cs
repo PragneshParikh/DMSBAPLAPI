@@ -78,5 +78,28 @@ namespace DMS_BAPL_Utils.ViewModels
         public int locareadidNo { get; set; }
     }
 
+    /// <summary>
+    /// Summary returned after importing location master rows from an uploaded Excel file.
+    /// </summary>
+    public class LocationImportResultViewModel
+    {
+        public int TotalRows { get; set; }
+        public int InsertedCount { get; set; }
+        public int UpdatedCount { get; set; }
+        public int FailedCount { get; set; }
+        public List<LocationImportRowError> Errors { get; set; } = new List<LocationImportRowError>();
+    }
+
+    /// <summary>
+    /// A single row-level failure encountered while importing location master data.
+    /// </summary>
+    public class LocationImportRowError
+    {
+        /// <summary>1-based row number as it appears in the Excel sheet (header row = row 1).</summary>
+        public int RowNumber { get; set; }
+        public string? Loccode { get; set; }
+        public string? Message { get; set; }
+    }
+
 
 }

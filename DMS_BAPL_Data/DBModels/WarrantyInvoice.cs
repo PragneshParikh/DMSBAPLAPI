@@ -23,6 +23,9 @@ namespace DMS_BAPL_Data.DBModels
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
 
+        public string? ErpUniqueId { get; set; }
+        public DateTime? ErpSubmittedDate { get; set; }
+
         public virtual ICollection<WarrantyInvoiceDetail> WarrantyInvoiceDetails { get; set; } = new List<WarrantyInvoiceDetail>();
     }
 

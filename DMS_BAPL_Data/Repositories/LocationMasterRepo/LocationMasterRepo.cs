@@ -14,6 +14,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
     public class LocationMasterRepo : ILocationMasterRepo
     {
         private readonly BapldmsvadContext _context;
+        private const string DefaultFormType = "DL";
         public LocationMasterRepo(BapldmsvadContext context)
         {
             _context = context;
@@ -113,7 +114,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMaster.Action = model.Action;
             locationMaster.Loccode = model.Loccode;
             locationMaster.Locname = model.Locname;
-            locationMaster.Locareaidno = model.Locareaidno;
+            locationMaster.Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode);   // CHANGED
             locationMaster.Add1 = model.Add1;
             locationMaster.Add2 = model.Add2;
             locationMaster.State = model.State;
@@ -130,7 +131,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMaster.Contperemail2 = model.Contperemail2;
             locationMaster.Compid = model.Compid;
             locationMaster.Acntidno = model.Acntidno;
-            locationMaster.Formtype = model.Formtype;
+            locationMaster.Formtype = ResolveFormType(model.Formtype);                     // CHANGED
             locationMaster.Dealercode = model.Dealercode;
             locationMaster.Lineno = model.Lineno;
             locationMaster.Rrglocationidno = model.Rrglocationidno;
@@ -154,7 +155,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                     Action = model.Action,
                     Loccode = model.Loccode,
                     Locname = model.Locname,
-                    Locareaidno = model.Locareaidno,
+                    Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode),   // CHANGED
                     Add1 = model.Add1,
                     Add2 = model.Add2,
                     State = model.State,
@@ -171,7 +172,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                     Contperemail2 = model.Contperemail2,
                     Compid = model.Compid,
                     Acntidno = model.Acntidno,
-                    Formtype = model.Formtype,
+                    Formtype = ResolveFormType(model.Formtype),                     // CHANGED
                     Dealercode = model.Dealercode,
                     Lineno = model.Lineno,
                     Rrglocationidno = model.Rrglocationidno,
@@ -184,11 +185,10 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             }
             else
             {
-
                 location.Action = model.Action;
                 location.Loccode = model.Loccode;
                 location.Locname = model.Locname;
-                location.Locareaidno = model.Locareaidno;
+                location.Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode);              // CHANGED
                 location.Add1 = model.Add1;
                 location.Add2 = model.Add2;
                 location.State = model.State;
@@ -205,7 +205,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                 location.Contperemail2 = model.Contperemail2;
                 location.Compid = model.Compid;
                 location.Acntidno = model.Acntidno;
-                location.Formtype = model.Formtype;
+                location.Formtype = ResolveFormType(model.Formtype, location.Formtype);              // CHANGED
                 location.Dealercode = model.Dealercode;
                 location.Lineno = model.Lineno;
                 location.Rrglocationidno = model.Rrglocationidno;
@@ -264,21 +264,23 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             return result;
         }
 
-        public async Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
+        public async Task<(LocationMaster Location, bool IsNew)> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel)
         {
             var locCode = locationMasterViewModel.Loccode?.Trim().ToUpper();
 
-            var _existingLocation = await _context.LocationMasters
+            var existingLocation = await _context.LocationMasters
                 .FirstOrDefaultAsync(x => x.Loccode.ToUpper() == locCode);
 
-            if (_existingLocation == null)
+            bool isNew = existingLocation == null;
+
+            if (existingLocation == null)
             {
-                var locationMaster = new LocationMaster
+                existingLocation = new LocationMaster
                 {
                     Action = locationMasterViewModel.Action,
                     Loccode = locationMasterViewModel.Loccode,
                     Locname = locationMasterViewModel.Locname,
-                    Locareaidno = locationMasterViewModel.Locareaidno,
+                    Locareaidno = ResolveAreaId(locationMasterViewModel.Locareaidno, locationMasterViewModel.Loccode),  // CHANGED
                     Add1 = locationMasterViewModel.Add1,
                     Add2 = locationMasterViewModel.Add2,
                     State = locationMasterViewModel.State,
@@ -295,58 +297,91 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                     Contperemail2 = locationMasterViewModel.Contperemail2,
                     Compid = locationMasterViewModel.Compid,
                     Acntidno = locationMasterViewModel.Acntidno,
-                    Formtype = locationMasterViewModel.Formtype,
+                    Formtype = ResolveFormType(locationMasterViewModel.Formtype),                                       // CHANGED
                     Dealercode = locationMasterViewModel.Dealercode,
                     Lineno = locationMasterViewModel.Lineno,
                     Rrglocationidno = locationMasterViewModel.Rrglocationidno,
                     Active = locationMasterViewModel.Active,
-                    CreatedBy = locationMasterViewModel.CreatedBy ?? "CUS0345A",
+                    CreatedBy = locationMasterViewModel.CreatedBy ?? userId ?? "CUS0345A",
                     CreatedDate = DateTime.Now,
                 };
 
-                await _context.LocationMasters.AddAsync(locationMaster);
+                await _context.LocationMasters.AddAsync(existingLocation);
             }
             else
             {
-
-                _existingLocation.Action = locationMasterViewModel.Action;
-                _existingLocation.Loccode = locationMasterViewModel.Loccode;
-                _existingLocation.Locname = locationMasterViewModel.Locname;
-                _existingLocation.Locareaidno = locationMasterViewModel.Locareaidno;
-                _existingLocation.Add1 = locationMasterViewModel.Add1;
-                _existingLocation.Add2 = locationMasterViewModel.Add2;
-                _existingLocation.State = locationMasterViewModel.State;
-                _existingLocation.City = locationMasterViewModel.City;
-                _existingLocation.Pincode = locationMasterViewModel.Pincode;
-                _existingLocation.Gstinno = locationMasterViewModel.Gstinno;
-                _existingLocation.Email = locationMasterViewModel.Email;
-                _existingLocation.Mobileno = locationMasterViewModel.Mobileno;
-                _existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
-                _existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
-                _existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
-                _existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
-                _existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
-                _existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
-                _existingLocation.Compid = locationMasterViewModel.Compid;
-                _existingLocation.Acntidno = locationMasterViewModel.Acntidno;
-                _existingLocation.Formtype = locationMasterViewModel.Formtype;
-                _existingLocation.Dealercode = locationMasterViewModel.Dealercode;
-                _existingLocation.Lineno = locationMasterViewModel.Lineno;
-                _existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
-                _existingLocation.Active = locationMasterViewModel.Active;
-                _existingLocation.UpdatedBy = userId;
-                _existingLocation.UpdatedDate = DateTime.Now;
+                existingLocation.Action = locationMasterViewModel.Action;
+                existingLocation.Loccode = locationMasterViewModel.Loccode;
+                existingLocation.Locname = locationMasterViewModel.Locname;
+                existingLocation.Locareaidno = ResolveAreaId(locationMasterViewModel.Locareaidno, locationMasterViewModel.Loccode);   // CHANGED
+                existingLocation.Add1 = locationMasterViewModel.Add1;
+                existingLocation.Add2 = locationMasterViewModel.Add2;
+                existingLocation.State = locationMasterViewModel.State;
+                existingLocation.City = locationMasterViewModel.City;
+                existingLocation.Pincode = locationMasterViewModel.Pincode;
+                existingLocation.Gstinno = locationMasterViewModel.Gstinno;
+                existingLocation.Email = locationMasterViewModel.Email;
+                existingLocation.Mobileno = locationMasterViewModel.Mobileno;
+                existingLocation.Contpername1 = locationMasterViewModel.Contpername1;
+                existingLocation.Contpername2 = locationMasterViewModel.Contpername2;
+                existingLocation.Contpermob1 = locationMasterViewModel.Contpermob1;
+                existingLocation.Contpermob2 = locationMasterViewModel.Contpermob2;
+                existingLocation.Contperemail1 = locationMasterViewModel.Contperemail1;
+                existingLocation.Contperemail2 = locationMasterViewModel.Contperemail2;
+                existingLocation.Compid = locationMasterViewModel.Compid;
+                existingLocation.Acntidno = locationMasterViewModel.Acntidno;
+                existingLocation.Formtype = ResolveFormType(locationMasterViewModel.Formtype, existingLocation.Formtype);            // CHANGED — no longer blanks Source on a partial ERP push
+                existingLocation.Dealercode = locationMasterViewModel.Dealercode;
+                existingLocation.Lineno = locationMasterViewModel.Lineno;
+                existingLocation.Rrglocationidno = locationMasterViewModel.Rrglocationidno;
+                existingLocation.Active = locationMasterViewModel.Active;
+                existingLocation.UpdatedBy = userId;
+                existingLocation.UpdatedDate = DateTime.Now;
             }
 
             await _context.SaveChangesAsync();
 
-            return _existingLocation;
+            return (existingLocation, isNew);
         }
 
         public async Task<LocationMaster?> GetLocationByCode(string loccode)
         {
             return await _context.LocationMasters
                 .FirstOrDefaultAsync(x => x.Loccode == loccode);
+        }
+
+        private static int ResolveAreaId(int? providedAreaId, string? loccode)
+        {
+            if (providedAreaId is 1 or 2 or 3)
+                return providedAreaId.Value;
+
+            if (string.IsNullOrWhiteSpace(loccode))
+                return providedAreaId ?? 0;
+
+            var areaLetter = char.ToUpperInvariant(
+                loccode.Trim().Reverse().FirstOrDefault(char.IsLetter));
+
+            return areaLetter switch
+            {
+                'S' => 1, // Showroom
+                'W' => 2, // Workshop
+                'G' => 3, // Yard
+                _ => providedAreaId ?? 0
+            };
+        }
+
+        private static string ResolveFormType(string? providedFormType, string? existingFormType = null)
+        {
+            if (!string.IsNullOrWhiteSpace(providedFormType))
+                return providedFormType;
+
+            // Update: keep whatever was already there rather than blanking it
+            // out just because this particular ERP call didn't include Source.
+            if (!string.IsNullOrWhiteSpace(existingFormType))
+                return existingFormType;
+
+            // Insert with nothing provided at all.
+            return DefaultFormType;
         }
 
         public async Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string? dealerCode, int areaId)

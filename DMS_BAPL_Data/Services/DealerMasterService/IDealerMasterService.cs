@@ -4,6 +4,7 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using MailKit.Search;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,5 +27,7 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
         Task<object> SyncAllDealerLoginsAsync();
         Task<ApplicationUser> EnsureDealerUserFromEmailAsync(string email);
+
+        Task<DealerImportResultViewModel> ImportDealerExcelAsync(IFormFile file, string userId);
     }
 }

@@ -44,7 +44,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public long? FinanceCompanyId { get; set; }
         public decimal LoanAmount { get; set; }
         public decimal DownPayment { get; set; }
-        public string Status { get; set; }
+        //public string Status { get; set; }
         public string? Remarks { get; set; }
         public decimal HypothecationAmount { get; set; }
         public decimal PlateAmount { get; set; }

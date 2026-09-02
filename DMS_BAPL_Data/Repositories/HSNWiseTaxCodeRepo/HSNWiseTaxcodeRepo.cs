@@ -101,5 +101,22 @@ namespace DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo
                 .OrderByDescending(h => h.CreatedDate)
                 .ToListAsync();
         }
+
+        async Task<HsnwiseTaxCode> IHSNWiseTaxcodeRepo.UpdateHsnwiseTaxcodedetailsAsync(int id, HsnwiseTaxCodeViewModel hsnwiseTaxCodeViewModel)
+        {
+            var existing = await _context.HsnwiseTaxCodes.FirstOrDefaultAsync(h => h.Id == id);
+            if (existing == null)
+                throw new Exception("HSN-wise Tax Code record not found");
+
+            existing.Hsncode = hsnwiseTaxCodeViewModel.Hsncode;
+            existing.AtaxCode = hsnwiseTaxCodeViewModel.AtaxCode;
+            existing.StateFlag = hsnwiseTaxCodeViewModel.StateFlag;
+            existing.EffectiveDate = hsnwiseTaxCodeViewModel.EffectiveDate;
+            existing.UpdatedBy = hsnwiseTaxCodeViewModel.UpdatedBy;
+            existing.UpdatedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return existing;
+        }
     }
 }

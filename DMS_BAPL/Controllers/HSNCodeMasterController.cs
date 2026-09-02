@@ -119,13 +119,13 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-            var file = await _hSNCodeMaterService.downloadHSNCodeExcel();
+                var file = await _hSNCodeMaterService.downloadHSNCodeExcel();
 
-            return File(
-                file,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "HSNCodeMasterList.xlsx"
-            );
+                return File(
+                    file,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "HSNCodeMasterList.xlsx"
+                );
             }
             catch (Exception ex)
             {
@@ -137,6 +137,48 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Imports HSN/SAC code rows from an uploaded Excel (.xlsx) file.
+        /// Rows whose HSN Code already exists are skipped (not updated — there's no
+        /// update-by-code path today), new codes are inserted. Expected header row:
+        /// "HSN Code", "Description", "Type" (column order doesn't matter).
+        /// </summary>
+        /// <param name="file">Excel file (.xlsx) containing HSN/SAC code rows</param>
+        /// <returns>Import summary: counts of inserted/skipped/failed rows, plus any row-level messages</returns>
+        [ProducesResponseType(typeof(HSNImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ImportHSNCodeExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                var result = await _hSNCodeMaterService.ImportHSNCodeExcelAsync(file);
+
+                return Ok(new
+                {
+                    message = "HSN Code data imported successfully",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
 
     }
 }

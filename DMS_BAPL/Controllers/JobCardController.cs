@@ -564,29 +564,27 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
-        [HttpGet("GetIssueTypebasedJobDetails/{dealerCode}/{jobNo}/{serviceloc}/{fromDate}/{toDate}")]
+        [HttpGet("GetIssueTypebasedJobDetails")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetIssueTypebasedJobDetails(string? dealerCode,
-             int? jobNo,
-             string? serviceloc,
-             DateTime? fromDate,
-             DateTime? toDate)
+        public async Task<IActionResult> GetIssueTypebasedJobDetails(
+            [FromQuery] string? dealerCode,
+            [FromQuery] int? jobNo,
+            [FromQuery] string? serviceloc,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
         {
             try
             {
                 var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetail(dealerCode, jobNo, serviceloc, fromDate, toDate);
-
                 return Ok(jobCardList);
-
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetIssueTypebasedJobDetails");
                 return StatusCode(500, "An error occurred while fetching job details.");
             }
-
         }
         [HttpGet("GetJobCardForPrint/{jobId}")]
         public async Task<IActionResult> GetJobCardForPrint(int jobId)

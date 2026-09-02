@@ -7,6 +7,7 @@ using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Drawing.Command;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DMS_BAPL_Api.Controllers
@@ -61,6 +62,57 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
+        /// <summary>
+        /// Imports item master (spares/parts) data from an uploaded Excel (.xlsx) file.
+        /// Rows are matched by Part Code (Itemcode): an existing item is updated, a new
+        /// Part Code is inserted. The sheet's first row must be a header row — column
+        /// order doesn't matter as long as the header text matches what
+        /// ItemMasterService.ImportItemExcelAsync expects (see that method for the
+        /// full list of recognized column aliases).
+        /// </summary>
+        /// <param name="file">Excel file (.xlsx) containing item master rows</param>
+        /// <returns>Import summary: counts of inserted/updated/failed rows, plus any row-level errors</returns>
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ItemImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ImportItemExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _itemMasterService.ImportItemExcelAsync(file, userId);
+
+                return Ok(new
+                {
+                    message = "Item data imported successfully",
+                    data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Bad file / missing or unrecognized header — client error, not a server fault.
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
         [HttpGet("GetPurchaseDetailsByModelNo/{modelNo}")]
         [ProducesResponseType(typeof(ItemMasterViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -162,7 +214,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId,dealerCode);
+                var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId, dealerCode);
 
                 return Ok(items);
             }
@@ -202,8 +254,6 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // PUT api/itemMaster/{id}
-        //[HttpPut("{id}")]
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -214,6 +264,9 @@ namespace DMS_BAPL_Api.Controllers
             {
                 item.Id = id;
                 var _item = await _itemMasterService.UpdateItemAsync(item);
+                if (_item == null)
+                    return NotFound($"Item with id {id} not found.");
+
                 return Ok(_item);
             }
             catch (Exception ex)

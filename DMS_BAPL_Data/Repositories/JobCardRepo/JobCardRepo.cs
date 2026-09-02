@@ -539,7 +539,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .OrderBy(x => x.Isactive == true)
                 .ToListAsync();
         }
-        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search, string? role = null)
         {
             try
             {
@@ -605,10 +605,18 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
-                if (!string.IsNullOrWhiteSpace(search.DealerCode))
+                // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer.
+                var dealerCode = search.DealerCode;
+                if (dealerCode?.Trim().ToLower() == "null")
+                    dealerCode = null;
+
+                bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+                // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
+                if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
                 {
                     query = query.Where(x =>
-                        x.jh.DealerCode == search.DealerCode);
+                        x.jh.DealerCode == dealerCode);
                 }
 
                 // Date From
@@ -820,19 +828,54 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             try
             {
+                var chassisNo = jobCardDetails.JobCardHeader.Chassisno;
+                var dealerCode = jobCardDetails.JobCardHeader.DealerCode;
+
+                // LOCK 1 — per dealer. Makes JobNo assignment atomic: two concurrent
+                // "new job card" submissions for the SAME dealer can never compute
+                // the same "next number." This is what let JobNo 2 get handed out
+                // to two different chassis at nearly the same moment — the frontend
+                // fetches "next number" once when the form opens and never re-checks
+                // it before Save, so it can go stale under concurrent use.
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                    DECLARE @lockResult1 int;
+                    EXEC @lockResult1 = sp_getapplock
+                        @Resource = {"JobNo_" + dealerCode},
+                        @LockMode = 'Exclusive',
+                        @LockOwner = 'Transaction',
+                        @LockTimeout = 10000;
+                    IF @lockResult1 < 0
+                        THROW 51000, 'Could not acquire job number lock for this dealer. Please try again.', 1;
+                ");
+
+                        // LOCK 2 — per chassis. Makes the "does an open job card already
+                        // exist" check below race-free: two submissions for the SAME chassis
+                        // can no longer both pass the check before either one commits. This
+                        // is what let the exact same PDI job card get inserted twice.
+                        await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                    DECLARE @lockResult2 int;
+                    EXEC @lockResult2 = sp_getapplock
+                        @Resource = {"JobCard_" + chassisNo},
+                        @LockMode = 'Exclusive',
+                        @LockOwner = 'Transaction',
+                        @LockTimeout = 10000;
+                    IF @lockResult2 < 0
+                        THROW 51000, 'Could not acquire job card lock for this chassis. Please try again.', 1;
+                ");
+
                 // Check vehicle sale details
                 // 1. PDI not allowed after sale
                 var vehicle = await _context.ChassisDetails
-                    .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
+                    .FirstOrDefaultAsync(x => x.ChassisNo == chassisNo);
                 if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
                 {
                     throw new Exception(StringConstants.aftervehiclesalestatus);
                 }
-                // 2. Existing open job card check
+                // 2. Existing open job card check — now race-free thanks to Lock 2
 
                 var openJobCardExists = await _context.JobCardHeaders
                 .Where(j =>
-                j.Chassisno == jobCardDetails.JobCardHeader.Chassisno &&
+                j.Chassisno == chassisNo &&
                 j.IsDelete != true)
                 .AnyAsync(j =>
                 !_context.RepairBillHeaders.Any(r =>
@@ -844,15 +887,23 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     throw new Exception(StringConstants.jobCardException);
                 }
 
+                // NEW: JobNo computed fresh HERE, under Lock 1 — never trust
+                // jobCardDetails.JobCardHeader.JobNo. That value came from the
+                // frontend's earlier /GetNextJobNo call and can be stale by the
+                // time the user actually clicks Save.
+                int nextJobNo = await _context.JobCardHeaders
+                    .Where(x => x.DealerCode == dealerCode)
+                    .MaxAsync(x => (int?)x.JobNo) ?? 0;
+                nextJobNo += 1;
 
                 // Insert Header
 
                 var header = new JobCardHeader
                 {
                     Jobtype = jobCardDetails.JobCardHeader.Jobtype,
-                    DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+                    DealerCode = dealerCode,
                     InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
-                    Chassisno = jobCardDetails.JobCardHeader.Chassisno,
+                    Chassisno = chassisNo,
                     Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
                     Servicehead = jobCardDetails.JobCardHeader.Servicehead,
                     Servicetype = jobCardDetails.JobCardHeader.Servicetype,
@@ -862,7 +913,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Jobprefix = NormalizeJobPrefix(jobCardDetails.JobCardHeader.Jobprefix),
                     JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
                     JobinTime = jobCardDetails.JobCardHeader.JobinTime,
-                    JobNo = jobCardDetails.JobCardHeader.JobNo,
+                    JobNo = nextJobNo, // CHANGED — server-assigned, not client-supplied
                     EstNo = jobCardDetails.JobCardHeader.EstimateNo,
                     ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
                     EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
@@ -1356,7 +1407,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             _context.JobCardHeaders.Update(jobCardHeader);
             return await _context.SaveChangesAsync();
         }
-        public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
+        public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model, string? role = null)
         {
             var query = from jc in _context.JobCardHeaders
                         join cust in _context.JobCardCustomers
@@ -1364,8 +1415,16 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         select new { jc, cust };
 
             // Dealer
-            if (!string.IsNullOrWhiteSpace(model.DealerCode))
-                query = query.Where(x => x.jc.DealerCode == model.DealerCode);
+            // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer.
+            var dealerCode = model.DealerCode;
+            if (dealerCode?.Trim().ToLower() == "null")
+                dealerCode = null;
+
+            bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+            // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
+            if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
+                query = query.Where(x => x.jc.DealerCode == dealerCode);
 
             // Date From
             if (model.FromDate.HasValue)
@@ -1730,7 +1789,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     PartCode = i.Itemcode,
                     PartDesc = i.Itemdesc,
                     PartQty = m.Quantity,
-                    PartRate = m.ItemRate,
+                    // FIX: bill at the item's current dealer price (Dlrprice) from ItemMaster,
+                    // not MaterialTransfers.ItemRate (the historical rate recorded when the
+                    // part was issued, which can drift from the current dealer price and was
+                    // the source of the wrong Rate/GST on repair bills and warranty claims).
+                    PartRate = i.Dlrprice,
                     PartHsnCode = i.Hsncode,
                     PartMRP = i.Custprice,
 
@@ -1785,58 +1848,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 item.IgstAmount = Math.Round((decimal)((taxableAmount * (item.Igst ?? 0)) / 100), 2);
             }
 
-
-            //var data = await (
-            //    from m in _context.MaterialTransfers
-
-            //    join i in _context.ItemMasters
-            //        on m.ItemId equals i.Id into itemJoin
-            //    from i in itemJoin.DefaultIfEmpty()
-
-
-            //    where m.JobId == jobId
-
-
-            //    select new MaterialedJobCardListVM
-            //    {
-
-            //        ItemId = i.Id,
-            //        MaterialTransferId = m.Id,
-            //        PartCode = i.Itemcode,
-            //        PartDesc = i.Itemdesc,
-            //        PartQty = m.Quantity,
-            //        PartRate = m.ItemRate,
-            //        PartHsnCode = i.Hsncode,
-            //        PartMRP = i.Custprice,
-
-            //        //Igst = i.Igst,
-            //        //Cgst = i.Cgst,
-            //        //Sgst = i.Sgst,
-            //        IssueType = m.IssueType,
-
-            //        // Labour Codes
-            //        LabourCodeDetailslist = _context.PartWiseLabourMasters
-            //                .Where(pl =>
-            //                    pl.PartCode == i.Itemcode &&
-            //                    pl.CityTier == cityTier)
-            //                .Select(pl => new LabourCodeDetails
-            //                {
-            //                    PartwiseLabourId = pl.Id,
-            //                    //LabourId = pl.Id,
-            //                    LabourCode = pl.LabourCode,
-            //                    LabourName = pl.LabourName,
-            //                    LabourRate = pl.LabourRate,
-            //                    LabourHsnCode = pl.Hsncode,
-            //                    CityTier = pl.CityTier,
-            //                    Igst = pl.Igst,
-            //                    Cgst = pl.Cgst,
-            //                    Sgst = pl.Sgst
-            //                })
-            //                .ToList()
-            //    }
-
-            //).ToListAsync();
-
             return data;
         }
         public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
@@ -1870,7 +1881,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 ChassisNo = result
             };
         }
-        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search)
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search, string? role = null)
         {
             try
             {
@@ -1939,10 +1950,21 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
-                if (!string.IsNullOrWhiteSpace(search.DealerCode))
+                // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer
+                // (same sentinel pattern already handled elsewhere, e.g. GetAllInspectedLotChassisAsync).
+                // string.IsNullOrWhiteSpace("null") is false, so without this normalization the
+                // "null" sentinel got treated as a real dealer code and silently scoped the results.
+                var dealerCode = search.DealerCode;
+                if (dealerCode?.Trim().ToLower() == "null")
+                    dealerCode = null;
+
+                bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+                // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
+                if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
                 {
                     query = query.Where(x =>
-                        x.jh.DealerCode == search.DealerCode);
+                        x.jh.DealerCode == dealerCode);
                 }
 
                 // Date From
@@ -1982,7 +2004,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         x.c.ChassisNo.Contains(search.ChassisNo));
                 }
 
-                
+
 
                 var jobCardsResult = await query
                         .Select(x => new JobCardlistDetailsViewModel
@@ -2082,8 +2104,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.JobCardHeader.Id)
                     .ToListAsync();
 
-                jobCardsResult = jobCardsResult.Where(x=>x.JobCardHeader.IsDelete != true).ToList();
-                
+                jobCardsResult = jobCardsResult.Where(x => x.JobCardHeader.IsDelete != true).ToList();
+
                 return jobCardsResult;
             }
             catch (Exception ex)
@@ -2382,6 +2404,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
+                if (string.Equals(dealerCode?.Trim(), "null", StringComparison.OrdinalIgnoreCase))
+                    dealerCode = null;
                 var query =
                     from rbh in _context.RepairBillHeaders
                     join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
@@ -2391,7 +2415,9 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join jt in _context.JobTypes on jh.Jobtype equals jt.Id
                     join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
                     join st in _context.ServiceTypes on jh.Servicetype equals st.Id
-                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo
+                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo into vsGroup
+                    from vs in vsGroup.DefaultIfEmpty()
+
                     join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo
 
                     join chb in _context.ChassisBatteryDetails on jh.Chassisno equals chb.ChassisNo into chbGroup
@@ -2404,6 +2430,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                           && jh.Jobtype != 2
                           && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
                     select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
+
 
                 // Dynamic Filters
                 if (!string.IsNullOrWhiteSpace(dealerCode)) query = query.Where(x => x.rbh.DealerCode == dealerCode);
@@ -2430,7 +2457,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         ModelName = x.jc.ModelName,
                         MotorNo = x.chb != null ? x.chb.MotorNo : null,
                         Vehiclekms = x.jh.Vehiclekms,
-                        RegistrationNo = x.vs.RegNo,
+                        RegistrationNo = x.vs != null ? x.vs.RegNo : null,
                         SaleDate = x.ch.SaleDate,
                         FailureDate = x.ffir != null ? x.ffir.FailureDate : null,
                         RepairBillNo = x.rbh.BillNo,
@@ -2440,37 +2467,71 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                 if (!result.Any()) return result;
 
-                // 1. Fetch non-null Header IDs from your main result list
                 var headerIds = result.Select(r => r.RepairBillHeaderId).ToList();
 
-                // 2. Fetch all details where the nullable RepairBillId matches your header collection
+                // Resolve each bill's OWN dealer (not the search filter, which can be null
+                // or a different dealer entirely in a cross-dealer SuperAdmin search) - the
+                // purchase-order lookup below must be scoped to whoever actually owns the bill.
+                var dealerCodeByBillId = await _context.RepairBillHeaders
+                    .Where(rbh => headerIds.Contains(rbh.Id))
+                    .Select(rbh => new { rbh.Id, rbh.DealerCode })
+                    .ToDictionaryAsync(x => x.Id, x => x.DealerCode);
+
                 var allDetails = await (
                     from rbd in _context.RepairBillDetails
                     join lm in _context.LabourMasters on rbd.LabourMasterId equals lm.Id into labourGroup
                     from lm in labourGroup.DefaultIfEmpty()
                     join pwm in _context.PartWiseLabourMasters on rbd.PartWiseLabourId equals pwm.Id into partWiseGroup
                     from pwm in partWiseGroup.DefaultIfEmpty()
-                    join mt in _context.MaterialTransfers on rbd.MaterialId equals mt.Id into materialGroup
-                    from mt in materialGroup.DefaultIfEmpty()
-                    join im in _context.ItemMasters on mt.ItemId equals im.Id into itemGroup
+                    join im in _context.ItemMasters on rbd.PartItemId equals im.Id into itemGroup
                     from im in itemGroup.DefaultIfEmpty()
-                        // Safely use Value or handle matching on nullable foreign keys
-                    where rbd.RepairBillId.HasValue && headerIds.Contains(rbd.RepairBillId.Value)
-                    select new
-                    {
-                        rbd,
-                        lm,
-                        pwm,
-                        mt,
-                        im
-                    }
+                    where rbd.RepairBillId.HasValue && headerIds.Contains(rbd.RepairBillId.Value) && rbd.IssutypeId == 2
+                    select new { rbd, lm, pwm, im }
                 ).ToListAsync();
 
-                // 3. Map and group the details cleanly in memory
+                // NEW: pull the latest Purchase Order rate per (ItemCode, Dealer), batched into
+                // a single query, so the warranty claim reimburses at procurement cost rather
+                // than ItemMaster.Dlrprice or the originally billed customer sale rate.
+                var partLookupKeys = allDetails
+                    .Where(d => d.rbd.ItemType == "Part" && d.im != null && d.rbd.RepairBillId.HasValue)
+                    .Select(d => new
+                    {
+                        ItemCode = d.im.Itemcode,
+                        DealerCode = dealerCodeByBillId.TryGetValue(d.rbd.RepairBillId.Value, out var dc) ? dc : null
+                    })
+                    .Where(k => k.ItemCode != null && k.DealerCode != null)
+                    .Distinct()
+                    .ToList();
+
+                var latestPurchaseRateByItemDealer = new Dictionary<(string ItemCode, string DealerCode), decimal>();
+
+                if (partLookupKeys.Any())
+                {
+                    var itemCodesNeeded = partLookupKeys.Select(k => k.ItemCode).Distinct().ToList();
+                    var dealerCodesNeeded = partLookupKeys.Select(k => k.DealerCode).Distinct().ToList();
+
+                    var poRows = await (
+                        from pd in _context.PurchaseOrderDetails
+                        join po in _context.PurchaseOrders on pd.Ponumber equals po.Ponumber
+                        where itemCodesNeeded.Contains(pd.ItemCode) && dealerCodesNeeded.Contains(po.CustomerCode)
+                        select new { pd.ItemCode, po.CustomerCode, po.PurchaseDate, po.Ponumber, pd.Rate }
+                    ).ToListAsync();
+
+                    latestPurchaseRateByItemDealer = poRows
+                        .GroupBy(x => (x.ItemCode, x.CustomerCode))
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.OrderByDescending(x => x.PurchaseDate)
+                                  .ThenByDescending(x => x.Ponumber)
+                                  .First().Rate ?? 0m
+                        );
+                }
+
                 foreach (var item in result)
                 {
+                    var billDealerCode = dealerCodeByBillId.TryGetValue(item.RepairBillHeaderId, out var dc) ? dc : null;
+
                     item.RepairBillDetails = allDetails
-                        // Match the values safely using GetValueOrDefault() to handle the int? structure
                         .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
                         .Select(d =>
                         {
@@ -2480,14 +2541,54 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             decimal rate = isLabour ? (d.lm?.LabourRate ?? 0) : (d.pwm?.LabourRate ?? 0);
                             decimal qty = isLabour ? (d.rbd.LabourQty ?? 0) : (d.rbd.PartQty ?? 0);
 
-                            decimal partRate = isPart ? (d.mt?.ItemRate ?? 0) : 0;
-                            decimal partQty = isPart ? (d.mt?.Quantity ?? 0) : 0;
+                            decimal partQty = isPart ? (d.rbd.PartQty ?? 0) : 0;
 
-                            // Direct, clean amount calculation
+                            decimal cgstAmount = d.rbd.Cgstamount ?? 0;
+                            decimal sgstAmount = d.rbd.Sgstamount ?? 0;
+                            decimal igstAmount = d.rbd.Igstamount ?? 0;
+
+                            decimal partRate = 0;
+
+                            if (isPart)
+                            {
+                                bool isInterstate = igstAmount > 0;
+
+                                decimal? poRate = (d.im != null && billDealerCode != null &&
+                                        latestPurchaseRateByItemDealer.TryGetValue((d.im.Itemcode, billDealerCode), out var foundRate))
+                                    ? foundRate
+                                    : (decimal?)null;
+
+                                // Fall back to the originally billed rate if this item was never
+                                // purchased under this dealer (no PO history found).
+                                partRate = poRate ?? (d.rbd.PartRate ?? 0);
+
+                                if (poRate.HasValue && d.im != null)
+                                {
+                                    // Rate changed from billed sale price to PO cost - the tax
+                                    // amounts stored on the bill no longer match, so recompute
+                                    // GST against the new rate using the item's tax %, preserving
+                                    // whichever tax type (interstate/intrastate) was originally billed.
+                                    decimal taxableOnPoRate = partQty * partRate;
+
+                                    if (isInterstate)
+                                    {
+                                        igstAmount = Math.Round(taxableOnPoRate * d.im.Igst / 100, 2);
+                                        cgstAmount = 0;
+                                        sgstAmount = 0;
+                                    }
+                                    else
+                                    {
+                                        cgstAmount = Math.Round(taxableOnPoRate * d.im.Cgst / 100, 2);
+                                        sgstAmount = Math.Round(taxableOnPoRate * d.im.Sgst / 100, 2);
+                                        igstAmount = 0;
+                                    }
+                                }
+                                // else: no PO match found - keep the originally stored
+                                // Cgstamount/Sgstamount/Igstamount as-is (already assigned above).
+                            }
+
                             decimal lineSubtotal = isLabour ? (qty * rate) : (partQty * partRate);
-                            decimal taxAmount = (d.rbd.Igstamount ?? 0) > 0
-                                ? d.rbd.Igstamount.Value
-                                : ((d.rbd.Cgstamount ?? 0) + (d.rbd.Sgstamount ?? 0));
+                            decimal taxAmount = igstAmount > 0 ? igstAmount : (cgstAmount + sgstAmount);
 
                             return new IssueTypebasedJobDetails
                             {
@@ -2498,25 +2599,22 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 PartWiseLabourId = d.rbd.PartWiseLabourId,
                                 PartItemId = d.rbd.PartItemId,
 
-                                // Pure Labour Grid Data
                                 LabourQty = isLabour ? qty : 0,
                                 LabourName = isLabour ? d.lm?.LabourCode : null,
                                 LabourDesc = isLabour ? d.lm?.LabourDescription : null,
                                 LabourRate = isLabour ? rate : 0,
 
-                                // Pure Part Labour Grid Data
                                 PartLabourQty = !isLabour ? qty : 0,
                                 PartLabourName = !isLabour ? d.pwm?.PartCode : null,
                                 PartLabourDesc = !isLabour ? d.pwm?.PartDescription : null,
                                 PartLabourRate = !isLabour ? rate : 0,
 
-                                // Pure Part Inventory Grid Data
                                 PartitemName = isPart ? (d.im != null ? d.im.Itemcode : "") : "",
-                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemname : "") : "",
+                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemdesc : "") : "",
                                 PartItemQty = partQty,
                                 PartItemRate = partRate,
+                                PartMRP = isPart ? (d.im != null ? d.im.Custprice : 0) : 0,
 
-                                // Calculated values to resolve frontend grid mismatches
                                 IgstAmount = taxAmount,
                                 RowSubTotal = lineSubtotal,
                                 TotalWithTax = lineSubtotal + taxAmount,

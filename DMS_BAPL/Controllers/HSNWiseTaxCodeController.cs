@@ -97,5 +97,39 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while processing your request.");
             }
         }
+
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(HsnwiseTaxImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ImportHsnwiseTaxCodeExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                var result = await _hsnWiseTaxcodeservice.ImportHsnwiseTaxCodeExcelAsync(file);
+
+                return Ok(new
+                {
+                    Message = "HSNWise Tax Code data imported successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

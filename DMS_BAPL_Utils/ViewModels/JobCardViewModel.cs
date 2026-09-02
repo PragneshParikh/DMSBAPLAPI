@@ -430,6 +430,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? FailureDate { get; set; }
         public int RepairBillNo { get; set; }
         public DateTime? RepairBillDate { get; set; }
+        public decimal PartMRP { get; set; }
         public string? ItemType { get; set; }
         public int? IssueTypeId { get; set; }   
         public string? LabourName { get; set; }

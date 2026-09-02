@@ -10,6 +10,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using DocumentFormat.OpenXml.Office2010.Excel;
+using Microsoft.Extensions.Logging;
 
 namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 {
@@ -18,6 +19,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
     public class WarrantyInvoiceRepo : IWarrantyInvoiceRepo
     {
         private readonly BapldmsvadContext _context;
+    
 
         public WarrantyInvoiceRepo(BapldmsvadContext context)
         {
@@ -25,7 +27,24 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
         }
 
         // --- Insert ---------------------------------------------------------
+        public async Task<string?> GetErpUniqueId(int invoiceId)
+        {
+            return await _context.WarrantyInvoices
+                .Where(x => x.Id == invoiceId)
+                .Select(x => x.ErpUniqueId)
+                .FirstOrDefaultAsync();
+        }
 
+        public async Task SetErpUniqueId(int invoiceId, string uniqueId)
+        {
+            var header = await _context.WarrantyInvoices.FirstOrDefaultAsync(x => x.Id == invoiceId);
+            if (header == null)
+                return;
+
+            header.ErpUniqueId = uniqueId;
+            header.ErpSubmittedDate = DateTime.Now;
+            await _context.SaveChangesAsync();
+        }
         public async Task<int> InsertWarrantyInvoice(WarrantyInvoiceViewModel model, string userId)
         {
             var header = new WarrantyInvoice
@@ -378,7 +397,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     IsApproved = x.IsApproved,
                     IsActive = x.IsActive,
                     DateFrom = x.DateFrom,
-                    DateTo = x.DateTo
+                    DateTo = x.DateTo,
+                    ErpInvoiceNo = x.ErpUniqueId
                 })
                 .ToListAsync();
 
@@ -1092,11 +1112,27 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
                 .ToListAsync();
 
+            // Full WarrantyJcclaim data, batched once for every claim referenced by
+            // these lines - per explicit request to send the claim's own full data,
+            // not just the flattened WarrantyOrderGridDetail snapshot fields.
+            // c.Ffir is a direct navigation, so FailureDate no longer needs a
+            // separate per-row Ffirheaders query.
+            var claimIds = gridRows.Select(g => g.WarrantyJcclaimId).Distinct().ToList();
+
+            var claimsById = await _context.WarrantyJcclaims
+                .Include(c => c.CustomerLedger)
+                .Include(c => c.Ffir)
+                .Where(c => claimIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id);
+
             var lines = new List<ErpWarrantyClaimLineViewModel>();
             int srNo = 1;
 
             foreach (var g in gridRows)
             {
+                int currentLineNo = srNo;
+                srNo++;
+
                 var isLabour = g.ItemType == "Labour";
 
                 var chassisDetail = !string.IsNullOrWhiteSpace(g.ChassisNo)
@@ -1110,19 +1146,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     modelName = item?.Itemname ?? item?.Displayname;
                 }
 
-                // Same claim -> FFIR resolution already used for the PDF's Failure Date.
-                DateTime? failureDate = null;
-                var claimFfirId = await _context.WarrantyJcclaims
-                    .Where(c => c.Id == g.WarrantyJcclaimId)
-                    .Select(c => c.Ffirid)
+                claimsById.TryGetValue(g.WarrantyJcclaimId, out var claim);
+
+                DateTime? failureDate = claim?.Ffir?.FailureDate;
+
+                string locationCity = "";
+
+                var claimDetail = await _context.WarrantyJcclaimDetails
+                    .Where(d => d.WarrantyJcclaimHeaderId == g.WarrantyJcclaimId && d.ItemType == g.ItemType)
                     .FirstOrDefaultAsync();
-                if (claimFfirId.HasValue)
-                {
-                    failureDate = await _context.Ffirheaders
-                        .Where(f => f.Id == claimFfirId.Value)
-                        .Select(f => f.FailureDate)
-                        .FirstOrDefaultAsync();
-                }
 
                 decimal totalTax = (g.CgstAmount ?? 0) + (g.SgstAmount ?? 0) + (g.IgstAmount ?? 0);
                 decimal qty = g.Quantity ?? 0;
@@ -1130,48 +1162,79 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 
                 lines.Add(new ErpWarrantyClaimLineViewModel
                 {
-                    SlNo = (srNo++).ToString(),
-                    DealerName = dealer?.Compname,
-                    DealerCode = header.DealerCode,
-                    Location = g.LocationName,
-                    LocationCity = null, 
-                    JobNo = g.JobCardNo,
-                    JobDate = g.JobCardDate?.ToString("dd-MM-yyyy"),
-                    ClaimNo = g.ClaimNo,
-                    ClaimDate = g.ClaimDate?.ToString("dd-MM-yyyy"),
-                    Kms = g.Kms?.ToString(),
-                    VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy"),
-                    PartFailureDate = failureDate?.ToString("dd-MM-yyyy"),
-                    ServiceType = g.ServiceHead, 
-                    ChassisNo = g.ChassisNo,
-                    ModelName = modelName,
-                    Variants = null, 
-                    PartCode = isLabour ? g.LabourCode : g.PartCode,
-                    PartName = isLabour ? g.LabourDescription : g.PartName,
-                    Qty = qty.ToString("0.##"),
-                    Rate = rate.ToString("0.00"),
+                    SlNo = currentLineNo,
+                    DealerName = dealer?.Compname ?? "",
+                    DealerCode = header.DealerCode ?? "",
+                    Location = g.LocationName ?? "",
+                    LocationCity = locationCity,
+                    JobNo = g.JobCardNo ?? "",
+                    JobDate = g.JobCardDate?.ToString("dd-MM-yyyy") ?? "",
+                    ClaimNo = g.ClaimNo ?? "",
+                    ClaimDate = g.ClaimDate?.ToString("dd-MM-yyyy") ?? "",
+                    Kms = g.Kms?.ToString() ?? "",
+                    VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy") ?? "",
+                    PartFailureDate = failureDate?.ToString("dd-MM-yyyy") ?? "",
+                    ServiceType = g.ServiceHead ?? "",
+                    ChassisNo = g.ChassisNo ?? "",
+                    ModelName = modelName ?? "",
+                    Variants = "",
+                    PartCode = (isLabour ? g.LabourCode : g.PartCode) ?? "",
+                    PartName = (isLabour ? g.LabourDescription : g.PartName) ?? "",
+                    Qty = qty,
+                    Rate = rate,
                     CgstPercent = (g.CgstPercent ?? 0).ToString("0.##"),
-                    CgstAmount = (g.CgstAmount ?? 0).ToString("0.00"),
+                    CgstAmount = g.CgstAmount ?? 0,
                     SgstPercent = (g.SgstPercent ?? 0).ToString("0.##"),
-                    SgstAmount = (g.SgstAmount ?? 0).ToString("0.00"),
+                    SgstAmount = g.SgstAmount ?? 0,
                     IgstPercent = (g.IgstPercent ?? 0).ToString("0.##"),
-                    IgstAmount = (g.IgstAmount ?? 0).ToString("0.00"),
-                    Amount = (g.TotalAmount ?? 0).ToString("0.00"),
-                    DealerObservation = null, 
-                    Rca = null,              
-                    InvoiceRefNo = null,     
-                    InvoiceNo = g.InvoiceNo,
-                    InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy"),
-                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}", 
-                    DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy"),
-                    VendorPoNo = null,   
-                    VendorPoDate = null, 
-                    Total = null,
-                    UniqueId= g.Id
+                    IgstAmount = g.IgstAmount ?? 0,
+                    Amount = g.TotalAmount ?? 0,
+                    DealerObservation = claimDetail?.DealerObservation ?? "",
+                    Rca = claimDetail?.RootCauseAnalysis ?? "",
+                    InvoiceRefNo = "",
+                    InvoiceNo = g.InvoiceNo ?? "",
+                    InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
+                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}",
+                    DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
+                    VendorPoNo = "",
+                    VendorPoDate = "",
+                    Total = g.TotalAmount ?? 0,
+                    UniqueId = await GetNextErpUniqueIdAsync(),
+                    //WarrantyClaimId = claim?.Id ?? 0,
+                    //ClaimAccount = claim?.ClaimAccount ?? "",
+                    //LocationCode = claim?.LocationCode ?? "",
+                    //IsClaimApproved = claim?.IsWjcclaimApproved ?? false,
+                    //ApprovedEmpCode = claim?.ApprovedEmpCode ?? "",
+                    //JobCardHeaderId = claim?.JobCardHeaderId,
+                    //RepairBillHeaderId = claim?.RepairBillHeaderId,
+                    //CustomerLedgerId = claim?.CustomerLedgerId,
+                    //CustomerName = claim?.CustomerLedger?.LedgerName ?? "",
+                    //ClaimSupplierId = claim?.SupplierId,
                 });
             }
 
             return lines;
+        }
+
+        private async Task<int> GetNextErpUniqueIdAsync()
+        {
+            var connection = _context.Database.GetDbConnection();
+            var shouldClose = connection.State != System.Data.ConnectionState.Open;
+            if (shouldClose)
+                await connection.OpenAsync();
+
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT NEXT VALUE FOR dbo.ErpUniqueIdSequence";
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
+            }
+            finally
+            {
+                if (shouldClose)
+                    await connection.CloseAsync();
+            }
         }
     }
 }

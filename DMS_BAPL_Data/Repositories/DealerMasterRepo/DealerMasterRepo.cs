@@ -29,14 +29,12 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         }
 
         // Add new dealer
+        // Add new dealer
         public async Task<DealerMaster> AddDealerAsync(DealerMasterViewModel dealer, string userId)
         {
             try
             {
-
-                var regDate = DateTime.ParseExact(dealer.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-
-
+                var regDate = ParseDealerRegDate(dealer.RegDate);
 
                 var newDealer = new DealerMaster
                 {
@@ -87,16 +85,22 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         public async Task AddDealerToLedgerAsync(DealerMasterViewModel dealer, string userId)
         {
             var state = await _context.States
-                .FirstOrDefaultAsync(s => s.StateName.ToLower() == dealer.State.ToLower());
+                .FirstOrDefaultAsync(s => s.StateName.ToLower() == (dealer.State ?? "").ToLower());
+
+            if (state == null)
+                throw new InvalidOperationException($"State '{dealer.State}' was not found in master data.");
 
             var city = await _context.Cities
-                .FirstOrDefaultAsync(c => c.CityName.ToLower() == dealer.City.ToLower() && c.StateId == state.StateId);
+                .FirstOrDefaultAsync(c => c.CityName.ToLower() == (dealer.City ?? "").ToLower() && c.StateId == state.StateId);
+
+            if (city == null)
+                throw new InvalidOperationException($"City '{dealer.City}' was not found under state '{dealer.State}'.");
 
             var ledger = new LedgerMaster
             {
                 LedgerCode = dealer.Dealercode,
                 LedgerName = dealer.Compname,
-                DealerCode=dealer.Dealercode,
+                DealerCode = dealer.Dealercode,
                 LedgerType = "Dealer",
                 Gstno = dealer.CompgstinNo,
                 Pan = dealer.Pan,
@@ -107,14 +111,13 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 State = state.StateId,
                 Pin = dealer.Pin,
                 EMail = dealer.Email,
-                LedgerVisibility ="All",
+                LedgerVisibility = "All",
                 CreatedBy = userId,
                 CreatedDate = DateTime.Now
             };
 
             await _context.LedgerMasters.AddAsync(ledger);
             //  await _context.SaveChangesAsync();
-
         }
 
         // Get all dealers with optional search
@@ -191,6 +194,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         }
 
         // Update dealer
+        // Update dealer
         public async Task<DealerMaster?> UpdateDealerAsync(int id, DealerMasterViewModel dealerDto, string userId)
         {
             try
@@ -200,7 +204,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 if (existingDealer == null)
                     return null;
 
-                var regDate = DateTime.ParseExact(dealerDto.RegDate, "dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+                var regDate = ParseDealerRegDate(dealerDto.RegDate);
 
                 existingDealer.Compname = dealerDto.Compname;
                 existingDealer.Compcode = dealerDto.Compcode;
@@ -333,7 +337,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             existingDealer.Mobile = dealerMasterViewModel.Mobile;
             existingDealer.Email = dealerMasterViewModel.Email;
             existingDealer.Contactperson = dealerMasterViewModel.Contactperson;
-            existingDealer.RegDate = Convert.ToDateTime(dealerMasterViewModel.RegDate);
+            existingDealer.RegDate = ParseDealerRegDate(dealerMasterViewModel.RegDate);
             existingDealer.TradCert = dealerMasterViewModel.TradCert ?? string.Empty;
             existingDealer.CompgstinNo = dealerMasterViewModel.CompgstinNo ?? string.Empty;
             existingDealer.BrandName = dealerMasterViewModel.BrandName;
@@ -439,6 +443,27 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             {
                 throw;
             }
+        }
+
+        // Handles: exact "dd/MM/yyyy hh:mm:ss tt" strings, raw Excel serial dates
+        // (e.g. "45905.634" when a date-formatted cell is read as text), and any
+        // other format .NET can parse.
+        private static DateTime ParseDealerRegDate(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                throw new FormatException("Reg Date is required.");
+
+            if (DateTime.TryParseExact(raw, "dd/MM/yyyy hh:mm:ss tt",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var exact))
+                return exact;
+
+            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var serial))
+                return DateTime.FromOADate(serial);
+
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+                return parsed;
+
+            throw new FormatException($"Reg Date '{raw}' is not a recognizable date/time.");
         }
     }
 }

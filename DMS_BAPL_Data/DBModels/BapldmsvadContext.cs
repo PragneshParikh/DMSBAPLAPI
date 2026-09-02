@@ -4070,9 +4070,9 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("RTOCharges");
             entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .HasDefaultValue("Draft");
+            //entity.Property(e => e.Status)
+            //    .HasMaxLength(30)
+            //    .HasDefaultValue("Draft");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
         });
@@ -4701,6 +4701,25 @@ public partial class BapldmsvadContext : DbContext
             entity.ToTable("WarrantyInvoice");
             entity.Property(e => e.IsApproved).HasDefaultValue(false);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.DealerCode).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.BatchNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.InvoicePrefix).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.InvoiceNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ClaimType).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.ErpUniqueId).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+
+            entity.Property(e => e.DateFrom).HasColumnType("datetime");
+            entity.Property(e => e.DateTo).HasColumnType("datetime");
+            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.ErpSubmittedDate).HasColumnType("datetime");
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<WarrantyInvoiceDetail>(entity =>
@@ -4724,6 +4743,19 @@ public partial class BapldmsvadContext : DbContext
             entity.HasOne(d => d.WarrantyInvoiceHeader)
                 .WithMany()
                 .HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+            entity.Property(e => e.OrderNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.BatchNo).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Location).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.LocationName).HasMaxLength(150).IsUnicode(false);
+            entity.Property(e => e.ClaimType).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.PartyName).HasMaxLength(200).IsUnicode(false);
+
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalMrp).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.WarrantyInvoiceHeader).WithMany().HasForeignKey(d => d.WarrantyInvoiceHeaderId);
         });
         modelBuilder.Entity<UwLineItem>(
     entity =>

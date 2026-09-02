@@ -26,6 +26,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
         Task<byte[]> GenerateWarrantyInvoiceLabourPdf(int invoiceId);
         Task<byte[]> GenerateWarrantyClaimTagPdf(int invoiceId);
 
+        Task<string?> GetErpUniqueId(int invoiceId);
+        Task SetErpUniqueId(int invoiceId, string uniqueId);
+
         Task<List<ErpWarrantyClaimLineViewModel>> BuildErpWarrantyClaimPayload(int invoiceId);
 
     }

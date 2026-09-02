@@ -147,5 +147,48 @@ namespace DMS_BAPL_Api.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Imports Aggregate Tax Code rows from an uploaded Excel (.xlsx) file as an upsert:
+        /// a row matching an existing (AtaxCode, TaxCode) pair is updated, everything else
+        /// is inserted. Existing data is never deleted. A row missing AtaxCode or TaxCode
+        /// (this table requires a valid TaxCode/TaxRate, checked against Tax Code Master, on
+        /// every entry) is skipped and reported rather than failing the whole import.
+        /// </summary>
+        /// <param name="file">Excel file (.xlsx) containing Aggregate Tax Code rows</param>
+        /// <returns>Import summary: counts of inserted/updated/failed rows, plus any row-level error messages</returns>
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(AggregateTaxImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ImportAggregateTaxCodes(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                var result = await _aggregateTaxCodeService.ImportAggregateTaxCodeExcelAsync(file);
+
+                return Ok(new
+                {
+                    Message = "Aggregate Tax Code data imported successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

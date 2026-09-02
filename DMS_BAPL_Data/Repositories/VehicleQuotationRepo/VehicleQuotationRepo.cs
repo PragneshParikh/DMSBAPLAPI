@@ -86,7 +86,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 DealerId = q.DealerId,
                                 DealerCode = dealer != null ? dealer.Dealercode : null,
                                 DealerName = dealer != null ? dealer.Compname : null,
-                                Status = q.Status,
+                                //Status = q.Status,
                                 CustomerId = q.CustomerId,
                                 CustomerName = q.CustomerName,
                                 MobileNo = q.MobileNo,
@@ -179,7 +179,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                                 DealerId = q.DealerId,
                                 DealerCode = dealer != null ? dealer.Dealercode : null,
                                 DealerName = dealer != null ? dealer.Compname : null,
-                                Status = q.Status,
+                                //Status = q.Status,
                                 CustomerId = q.CustomerId,
                                 CustomerName = q.CustomerName,
                                 MobileNo = q.MobileNo,
@@ -243,61 +243,84 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
 
         private async Task<long> InsertInternal(AddVehicleQuotationViewModel model)
         {
-            var quotation = new VehicleQuotation
-            {
-                QuotationNo = model.QuotationNo,
-                QuotationDate = model.QuotationDate,
-                DealerId = model.DealerId,
-                CustomerId = model.CustomerId,
-                CustomerName = model.CustomerName,
-                MobileNo = model.MobileNo,
-                EmailId = model.EmailId,
-                Address = model.Address,
-               // CustomerGSTNo = model.CustomerGSTNo,
-                CustomerPanNo = model.CustomerPanNo,
-                ModelId = model.ModelId,
-                VariantId = model.VariantId,
-                StateId = model.StateId,
-                CityId = model.CityId,
-                ColorId = model.ColorId,
-                CustPrice = model.CustPrice,
-                Fame2Amount = model.Fame2Amount,
-                SgstAmount = model.SgstAmount,
-                CgstAmount = model.CgstAmount,
-                IgstAmount = model.IgstAmount,
-                ExShowroomPrice = model.ExShowroomPrice,
-                Rtocharges = model.RTOCharges,
-                InsuranceAmount = model.InsuranceAmount,
-                AccessoriesAmount = model.AccessoriesAmount,
-                ExtendedWarrantyAmount = model.ExtendedWarrantyAmount,
-                Amcamount = model.AMCAmount,
-                OtherCharges = model.OtherCharges,
-                DiscountAmount = model.DiscountAmount,
-                TaxAmount = model.TaxAmount,
-                TotalAmount = model.TotalAmount,
-                IsExchange = model.IsExchange,
-                ExchangeAmount = model.ExchangeAmount,
-                // NEW
-                OldCompanyName = model.OldCompanyName,
-                OldModelName = model.OldModelName,
-                IsFinance = model.IsFinance,
-                FinanceCompanyId = model.FinanceCompanyId,
-                LoanAmount = model.LoanAmount,
-                DownPayment = model.DownPayment,
-                Status = model.Status,
-                Remarks = model.Remarks,
-                HypothecationAmount = model.HypothecationAmount,
-                PlateAmount = model.PlateAmount,
-                HandlingCharges = model.HandlingCharges,
-                ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null,
-                IsActive = true,
-                CreatedBy = model.CreatedBy,
-                CreatedDate = DateTime.Now
-            };
+            const int maxAttempts = 5;
 
-            _context.VehicleQuotations.Add(quotation);
-            await _context.SaveChangesAsync();
-            return quotation.Id;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+
+                var quotationNo = await GenerateQuotationNoInternal();
+
+                var quotation = new VehicleQuotation
+                {
+                    QuotationNo = quotationNo,
+                    QuotationDate = model.QuotationDate,
+                    DealerId = model.DealerId,
+                    CustomerId = model.CustomerId,
+                    CustomerName = model.CustomerName,
+                    MobileNo = model.MobileNo,
+                    EmailId = model.EmailId,
+                    Address = model.Address,
+                    CustomerPanNo = model.CustomerPanNo,
+                    ModelId = model.ModelId,
+                    VariantId = model.VariantId,
+                    StateId = model.StateId,
+                    CityId = model.CityId,
+                    ColorId = model.ColorId,
+                    CustPrice = model.CustPrice,
+                    Fame2Amount = model.Fame2Amount,
+                    SgstAmount = model.SgstAmount,
+                    CgstAmount = model.CgstAmount,
+                    IgstAmount = model.IgstAmount,
+                    ExShowroomPrice = model.ExShowroomPrice,
+                    Rtocharges = model.RTOCharges,
+                    InsuranceAmount = model.InsuranceAmount,
+                    AccessoriesAmount = model.AccessoriesAmount,
+                    ExtendedWarrantyAmount = model.ExtendedWarrantyAmount,
+                    Amcamount = model.AMCAmount,
+                    OtherCharges = model.OtherCharges,
+                    DiscountAmount = model.DiscountAmount,
+                    TaxAmount = model.TaxAmount,
+                    TotalAmount = model.TotalAmount,
+                    IsExchange = model.IsExchange,
+                    ExchangeAmount = model.ExchangeAmount,
+                    OldCompanyName = model.OldCompanyName,
+                    OldModelName = model.OldModelName,
+                    IsFinance = model.IsFinance,
+                    FinanceCompanyId = model.FinanceCompanyId,
+                    LoanAmount = model.LoanAmount,
+                    DownPayment = model.DownPayment,
+                    //Status = model.Status,
+                    Remarks = model.Remarks,
+                    HypothecationAmount = model.HypothecationAmount,
+                    PlateAmount = model.PlateAmount,
+                    HandlingCharges = model.HandlingCharges,
+                    ValidTillDate = model.ValidTillDate.HasValue ? DateOnly.FromDateTime(model.ValidTillDate.Value) : null,
+                    IsActive = true,
+                    CreatedBy = model.CreatedBy,
+                    CreatedDate = DateTime.Now
+                };
+
+                _context.VehicleQuotations.Add(quotation);
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    return quotation.Id;
+                }
+                catch (DbUpdateException ex) when (IsDuplicateQuotationNo(ex) && attempt < maxAttempts)
+                {
+                    _context.Entry(quotation).State = EntityState.Detached;
+                }
+            }
+
+            throw new InvalidOperationException("Could not generate a unique quotation number after several attempts.");
+        }
+
+        private static bool IsDuplicateQuotationNo(DbUpdateException ex)
+        {
+            return ex.GetBaseException() is Microsoft.Data.SqlClient.SqlException sqlEx
+                && (sqlEx.Number == 2601 || sqlEx.Number == 2627)
+                && sqlEx.Message.IndexOf("QuotationNo", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private async Task<bool> UpdateInternal(AddVehicleQuotationViewModel model, string userId)
@@ -344,7 +367,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
             existing.FinanceCompanyId = model.FinanceCompanyId;
             existing.LoanAmount = model.LoanAmount;
             existing.DownPayment = model.DownPayment;
-            existing.Status = model.Status;
+            //existing.Status = model.Status;
             existing.Remarks = model.Remarks;
             existing.HypothecationAmount = model.HypothecationAmount;
             existing.PlateAmount = model.PlateAmount;
@@ -431,7 +454,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleQuotationRepo
                 ValidTill = quotation.ValidTillDate.HasValue
                     ? quotation.ValidTillDate.Value.ToDateTime(TimeOnly.MinValue)
                     : (DateTime?)null,
-                Status = quotation.Status,
+                //Status = quotation.Status,
 
                 DealerId = quotation.DealerId,
                 DealerCode = dealer?.Dealercode,

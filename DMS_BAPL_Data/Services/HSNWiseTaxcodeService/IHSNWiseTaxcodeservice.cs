@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,5 +15,7 @@ namespace DMS_BAPL_Data.Services.HSNWiseTaxcodeService
         Task<List<AggregateTaxCode>> GetAggregateTaxCodeList();
         Task<HsnwiseTaxCodeViewModel> InsertHsnwiseTaxcodedetails(HsnwiseTaxCodeViewModel hsnwiseTaxCodeViewModel);
         Task<List<HsnwiseTaxCode>> GetHsnwiseTaxcodedetails(string? search);
+
+        Task<HsnwiseTaxImportResultViewModel> ImportHsnwiseTaxCodeExcelAsync(IFormFile file);
     }
 }

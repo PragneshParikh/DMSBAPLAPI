@@ -1,9 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
-using System;
+using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.AgreetaxcodeService
@@ -14,7 +12,12 @@ namespace DMS_BAPL_Data.Services.AgreetaxcodeService
         Task<List<AggregateTaxCode>> GetAggregateTaxcodesAsync(string? search);
         Task<List<AggregateTaxCode>> GetAggregateTaxDetailsAsync(string ataxCode);
         Task<AggregateTaxCode> GetAggregateTaxcodeByIdAsync(int id);
-        //Task<AggregateTaxCode> UpdateAgreeTaxcodeAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel);
-        Task <List<TaxCodeWithRateViewModel>> GetTaxCodeWithRate();
+        Task<AggregateTaxCode> UpdateAgreeTaxcodeAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel);
+        Task<List<TaxCodeWithRateViewModel>> GetTaxCodeWithRate();
+        Task<AggregateTaxImportResultViewModel> ImportAggregateTaxCodeExcelAsync(IFormFile file);
+
+        // Used only by Excel import — skip TaxCodeMasters validation.
+        Task<AgreeTaxCodeViewModel> InsertAgreeTaxcodeNoValidationAsync(AgreeTaxCodeViewModel agreeTaxCodeViewModel);
+        Task<AggregateTaxCode> UpdateAgreeTaxcodeNoValidationAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel);
     }
 }

@@ -203,12 +203,58 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var location = await _locationMasterService.UpdateByLocationCode(userId, locationMasterViewModel);
+                var (location, isNew) = await _locationMasterService.UpdateByLocationCode(userId, locationMasterViewModel);
 
                 if (location == null)
                     return NotFound("Location not found");
 
-                return Ok(location);
+                return Ok(new { data = location, isNew });
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Imports location master data from an uploaded Excel (.xlsx) file.
+        /// Rows are matched by Location Code: an existing location is updated, a new
+        /// Location Code is inserted. The sheet's first row must be a header row —
+        /// column order doesn't matter as long as the header text matches what
+        /// LocationMasterService.ImportLocationExcelAsync expects.
+        /// </summary>
+        [HttpPost("ImportLocationMasterExcel")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(LocationImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ImportLocationMasterExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _locationMasterService.ImportLocationExcelAsync(file, userId);
+
+                return Ok(new
+                {
+                    message = "Location data imported successfully",
+                    data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -252,6 +298,8 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+
 
     }
 }

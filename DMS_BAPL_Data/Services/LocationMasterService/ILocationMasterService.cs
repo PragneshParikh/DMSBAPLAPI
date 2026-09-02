@@ -1,4 +1,6 @@
-﻿using DMS_BAPL_Utils.ViewModels;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +15,11 @@ namespace DMS_BAPL_Data.Services.LocationMasterService
         Task<LocationMasterViewModel> GetLocationMasterById(int id);
         Task<bool> AddLocationMaster(LocationMasterViewModel model);
         Task<bool> UpdateLocationMaster(LocationMasterViewModel model);
+        Task<LocationImportResultViewModel> ImportLocationExcelAsync(IFormFile file, string userId);
         Task<byte[]> DownloadLocationMasterExcel();
         Task<List<LocationNameViewModel>> GetLocationByDealerCode(string dealerCode);
         Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string? dealerCode);
-        Task<object> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel);
+        Task<(LocationMaster Location, bool IsNew)> UpdateByLocationCode(string userId, LocationMasterViewModel locationMasterViewModel);
         Task<IEnumerable<LocationNameViewModel>> GetLocationByDealerByAreaId(string? dealerCode, int areaId);
         Task<IEnumerable<object>> GetDealerPrimaryLocationByAreaId(int areaId, string locCode, string? dealerCode);
         Task<List<LocationNameViewModel>> GetAllLocationByDealerCode(string dealerCode);

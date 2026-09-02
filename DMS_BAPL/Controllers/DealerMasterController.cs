@@ -248,6 +248,56 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        /// <summary>
+        /// Imports dealer master data from an uploaded Excel (.xlsx) file.
+        /// Rows are matched by Dealer Code: an existing dealer is updated, a new
+        /// Dealer Code is inserted. The sheet's first row must be a header row —
+        /// column order doesn't matter as long as the header text matches what
+        /// the service expects (see DealerMasterService.ImportDealerExcelAsync).
+        /// </summary>
+        /// <param name="file">Excel file (.xlsx) containing dealer master rows</param>
+        /// <returns>Import summary: counts of inserted/updated/failed rows, plus any row-level errors</returns>
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(DealerImportResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ImportDealerExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest(StringConstants.BadRequest);
+
+                var extension = Path.GetExtension(file.FileName);
+                if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Only .xlsx files are supported.");
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(StringConstants.UserUnauthorized);
+
+                var result = await _dealerMasterService.ImportDealerExcelAsync(file, userId);
+
+                return Ok(new
+                {
+                    message = "Dealer data imported successfully",
+                    data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Bad file / missing or unrecognized header — client error, not a server fault.
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
         /// <summary>
         /// Retrieves dealer dropdown list (for UI selection).
         /// </summary>

@@ -3,146 +3,125 @@ using System.Text.Json.Serialization;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
-
     public class ErpWarrantyClaimLineViewModel
     {
         [JsonPropertyName("Sl.No")]
-        public string SlNo { get; set; } = "";
+        public int SlNo { get; set; }
 
         [JsonPropertyName("Dealer Name")]
-        public string? DealerName { get; set; }
+        public string DealerName { get; set; } = "";
 
         [JsonPropertyName("Dealer Code")]
-        public string? DealerCode { get; set; }
+        public string DealerCode { get; set; } = "";
 
         [JsonPropertyName("Location")]
-        public string? Location { get; set; }
+        public string Location { get; set; } = "";
 
         [JsonPropertyName("Loc. City")]
-        public string? LocationCity { get; set; }
+        public string LocationCity { get; set; } = "";
 
         [JsonPropertyName("Job No")]
-        public string? JobNo { get; set; }
+        public string JobNo { get; set; } = "";
 
         [JsonPropertyName("Job Date")]
-        public string? JobDate { get; set; }
+        public string JobDate { get; set; } = "";
 
         [JsonPropertyName("Claim No")]
-        public string? ClaimNo { get; set; }
+        public string ClaimNo { get; set; } = "";
 
         [JsonPropertyName("Claim Date")]
-        public string? ClaimDate { get; set; }
+        public string ClaimDate { get; set; } = "";
 
         [JsonPropertyName("KMS")]
-        public string? Kms { get; set; }
+        public string Kms { get; set; } = "";
 
         [JsonPropertyName("Vehicle Sale Date")]
-        public string? VehicleSaleDate { get; set; }
+        public string VehicleSaleDate { get; set; } = "";
 
         [JsonPropertyName("Part Failure Date")]
-        public string? PartFailureDate { get; set; }
+        public string PartFailureDate { get; set; } = "";
 
         [JsonPropertyName("Service Type")]
-        public string? ServiceType { get; set; }
+        public string ServiceType { get; set; } = "";
 
         [JsonPropertyName("Chassis No")]
-        public string? ChassisNo { get; set; }
+        public string ChassisNo { get; set; } = "";
 
         [JsonPropertyName("Model Name")]
-        public string? ModelName { get; set; }
+        public string ModelName { get; set; } = "";
 
-        // UNCONFIRMED: no source field exists for this anywhere in the
-        // current schema.
         [JsonPropertyName("Variants")]
-        public string? Variants { get; set; }
+        public string Variants { get; set; } = "";
 
         [JsonPropertyName("Part Code")]
-        public string? PartCode { get; set; }
+        public string PartCode { get; set; } = "";
 
         [JsonPropertyName("Part Name")]
-        public string? PartName { get; set; }
+        public string PartName { get; set; } = "";
 
         [JsonPropertyName("Qty")]
-        public string? Qty { get; set; }
+        public decimal Qty { get; set; }
 
         [JsonPropertyName("Rate")]
-        public string? Rate { get; set; }
+        public decimal Rate { get; set; }
 
         [JsonPropertyName("CGST%")]
-        public string? CgstPercent { get; set; }
+        public string CgstPercent { get; set; } = "";
 
         [JsonPropertyName("CGST Amnt")]
-        public string? CgstAmount { get; set; }
+        public decimal CgstAmount { get; set; }
 
         [JsonPropertyName("SGST%")]
-        public string? SgstPercent { get; set; }
+        public string SgstPercent { get; set; } = "";
 
         [JsonPropertyName("SGST Amnt")]
-        public string? SgstAmount { get; set; }
+        public decimal SgstAmount { get; set; }
 
         [JsonPropertyName("IGST%")]
-        public string? IgstPercent { get; set; }
+        public string IgstPercent { get; set; } = "";
 
         [JsonPropertyName("IGST Amnt")]
-        public string? IgstAmount { get; set; }
+        public decimal IgstAmount { get; set; }
 
         [JsonPropertyName("Amount")]
-        public string? Amount { get; set; }
+        public decimal Amount { get; set; }
 
         [JsonPropertyName("Dealer Observation")]
-        public string? DealerObservation { get; set; }
+        public string DealerObservation { get; set; } = "";
 
         [JsonPropertyName("RCA")]
-        public string? Rca { get; set; }
+        public string Rca { get; set; } = "";
 
-        // UNCONFIRMED
         [JsonPropertyName("Invoice_RefNo")]
-        public string? InvoiceRefNo { get; set; }
+        public string InvoiceRefNo { get; set; } = "";
 
         [JsonPropertyName("Invoice No")]
-        public string? InvoiceNo { get; set; }
+        public string InvoiceNo { get; set; } = "";
 
         [JsonPropertyName("Invoice Date")]
-        public string? InvoiceDate { get; set; }
+        public string InvoiceDate { get; set; } = "";
 
         [JsonPropertyName("Doc. No")]
-        public string? DocNo { get; set; }
+        public string DocNo { get; set; } = "";
 
         [JsonPropertyName("Doc Date")]
-        public string? DocDate { get; set; }
+        public string DocDate { get; set; } = "";
 
-        // UNCONFIRMED
         [JsonPropertyName("Vendor PO No.")]
-        public string? VendorPoNo { get; set; }
+        public string VendorPoNo { get; set; } = "";
 
         [JsonPropertyName("Vendor PO Date")]
-        public string? VendorPoDate { get; set; }
-        
+        public string VendorPoDate { get; set; } = "";
+
         [JsonPropertyName("Total")]
-        public string? Total { get; set; }
+        public decimal Total { get; set; }
+
+        [JsonPropertyName("UniqueId")]
         public int UniqueId { get; set; }
     }
 
-
     public class ErpWarrantyClaimSubmitRequest
     {
-        public int VendorId { get; set; }
-        public string? SubVendorCode { get; set; }
-        public List<ErpWarrantyClaimLineViewModel> Value { get; set; } = new();
-    }
-
-
-    public class ErpApiResponse<T>
-    {
-        public bool Valid { get; set; }
-        public string? Description { get; set; }
-        public List<T> Value { get; set; } = new();
-    }
-
-    public class ErpSubmitResult
-    {
-        public bool Success { get; set; }
-        public string? Message { get; set; }
-        public int LinesSent { get; set; }
+        public List<ErpWarrantyClaimLineViewModel> Data { get; set; } = new();
     }
 }

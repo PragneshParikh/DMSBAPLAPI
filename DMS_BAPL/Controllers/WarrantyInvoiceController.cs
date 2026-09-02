@@ -1,12 +1,18 @@
-﻿using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
-using DMS_BAPL_Data.Services.ErpIntegration;
+﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Api.Controllers
@@ -17,30 +23,21 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IWarrantyInvoiceRepo _warrantyInvoiceRepo;
         private readonly ILogger<WarrantyInvoiceController> _logger;
-        private readonly IErpIntegrationService _erpIntegrationService;
         private readonly IConfiguration _configuration;
+        private readonly BapldmsvadContext _context;
 
         public WarrantyInvoiceController(IWarrantyInvoiceRepo warrantyInvoiceRepo,
             ILogger<WarrantyInvoiceController> logger,
-            IErpIntegrationService erpIntegrationService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            BapldmsvadContext context)
         {
             _warrantyInvoiceRepo = warrantyInvoiceRepo;
             _logger = logger;
-            _erpIntegrationService = erpIntegrationService;
             _configuration = configuration;
+            _context = context;
         }
 
-        // Adjust this to however the rest of the app resolves the current
-        // user id (e.g. from claims/JWT) - left as a placeholder mirroring
-        // the pattern likely already used in WarrantyOrderController.
         private string CurrentUserId => User?.Identity?.Name ?? "system";
-
-        // Kill-switch for the auto-send-on-save behavior below, without
-        // needing a redeploy if the ERP integration ever needs to be
-        // paused (e.g. during an ERP-side outage or a bad payload causing
-        // repeated failures). Defaults to on.
-        private bool AutoSubmitToErpEnabled => _configuration.GetValue("ErpIntegration:AutoSubmitOnSave", true);
 
         [HttpPost("InsertWarrantyInvoice")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -58,26 +55,20 @@ namespace DMS_BAPL_Api.Controllers
             {
                 var invoiceId = await _warrantyInvoiceRepo.InsertWarrantyInvoice(model, CurrentUserId);
 
-                // Auto-push to ERP right after the save commits. This is
-                // best-effort: the invoice is already saved by this point,
-                // so a failed/unreachable ERP call must not turn a
-                // successful save into a 500 - the failure is only
-                // surfaced in the response. If it fails here, the frontend
-                // can retry via POST UATWarrantyData without re-saving the
-                // invoice.
-                var erpResult = await TrySubmitToErpAfterSave(invoiceId);
-
                 return Ok(new
                 {
                     message = "Warranty Invoice saved successfully.",
-                    invoiceId,
-                    erp = erpResult
+                    invoiceId
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in InsertWarrantyInvoice");
-                return StatusCode(500, $"An error occurred while saving the Warranty Invoice: {ex.Message}");
+                var root = ex;
+                while (root.InnerException != null)
+                    root = root.InnerException;
+
+                _logger.LogError(ex, "Error in InsertWarrantyInvoice. Root cause: {RootMessage}", root.Message);
+                return StatusCode(500, $"An error occurred while saving the Warranty Invoice: {root.Message}");
             }
         }
 
@@ -100,21 +91,19 @@ namespace DMS_BAPL_Api.Controllers
                 if (!success)
                     return NotFound($"Warranty Invoice with Id {model.Id} not found or is not active.");
 
-                // Same best-effort auto-push as InsertWarrantyInvoice - an
-                // update usually means the line data changed, so ERP gets
-                // the latest snapshot without a separate manual step.
-                var erpResult = await TrySubmitToErpAfterSave(model.Id);
-
                 return Ok(new
                 {
-                    message = "Warranty Invoice updated successfully.",
-                    erp = erpResult
+                    message = "Warranty Invoice updated successfully."
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in UpdateWarrantyInvoice");
-                return StatusCode(500, $"An error occurred while updating the Warranty Invoice: {ex.Message}");
+                var root = ex;
+                while (root.InnerException != null)
+                    root = root.InnerException;
+
+                _logger.LogError(ex, "Error in UpdateWarrantyInvoice. Root cause: {RootMessage}", root.Message);
+                return StatusCode(500, $"An error occurred while updating the Warranty Invoice: {root.Message}");
             }
         }
 
@@ -328,53 +317,39 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        [HttpPost("BAPLWarrantyData")]
-        [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> SendErpPayload([FromBody] ErpWarrantyClaimSubmitRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (request?.Value == null || request.Value.Count == 0)
-                return BadRequest("At least one claim line (Value) is required.");
-
-            try
-            {
-                var result = await _erpIntegrationService.SubmitWarrantyClaimLines(request);
-
-                if (!result.Success)
-                    return StatusCode(500, result);
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in SendErpPayload");
-                return StatusCode(500, $"An error occurred while sending the payload to ERP: {ex.Message}");
-            }
-        }
-
+        // ===================================================================
+        // ERP submission - one raw ErpWarrantyClaimLineViewModel object per
+        // POST (no array, no wrapper - confirmed against the ERP's own
+        // rejection messages). Each line retries with a fresh UniqueId if
+        // the ERP reports that one as already taken.
+        // ===================================================================
 
         [HttpPost("UATWarrantyData")]
-        [ProducesResponseType(typeof(ErpSubmitResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> SendWarrantyInvoiceToErp([FromBody] SendWarrantyInvoiceToErpRequest request)
+        public async Task<IActionResult> SendToERP([FromBody] SendWarrantyInvoiceToErpRequest request)
         {
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User not authorized");
+
             if (request == null || request.InvoiceId <= 0)
                 return BadRequest("A valid invoiceId is required.");
 
             try
             {
-                var result = await BuildAndSubmitErpPayload(request.InvoiceId);
+                var lines = await BuildErpPayload(request.InvoiceId);
+                if (lines.Count == 0)
+                    return BadRequest($"Warranty Invoice {request.InvoiceId} has no claim lines to send to ERP.");
 
-                if (!result.Success)
-                    return StatusCode(500, result);
+                var responses = new List<string>();
+                foreach (var line in lines)
+                    responses.Add(await PostToErpAsync(line));
 
-                return Ok(result);
+                return Ok(responses);
             }
             catch (InvalidOperationException ex)
             {
@@ -382,49 +357,214 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in UATWarrantyData for invoice {InvoiceId}", request.InvoiceId);
+                _logger.LogError(ex, "Error sending Warranty Invoice {InvoiceId} to ERP", request.InvoiceId);
                 return StatusCode(500, $"An error occurred while sending Warranty Invoice {request.InvoiceId} to ERP: {ex.Message}");
             }
         }
 
-        private async Task<ErpSubmitResult> BuildAndSubmitErpPayload(int invoiceId)
+        private async Task<List<ErpWarrantyClaimLineViewModel>> BuildErpPayload(int invoiceId)
         {
-            var lines = await _warrantyInvoiceRepo.BuildErpWarrantyClaimPayload(invoiceId);
+            var header = await _context.WarrantyInvoices.FirstOrDefaultAsync(x => x.Id == invoiceId)
+                ?? throw new InvalidOperationException($"Warranty Invoice with Id {invoiceId} not found.");
 
-            var request = new ErpWarrantyClaimSubmitRequest
-            {
-                VendorId = _configuration.GetValue<int>("ErpIntegration:VendorId"),
-                SubVendorCode = _configuration["ErpIntegration:SubVendorCode"],
-                Value = lines
-            };
+            var dealer = !string.IsNullOrWhiteSpace(header.DealerCode)
+                ? await _context.DealerMasters.FirstOrDefaultAsync(d => d.Dealercode == header.DealerCode)
+                : null;
 
-            return await _erpIntegrationService.SubmitWarrantyClaimLines(request);
-        }
-        private async Task<ErpSubmitResult?> TrySubmitToErpAfterSave(int invoiceId)
-        {
-            if (!AutoSubmitToErpEnabled)
+            var orderIds = await _context.WarrantyInvoiceDetails
+                .Where(d => d.WarrantyInvoiceHeaderId == invoiceId)
+                .Select(d => d.WarrantyOrderHeaderId)
+                .ToListAsync();
+
+            // Only "Part" lines - Labour is excluded from what's sent to the ERP.
+            var gridRows = await _context.WarrantyOrderGridDetails
+                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType == "Part")
+                .ToListAsync();
+
+            var lines = new List<ErpWarrantyClaimLineViewModel>();
+            int srNo = 1;
+
+            foreach (var g in gridRows)
             {
-                _logger.LogInformation(
-                    "Skipping auto ERP submit for Warranty Invoice {InvoiceId} - ErpIntegration:AutoSubmitOnSave is disabled.",
-                    invoiceId);
-                return null;
+                var chassisDetail = !string.IsNullOrWhiteSpace(g.ChassisNo)
+                    ? await _context.ChassisDetails.FirstOrDefaultAsync(c => c.ChassisNo == g.ChassisNo)
+                    : null;
+
+                string? modelName = null;
+                if (!string.IsNullOrWhiteSpace(chassisDetail?.ItemCode))
+                {
+                    var item = await _context.ItemMasters.FirstOrDefaultAsync(i => i.Itemcode == chassisDetail.ItemCode);
+                    modelName = item?.Itemname ?? item?.Displayname;
+                }
+
+                var claimFfirId = await _context.WarrantyJcclaims
+                    .Where(c => c.Id == g.WarrantyJcclaimId)
+                    .Select(c => c.Ffirid)
+                    .FirstOrDefaultAsync();
+
+                DateTime? failureDate = claimFfirId.HasValue
+                    ? await _context.Ffirheaders.Where(f => f.Id == claimFfirId.Value).Select(f => f.FailureDate).FirstOrDefaultAsync()
+                    : null;
+
+                var claimDetail = await _context.WarrantyJcclaimDetails
+                    .Where(d => d.WarrantyJcclaimHeaderId == g.WarrantyJcclaimId && d.ItemType == g.ItemType)
+                    .FirstOrDefaultAsync();
+
+                decimal totalTax = (g.CgstAmount ?? 0) + (g.SgstAmount ?? 0) + (g.IgstAmount ?? 0);
+                decimal qty = g.Quantity ?? 0;
+                decimal rate = qty > 0 ? Math.Round(((g.TotalAmount ?? 0) - totalTax) / qty, 2) : 0;
+
+                lines.Add(new ErpWarrantyClaimLineViewModel
+                {
+                    SlNo = srNo++,
+                    DealerName = dealer?.Compname ?? "",
+                    DealerCode = header.DealerCode ?? "",
+                    Location = g.LocationName ?? "",
+                    LocationCity = "",
+                    // Truncated to 20 chars - the ERP's own R_WarrantyClaimJobData.JobNo
+                    // column rejects anything longer (confirmed via its own error).
+                    JobNo = Truncate(g.JobCardNo, 20),
+                    JobDate = g.JobCardDate?.ToString("dd-MM-yyyy") ?? "",
+                    ClaimNo = g.ClaimNo ?? "",
+                    ClaimDate = g.ClaimDate?.ToString("dd-MM-yyyy") ?? "",
+                    // g.Kms is decimal? - cast to int first so a value like 15000.00
+                    // doesn't get sent as "15000.00" instead of "15000".
+                    Kms = ((int?)g.Kms)?.ToString() ?? "",
+                    VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy") ?? "",
+                    PartFailureDate = failureDate?.ToString("dd-MM-yyyy") ?? "",
+                    ServiceType = g.ServiceHead ?? "",
+                    ChassisNo = g.ChassisNo ?? "",
+                    ModelName = modelName ?? "",
+                    Variants = "",
+                    PartCode = g.PartCode ?? "",
+                    PartName = g.PartName ?? "",
+                    Qty = qty,
+                    Rate = rate,
+                    CgstPercent = (g.CgstPercent ?? 0).ToString("0.##"),
+                    CgstAmount = g.CgstAmount ?? 0,
+                    SgstPercent = (g.SgstPercent ?? 0).ToString("0.##"),
+                    SgstAmount = g.SgstAmount ?? 0,
+                    IgstPercent = (g.IgstPercent ?? 0).ToString("0.##"),
+                    IgstAmount = g.IgstAmount ?? 0,
+                    Amount = g.TotalAmount ?? 0,
+                    DealerObservation = claimDetail?.DealerObservation ?? "",
+                    Rca = claimDetail?.RootCauseAnalysis ?? "",
+                    InvoiceRefNo = "",
+                    InvoiceNo = g.InvoiceNo ?? "",
+                    InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
+                    DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}",
+                    DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
+                    VendorPoNo = "",
+                    VendorPoDate = "",
+                    Total = g.TotalAmount ?? 0,
+                    // Pulled from dbo.ErpUniqueIdSequence - a real running sequence,
+                    // not a formula, so it can never repeat a value already issued.
+                    UniqueId = await GetNextErpUniqueIdAsync(),
+                });
             }
+
+            return lines;
+        }
+
+        // Caps a value at maxLen so it fits the ERP's own column width - the
+        // ERP rejects the whole insert if a field exceeds its column size,
+        // so we truncate defensively on the way out. 20 confirmed for JobNo
+        // via the ERP's own truncation error (R_WarrantyClaimJobData.JobNo).
+        private static string Truncate(string? value, int maxLen) =>
+            string.IsNullOrEmpty(value) || value.Length <= maxLen ? value ?? "" : value[..maxLen];
+
+        // Real running sequence, not a formula - ERP-issued UniqueIds are
+        // shared state, so this must never repeat a value the ERP has
+        // already seen.
+        private async Task<int> GetNextErpUniqueIdAsync()
+        {
+            var connection = _context.Database.GetDbConnection();
+            var shouldClose = connection.State != System.Data.ConnectionState.Open;
+            if (shouldClose)
+                await connection.OpenAsync();
 
             try
             {
-                return await BuildAndSubmitErpPayload(invoiceId);
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT NEXT VALUE FOR dbo.ErpUniqueIdSequence";
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
+            }
+            finally
+            {
+                if (shouldClose)
+                    await connection.CloseAsync();
+            }
+        }
+
+        // Shape of what the ERP echoes back per line - Succeed/ConfirmMessage
+        // carry the real pass/fail signal since the ERP always returns HTTP 200
+        // even on a rejected line.
+        private class ErpLineResponse
+        {
+            public bool Succeed { get; set; }
+            public string? UniqueId { get; set; }
+            public string? ConfirmMessage { get; set; }
+        }
+
+        private async Task<string> PostToErpAsync(ErpWarrantyClaimLineViewModel line)
+        {
+            var baseUrl = _configuration["ErpIntegration:BaseUrl"]
+                ?? "https://uatbaplai-cpapc4h7gvdkfxh4.centralindia-01.azurewebsites.net";
+            var path = _configuration["ErpIntegration:WarrantyDataPath"] ?? "/api/UATWarrantyData";
+            var requestUrl = $"{baseUrl.TrimEnd('/')}{path}";
+
+            const int maxAttempts = 5;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                using var client = new HttpClient();
+                var json = JsonSerializer.Serialize(line);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(requestUrl, content);
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                // Logged every attempt, not just the final one - a retry sequence
+                // (e.g. duplicate-id, then success) is fully visible in one query
+                // instead of only ever seeing the last outcome.
+                await LogApiTrackingAsync(json, $"{(int)response.StatusCode} (attempt {attempt})", responseBody);
+
+                ErpLineResponse? parsed;
+                try
+                {
+                    parsed = JsonSerializer.Deserialize<ErpLineResponse>(responseBody);
+                }
+                catch (JsonException)
+                {
+                    return responseBody;
+                }
+
+                bool isDuplicateId = parsed != null && !parsed.Succeed &&
+                    (parsed.ConfirmMessage?.Contains("already exist", StringComparison.OrdinalIgnoreCase) ?? false);
+
+                if (!isDuplicateId || attempt == maxAttempts)
+                    return responseBody;
+
+                line.UniqueId = await GetNextErpUniqueIdAsync();
+            }
+
+            throw new InvalidOperationException("Failed to submit line to ERP after retrying with new UniqueIds.");
+        }
+
+        private async Task LogApiTrackingAsync(string? payload, string? status, string? response)
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO APITracking (endpoint, dateofhit, payload, status, response)
+            VALUES ({"WarrantyInvoice/UATWarrantyData"}, {DateTime.Now}, {payload}, {status}, {response})");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Auto-submit to ERP failed for saved Warranty Invoice {InvoiceId}", invoiceId);
-                return new ErpSubmitResult
-                {
-                    Success = false,
-                    Message = $"Warranty Invoice saved, but sending it to ERP failed: {ex.Message}",
-                    LinesSent = 0
-                };
+                _logger.LogError(ex, "Failed to write APITracking row");
             }
         }
     }
-
 }

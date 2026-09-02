@@ -107,7 +107,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? HsnCode { get; set; }
         public decimal? ItemStock { get; set; }
         public decimal? ItemMrp { get; set; }
-        public decimal? IGSTPer {  get; set; }
+        public decimal? IGSTPer { get; set; }
         public decimal? IGSTAmount { get; set; }
         public decimal? CGSTPer { get; set; }
         public decimal? CGSTAmount { get; set; }
@@ -115,5 +115,27 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? SGSTAmount { get; set; }
     }
 
+    /// <summary>
+    /// Summary returned after importing item master (spares/parts) rows
+    /// from an uploaded Excel file.
+    /// </summary>
+    public class ItemImportResultViewModel
+    {
+        public int TotalRows { get; set; }
+        public int InsertedCount { get; set; }
+        public int UpdatedCount { get; set; }
+        public int FailedCount { get; set; }
+        public List<ItemImportRowError> Errors { get; set; } = new List<ItemImportRowError>();
+    }
 
+    /// <summary>
+    /// A single row-level failure encountered while importing item master data.
+    /// </summary>
+    public class ItemImportRowError
+    {
+        /// <summary>1-based row number as it appears in the Excel sheet (header row = row 1).</summary>
+        public int RowNumber { get; set; }
+        public string? Itemcode { get; set; }
+        public string? Message { get; set; }
+    }
 }

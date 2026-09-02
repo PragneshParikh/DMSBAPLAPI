@@ -6,7 +6,9 @@ using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using System;
@@ -386,5 +388,642 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
         public Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel) => _dealerMasterRepo.UpdateByDealerCode(userId, dealerMasterViewModel);
         Task<PagedResponse<DealerMaster>> IDealerMasterService.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode) => _dealerMasterRepo.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode);
+
+        public async Task<DealerImportResultViewModel> ImportDealerExcelAsync(IFormFile file, string userId)
+        {
+            var result = new DealerImportResultViewModel();
+
+            List<(int RowNumber, DealerMasterViewModel Dealer)> rows;
+
+            try
+            {
+                rows = ReadDealersFromExcel(file);
+            }
+            catch (Exception ex)
+            {
+                // Header/format problems in the uploaded file — surfaced as a
+                // clean 400 by the controller instead of an unhandled 500.
+                throw new InvalidOperationException($"Could not read the Excel file: {ex.Message}", ex);
+            }
+
+            result.TotalRows = rows.Count;
+
+            foreach (var (rowNumber, dealerVm) in rows)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(dealerVm.Dealercode))
+                    {
+                        result.FailedCount++;
+                        result.Errors.Add(new DealerImportRowError
+                        {
+                            RowNumber = rowNumber,
+                            DealerCode = dealerVm.Dealercode,
+                            Message = "Dealer Code is required."
+                        });
+                        continue;
+                    }
+
+                    var existing = await GetDealerByCode(dealerVm.Dealercode);
+
+                    if (existing != null)
+                    {
+                        var updated = await UpdateByDealerCode(userId, dealerVm);
+                        if (updated == null)
+                        {
+                            result.FailedCount++;
+                            result.Errors.Add(new DealerImportRowError
+                            {
+                                RowNumber = rowNumber,
+                                DealerCode = dealerVm.Dealercode,
+                                Message = "Update failed for this dealer code."
+                            });
+                            continue;
+                        }
+
+                        result.UpdatedCount++;
+                    }
+                    else
+                    {
+                        await AddDealerAsync(dealerVm, userId);
+                        result.InsertedCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.FailedCount++;
+                    result.Errors.Add(new DealerImportRowError
+                    {
+                        RowNumber = rowNumber,
+                        DealerCode = dealerVm.Dealercode,
+                        Message = ex.Message
+                    });
+                }
+            }
+
+            return result;
+        }
+        private List<(int RowNumber, DealerMasterViewModel Dealer)> ReadDealersFromExcel(IFormFile file)
+        {
+            var rows = new List<(int, DealerMasterViewModel)>();
+
+            using var stream = file.OpenReadStream();
+            using var document = SpreadsheetDocument.Open(stream, false);
+
+            var workbookPart = document.WorkbookPart!;
+
+            var sheet = workbookPart.Workbook
+                .Descendants<Sheet>()
+                .First();
+
+            var worksheetPart =
+                (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+
+            var sheetData =
+                worksheetPart.Worksheet
+                    .Elements<SheetData>()
+                    .First();
+
+            var sharedStrings =
+                workbookPart.SharedStringTablePart?.SharedStringTable;
+
+
+            // ============================================================
+            // GET CELL VALUE
+            // ============================================================
+
+            string GetCellValue(Cell? cell)
+            {
+                if (cell?.CellValue == null)
+                    return string.Empty;
+
+                var value = cell.CellValue.InnerText;
+
+                if (cell.DataType != null &&
+                    cell.DataType.Value == CellValues.SharedString &&
+                    sharedStrings != null)
+                {
+                    if (int.TryParse(value, out int index) &&
+                        index >= 0 &&
+                        index < sharedStrings.Count())
+                    {
+                        return sharedStrings
+                            .ElementAt(index)
+                            .InnerText
+                            .Trim();
+                    }
+                }
+
+                return value?.Trim() ?? string.Empty;
+            }
+
+
+            // ============================================================
+            // GET COLUMN INDEX FROM EXCEL CELL REFERENCE
+            // Example:
+            // A1 -> 0
+            // B1 -> 1
+            // C1 -> 2
+            // AA1 -> 26
+            // ============================================================
+
+            int GetColumnIndex(string? cellReference)
+            {
+                if (string.IsNullOrWhiteSpace(cellReference))
+                    return -1;
+
+                int columnIndex = 0;
+
+                foreach (char c in cellReference)
+                {
+                    if (!char.IsLetter(c))
+                        break;
+
+                    columnIndex =
+                        columnIndex * 26 +
+                        (char.ToUpper(c) - 'A' + 1);
+                }
+
+                return columnIndex - 1;
+            }
+
+
+            // ============================================================
+            // NORMALIZE HEADER
+            // ============================================================
+
+            string NormalizeHeader(string? header)
+            {
+                if (string.IsNullOrWhiteSpace(header))
+                    return string.Empty;
+
+                return new string(
+                    header
+                        .Trim()
+                        .ToLowerInvariant()
+                        .Where(char.IsLetterOrDigit)
+                        .ToArray()
+                );
+            }
+
+
+            var allRows =
+                sheetData
+                    .Elements<Row>()
+                    .ToList();
+
+            if (allRows.Count < 2)
+                return rows;
+
+
+            // ============================================================
+            // HEADER MAP
+            // ============================================================
+
+            var headerMap =
+                new Dictionary<string, int>(
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+            var headerCells =
+                allRows[0]
+                    .Elements<Cell>()
+                    .ToList();
+
+            foreach (var cell in headerCells)
+            {
+                var header = GetCellValue(cell);
+
+                if (string.IsNullOrWhiteSpace(header))
+                    continue;
+
+                var columnIndex =
+                    GetColumnIndex(cell.CellReference?.Value);
+
+                if (columnIndex < 0)
+                    continue;
+
+                var normalizedHeader =
+                    NormalizeHeader(header);
+
+                if (!headerMap.ContainsKey(normalizedHeader))
+                {
+                    headerMap[normalizedHeader] = columnIndex;
+                }
+            }
+
+
+            // ============================================================
+            // HEADER ALIASES
+            // ============================================================
+
+            string? FindColumn(params string[] aliases)
+            {
+                foreach (var alias in aliases)
+                {
+                    var normalized =
+                        NormalizeHeader(alias);
+
+                    if (headerMap.ContainsKey(normalized))
+                        return normalized;
+                }
+
+                return null;
+            }
+
+
+            var companyNameColumn =
+                FindColumn(
+                    "Company Name",
+                    "Compname",
+                    "CompanyName"
+                );
+
+            var companyCodeColumn =
+                FindColumn(
+                    "Company Code",
+                    "Compcode",
+                    "CompanyCode"
+                );
+
+            var dealerCodeColumn =
+                FindColumn(
+                    "Dealer Code",
+                    "DealerCode",
+                    "Dealercode",
+                    "Dealer Code "
+                );
+
+            var address1Column =
+                FindColumn(
+                    "Address 1",
+                    "Adress1"
+                );
+
+            var address2Column =
+                FindColumn(
+                    "Address 2",
+                    "Adress2"
+                );
+
+            var cityColumn =
+                FindColumn("City");
+
+            var stateColumn =
+                FindColumn("State");
+
+            var pinColumn =
+                FindColumn(
+                    "Pin",
+                    "PIN",
+                    "Pincode",
+                    "Pin Code"
+                );
+
+            var panColumn =
+                FindColumn("PAN");
+
+            var phoneOfficeColumn =
+                FindColumn(
+                    "Phone Office",
+                    "PhoneOff",
+                    "Office Phone"
+                );
+
+            var mobileColumn =
+                FindColumn("Mobile");
+
+            var emailColumn =
+                FindColumn("Email");
+
+            var contactPersonColumn =
+                FindColumn(
+                    "Contact Person",
+                    "Contactperson"
+                );
+
+            var tradeCertificateColumn =
+                FindColumn(
+                    "Trade Certificate",
+                    "TradCert"
+                );
+
+            var gstinColumn =
+                FindColumn(
+                    "GSTIN",
+                    "CompgstinNo",
+                    "GSTIN No"
+                );
+
+            var brandNameColumn =
+                FindColumn("Brand Name");
+
+            var cinColumn =
+                FindColumn(
+                    "CIN No",
+                    "CinNo",
+                    "CIN"
+                );
+
+            var vatColumn =
+                FindColumn(
+                    "VAT No",
+                    "VatNo",
+                    "VAT"
+                );
+
+            var fameiiColumn =
+                FindColumn(
+                    "FameII Code",
+                    "FameiiCode",
+                    "FAMEII Code"
+                );
+
+            var registrationAddressColumn =
+                FindColumn(
+                    "Registration Address",
+                    "RegAddress"
+                );
+
+            var regDateColumn =
+                FindColumn(
+                    "Reg Date",
+                    "RegDate",
+                    "Registration Date"
+                );
+
+            var isTcsColumn =
+                FindColumn(
+                    "Is TCS",
+                    "IsTcs"
+                );
+
+            var tcsPercentColumn =
+                FindColumn(
+                    "TCS Percent",
+                    "TcsPercent"
+                );
+
+            var creditLimitColumn =
+                FindColumn(
+                    "Credit Limit",
+                    "CeditLimit",
+                    "CreditLimit"
+                );
+
+            var b2bColumn =
+                FindColumn("B2B");
+
+            var activeColumn =
+                FindColumn(
+                    "Active",
+                    "IsActive"
+                );
+
+
+
+            // ============================================================
+            // DEBUG: CHECK DEALER CODE COLUMN
+            // ============================================================
+
+            if (dealerCodeColumn == null)
+            {
+                throw new InvalidOperationException(
+                    "Dealer Code column was not found in the Excel file. " +
+                    "Expected column name: 'Dealer Code'."
+                );
+            }
+
+
+            // ============================================================
+            // GET VALUE BY COLUMN
+            // ============================================================
+
+            string Value(
+                List<Cell> cells,
+                string? normalizedColumn)
+            {
+                if (string.IsNullOrWhiteSpace(normalizedColumn))
+                    return string.Empty;
+
+                if (!headerMap.TryGetValue(
+                        normalizedColumn,
+                        out var columnIndex))
+                {
+                    return string.Empty;
+                }
+
+                foreach (var cell in cells)
+                {
+                    var currentColumn =
+                        GetColumnIndex(
+                            cell.CellReference?.Value
+                        );
+
+                    if (currentColumn == columnIndex)
+                    {
+                        return GetCellValue(cell);
+                    }
+                }
+
+                return string.Empty;
+            }
+
+
+            // ============================================================
+            // READ DATA ROWS
+            // ============================================================
+
+            for (int r = 1; r < allRows.Count; r++)
+            {
+                var excelRow =
+                    allRows[r];
+
+                var cells =
+                    excelRow
+                        .Elements<Cell>()
+                        .ToList();
+
+                if (cells.Count == 0)
+                    continue;
+
+
+                // --------------------------------------------------------
+                // READ DEALER CODE FIRST
+                // --------------------------------------------------------
+
+                var dealerCode =
+                    Value(
+                        cells,
+                        dealerCodeColumn
+                    ).Trim();
+
+
+                // --------------------------------------------------------
+                // SKIP COMPLETELY EMPTY ROW
+                // --------------------------------------------------------
+
+                if (string.IsNullOrWhiteSpace(dealerCode) &&
+                    cells.All(c =>
+                        string.IsNullOrWhiteSpace(
+                            GetCellValue(c))))
+                {
+                    continue;
+                }
+
+
+                // --------------------------------------------------------
+                // CREATE DEALER MODEL
+                // --------------------------------------------------------
+
+                var dealer =
+                    new DealerMasterViewModel
+                    {
+                        Compname =
+                            Value(cells, companyNameColumn),
+
+                        Compcode =
+                            Value(cells, companyCodeColumn),
+
+                        Dealercode =
+                            dealerCode,
+
+                        Adress1 =
+                            Value(cells, address1Column),
+
+                        Adress2 =
+                            Value(cells, address2Column),
+
+                        City =
+                            Value(cells, cityColumn),
+
+                        State =
+                            Value(cells, stateColumn),
+
+                        Pin =
+                            Value(cells, pinColumn),
+
+                        Pan =
+                            Value(cells, panColumn),
+
+                        PhoneOff =
+                            Value(cells, phoneOfficeColumn),
+
+                        Mobile =
+                            Value(cells, mobileColumn),
+
+                        Email =
+                            Value(cells, emailColumn),
+
+                        Contactperson =
+                            Value(cells, contactPersonColumn),
+
+                        TradCert =
+                            Value(cells, tradeCertificateColumn),
+
+                        CompgstinNo =
+                            Value(cells, gstinColumn),
+
+                        BrandName =
+                            Value(cells, brandNameColumn),
+
+                        CinNo =
+                            Value(cells, cinColumn),
+
+                        VatNo =
+                            Value(cells, vatColumn),
+
+                        FameiiCode =
+                            Value(cells, fameiiColumn),
+
+                        RegAddress =
+                            Value(cells, registrationAddressColumn),
+
+                        RegDate =
+                            Value(cells, regDateColumn),
+
+                        IsTcs =
+                            string.Equals(
+                                Value(cells, isTcsColumn),
+                                "Yes",
+                                StringComparison.OrdinalIgnoreCase
+                            ),
+
+                        B2b =
+                            string.Equals(
+                                Value(cells, b2bColumn),
+                                "Yes",
+                                StringComparison.OrdinalIgnoreCase
+                            ),
+
+                        IsActive =
+                            !string.Equals(
+                                Value(cells, activeColumn),
+                                "No",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                    };
+
+
+                // --------------------------------------------------------
+                // DECIMAL VALUES
+                // --------------------------------------------------------
+
+                decimal.TryParse(
+                    Value(cells, tcsPercentColumn),
+                    out var tcsPercent
+                );
+
+                dealer.TcsPercent =
+                    tcsPercent;
+
+
+                decimal.TryParse(
+                    Value(cells, creditLimitColumn),
+                    out var creditLimit
+                );
+
+                dealer.CeditLimit =
+                    creditLimit;
+
+
+                // --------------------------------------------------------
+                // AREA OFFICE
+                // --------------------------------------------------------
+
+                var areaOfficeText =
+                    Value(
+                        cells,
+                        FindColumn(
+                            "Area Office Id",
+                            "Areaofficeid",
+                            "Area Office"
+                        )
+                    );
+
+                int.TryParse(
+                    areaOfficeText,
+                    out var areaOfficeId
+                );
+
+                dealer.Areaofficeid =
+                    areaOfficeId;
+
+
+                // --------------------------------------------------------
+                // ADD ROW
+                // --------------------------------------------------------
+
+                rows.Add(
+                    (
+                        r + 1,
+                        dealer
+                    )
+                );
+            }
+
+
+            return rows;
+        }
     }
 }

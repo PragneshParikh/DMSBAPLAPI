@@ -17,5 +17,8 @@ namespace DMS_BAPL_Data.Repositories.HSNWiseTaxCodeRepo
         Task<HsnwiseTaxCodeViewModel> InsertHsnwiseTaxcodedetails(HsnwiseTaxCodeViewModel hsnwiseTaxCodeViewModel);
 
         Task<List<HsnwiseTaxCode>> GetHsnwiseTaxcodedetails(string? search);
+
+        Task<HsnwiseTaxCode> UpdateHsnwiseTaxcodedetailsAsync(int id, HsnwiseTaxCodeViewModel hsnwiseTaxCodeViewModel);
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,7 @@ namespace DMS_BAPL_Data.Services.HSNCodeMaterService
         Task<HsncodeMaster> AddAsync(HSNCodeMasterViewModel entity);
         Task<bool> UpdateAsync(int id, HSNCodeMasterViewModel entity);
         Task<byte[]> downloadHSNCodeExcel();
+
+        Task<HSNImportResultViewModel> ImportHSNCodeExcelAsync(IFormFile file);
     }
 }

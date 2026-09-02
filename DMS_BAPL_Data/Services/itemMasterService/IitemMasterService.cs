@@ -1,5 +1,6 @@
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,5 +23,6 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode);
         Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation);
         Task<List<ItemMasterViewModel>> GetItemModelist();
+        Task<ItemImportResultViewModel> ImportItemExcelAsync(IFormFile file, string userId);
     }
 }

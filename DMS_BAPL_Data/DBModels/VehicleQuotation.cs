@@ -61,7 +61,7 @@ public partial class VehicleQuotation
 
     public decimal? DownPayment { get; set; }
 
-    public string Status { get; set; } = null!;
+    //public string Status { get; set; } = null!;
 
     public string? Remarks { get; set; }
 

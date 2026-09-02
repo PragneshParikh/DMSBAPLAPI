@@ -25,5 +25,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode);
         Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation);
         Task<List<ItemMasterViewModel>> GetItemModelist();
+
+        Task<int?> GetSupplierIdByCodeAsync(string? supplierCode);
     }
 }

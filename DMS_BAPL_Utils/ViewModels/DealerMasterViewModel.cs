@@ -69,7 +69,31 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
 
-   
+
+
+    }
+
+    /// <summary>
+    /// Summary returned after importing dealer master rows from an uploaded Excel file.
+    /// </summary>
+    public class DealerImportResultViewModel
+    {
+        public int TotalRows { get; set; }
+        public int InsertedCount { get; set; }
+        public int UpdatedCount { get; set; }
+        public int FailedCount { get; set; }
+        public List<DealerImportRowError> Errors { get; set; } = new List<DealerImportRowError>();
+    }
+
+    /// <summary>
+    /// A single row-level failure encountered while importing dealer master data.
+    /// </summary>
+    public class DealerImportRowError
+    {
+        /// <summary>1-based row number as it appears in the Excel sheet (header row = row 1).</summary>
+        public int RowNumber { get; set; }
+        public string? DealerCode { get; set; }
+        public string? Message { get; set; }
 
     }
 }

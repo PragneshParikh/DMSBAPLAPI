@@ -69,10 +69,11 @@ namespace DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo
             }
             catch (Exception ex)
             {
-                
+
                 throw new Exception(ex.Message);
             }
         }
+
         //show the aggregate tax code list based on search
         async Task<List<AggregateTaxCode>> IAgreetaxcodeRepo.GetAggregateTaxcodesAsync(string? search)
         {
@@ -103,6 +104,7 @@ namespace DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo
 
             return result;
         }
+
         //agreecode tax based show the details
         async Task<List<AggregateTaxCode>> IAgreetaxcodeRepo.GetAggregateTaxDetailsAsync(string ataxCode)
 
@@ -133,42 +135,161 @@ namespace DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo
              .FirstOrDefault())
          .ToListAsync();
         }
-        //async Task<AggregateTaxCode> IAgreetaxcodeRepo.UpdateAgreeTaxcodeAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel)
-        //{
-        //    // Find existing record
-        //    var existingAgreeCodemaster = await _context.AggregateTaxCodes
-        //                                                .FirstOrDefaultAsync(a => a.Id == id);
 
-        //    if (existingAgreeCodemaster == null)
-        //    {
-        //        throw new Exception("Aggregate Tax Code not found");
-        //    }
+        public async Task DeleteAllAggregateTaxCodesAsync()
+        {
+            // EF Core 7+ — single DELETE statement, no entities loaded into memory.
+            await _context.AggregateTaxCodes.ExecuteDeleteAsync();
 
-        //    // Validate TaxCode from master table
-        //    var taxCodeData = await _context.TaxCodeMasters
-        //        .Where(t => t.TaxCode == agreeTaxCodeViewModel.TaxDetails.FirstOrDefault().TaxCode
-        //                 && t.TaxRate == agreeTaxCodeViewModel.TaxDetails.FirstOrDefault().TaxRate)
-        //        .OrderByDescending(t => t.EffectiveDate)
-        //        .FirstOrDefaultAsync();
+            // EF Core 6 or earlier fallback — comment out the line above and use this instead:
+            // _context.AggregateTaxCodes.RemoveRange(_context.AggregateTaxCodes);
+            // await _context.SaveChangesAsync();
+        }
 
-        //    if (taxCodeData == null)
-        //    {
-        //        throw new Exception("Invalid Tax code");
-        //    }
+        // Uncommented and completed for the Excel import's upsert flow: a row whose
+        // AtaxCode+TaxCode already exists calls this (by that row's Id) instead of
+        // InsertAgreeTaxcodeAsync, so re-importing the same sheet updates rather than
+        // duplicate-errors. Only touches the single TaxDetail supplied — this mirrors
+        // InsertAgreeTaxcodeAsync's one-row-per-call shape rather than replacing every
+        // detail row under an AtaxCode.
+        async Task<AggregateTaxCode> IAgreetaxcodeRepo.UpdateAgreeTaxcodeAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel)
+        {
+            try
+            {
+                // Find existing record
+                var existingAgreeCodemaster = await _context.AggregateTaxCodes
+                                                            .FirstOrDefaultAsync(a => a.Id == id);
 
-        //    // Update fields
-        //    existingAgreeCodemaster.AtaxCode = agreeTaxCodeViewModel.AtaxCode;
-        //    existingAgreeCodemaster.Description = agreeTaxCodeViewModel.Description;
-        //    existingAgreeCodemaster.TaxCode = taxCodeData.TaxCode;
-        //    existingAgreeCodemaster.TaxRate = taxCodeData.TaxRate;
+                if (existingAgreeCodemaster == null)
+                {
+                    throw new Exception("Aggregate Tax Code not found");
+                }
 
-        //    existingAgreeCodemaster.UpdatedBy = agreeTaxCodeViewModel.UpdatedBy;
-        //    existingAgreeCodemaster.UpdatedDate = DateTime.UtcNow;
+                var detail = agreeTaxCodeViewModel.TaxDetails?.FirstOrDefault();
+                if (detail == null)
+                {
+                    throw new Exception("No TaxCode/TaxRate supplied to update.");
+                }
 
-        //    await _context.SaveChangesAsync();
+                // Validate TaxCode from master table
+                var taxCodeData = await _context.TaxCodeMasters
+                    .Where(t => t.TaxCode == detail.TaxCode
+                             && t.TaxRate == detail.TaxRate)
+                    .OrderByDescending(t => t.EffectiveDate)
+                    .FirstOrDefaultAsync();
 
-        //    return existingAgreeCodemaster;
-        //}
+                if (taxCodeData == null)
+                {
+                    throw new Exception("Invalid Tax code");
+                }
+
+                // Update fields
+                existingAgreeCodemaster.AtaxCode = agreeTaxCodeViewModel.AtaxCode;
+                existingAgreeCodemaster.Description = agreeTaxCodeViewModel.Description;
+                existingAgreeCodemaster.SrNo = detail.SrNo;
+                existingAgreeCodemaster.TaxCode = taxCodeData.TaxCode;
+                existingAgreeCodemaster.TaxRate = taxCodeData.TaxRate;
+
+                existingAgreeCodemaster.UpdatedBy = agreeTaxCodeViewModel.UpdatedBy;
+                existingAgreeCodemaster.UpdatedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return existingAgreeCodemaster;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        // ===================== IMPORT-ONLY, NO TAX CODE MASTER VALIDATION =====================
+
+        // Used only by Excel import (ImportAggregateTaxCodeExcelAsync). Unlike
+        // InsertAgreeTaxcodeAsync, this does NOT check TaxCodeMasters for a matching
+        // (TaxCode, TaxRate) — the sheet's TaxCode/TaxRate are trusted and saved as-is.
+        // The duplicate (AtaxCode, TaxCode) check is kept, since that's a data-integrity
+        // rule independent of Tax Code Master.
+        public async Task<AgreeTaxCodeViewModel> InsertAgreeTaxcodeNoValidationAsync(AgreeTaxCodeViewModel agreeTaxCodeViewModel)
+        {
+            try
+            {
+                var aggregateTaxList = new List<AggregateTaxCode>();
+
+                foreach (var item in agreeTaxCodeViewModel.TaxDetails)
+                {
+                    // DUPLICATE CHECK — still enforced, this is independent of Tax Code Master.
+                    var isDuplicate = await _context.AggregateTaxCodes
+                        .AnyAsync(x => x.AtaxCode == agreeTaxCodeViewModel.AtaxCode
+                                    && x.TaxCode == item.TaxCode);
+
+                    if (isDuplicate)
+                    {
+                        throw new BusinessException($"TaxCode '{item.TaxCode}' already exists for ATaxCode '{agreeTaxCodeViewModel.AtaxCode}'");
+                    }
+
+                    var aggregateTax = new AggregateTaxCode
+                    {
+                        AtaxCode = agreeTaxCodeViewModel.AtaxCode,
+                        Description = agreeTaxCodeViewModel.Description,
+                        SrNo = item.SrNo,
+                        TaxCode = item.TaxCode,
+                        TaxRate = item.TaxRate,
+                        CreatedBy = agreeTaxCodeViewModel.CreatedBy,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    aggregateTaxList.Add(aggregateTax);
+                }
+
+                _context.AggregateTaxCodes.AddRange(aggregateTaxList);
+                await _context.SaveChangesAsync();
+
+                return agreeTaxCodeViewModel;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        // Used only by Excel import. Same as UpdateAgreeTaxcodeAsync but skips the
+        // TaxCodeMasters lookup — the sheet's TaxCode/TaxRate are trusted and saved as-is.
+        public async Task<AggregateTaxCode> UpdateAgreeTaxcodeNoValidationAsync(int id, AgreeTaxCodeViewModel agreeTaxCodeViewModel)
+        {
+            try
+            {
+                var existingAgreeCodemaster = await _context.AggregateTaxCodes
+                                                            .FirstOrDefaultAsync(a => a.Id == id);
+
+                if (existingAgreeCodemaster == null)
+                {
+                    throw new Exception("Aggregate Tax Code not found");
+                }
+
+                var detail = agreeTaxCodeViewModel.TaxDetails?.FirstOrDefault();
+                if (detail == null)
+                {
+                    throw new Exception("No TaxCode/TaxRate supplied to update.");
+                }
+
+                existingAgreeCodemaster.AtaxCode = agreeTaxCodeViewModel.AtaxCode;
+                existingAgreeCodemaster.Description = agreeTaxCodeViewModel.Description;
+                existingAgreeCodemaster.SrNo = detail.SrNo;
+                existingAgreeCodemaster.TaxCode = detail.TaxCode;
+                existingAgreeCodemaster.TaxRate = detail.TaxRate;
+
+                existingAgreeCodemaster.UpdatedBy = agreeTaxCodeViewModel.UpdatedBy;
+                existingAgreeCodemaster.UpdatedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return existingAgreeCodemaster;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
     }
-
 }

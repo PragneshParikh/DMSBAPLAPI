@@ -32,4 +32,30 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public string HsnCodeDD { get; set; }
     }
+
+    public class HsnwiseTaxImportResultViewModel
+    {
+        public int TotalRows { get; set; }
+
+        public int InsertedCount { get; set; }
+
+        public int UpdatedCount { get; set; } = 0;
+
+        public int SkippedCount { get; set; }
+
+        public int FailedCount { get; set; }
+
+        public List<HsnwiseTaxImportRowError> Errors { get; set; }
+            = new List<HsnwiseTaxImportRowError>();
+    }
+    public class HsnwiseTaxImportRowError
+    {
+        public int RowNumber { get; set; }
+
+        public string? Hsncode { get; set; }
+
+        public string? AtaxCode { get; set; }
+
+        public string Message { get; set; } = string.Empty;
+    }
 }

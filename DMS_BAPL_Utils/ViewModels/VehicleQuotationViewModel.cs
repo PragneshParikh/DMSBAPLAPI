@@ -11,7 +11,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string StateName { get; set; }
         public int? CityId { get; set; }
         public string CityName { get; set; }
-        public string Status { get; set; }
+        //public string Status { get; set; }
         public string DealerCode { get; set; }
         public string DealerName { get; set; }
         public long? CustomerId { get; set; }
