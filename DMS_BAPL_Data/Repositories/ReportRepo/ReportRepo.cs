@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -1164,6 +1165,157 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         return new LiveSaleMatch { Header = latest.vsh, Detail = latest.vsd };
                     });
         }
+        //public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter)
+        //{
+        //    try
+        //    {
+        //        var query =
+        //            from vi in _context.VehicleInwards.AsNoTracking()
+        //            join dm in _context.DealerMasters.AsNoTracking()
+        //                on vi.DealerCode equals dm.Dealercode into dmJoin
+        //            from dm in dmJoin.DefaultIfEmpty()
+        //            join im in _context.ItemMasters.AsNoTracking()
+        //                on vi.ItemCode equals im.Itemcode into imJoin
+        //            from im in imJoin.DefaultIfEmpty()
+        //            join cm in _context.ColorMasters.AsNoTracking()
+        //                on vi.ColrCode equals cm.Colorcode into cmJoin
+        //            from cm in cmJoin.DefaultIfEmpty()
+        //            join lm in _context.LocationMasters.AsNoTracking()
+        //                on vi.LocCode equals lm.Loccode into lmJoin
+        //            from lm in lmJoin.DefaultIfEmpty()
+        //            select new { Vehicle = vi, Dealer = dm, Item = im, Color = cm, LocationMaster = lm };
+
+        //        if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+        //            query = query.Where(x => x.Vehicle.DealerCode == filter.DealerCode);
+        //        if (!string.IsNullOrWhiteSpace(filter.ModelCode))
+        //            query = query.Where(x => x.Vehicle.ItemCode == filter.ModelCode);
+        //        if (!string.IsNullOrWhiteSpace(filter.ColorCode))
+        //            query = query.Where(x => x.Vehicle.ColrCode == filter.ColorCode);
+        //        if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
+        //            query = query.Where(x =>
+        //                x.Vehicle.ChasisNo != null &&
+        //                x.Vehicle.ChasisNo.Contains(filter.ChassisNo));
+
+        //        var rawData = await query.ToListAsync();
+
+
+        //        rawData = rawData
+        //               .GroupBy(x => string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+        //                   ? null
+        //                   : x.Vehicle.ChasisNo.Trim().ToUpperInvariant())
+        //               .SelectMany(g =>
+        //                   g.Key == null
+        //                       ? g
+        //                       : g.OrderByDescending(x => x.Vehicle.InvoiceDate)
+        //                          .ThenByDescending(x => x.Vehicle.Id)
+        //                          .Take(1))
+        //               .ToList();
+
+        //        var saleLookup = await GetLatestLiveSaleByChassisAsync(rawData.Select(x => x.Vehicle.ChasisNo));
+
+        //        var mappedRows = rawData.Select((x, index) =>
+        //        {
+        //            DateTime? invoiceDate = x.Vehicle.InvoiceDate.HasValue
+        //                ? x.Vehicle.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
+        //                : null;
+
+        //            LiveSaleMatch? match = !string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+        //                && saleLookup.TryGetValue(x.Vehicle.ChasisNo.Trim().ToUpperInvariant(), out var m)
+        //                ? m
+        //                : null;
+
+        //            // Invoiced (sold) -> Allocated; anything else -> Available. Allocated
+        //            // vehicles always show in this report — sale status never removes a
+        //            // row; only the dedupe step above (i.e. D2D) does.
+        //            bool isInvoiced = match?.Header.Status == "Invoiced";
+        //            string vehicleStatus = isInvoiced ? "Allocated" : "Available";
+
+        //            return new CurrentStockReportViewModel
+        //            {
+        //                SrNo = index + 1,
+        //                DealerCode = x.Vehicle.DealerCode,
+        //                DealerName = x.Dealer != null ? x.Dealer.Compname : "",
+        //                ModelCode = x.Vehicle.ItemCode,
+        //                ModelName = x.Item != null ? x.Item.Itemname : "",
+        //                OEMModelName = x.Item != null ? x.Item.Oemmodelname : "",
+        //                ColorCode = x.Vehicle.ColrCode,
+        //                ColorName = x.Color != null ? x.Color.Colorname : "",
+        //                ChassisNo = x.Vehicle.ChasisNo,
+        //                MotorNo = x.Vehicle.MotorNo,
+        //                BatteryNo = x.Vehicle.BatteryNo,
+        //                BatteryNo2 = x.Vehicle.BatteryNo2,
+        //                BatteryNo3 = x.Vehicle.BatteryNo3,
+        //                BatteryNo4 = x.Vehicle.BatteryNo4,
+        //                BatteryNo5 = x.Vehicle.BatteryNo5,
+        //                BatteryNo6 = x.Vehicle.BatteryNo6,
+        //                ChargerNo = x.Vehicle.ChargerNo,
+        //                ControllerNo = x.Vehicle.ControllerNo,
+        //                RegisterNo = match?.Detail.RegNo ?? "",
+        //                InvoiceNo = x.Vehicle.InvoiceNo,
+        //                DispatchDate = invoiceDate,
+        //                ReceiveDate = invoiceDate,
+        //                VehicleStatus = vehicleStatus,
+        //                StockStatus = vehicleStatus,
+        //                LocationCode = x.Vehicle.LocCode,
+        //                LocationName = x.LocationMaster != null ? x.LocationMaster.Locname : "",
+        //                CurrentLocation = x.LocationMaster != null ? x.LocationMaster.Locname : x.Vehicle.LocCode,
+        //                PurchaseRate = 0,
+        //                EstimatedSaleRate = 0,
+        //                IsBilled = isInvoiced,
+        //                DaysInStock = invoiceDate.HasValue ? (DateTime.Now - invoiceDate.Value).Days : 0
+        //            };
+        //        }).ToList();
+
+        //        IEnumerable<CurrentStockReportViewModel> result = mappedRows;
+
+        //        if (!string.IsNullOrWhiteSpace(filter.StockStatus))
+        //            result = result.Where(x => x.VehicleStatus == filter.StockStatus);
+        //        if (filter.FromDate.HasValue)
+        //            result = result.Where(x =>
+        //                x.ReceiveDate.HasValue &&
+        //                x.ReceiveDate.Value.Date >= filter.FromDate.Value.Date);
+        //        if (filter.ToDate.HasValue)
+        //            result = result.Where(x =>
+        //                x.ReceiveDate.HasValue &&
+        //                x.ReceiveDate.Value.Date <= filter.ToDate.Value.Date);
+
+        //        var resultList = result.ToList();
+        //        var totalRecords = resultList.Count;
+
+        //        var data = resultList
+        //            .OrderByDescending(x => x.ReceiveDate)
+        //            .ThenBy(x => x.DealerName)
+        //            .Skip((filter.PageIndex - 1) * filter.PageSize)
+        //            .Take(filter.PageSize)
+        //            .ToList();
+
+        //        return new PagedResponse<CurrentStockReportViewModel>
+        //        {
+        //            Data = data,
+        //            TotalRecords = totalRecords
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception("Error fetching current stock report: " + ex.Message, ex);
+        //    }
+        //}
+        private async Task<HashSet<string>> GetInspectedChassisSetAsync()
+        {
+            var inspectedChassisNos = await (
+                from d in _context.LotinspectionDetails.AsNoTracking()
+                join h in _context.LotinspectionHeaders.AsNoTracking()
+                    on d.LotHeaderId equals h.Id
+                where h.IsLotInspected == true
+                select d.ChassisNo
+            ).ToListAsync();
+
+            return inspectedChassisNos
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim().ToUpperInvariant())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
         public async Task<PagedResponse<CurrentStockReportViewModel>> GetCurrentStockReportAsync(CurrentStockFilterModel filter)
         {
             try
@@ -1197,6 +1349,15 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 var rawData = await query.ToListAsync();
 
+                // FIXED: exclude vehicles whose lot inspection isn't completed
+                // yet, before the chassis-dedup step below (no point grouping
+                // rows we're about to discard anyway).
+                var inspectedChassisSet = await GetInspectedChassisSetAsync();
+
+                rawData = rawData
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
+                             && inspectedChassisSet.Contains(x.Vehicle.ChasisNo!.Trim().ToUpperInvariant()))
+                    .ToList();
 
                 rawData = rawData
                        .GroupBy(x => string.IsNullOrWhiteSpace(x.Vehicle.ChasisNo)
@@ -1223,11 +1384,22 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         ? m
                         : null;
 
-                    // Invoiced (sold) -> Allocated; anything else -> Available. Allocated
-                    // vehicles always show in this report — sale status never removes a
-                    // row; only the dedupe step above (i.e. D2D) does.
                     bool isInvoiced = match?.Header.Status == "Invoiced";
-                    string vehicleStatus = isInvoiced ? "Allocated" : "Available";
+
+                    // FIXED: Allocated used to require the sale to be fully
+                    // Invoiced. But GetLatestLiveSaleByChassisAsync already
+                    // matches ANY live (non-deleted) VehicleSaleBillHeader for
+                    // the chassis, regardless of BillType — including a
+                    // Performa (BillType == 1) created before the final Sale
+                    // Bill exists. A chassis with only a Performa is already
+                    // earmarked for a customer and shouldn't still read
+                    // "Available" just because it hasn't been invoiced yet.
+                    //
+                    // IsBilled below is intentionally left tied to isInvoiced
+                    // specifically — "actually invoiced" is a narrower, still
+                    // useful, separate concept from "Allocated".
+                    bool isAllocated = match != null;
+                    string vehicleStatus = isAllocated ? "Allocated" : "Available";
 
                     return new CurrentStockReportViewModel
                     {
@@ -1299,6 +1471,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw new Exception("Error fetching current stock report: " + ex.Message, ex);
             }
         }
+
+
         // ═════════════════════════════════════════════════════════════════════
         // MODEL-WISE CURRENT STOCK (COUNT-WISE)
         // ═════════════════════════════════════════════════════════════════════

@@ -244,7 +244,7 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in SaveJobCardDetails");
-                return BadRequest(new { message = ex.Message });     
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -363,7 +363,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (role != "SuperAdmin")
                     return Unauthorized("Only Super Admin can delete");
 
-                var result = await _jobCardRepo.DeleteJobCard(id,role);
+                var result = await _jobCardRepo.DeleteJobCard(id, role);
 
                 if (result > 0)
                     return Ok(new { message = "Deleted Successfully" });
@@ -564,27 +564,29 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
-        [HttpGet("GetIssueTypebasedJobDetails")]
+        [HttpGet("GetIssueTypebasedJobDetails/{dealerCode}/{jobNo}/{serviceloc}/{fromDate}/{toDate}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetIssueTypebasedJobDetails(
-            [FromQuery] string? dealerCode,
-            [FromQuery] int? jobNo,
-            [FromQuery] string? serviceloc,
-            [FromQuery] DateTime? fromDate,
-            [FromQuery] DateTime? toDate)
+        public async Task<IActionResult> GetIssueTypebasedJobDetails(string? dealerCode,
+             int? jobNo,
+             string? serviceloc,
+             DateTime? fromDate,
+             DateTime? toDate)
         {
             try
             {
                 var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetail(dealerCode, jobNo, serviceloc, fromDate, toDate);
+
                 return Ok(jobCardList);
+
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetIssueTypebasedJobDetails");
                 return StatusCode(500, "An error occurred while fetching job details.");
             }
+
         }
         [HttpGet("GetJobCardForPrint/{jobId}")]
         public async Task<IActionResult> GetJobCardForPrint(int jobId)

@@ -313,6 +313,13 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }
 
                 bool isSuperAdmin = string.IsNullOrWhiteSpace(dealerCode);
+
+                // NEW: normalize once. Guards against ChassisDetails.DealerId differing
+                // only in case/trailing whitespace from what the frontend sends
+                // (e.g. "CUS0435 " vs "cus0435"), which previously failed the exact
+                // string match below and silently hid an otherwise valid chassis.
+                var normalizedDealerCode = dealerCode?.Trim().ToUpper();
+
                 if (jobTypeId == 1)
                 {
                     // ===================== PDI =====================
@@ -324,27 +331,39 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         join v in _context.ChassisDetails
                           on d.ChassisNo equals v.ChassisNo
 
+                        // FIXED: was an INNER join. If ChassisDetails.DealerId has no
+                        // matching LedgerMasters row with LedgerType == "Dealer" (missing
+                        // ledger, renamed dealer, mismatched code), the chassis was
+                        // silently dropped from the ENTIRE list even though it's a
+                        // perfectly valid, lot-inspected, unsold chassis. Left join now
+                        // — a missing dealer ledger only blanks the dealer-derived
+                        // customer fields instead of hiding the chassis.
                         join dealerLg in _context.LedgerMasters.Where(x => x.LedgerType == "Dealer")
-                        on v.DealerId equals dealerLg.DealerCode
+                            on v.DealerId equals dealerLg.DealerCode into dealerLgGroup
+                        from dealerLg in dealerLgGroup.DefaultIfEmpty()
 
+                            // FIXED: was an INNER join. Any ItemCode mismatch (stale code,
+                            // case/whitespace difference) silently dropped the chassis too.
+                            // Left join keeps the chassis visible even if the model lookup
+                            // comes back empty.
                         join i in _context.ItemMasters
-                            on v.ItemCode equals i.Itemcode
+                            on v.ItemCode equals i.Itemcode into itemGroup
+                        from i in itemGroup.DefaultIfEmpty()
 
                         let vc = _context.ChassisBatteryDetails
                          .Where(x => x.ChassisNo == v.ChassisNo)
                          .OrderByDescending(x => x.CreatedDate)
                          .FirstOrDefault()
 
-                        // FIXED: was "j.Chassisno == v.ChassisNo && j.IsDelete != true || j.IsDelete == null"
-                        // which due to && binding tighter than ||, matched ANY row with IsDelete == null
-                        // regardless of chassis, causing the same "previous KMS" to leak across every job card.
                         let existingjobCard = _context.JobCardHeaders
                             .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
                             .OrderByDescending(j => j.CreatedDate)
                             .FirstOrDefault()
 
+                        let oemModelNameLower = i != null ? i.Oemmodelname.Trim().ToLower() : null
+
                         join o in _context.OemmodelMasters
-                            on i.Oemmodelname.Trim().ToLower()
+                            on oemModelNameLower
                             equals o.ModelName.Trim().ToLower()
                             into oGroup
 
@@ -352,30 +371,31 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                         where h.IsLotInspected == true
                          && v.SaleDate == null
-                        //&& (h.IsD2d == true || h.IsD2d == null) 
-                        && (isSuperAdmin || v.DealerId == dealerCode)
+                         // FIXED: case/whitespace-insensitive dealer match instead of a
+                         // brittle exact-string comparison.
+                         && (isSuperAdmin || (v.DealerId != null && v.DealerId.Trim().ToUpper() == normalizedDealerCode))
 
                         select new LotInspectionChassisVM
                         {
                             InvoiceNo = h.InvoiceNo,
                             ChassisNumber = v.ChassisNo,
 
-                            CustomerLedgerId = dealerLg.Id,
-                            CustomerName = dealerLg.LedgerName,
-                            CustomerMobile = dealerLg.MobileNumber,
+                            CustomerLedgerId = dealerLg != null ? dealerLg.Id : 0,
+                            CustomerName = dealerLg != null ? dealerLg.LedgerName : null,
+                            CustomerMobile = dealerLg != null ? dealerLg.MobileNumber : null,
                             InwardType = h.InwardType,
                             VehiclePrevkms = existingjobCard != null ? existingjobCard.Vehiclekms : null,
 
-                            ModelName = i.Itemname,
+                            ModelName = i != null ? i.Itemname : null,
                             RegisterNo = v.RegNo,
-                            BatteryNumber = vc.BatteryNo,
-                            ChargerNumber = vc.ChargerNo,
-                            ControllerNo = vc.ControllerNo,
-                            BatteryMake = vc.BatteryMake,
-                            BatteryCapacity = vc.BatteryCapacity,
-                            BatteryChemestry = vc.BatteryChemical,
-                            ConverterNo = vc.ConverterNo,
-                            MotorNo = vc.MotorNo,
+                            BatteryNumber = vc != null ? vc.BatteryNo : null,
+                            ChargerNumber = vc != null ? vc.ChargerNo : null,
+                            ControllerNo = vc != null ? vc.ControllerNo : null,
+                            BatteryMake = vc != null ? vc.BatteryMake : null,
+                            BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
+                            BatteryChemestry = vc != null ? vc.BatteryChemical : null,
+                            ConverterNo = vc != null ? vc.ConverterNo : null,
+                            MotorNo = vc != null ? vc.MotorNo : null,
 
                             oemModelId = o != null ? o.Id : 0
                         }
@@ -395,20 +415,34 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join v in _context.ChassisDetails
                     on d.ChassisNo equals v.ChassisNo
 
+                    // FIXED: same silent-drop risk as the PDI branch — left join.
                     join i in _context.ItemMasters
-                    on v.ItemCode equals i.Itemcode
+                        on v.ItemCode equals i.Itemcode into itemGroup2
+                    from i in itemGroup2.DefaultIfEmpty()
 
+                        // FIXED: was inner — a sale bill detail row missing for this
+                        // chassis (data entry gap) previously hid the whole chassis.
                     join vsd in _context.VehicleSaleBillDetails
-                    on d.ChassisNo equals vsd.ChassisNo
+                        on d.ChassisNo equals vsd.ChassisNo into vsdGroup
+                    from vsd in vsdGroup.DefaultIfEmpty()
 
+                        // FIXED: was inner, and vsh's own fields were never even used in
+                        // the projection below — it existed purely as a referential check.
+                        // Left join removes an unnecessary way to drop a valid chassis.
                     join vsh in _context.VehicleSaleBillHeaders
-                    on vsd.VehicleSaleBillId equals vsh.Id
+                        on (vsd != null ? vsd.VehicleSaleBillId : (int?)null) equals vsh.Id into vshGroup
+                    from vsh in vshGroup.DefaultIfEmpty()
 
+                        // FIXED: was inner — a chassis whose customer ledger record is
+                        // missing/mismatched no longer disappears entirely.
                     join custLg in _context.LedgerMasters
-                    on v.LedgerId equals custLg.Id
+                        on v.LedgerId equals custLg.Id into custLgGroup
+                    from custLg in custLgGroup.DefaultIfEmpty()
+
+                    let oemModelNameLower = i != null ? i.Oemmodelname.Trim().ToLower() : null
 
                     join o in _context.OemmodelMasters
-                    on i.Oemmodelname.Trim().ToLower()
+                    on oemModelNameLower
                     equals o.ModelName.Trim().ToLower()
                     into oGroup
 
@@ -419,32 +453,29 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefault()
 
-                    // FIXED: same operator-precedence bug as above — was matching any row
-                    // with IsDelete == null across ALL chassis instead of just this one.
                     let existingjobCardaftersale = _context.JobCardHeaders
                         .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
                         .OrderByDescending(j => j.CreatedDate)
                         .FirstOrDefault()
 
                     where h.IsLotInspected == true
-                    && (isSuperAdmin || v.DealerId == dealerCode)
+                    && (isSuperAdmin || (v.DealerId != null && v.DealerId.Trim().ToUpper() == normalizedDealerCode))
                     && v.SaleDate != null
 
                     select new LotInspectionChassisVM
                     {
                         InvoiceNo = h.InvoiceNo,
                         ChassisNumber = d.ChassisNo,
-                        CustomerLedgerId = custLg.Id,
-                        CustomerName = custLg.LedgerName,
-                        CustomerMobile = custLg.MobileNumber,
+                        CustomerLedgerId = custLg != null ? custLg.Id : 0,
+                        CustomerName = custLg != null ? custLg.LedgerName : null,
+                        CustomerMobile = custLg != null ? custLg.MobileNumber : null,
                         SaleDate = v.SaleDate,
-                        ModelName = i.Itemname,
+                        ModelName = i != null ? i.Itemname : null,
                         RegisterNo = v.RegNo,
-                        InsuranceExpDate = vsd.InsExpDate,
+                        InsuranceExpDate = vsd != null ? vsd.InsExpDate : null,
                         InwardType = h.InwardType,
                         VehiclePrevkms = existingjobCardaftersale != null ? existingjobCardaftersale.Vehiclekms : null,
 
-                        // Latest Battery Details
                         BatteryNumber = vc != null ? vc.BatteryNo : null,
                         ChargerNumber = vc != null ? vc.ChargerNo : null,
                         ControllerNo = vc != null ? vc.ControllerNo : null,
@@ -539,7 +570,282 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .OrderBy(x => x.Isactive == true)
                 .ToListAsync();
         }
-        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search, string? role = null)
+        //public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
+        //{
+        //    try
+        //    {
+        //        var query =
+        //            from jh in _context.JobCardHeaders
+
+        //            join c in _context.JobCardCustomers
+        //                on jh.Id equals c.JobCardHeaderId into custJoin
+        //            from c in custJoin.DefaultIfEmpty()
+
+        //            join job in _context.JobTypes
+        //                on jh.Jobtype equals job.Id into jobJoin
+        //            from job in jobJoin.DefaultIfEmpty()
+
+        //            join sh in _context.ServiceHeads
+        //                on jh.Servicehead equals sh.Id into shJoin
+        //            from sh in shJoin.DefaultIfEmpty()
+
+        //            join st in _context.ServiceTypes
+        //                on jh.Servicetype equals st.Id into stJoin
+        //            from st in stJoin.DefaultIfEmpty()
+
+        //            join js in _context.JobSources
+        //                on jh.JobSource equals js.Id into jsJoin
+        //            from js in jsJoin.DefaultIfEmpty()
+
+        //            join loc in _context.LocationMasters
+        //                on jh.Serviceloc equals loc.Loccode into locJoin
+        //            from loc in locJoin.DefaultIfEmpty()
+
+        //            join lg in _context.LedgerMasters
+        //                on c.CustomerLedgerId equals lg.Id into lgJoin
+        //            from lg in lgJoin.DefaultIfEmpty()
+
+
+        //            join sta in _context.States
+        //                on lg.State equals sta.StateId into staJoin
+        //            from sta in staJoin.DefaultIfEmpty()
+
+        //            join rb in _context.RepairBillHeaders
+        //            on jh.Id equals rb.JobId into repairBillJoin
+        //            from rb in repairBillJoin.DefaultIfEmpty()
+
+        //            join fr in _context.Ffirheaders
+        //            on jh.Id equals fr.JobCardHeaderId into ffirJoin
+        //            from fr in ffirJoin.DefaultIfEmpty()
+
+
+        //            select new
+        //            {
+        //                jh,
+        //                c,
+        //                job,
+        //                sh,
+        //                st,
+        //                js,
+        //                loc,
+        //                lg,
+        //                sta,
+        //                rb,
+        //                fr
+        //            };
+        //        //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
+
+        //        // Dealer Filter
+        //        if (!string.IsNullOrWhiteSpace(search.DealerCode))
+        //        {
+        //            query = query.Where(x =>
+        //                x.jh.DealerCode == search.DealerCode);
+        //        }
+
+        //        // Date From
+        //        if (search.DateFrom.HasValue)
+        //        {
+        //            query = query.Where(x =>
+        //                x.jh.JobinDate >= search.DateFrom.Value);
+        //        }
+
+        //        // Date To
+        //        if (search.DateTo.HasValue)
+        //        {
+        //            query = query.Where(x =>
+        //                x.jh.JobinDate <= search.DateTo.Value);
+        //        }
+
+        //        // Job No
+        //        if (search.JobNo.HasValue)
+        //        {
+        //            query = query.Where(x =>
+        //                x.jh.JobNo == search.JobNo.Value);
+        //        }
+
+        //        // Register No
+        //        if (!string.IsNullOrWhiteSpace(search.RegisterNo))
+        //        {
+        //            query = query.Where(x =>
+        //                x.c != null &&
+        //                x.c.RegisterNo.Contains(search.RegisterNo));
+        //        }
+
+        //        if (!string.IsNullOrWhiteSpace(search.serviceLocation))
+        //        {
+        //            query = query.Where(x =>
+        //                x.loc != null &&
+        //                x.loc.Locname.Contains(search.serviceLocation));
+        //        }
+
+        //        // Chassis No
+        //        if (!string.IsNullOrWhiteSpace(search.ChassisNo))
+        //        {
+        //            query = query.Where(x =>
+        //                x.c != null &&
+        //                x.c.ChassisNo.Contains(search.ChassisNo));
+        //        }
+
+
+        //        var jobCardsResult = await query
+        //            .Select(x => new JobCardlistDetailsViewModel
+        //            {
+        //                Jobtype = x.job != null ? x.job.JobTypeName : null,
+        //                Jobsource = x.js != null ? x.js.JobSourceName : null,
+        //                serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
+        //                serviceType = x.st != null ? x.st.ServiceTypeName : null,
+        //                Location = x.loc != null ? x.loc.Locname : null,
+
+        //                PartyName = x.lg != null ? x.lg.LedgerName : null,
+        //                PartyMobileNo = x.lg != null ? x.lg.MobileNumber : null,
+        //                PartyState = x.sta != null ? x.sta.StateName : null,
+        //                CustomerLedgerId = x.lg != null ? x.lg.Id : (int?)null,
+        //                RepairBillStatus = x.rb != null ? x.rb.RepairbillStatus : null,
+
+        //                IsMaterialTransfer = x.jh.IsMaterialTransfer,
+
+        //                JobCardHeader = new JobCardHeaderVM
+        //                {
+        //                    Id = x.jh.Id,
+        //                    DealerCode = x.jh.DealerCode,
+        //                    Jobtype = x.jh.Jobtype,
+        //                    Servicehead = x.jh.Servicehead,
+        //                    Servicetype = x.jh.Servicetype,
+        //                    JobSource = x.jh.JobSource,
+        //                    Chassisno = x.jh.Chassisno,
+        //                    Couponno = x.jh.Couponno,
+        //                    InwardType = x.jh.InwardType,
+        //                    Jobprefix = x.jh.Jobprefix,
+        //                    JobNo = x.jh.JobNo,
+        //                    Vehiclekms = x.jh.Vehiclekms,
+        //                    JobinDate = x.jh.JobinDate,
+        //                    JobinTime = x.jh.JobinTime,
+        //                    EstdelDate = x.jh.EstdelDate,
+        //                    EstdelTime = x.jh.EstdelTime,
+        //                    InvoiceNo = x.jh.InvoiceNo,
+        //                    ManualjobNo = x.jh.ManualjobNo,
+        //                    Serviceloc = x.jh.Serviceloc,
+        //                    Supervisor = x.jh.Supervisor,
+        //                    Technician = x.jh.Technician,
+        //                    Jobestmate = x.jh.Jobestmate,
+        //                    AirpressureRearTyre = x.jh.AirpressureRearTyre,
+        //                    AirpressurefrontTyre = x.jh.AirpressurefrontTyre,
+        //                    IsPdiSuccess = x.jh.IsPdiSuccess,
+        //                    Observation = x.jh.Observation,
+        //                    SupervisorComment = x.jh.SupervisorComment,
+        //                    IsDelete = x.jh.IsDelete,
+        //                    CreatedDate = x.jh.CreatedDate,
+        //                    UpdatedDate = x.jh.UpdatedDate,
+        //                    JobStatus =
+        //                           x.rb != null && x.rb.RepairbillStatus == "Billed"
+        //                                ? "Closed"
+
+        //                           : x.rb != null && x.rb.TotalNetAmount > 0
+        //                                ? "Complete"
+
+        //                           : x.jh.IsMaterialTransfer == true
+        //                                ? "Material Transfer"
+        //                           : x.fr != null
+        //                                ? "FFIR Created"
+        //                           : x.fr != null &&
+        //                             DateTime.Now >= x.fr.CreatedDate.AddHours(24)
+        //                                ? "Work In Progress"
+        //                           : x.fr != null && x.fr.Ffirstatus == "Closed"
+        //                                ? "FFIR Closed"
+        //                           : "Open",
+        //                },
+
+        //                JobCardBattery = _context.JobCardBatteryDetails
+        //                    .Where(b => b.JobCardHeaderId == x.jh.Id)
+        //                    .Select(b => new JobCardBatteryVM
+        //                    {
+        //                        JobCardHeaderId = b.JobCardHeaderId,
+        //                        BatteryMake = b.BatteryMake,
+        //                        BatterySerialNo = b.BatterySerialNo,
+        //                        BatteryOcv = b.BatteryOcv,
+        //                        BatteryCcv = b.BatteryCcv,
+        //                        BatteryDischarge = b.BatteryDischarge,
+        //                        BatteryCapacityAh = b.BatteryCapacityAh,
+        //                        BatteryVoltage = b.BatteryVoltage,
+        //                        MotorDrawing = b.MotorDrawing,
+        //                        ChargerMake = b.ChargerMake,
+        //                        ChargerNo = b.ChargerNo,
+        //                        ConverterNo = b.ConverterNo,
+        //                        ControllerNo = b.ControllerNo,
+        //                        BatteryChemical = b.BatteryChemical,
+        //                        BatteryCapacity = b.BatteryCapacity
+        //                    })
+        //                    .FirstOrDefault(),
+
+        //                JobCardCustomer = x.c == null ? null : new JobCardCustomerVM
+        //                {
+        //                    Id = x.c.Id,
+        //                    JobCardHeaderId = x.c.JobCardHeaderId,
+        //                    SaleDate = x.c.SaleDate,
+        //                    RegisterNo = x.c.RegisterNo,
+        //                    ChassisNo = x.c.ChassisNo,
+        //                    ModelName = x.c.ModelName,
+        //                    CustomerLedgerId = x.c.CustomerLedgerId,
+        //                    CustomerName = x.c.CustomerName,
+        //                    CustomerMobile = x.c.CustomerMobile,
+        //                    CustomerAltMobile = x.c.CustomerAltMobile,
+        //                    MotorNo = x.c.MotorNo,
+        //                    BatteryNo = x.c.BatteryNo,
+        //                    InsuranceExpDate = x.c.InsuranceExpDate,
+        //                    NextserviceDueDate = x.c.NextserviceDueDate,
+        //                    RsarenewalDate = x.c.RsarenewalDate,
+        //                    Remarks = x.c.Remarks
+        //                },
+
+        //                JobCardComplaint = _context.JobCardComplaints
+        //                    .Where(cc => cc.JobCardHeaderId == x.jh.Id)
+        //                    .Select(cc => new JobCardComplaintVM
+        //                    {
+        //                        Id = cc.Id,
+        //                        JobCardHeaderId = cc.JobCardHeaderId,
+        //                        Complaint = cc.Complaint,
+        //                        ComplaintCode = cc.ComplaintCode,
+        //                        CustomerVoice = cc.CustomerVoice
+        //                    })
+        //                    .ToList(),
+
+        //                PdiChecklistChassiWise = _context.PdichecklistChassisWises
+        //                    .Where(pdi => pdi.JobCardMasterId == x.jh.Id)
+        //                    .Select(x => new PdiChecklistChassiWiseVM
+        //                    {
+        //                        Id = x.Id,
+        //                        PdichecklistMasterId = x.PdichecklistMasterId,
+        //                        JobCardMasterId = x.JobCardMasterId,
+        //                        IsStatus = x.IsStatus,
+        //                        Remarks = x.Remarks,
+        //                        CreatedBy = x.CreatedBy,
+        //                        CreatedDate = x.CreatedDate
+        //                    })
+        //                    .ToList(),
+
+        //                Complaint = _context.JobCardComplaints
+        //                    .Where(cc => cc.JobCardHeaderId == x.jh.Id)
+        //                    .Select(cc => cc.Complaint)
+        //                    .FirstOrDefault(),
+
+        //            })
+        //            //.GroupBy(x => x.JobCardHeader.Id)
+        //            //.Select(g => g.First())
+        //            .Where(x => x.JobCardHeader.IsDelete != true)
+        //            .OrderByDescending(x => x.JobCardHeader.CreatedDate)
+        //            .ToListAsync();
+
+
+        //        return jobCardsResult;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception(
+        //    $"GetJobCardListViewAsync Error : {ex.Message} | Inner : {ex.InnerException?.Message}",
+        //    ex);
+        //    }
+        //}
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search)
         {
             try
             {
@@ -574,7 +880,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         on c.CustomerLedgerId equals lg.Id into lgJoin
                     from lg in lgJoin.DefaultIfEmpty()
 
-
                     join sta in _context.States
                         on lg.State equals sta.StateId into staJoin
                     from sta in staJoin.DefaultIfEmpty()
@@ -586,7 +891,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join fr in _context.Ffirheaders
                     on jh.Id equals fr.JobCardHeaderId into ffirJoin
                     from fr in ffirJoin.DefaultIfEmpty()
-
 
                     select new
                     {
@@ -602,69 +906,49 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         rb,
                         fr
                     };
-                //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
-                // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer.
-                var dealerCode = search.DealerCode;
-                if (dealerCode?.Trim().ToLower() == "null")
-                    dealerCode = null;
-
-                bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
-
-                // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
-                if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
+                if (!string.IsNullOrWhiteSpace(search.DealerCode))
                 {
-                    query = query.Where(x =>
-                        x.jh.DealerCode == dealerCode);
+                    query = query.Where(x => x.jh.DealerCode == search.DealerCode);
                 }
 
                 // Date From
                 if (search.DateFrom.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.jh.JobinDate >= search.DateFrom.Value);
+                    query = query.Where(x => x.jh.JobinDate >= search.DateFrom.Value);
                 }
 
                 // Date To
                 if (search.DateTo.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.jh.JobinDate <= search.DateTo.Value);
+                    query = query.Where(x => x.jh.JobinDate <= search.DateTo.Value);
                 }
 
                 // Job No
                 if (search.JobNo.HasValue)
                 {
-                    query = query.Where(x =>
-                        x.jh.JobNo == search.JobNo.Value);
+                    query = query.Where(x => x.jh.JobNo == search.JobNo.Value);
                 }
 
                 // Register No
                 if (!string.IsNullOrWhiteSpace(search.RegisterNo))
                 {
-                    query = query.Where(x =>
-                        x.c != null &&
-                        x.c.RegisterNo.Contains(search.RegisterNo));
+                    query = query.Where(x => x.c != null && x.c.RegisterNo.Contains(search.RegisterNo));
                 }
 
                 if (!string.IsNullOrWhiteSpace(search.serviceLocation))
                 {
-                    query = query.Where(x =>
-                        x.loc != null &&
-                        x.loc.Locname.Contains(search.serviceLocation));
+                    query = query.Where(x => x.loc != null && x.loc.Locname.Contains(search.serviceLocation));
                 }
 
                 // Chassis No
                 if (!string.IsNullOrWhiteSpace(search.ChassisNo))
                 {
-                    query = query.Where(x =>
-                        x.c != null &&
-                        x.c.ChassisNo.Contains(search.ChassisNo));
+                    query = query.Where(x => x.c != null && x.c.ChassisNo.Contains(search.ChassisNo));
                 }
 
-
-                var jobCardsResult = await query
+                var rawResult = await query
                     .Select(x => new JobCardlistDetailsViewModel
                     {
                         Jobtype = x.job != null ? x.job.JobTypeName : null,
@@ -806,20 +1090,39 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             .FirstOrDefault(),
 
                     })
-                    //.GroupBy(x => x.JobCardHeader.Id)
-                    //.Select(g => g.First())
                     .Where(x => x.JobCardHeader.IsDelete != true)
-                    .OrderByDescending(x => x.JobCardHeader.CreatedDate)
                     .ToListAsync();
 
+                // -----------------------------------------------------
+                // FIXED: de-duplicate in memory. The old, disabled attempt
+                // at this (GroupBy(...).Select(g => g.First()) chained
+                // straight onto the IQueryable above) is what's commented
+                // out further up in the original file — it never took
+                // effect because that shape generally can't be translated
+                // to SQL by EF Core. Doing it here, after ToListAsync(),
+                // works unconditionally.
+                //
+                // Within a group of fanned-out duplicates for the same
+                // header, prefer: a Billed repair bill > any repair bill
+                // > most recently updated — instead of an arbitrary row.
+                // -----------------------------------------------------
+                var jobCardsResult = rawResult
+                    .GroupBy(x => x.JobCardHeader.Id)
+                    .Select(g => g
+                        .OrderByDescending(x => x.RepairBillStatus == "Billed")
+                        .ThenByDescending(x => x.RepairBillStatus != null)
+                        .ThenByDescending(x => x.JobCardHeader.UpdatedDate ?? x.JobCardHeader.CreatedDate)
+                        .First())
+                    .OrderByDescending(x => x.JobCardHeader.CreatedDate)
+                    .ToList();
 
                 return jobCardsResult;
             }
             catch (Exception ex)
             {
                 throw new Exception(
-            $"GetJobCardListViewAsync Error : {ex.Message} | Inner : {ex.InnerException?.Message}",
-            ex);
+                    $"GetJobCardListViewAsync Error : {ex.Message} | Inner : {ex.InnerException?.Message}",
+                    ex);
             }
         }
         public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
@@ -828,76 +1131,59 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             try
             {
-                var chassisNo = jobCardDetails.JobCardHeader.Chassisno;
-                var dealerCode = jobCardDetails.JobCardHeader.DealerCode;
-
-                // LOCK 1 — per dealer. Makes JobNo assignment atomic: two concurrent
-                // "new job card" submissions for the SAME dealer can never compute
-                // the same "next number." This is what let JobNo 2 get handed out
-                // to two different chassis at nearly the same moment — the frontend
-                // fetches "next number" once when the form opens and never re-checks
-                // it before Save, so it can go stale under concurrent use.
-                await _context.Database.ExecuteSqlInterpolatedAsync($@"
-                    DECLARE @lockResult1 int;
-                    EXEC @lockResult1 = sp_getapplock
-                        @Resource = {"JobNo_" + dealerCode},
-                        @LockMode = 'Exclusive',
-                        @LockOwner = 'Transaction',
-                        @LockTimeout = 10000;
-                    IF @lockResult1 < 0
-                        THROW 51000, 'Could not acquire job number lock for this dealer. Please try again.', 1;
-                ");
-
-                        // LOCK 2 — per chassis. Makes the "does an open job card already
-                        // exist" check below race-free: two submissions for the SAME chassis
-                        // can no longer both pass the check before either one commits. This
-                        // is what let the exact same PDI job card get inserted twice.
-                        await _context.Database.ExecuteSqlInterpolatedAsync($@"
-                    DECLARE @lockResult2 int;
-                    EXEC @lockResult2 = sp_getapplock
-                        @Resource = {"JobCard_" + chassisNo},
-                        @LockMode = 'Exclusive',
-                        @LockOwner = 'Transaction',
-                        @LockTimeout = 10000;
-                    IF @lockResult2 < 0
-                        THROW 51000, 'Could not acquire job card lock for this chassis. Please try again.', 1;
-                ");
-
-                // Check vehicle sale details
                 // 1. PDI not allowed after sale
                 var vehicle = await _context.ChassisDetails
-                    .FirstOrDefaultAsync(x => x.ChassisNo == chassisNo);
+                    .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
                 if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
                 {
                     throw new Exception(StringConstants.aftervehiclesalestatus);
                 }
-                // 2. Existing open job card check — now race-free thanks to Lock 2
 
+                var dealerCode = jobCardDetails.JobCardHeader.DealerCode;
+                var chassisNo = jobCardDetails.JobCardHeader.Chassisno;
+
+                // -------------------------------------------------------
+                // Serialize per dealer: only one request at a time can be
+                // inside this block for a given DealerCode. @LockOwner =
+                // 'Transaction' means SQL Server releases the lock
+                // automatically on Commit/Rollback — no manual cleanup
+                // needed, and it can't be left dangling if an exception
+                // is thrown.
+                // -------------------------------------------------------
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000",
+                    $"JobCard_{dealerCode}");
+
+                // 2. Existing open job card check — now race-free, we hold the lock
                 var openJobCardExists = await _context.JobCardHeaders
-                .Where(j =>
-                j.Chassisno == chassisNo &&
-                j.IsDelete != true)
-                .AnyAsync(j =>
-                !_context.RepairBillHeaders.Any(r =>
-                r.JobId == j.Id &&
-                r.IsDelete != true &&
-                r.RepairbillStatus == "Billed"));
+                    .Where(j => j.Chassisno == chassisNo && j.IsDelete != true)
+                    .AnyAsync(j => !_context.RepairBillHeaders.Any(r =>
+                        r.JobId == j.Id &&
+                        r.IsDelete != true &&
+                        r.RepairbillStatus == "Billed"));
+
                 if (openJobCardExists)
                 {
                     throw new Exception(StringConstants.jobCardException);
                 }
 
-                // NEW: JobNo computed fresh HERE, under Lock 1 — never trust
-                // jobCardDetails.JobCardHeader.JobNo. That value came from the
-                // frontend's earlier /GetNextJobNo call and can be stale by the
-                // time the user actually clicks Save.
-                int nextJobNo = await _context.JobCardHeaders
-                    .Where(x => x.DealerCode == dealerCode)
-                    .MaxAsync(x => (int?)x.JobNo) ?? 0;
+                // 3. Compute JobNo ourselves, under the lock. Do NOT use
+                // jobCardDetails.JobCardHeader.JobNo for persistence — it
+                // may be a stale "preview" number fetched earlier by
+                // GetNextJobNumber and reused by a second, concurrent
+                // submission.
+                //
+                // FIXED: exclude soft-deleted job cards from the MAX. If a
+                // dealer's only job card (say, JobNo 1) gets deleted and
+                // nothing else was ever created after it, numbering must
+                // restart at 1 — not silently jump to 2 just because a
+                // deleted row still counted toward the max.
+                int nextJobNo = (await _context.JobCardHeaders
+                    .Where(x => x.DealerCode == dealerCode && x.IsDelete != true)
+                    .MaxAsync(x => (int?)x.JobNo)) ?? 0;
                 nextJobNo += 1;
 
                 // Insert Header
-
                 var header = new JobCardHeader
                 {
                     Jobtype = jobCardDetails.JobCardHeader.Jobtype,
@@ -910,10 +1196,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
                     Couponno = jobCardDetails.JobCardHeader.Couponno,
                     InwardType = jobCardDetails.JobCardHeader.InwardType,
-                    Jobprefix = NormalizeJobPrefix(jobCardDetails.JobCardHeader.Jobprefix),
+                    Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
                     JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
                     JobinTime = jobCardDetails.JobCardHeader.JobinTime,
-                    JobNo = nextJobNo, // CHANGED — server-assigned, not client-supplied
+                    JobNo = nextJobNo, // <-- server-computed, not client-supplied
                     EstNo = jobCardDetails.JobCardHeader.EstimateNo,
                     ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
                     EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
@@ -1024,32 +1310,419 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                     _context.PdichecklistChassisWises.AddRange(pdiList);
                 }
+
                 // Save all
                 await _context.SaveChangesAsync();
 
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(); // also releases the sp_getapplock
 
                 return headerId;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
             }
         }
+        //public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
 
-        private static string? NormalizeJobPrefix(string? jobPrefix)
+        //    try
+        //    {
+        //        // 1. PDI not allowed after sale
+        //        var vehicle = await _context.ChassisDetails
+        //            .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
+        //        if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
+        //        {
+        //            throw new Exception(StringConstants.aftervehiclesalestatus);
+        //        }
+
+        //        var dealerCode = jobCardDetails.JobCardHeader.DealerCode;
+        //        var chassisNo = jobCardDetails.JobCardHeader.Chassisno;
+
+        //        // -------------------------------------------------------
+        //        // Serialize per dealer: only one request at a time can be
+        //        // inside this block for a given DealerCode. @LockOwner =
+        //        // 'Transaction' means SQL Server releases the lock
+        //        // automatically on Commit/Rollback — no manual cleanup
+        //        // needed, and it can't be left dangling if an exception
+        //        // is thrown.
+        //        // -------------------------------------------------------
+        //        await _context.Database.ExecuteSqlRawAsync(
+        //            "EXEC sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000",
+        //            $"JobCard_{dealerCode}");
+
+        //        // 2. Existing open job card check — now race-free, we hold the lock
+        //        var openJobCardExists = await _context.JobCardHeaders
+        //            .Where(j => j.Chassisno == chassisNo && j.IsDelete != true)
+        //            .AnyAsync(j => !_context.RepairBillHeaders.Any(r =>
+        //                r.JobId == j.Id &&
+        //                r.IsDelete != true &&
+        //                r.RepairbillStatus == "Billed"));
+
+        //        if (openJobCardExists)
+        //        {
+        //            throw new Exception(StringConstants.jobCardException);
+        //        }
+
+        //        // 3. Compute JobNo ourselves, under the lock. Do NOT use
+        //        // jobCardDetails.JobCardHeader.JobNo for persistence — it
+        //        // may be a stale "preview" number fetched earlier by
+        //        // GetNextJobNumber and reused by a second, concurrent
+        //        // submission.
+        //        int nextJobNo = (await _context.JobCardHeaders
+        //            .Where(x => x.DealerCode == dealerCode)
+        //            .MaxAsync(x => (int?)x.JobNo)) ?? 0;
+        //        nextJobNo += 1;
+
+        //        // Insert Header
+        //        var header = new JobCardHeader
+        //        {
+        //            Jobtype = jobCardDetails.JobCardHeader.Jobtype,
+        //            DealerCode = dealerCode,
+        //            InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
+        //            Chassisno = chassisNo,
+        //            Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
+        //            Servicehead = jobCardDetails.JobCardHeader.Servicehead,
+        //            Servicetype = jobCardDetails.JobCardHeader.Servicetype,
+        //            Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
+        //            Couponno = jobCardDetails.JobCardHeader.Couponno,
+        //            InwardType = jobCardDetails.JobCardHeader.InwardType,
+        //            Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
+        //            JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
+        //            JobinTime = jobCardDetails.JobCardHeader.JobinTime,
+        //            JobNo = nextJobNo, // <-- server-computed, not client-supplied
+        //            EstNo = jobCardDetails.JobCardHeader.EstimateNo,
+        //            ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
+        //            EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
+        //            EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
+        //            JobSource = jobCardDetails.JobCardHeader.JobSource ?? 1,
+        //            Supervisor = jobCardDetails.JobCardHeader.Supervisor,
+        //            Technician = jobCardDetails.JobCardHeader.Technician,
+        //            Jobestmate = jobCardDetails.JobCardHeader.Jobestmate,
+        //            AirpressureRearTyre = jobCardDetails.JobCardHeader.AirpressureRearTyre,
+        //            AirpressurefrontTyre = jobCardDetails.JobCardHeader.AirpressurefrontTyre,
+        //            Observation = jobCardDetails.JobCardHeader.Observation,
+        //            SupervisorComment = jobCardDetails.JobCardHeader.SupervisorComment,
+        //            IsPdiSuccess = jobCardDetails.JobCardHeader.IsPdiSuccess,
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now,
+        //        };
+
+        //        _context.JobCardHeaders.Add(header);
+        //        await _context.SaveChangesAsync();
+
+        //        int headerId = header.Id;
+
+        //        // Insert Battery
+        //        if (jobCardDetails.JobCardBattery != null)
+        //        {
+        //            var battery = new JobCardBatteryDetail
+        //            {
+        //                JobCardHeaderId = headerId,
+        //                DealerCode = jobCardDetails.JobCardBattery.DealerCode,
+        //                BatteryMake = jobCardDetails.JobCardBattery.BatteryMake,
+        //                BatterySerialNo = jobCardDetails.JobCardBattery.BatterySerialNo,
+        //                BatteryOcv = jobCardDetails.JobCardBattery.BatteryOcv,
+        //                BatteryCcv = jobCardDetails.JobCardBattery.BatteryCcv,
+        //                BatteryDischarge = jobCardDetails.JobCardBattery.BatteryDischarge,
+        //                BatteryCapacityAh = jobCardDetails.JobCardBattery.BatteryCapacityAh,
+        //                BatteryVoltage = jobCardDetails.JobCardBattery.BatteryVoltage,
+        //                MotorDrawing = jobCardDetails.JobCardBattery.MotorDrawing,
+        //                ChargerMake = jobCardDetails.JobCardBattery.ChargerMake,
+        //                ChargerNo = jobCardDetails.JobCardBattery.ChargerNo,
+        //                ConverterNo = jobCardDetails.JobCardBattery.ConverterNo,
+        //                ControllerNo = jobCardDetails.JobCardBattery.ControllerNo,
+        //                BatteryChemical = jobCardDetails.JobCardBattery.BatteryChemical,
+        //                BatteryCapacity = jobCardDetails.JobCardBattery.BatteryCapacity,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            };
+
+        //            _context.JobCardBatteryDetails.Add(battery);
+        //        }
+
+        //        // Insert Customer
+        //        if (jobCardDetails.JobCardCustomer != null)
+        //        {
+        //            var customer = new JobCardCustomer
+        //            {
+        //                JobCardHeaderId = headerId,
+        //                CustomerLedgerId = jobCardDetails.JobCardCustomer.CustomerLedgerId,
+        //                CustomerName = jobCardDetails.JobCardCustomer.CustomerName,
+        //                CustomerMobile = jobCardDetails.JobCardCustomer.CustomerMobile,
+        //                CustomerAltMobile = jobCardDetails.JobCardCustomer.CustomerAltMobile,
+        //                ModelName = jobCardDetails.JobCardCustomer.ModelName,
+        //                ChassisNo = jobCardDetails.JobCardCustomer.ChassisNo,
+        //                RegisterNo = jobCardDetails.JobCardCustomer.RegisterNo,
+        //                MotorNo = jobCardDetails.JobCardCustomer.MotorNo,
+        //                BatteryNo = jobCardDetails.JobCardCustomer.BatteryNo,
+        //                SaleDate = jobCardDetails.JobCardCustomer.SaleDate,
+        //                InsuranceExpDate = jobCardDetails.JobCardCustomer.InsuranceExpDate,
+        //                NextserviceDueDate = jobCardDetails.JobCardCustomer.NextserviceDueDate,
+        //                RsarenewalDate = jobCardDetails.JobCardCustomer.RsarenewalDate,
+        //                Remarks = jobCardDetails.JobCardCustomer.Remarks,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            };
+
+        //            _context.JobCardCustomers.Add(customer);
+        //        }
+
+        //        // Multiple Complaints Insert()
+        //        if (jobCardDetails.JobCardComplaint != null && jobCardDetails.JobCardComplaint.Any())
+        //        {
+        //            var complaints = jobCardDetails.JobCardComplaint.Select(c => new JobCardComplaint
+        //            {
+        //                DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+        //                JobCardHeaderId = headerId,
+        //                CustomerVoice = c.CustomerVoice,
+        //                ComplaintCode = c.ComplaintCode,
+        //                Complaint = c.Complaint,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            }).ToList();
+
+        //            _context.JobCardComplaints.AddRange(complaints);
+        //        }
+
+        //        // multiple PDI Checklist Insert()
+        //        if (jobCardDetails.PdiChecklistChassiWise != null && jobCardDetails.PdiChecklistChassiWise.Any())
+        //        {
+        //            var pdiList = jobCardDetails.PdiChecklistChassiWise.Select(p => new PdichecklistChassisWise
+        //            {
+        //                PdichecklistMasterId = p.PdichecklistMasterId,
+        //                JobCardMasterId = headerId,
+        //                OemmodelId = p.OemModelId,
+        //                IsStatus = p.IsStatus,
+        //                Remarks = p.Remarks,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now
+        //            }).ToList();
+
+        //            _context.PdichecklistChassisWises.AddRange(pdiList);
+        //        }
+
+        //        // Save all
+        //        await _context.SaveChangesAsync();
+
+        //        await transaction.CommitAsync(); // also releases the sp_getapplock
+
+        //        return headerId;
+        //    }
+        //    catch (Exception)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+
+        // -------------------------------------------------------------
+        // GetNextJobNumber is now PREVIEW-ONLY. It's fine to keep it for
+        // showing the user "this will probably be Job No. 104" in the UI
+        // before they save, but it must never be trusted as the number
+        // that gets persisted — InsertJobCardinfoDetails recomputes the
+        // real number itself, under the per-dealer lock, at save time.
+        // -------------------------------------------------------------
+        //public async Task<int> GetNextJobNumber(string dealerCode)
+        //{
+        //    int maxId = await _context.JobCardHeaders
+        //        .Where(x => x.DealerCode == dealerCode)
+        //        .MaxAsync(x => (int?)x.JobNo) ?? 0;
+
+        //    return maxId + 1;
+        //}
+
+        public async Task<int> GetNextJobNumber(string dealerCode)
         {
-            if (string.IsNullOrWhiteSpace(jobPrefix))
-                return jobPrefix;
+            // FIXED: same exclusion as the authoritative computation above —
+            // a soft-deleted job card must not hold the sequence hostage, and
+            // this preview should show a number consistent with what save
+            // time will actually assign.
+            int maxId = await _context.JobCardHeaders
+                .Where(x => x.DealerCode == dealerCode && x.IsDelete != true)
+                .MaxAsync(x => (int?)x.JobNo) ?? 0;
 
-            return System.Text.RegularExpressions.Regex.Replace(
-                jobPrefix,
-                @"\d+$",
-                ""
-            );
+            return maxId + 1;
         }
-        public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
+
+//public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
+//{
+//    using var transaction = await _context.Database.BeginTransactionAsync();
+
+//    try
+//    {
+//        // Check vehicle sale details
+//        // 1. PDI not allowed after sale
+//        var vehicle = await _context.ChassisDetails
+//            .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
+//        if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
+//        {
+//            throw new Exception(StringConstants.aftervehiclesalestatus);
+//
+//        
+
+
+//        // 2. Existing open job card check
+
+//        var openJobCardExists = await _context.JobCardHeaders
+//        .Where(j =>
+//        j.Chassisno == jobCardDetails.JobCardHeader.Chassisno &&
+//        j.IsDelete != true)
+//        .AnyAsync(j =>
+//        !_context.RepairBillHeaders.Any(r =>
+//        r.JobId == j.Id &&
+//        r.IsDelete != true &&
+//        r.RepairbillStatus == "Billed"));
+//        if (openJobCardExists)
+//        {
+//            throw new Exception(StringConstants.jobCardException);
+//        }
+
+
+//        // Insert Header
+
+//        var header = new JobCardHeader
+//        {
+//            Jobtype = jobCardDetails.JobCardHeader.Jobtype,
+//            DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+//            InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
+//            Chassisno = jobCardDetails.JobCardHeader.Chassisno,
+//            Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
+//            Servicehead = jobCardDetails.JobCardHeader.Servicehead,
+//            Servicetype = jobCardDetails.JobCardHeader.Servicetype,
+//            Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
+//            Couponno = jobCardDetails.JobCardHeader.Couponno,
+//            InwardType = jobCardDetails.JobCardHeader.InwardType,
+//            Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
+//            JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
+//            JobinTime = jobCardDetails.JobCardHeader.JobinTime,
+//            JobNo = jobCardDetails.JobCardHeader.JobNo,
+//            EstNo = jobCardDetails.JobCardHeader.EstimateNo,
+//            ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
+//            EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
+//            EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
+//            JobSource = jobCardDetails.JobCardHeader.JobSource ?? 1,
+//            Supervisor = jobCardDetails.JobCardHeader.Supervisor,
+//            Technician = jobCardDetails.JobCardHeader.Technician,
+//            Jobestmate = jobCardDetails.JobCardHeader.Jobestmate,
+//            AirpressureRearTyre = jobCardDetails.JobCardHeader.AirpressureRearTyre,
+//            AirpressurefrontTyre = jobCardDetails.JobCardHeader.AirpressurefrontTyre,
+//            Observation = jobCardDetails.JobCardHeader.Observation,
+//            SupervisorComment = jobCardDetails.JobCardHeader.SupervisorComment,
+//            IsPdiSuccess = jobCardDetails.JobCardHeader.IsPdiSuccess,
+//            CreatedBy = userId,
+//            CreatedDate = DateTime.Now,
+//        };
+
+//        _context.JobCardHeaders.Add(header);
+//        await _context.SaveChangesAsync();
+
+//        int headerId = header.Id;
+
+//        // Insert Battery
+//        if (jobCardDetails.JobCardBattery != null)
+//        {
+//            var battery = new JobCardBatteryDetail
+//            {
+//                JobCardHeaderId = headerId,
+//                DealerCode = jobCardDetails.JobCardBattery.DealerCode,
+//                BatteryMake = jobCardDetails.JobCardBattery.BatteryMake,
+//                BatterySerialNo = jobCardDetails.JobCardBattery.BatterySerialNo,
+//                BatteryOcv = jobCardDetails.JobCardBattery.BatteryOcv,
+//                BatteryCcv = jobCardDetails.JobCardBattery.BatteryCcv,
+//                BatteryDischarge = jobCardDetails.JobCardBattery.BatteryDischarge,
+//                BatteryCapacityAh = jobCardDetails.JobCardBattery.BatteryCapacityAh,
+//                BatteryVoltage = jobCardDetails.JobCardBattery.BatteryVoltage,
+//                MotorDrawing = jobCardDetails.JobCardBattery.MotorDrawing,
+//                ChargerMake = jobCardDetails.JobCardBattery.ChargerMake,
+//                ChargerNo = jobCardDetails.JobCardBattery.ChargerNo,
+//                ConverterNo = jobCardDetails.JobCardBattery.ConverterNo,
+//                ControllerNo = jobCardDetails.JobCardBattery.ControllerNo,
+//                BatteryChemical = jobCardDetails.JobCardBattery.BatteryChemical,
+//                BatteryCapacity = jobCardDetails.JobCardBattery.BatteryCapacity,
+//                CreatedBy = userId,
+//                CreatedDate = DateTime.Now,
+//            };
+
+//            _context.JobCardBatteryDetails.Add(battery);
+//        }
+
+//        // Insert Customer
+//        if (jobCardDetails.JobCardCustomer != null)
+//        {
+//            var customer = new JobCardCustomer
+//            {
+//                JobCardHeaderId = headerId,
+//                CustomerLedgerId = jobCardDetails.JobCardCustomer.CustomerLedgerId,
+//                CustomerName = jobCardDetails.JobCardCustomer.CustomerName,
+//                CustomerMobile = jobCardDetails.JobCardCustomer.CustomerMobile,
+//                CustomerAltMobile = jobCardDetails.JobCardCustomer.CustomerAltMobile,
+//                ModelName = jobCardDetails.JobCardCustomer.ModelName,
+//                ChassisNo = jobCardDetails.JobCardCustomer.ChassisNo,
+//                RegisterNo = jobCardDetails.JobCardCustomer.RegisterNo,
+//                MotorNo = jobCardDetails.JobCardCustomer.MotorNo,
+//                BatteryNo = jobCardDetails.JobCardCustomer.BatteryNo,
+//                SaleDate = jobCardDetails.JobCardCustomer.SaleDate,
+//                InsuranceExpDate = jobCardDetails.JobCardCustomer.InsuranceExpDate,
+//                NextserviceDueDate = jobCardDetails.JobCardCustomer.NextserviceDueDate,
+//                RsarenewalDate = jobCardDetails.JobCardCustomer.RsarenewalDate,
+//                Remarks = jobCardDetails.JobCardCustomer.Remarks,
+//                CreatedBy = userId,
+//                CreatedDate = DateTime.Now,
+//            };
+
+//            _context.JobCardCustomers.Add(customer);
+//        }
+
+//        // Multiple Complaints Insert()
+//        if (jobCardDetails.JobCardComplaint != null && jobCardDetails.JobCardComplaint.Any())
+//        {
+//            var complaints = jobCardDetails.JobCardComplaint.Select(c => new JobCardComplaint
+//            {
+//                DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+//                JobCardHeaderId = headerId,
+//                CustomerVoice = c.CustomerVoice,
+//                ComplaintCode = c.ComplaintCode,
+//                Complaint = c.Complaint,
+//                CreatedBy = userId,
+//                CreatedDate = DateTime.Now,
+//            }).ToList();
+
+//            _context.JobCardComplaints.AddRange(complaints);
+//        }
+
+//        // multiple PDI Checklist Insert()
+//        if (jobCardDetails.PdiChecklistChassiWise != null && jobCardDetails.PdiChecklistChassiWise.Any())
+//        {
+//            var pdiList = jobCardDetails.PdiChecklistChassiWise.Select(p => new PdichecklistChassisWise
+//            {
+//                PdichecklistMasterId = p.PdichecklistMasterId,
+//                JobCardMasterId = headerId,
+//                OemmodelId = p.OemModelId,
+//                IsStatus = p.IsStatus,
+//                Remarks = p.Remarks,
+//                CreatedBy = userId,
+//                CreatedDate = DateTime.Now
+//            }).ToList();
+
+//            _context.PdichecklistChassisWises.AddRange(pdiList);
+//        }
+//        // Save all
+//        await _context.SaveChangesAsync();
+
+//        await transaction.CommitAsync();
+
+//        return headerId;
+//    }
+//    catch (Exception ex)
+//    {
+//        await transaction.RollbackAsync();
+//        throw;
+//    }
+//}
+public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -1070,7 +1743,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 header.Serviceloc = updateJobCardDetails.JobCardHeader.Serviceloc;
                 header.Couponno = updateJobCardDetails.JobCardHeader.Couponno;
                 header.InwardType = updateJobCardDetails.JobCardHeader.InwardType;
-                header.Jobprefix = NormalizeJobPrefix(updateJobCardDetails.JobCardHeader.Jobprefix);
+                header.Jobprefix = updateJobCardDetails.JobCardHeader.Jobprefix;
                 header.JobinDate = updateJobCardDetails.JobCardHeader.JobinDate;
                 header.JobinTime = updateJobCardDetails.JobCardHeader.JobinTime;
                 header.JobNo = updateJobCardDetails.JobCardHeader.JobNo;
@@ -1407,7 +2080,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             _context.JobCardHeaders.Update(jobCardHeader);
             return await _context.SaveChangesAsync();
         }
-        public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model, string? role = null)
+        public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
         {
             var query = from jc in _context.JobCardHeaders
                         join cust in _context.JobCardCustomers
@@ -1415,16 +2088,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         select new { jc, cust };
 
             // Dealer
-            // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer.
-            var dealerCode = model.DealerCode;
-            if (dealerCode?.Trim().ToLower() == "null")
-                dealerCode = null;
-
-            bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
-
-            // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
-            if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
-                query = query.Where(x => x.jc.DealerCode == dealerCode);
+            if (!string.IsNullOrWhiteSpace(model.DealerCode))
+                query = query.Where(x => x.jc.DealerCode == model.DealerCode);
 
             // Date From
             if (model.FromDate.HasValue)
@@ -1727,14 +2392,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
             return ObjCIRJobcardViewModel;
         }
-        public async Task<int> GetNextJobNumber(string dealerCode)
-        {
-            int maxId = await _context.JobCardHeaders
-                .Where(x => x.DealerCode == dealerCode)
-                .MaxAsync(x => (int?)x.JobNo) ?? 0;
+        //public async Task<int> GetNextJobNumber(string dealerCode)
+        //{
+        //    int maxId = await _context.JobCardHeaders
+        //        .Where(x => x.DealerCode == dealerCode)
+        //        .MaxAsync(x => (int?)x.JobNo) ?? 0;
 
-            return maxId + 1;
-        }
+        //    return maxId + 1;
+        //}
         public async Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId, string? dealerCode)
         {
             var CustomerStateId = await (
@@ -1789,11 +2454,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     PartCode = i.Itemcode,
                     PartDesc = i.Itemdesc,
                     PartQty = m.Quantity,
-                    // FIX: bill at the item's current dealer price (Dlrprice) from ItemMaster,
-                    // not MaterialTransfers.ItemRate (the historical rate recorded when the
-                    // part was issued, which can drift from the current dealer price and was
-                    // the source of the wrong Rate/GST on repair bills and warranty claims).
-                    PartRate = i.Dlrprice,
+                    PartRate = m.ItemRate,
                     PartHsnCode = i.Hsncode,
                     PartMRP = i.Custprice,
 
@@ -1848,6 +2509,58 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 item.IgstAmount = Math.Round((decimal)((taxableAmount * (item.Igst ?? 0)) / 100), 2);
             }
 
+
+            //var data = await (
+            //    from m in _context.MaterialTransfers
+
+            //    join i in _context.ItemMasters
+            //        on m.ItemId equals i.Id into itemJoin
+            //    from i in itemJoin.DefaultIfEmpty()
+
+
+            //    where m.JobId == jobId
+
+
+            //    select new MaterialedJobCardListVM
+            //    {
+
+            //        ItemId = i.Id,
+            //        MaterialTransferId = m.Id,
+            //        PartCode = i.Itemcode,
+            //        PartDesc = i.Itemdesc,
+            //        PartQty = m.Quantity,
+            //        PartRate = m.ItemRate,
+            //        PartHsnCode = i.Hsncode,
+            //        PartMRP = i.Custprice,
+
+            //        //Igst = i.Igst,
+            //        //Cgst = i.Cgst,
+            //        //Sgst = i.Sgst,
+            //        IssueType = m.IssueType,
+
+            //        // Labour Codes
+            //        LabourCodeDetailslist = _context.PartWiseLabourMasters
+            //                .Where(pl =>
+            //                    pl.PartCode == i.Itemcode &&
+            //                    pl.CityTier == cityTier)
+            //                .Select(pl => new LabourCodeDetails
+            //                {
+            //                    PartwiseLabourId = pl.Id,
+            //                    //LabourId = pl.Id,
+            //                    LabourCode = pl.LabourCode,
+            //                    LabourName = pl.LabourName,
+            //                    LabourRate = pl.LabourRate,
+            //                    LabourHsnCode = pl.Hsncode,
+            //                    CityTier = pl.CityTier,
+            //                    Igst = pl.Igst,
+            //                    Cgst = pl.Cgst,
+            //                    Sgst = pl.Sgst
+            //                })
+            //                .ToList()
+            //    }
+
+            //).ToListAsync();
+
             return data;
         }
         public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
@@ -1881,7 +2594,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 ChassisNo = result
             };
         }
-        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search, string? role = null)
+        public async Task<List<JobCardlistDetailsViewModel>> GetJobCardListRepairBill(JobCardSearchVM search)
         {
             try
             {
@@ -1950,21 +2663,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
-                // Client sends the literal string "null" when SuperAdmin doesn't pick a dealer
-                // (same sentinel pattern already handled elsewhere, e.g. GetAllInspectedLotChassisAsync).
-                // string.IsNullOrWhiteSpace("null") is false, so without this normalization the
-                // "null" sentinel got treated as a real dealer code and silently scoped the results.
-                var dealerCode = search.DealerCode;
-                if (dealerCode?.Trim().ToLower() == "null")
-                    dealerCode = null;
-
-                bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
-
-                // SuperAdmin sees every dealer/location; everyone else stays scoped to their own dealer.
-                if (!isSuperAdmin && !string.IsNullOrWhiteSpace(dealerCode))
+                if (!string.IsNullOrWhiteSpace(search.DealerCode))
                 {
                     query = query.Where(x =>
-                        x.jh.DealerCode == dealerCode);
+                        x.jh.DealerCode == search.DealerCode);
                 }
 
                 // Date From
@@ -2404,8 +3106,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         {
             try
             {
-                if (string.Equals(dealerCode?.Trim(), "null", StringComparison.OrdinalIgnoreCase))
-                    dealerCode = null;
                 var query =
                     from rbh in _context.RepairBillHeaders
                     join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
@@ -2415,9 +3115,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join jt in _context.JobTypes on jh.Jobtype equals jt.Id
                     join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
                     join st in _context.ServiceTypes on jh.Servicetype equals st.Id
-                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo into vsGroup
-                    from vs in vsGroup.DefaultIfEmpty()
-
+                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo
                     join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo
 
                     join chb in _context.ChassisBatteryDetails on jh.Chassisno equals chb.ChassisNo into chbGroup
@@ -2430,7 +3128,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                           && jh.Jobtype != 2
                           && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
                     select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
-
 
                 // Dynamic Filters
                 if (!string.IsNullOrWhiteSpace(dealerCode)) query = query.Where(x => x.rbh.DealerCode == dealerCode);
@@ -2448,7 +3145,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         JobType = x.jt.JobTypeName,
                         JobInDate = x.jh.JobinDate,
                         JobLocation = x.loc.Locname,
-                        JobLocationCode = x.jh.Serviceloc,
                         serviceHead = x.sh.ServiceHeadName,
                         serviceType = x.st.ServiceTypeName,
                         CustomerLedgerId = x.lg.Id,
@@ -2457,7 +3153,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         ModelName = x.jc.ModelName,
                         MotorNo = x.chb != null ? x.chb.MotorNo : null,
                         Vehiclekms = x.jh.Vehiclekms,
-                        RegistrationNo = x.vs != null ? x.vs.RegNo : null,
+                        RegistrationNo = x.vs.RegNo,
                         SaleDate = x.ch.SaleDate,
                         FailureDate = x.ffir != null ? x.ffir.FailureDate : null,
                         RepairBillNo = x.rbh.BillNo,
@@ -2467,71 +3163,37 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                 if (!result.Any()) return result;
 
+                // 1. Fetch non-null Header IDs from your main result list
                 var headerIds = result.Select(r => r.RepairBillHeaderId).ToList();
 
-                // Resolve each bill's OWN dealer (not the search filter, which can be null
-                // or a different dealer entirely in a cross-dealer SuperAdmin search) - the
-                // purchase-order lookup below must be scoped to whoever actually owns the bill.
-                var dealerCodeByBillId = await _context.RepairBillHeaders
-                    .Where(rbh => headerIds.Contains(rbh.Id))
-                    .Select(rbh => new { rbh.Id, rbh.DealerCode })
-                    .ToDictionaryAsync(x => x.Id, x => x.DealerCode);
-
+                // 2. Fetch all details where the nullable RepairBillId matches your header collection
                 var allDetails = await (
                     from rbd in _context.RepairBillDetails
                     join lm in _context.LabourMasters on rbd.LabourMasterId equals lm.Id into labourGroup
                     from lm in labourGroup.DefaultIfEmpty()
                     join pwm in _context.PartWiseLabourMasters on rbd.PartWiseLabourId equals pwm.Id into partWiseGroup
                     from pwm in partWiseGroup.DefaultIfEmpty()
-                    join im in _context.ItemMasters on rbd.PartItemId equals im.Id into itemGroup
+                    join mt in _context.MaterialTransfers on rbd.MaterialId equals mt.Id into materialGroup
+                    from mt in materialGroup.DefaultIfEmpty()
+                    join im in _context.ItemMasters on mt.ItemId equals im.Id into itemGroup
                     from im in itemGroup.DefaultIfEmpty()
-                    where rbd.RepairBillId.HasValue && headerIds.Contains(rbd.RepairBillId.Value) && rbd.IssutypeId == 2
-                    select new { rbd, lm, pwm, im }
+                        // Safely use Value or handle matching on nullable foreign keys
+                    where rbd.RepairBillId.HasValue && headerIds.Contains(rbd.RepairBillId.Value)
+                    select new
+                    {
+                        rbd,
+                        lm,
+                        pwm,
+                        mt,
+                        im
+                    }
                 ).ToListAsync();
 
-                // NEW: pull the latest Purchase Order rate per (ItemCode, Dealer), batched into
-                // a single query, so the warranty claim reimburses at procurement cost rather
-                // than ItemMaster.Dlrprice or the originally billed customer sale rate.
-                var partLookupKeys = allDetails
-                    .Where(d => d.rbd.ItemType == "Part" && d.im != null && d.rbd.RepairBillId.HasValue)
-                    .Select(d => new
-                    {
-                        ItemCode = d.im.Itemcode,
-                        DealerCode = dealerCodeByBillId.TryGetValue(d.rbd.RepairBillId.Value, out var dc) ? dc : null
-                    })
-                    .Where(k => k.ItemCode != null && k.DealerCode != null)
-                    .Distinct()
-                    .ToList();
-
-                var latestPurchaseRateByItemDealer = new Dictionary<(string ItemCode, string DealerCode), decimal>();
-
-                if (partLookupKeys.Any())
-                {
-                    var itemCodesNeeded = partLookupKeys.Select(k => k.ItemCode).Distinct().ToList();
-                    var dealerCodesNeeded = partLookupKeys.Select(k => k.DealerCode).Distinct().ToList();
-
-                    var poRows = await (
-                        from pd in _context.PurchaseOrderDetails
-                        join po in _context.PurchaseOrders on pd.Ponumber equals po.Ponumber
-                        where itemCodesNeeded.Contains(pd.ItemCode) && dealerCodesNeeded.Contains(po.CustomerCode)
-                        select new { pd.ItemCode, po.CustomerCode, po.PurchaseDate, po.Ponumber, pd.Rate }
-                    ).ToListAsync();
-
-                    latestPurchaseRateByItemDealer = poRows
-                        .GroupBy(x => (x.ItemCode, x.CustomerCode))
-                        .ToDictionary(
-                            g => g.Key,
-                            g => g.OrderByDescending(x => x.PurchaseDate)
-                                  .ThenByDescending(x => x.Ponumber)
-                                  .First().Rate ?? 0m
-                        );
-                }
-
+                // 3. Map and group the details cleanly in memory
                 foreach (var item in result)
                 {
-                    var billDealerCode = dealerCodeByBillId.TryGetValue(item.RepairBillHeaderId, out var dc) ? dc : null;
-
                     item.RepairBillDetails = allDetails
+                        // Match the values safely using GetValueOrDefault() to handle the int? structure
                         .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
                         .Select(d =>
                         {
@@ -2541,54 +3203,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                             decimal rate = isLabour ? (d.lm?.LabourRate ?? 0) : (d.pwm?.LabourRate ?? 0);
                             decimal qty = isLabour ? (d.rbd.LabourQty ?? 0) : (d.rbd.PartQty ?? 0);
 
-                            decimal partQty = isPart ? (d.rbd.PartQty ?? 0) : 0;
+                            decimal partRate = isPart ? (d.mt?.ItemRate ?? 0) : 0;
+                            decimal partQty = isPart ? (d.mt?.Quantity ?? 0) : 0;
 
-                            decimal cgstAmount = d.rbd.Cgstamount ?? 0;
-                            decimal sgstAmount = d.rbd.Sgstamount ?? 0;
-                            decimal igstAmount = d.rbd.Igstamount ?? 0;
-
-                            decimal partRate = 0;
-
-                            if (isPart)
-                            {
-                                bool isInterstate = igstAmount > 0;
-
-                                decimal? poRate = (d.im != null && billDealerCode != null &&
-                                        latestPurchaseRateByItemDealer.TryGetValue((d.im.Itemcode, billDealerCode), out var foundRate))
-                                    ? foundRate
-                                    : (decimal?)null;
-
-                                // Fall back to the originally billed rate if this item was never
-                                // purchased under this dealer (no PO history found).
-                                partRate = poRate ?? (d.rbd.PartRate ?? 0);
-
-                                if (poRate.HasValue && d.im != null)
-                                {
-                                    // Rate changed from billed sale price to PO cost - the tax
-                                    // amounts stored on the bill no longer match, so recompute
-                                    // GST against the new rate using the item's tax %, preserving
-                                    // whichever tax type (interstate/intrastate) was originally billed.
-                                    decimal taxableOnPoRate = partQty * partRate;
-
-                                    if (isInterstate)
-                                    {
-                                        igstAmount = Math.Round(taxableOnPoRate * d.im.Igst / 100, 2);
-                                        cgstAmount = 0;
-                                        sgstAmount = 0;
-                                    }
-                                    else
-                                    {
-                                        cgstAmount = Math.Round(taxableOnPoRate * d.im.Cgst / 100, 2);
-                                        sgstAmount = Math.Round(taxableOnPoRate * d.im.Sgst / 100, 2);
-                                        igstAmount = 0;
-                                    }
-                                }
-                                // else: no PO match found - keep the originally stored
-                                // Cgstamount/Sgstamount/Igstamount as-is (already assigned above).
-                            }
-
+                            // Direct, clean amount calculation
                             decimal lineSubtotal = isLabour ? (qty * rate) : (partQty * partRate);
-                            decimal taxAmount = igstAmount > 0 ? igstAmount : (cgstAmount + sgstAmount);
+                            decimal taxAmount = (d.rbd.Igstamount ?? 0) > 0
+                                ? d.rbd.Igstamount.Value
+                                : ((d.rbd.Cgstamount ?? 0) + (d.rbd.Sgstamount ?? 0));
 
                             return new IssueTypebasedJobDetails
                             {
@@ -2599,22 +3221,25 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                 PartWiseLabourId = d.rbd.PartWiseLabourId,
                                 PartItemId = d.rbd.PartItemId,
 
+                                // Pure Labour Grid Data
                                 LabourQty = isLabour ? qty : 0,
                                 LabourName = isLabour ? d.lm?.LabourCode : null,
                                 LabourDesc = isLabour ? d.lm?.LabourDescription : null,
                                 LabourRate = isLabour ? rate : 0,
 
+                                // Pure Part Labour Grid Data
                                 PartLabourQty = !isLabour ? qty : 0,
                                 PartLabourName = !isLabour ? d.pwm?.PartCode : null,
                                 PartLabourDesc = !isLabour ? d.pwm?.PartDescription : null,
                                 PartLabourRate = !isLabour ? rate : 0,
 
+                                // Pure Part Inventory Grid Data
                                 PartitemName = isPart ? (d.im != null ? d.im.Itemcode : "") : "",
-                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemdesc : "") : "",
+                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemname : "") : "",
                                 PartItemQty = partQty,
                                 PartItemRate = partRate,
-                                PartMRP = isPart ? (d.im != null ? d.im.Custprice : 0) : 0,
 
+                                // Calculated values to resolve frontend grid mismatches
                                 IgstAmount = taxAmount,
                                 RowSubTotal = lineSubtotal,
                                 TotalWithTax = lineSubtotal + taxAmount,

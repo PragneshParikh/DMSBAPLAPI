@@ -79,7 +79,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     PlasticCover = null,
                     SupervisorName = null,
                     LocationName = null,
-                    IsD2d= invoiceData.IsD2d,
+                    IsD2d = invoiceData.IsD2d,
                     InwardType = invoiceData.InwardType,
                     DealerCode = invoiceData.DealerCode,
                     LocCode = invoiceData.LocCode,
@@ -119,6 +119,27 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                     return false;
                 }
 
+                // FIXED: capture the pre-save inspected state BEFORE it gets
+                // overwritten below. This is the only way to tell "inspection
+                // is being completed on this exact save" apart from "just a
+                // routine field edit" or "already complete, saving again" —
+                // both of which must NOT post stock (see below).
+                bool wasAlreadyInspected = header.IsLotInspected == true;
+
+                // -------------------------------------------------------
+                // Serialize per lot-header. Without this, two concurrent
+                // submissions of the same "mark inspection complete" action
+                // (double-click Save, a client retry, two tabs) could both
+                // read wasAlreadyInspected == false before either commits,
+                // and both would then post incoming stock for the same lot —
+                // exactly the kind of duplicate-action race already fixed
+                // elsewhere in this codebase (see JobCardRepo). @LockOwner =
+                // 'Transaction' releases it automatically on commit/rollback.
+                // -------------------------------------------------------
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000",
+                    $"LotInspection_{header.Id}");
+
                 if (!string.IsNullOrEmpty(model.lotInspectedHeaderDetails.arrivalDate) &&
                     DateTime.TryParse(model.lotInspectedHeaderDetails.arrivalDate, out var parsedDate))
                 {
@@ -141,25 +162,21 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 header.VehicleFasteningBracket = model.lotInspectedHeaderDetails.vehicleFasteningBracket;
                 header.PlasticCover = model.lotInspectedHeaderDetails.plasticCover;
                 header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
-                header.SupervisorName = model.lotInspectedHeaderDetails.nameSupervisor;
                 header.LocationName = model.lotInspectedHeaderDetails.locationName;
                 header.IsD2d = model.lotInspectedHeaderDetails.isD2d;
-                header.InwardType= model.lotInspectedHeaderDetails.inwardType;
+                header.InwardType = model.lotInspectedHeaderDetails.inwardType;
                 header.IsLotInspected = model.lotInspectedHeaderDetails.IsLotInspected;
 
                 header.UpdatedBy = userId;
-                //                if (!(string.IsNullOrEmpty(model.lotInspectedHeaderDetails.updatedDate) &&
-                //!DateTime.            TryParse(model.lotInspectedHeaderDetails.updatedDate, out var parsedUpdateDate)))
-                //                {
-                //                    header.UpdatedDate = DateOnly.FromDateTime(parsedUpdateDate);
-                //                }
-
-
                 header.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
                 // ================= DETAILS =================
+                // Chassis-level fields (remarks, damage, checklist qtys, etc.)
+                // are still updated unconditionally on every save — editing
+                // these at any stage of inspection is legitimate. Only the
+                // stock-posting below is gated on completion.
                 var detailIds = model.lotInspectedDetails.Select(x => x.Id).ToList();
 
                 var dbDetails = await _context.LotinspectionDetails
@@ -209,45 +226,68 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         //    detail.LotVehicleDamageImage = fileName;
                         //}
                     }
+                }
 
-                    if (detail?.Itemcode != null)
+                // ================= STOCK (Parts Inventory incoming) =================
+                // FIXED: this used to run unconditionally on every call to
+                // UpdateLotInspectionAsync — including partial saves made
+                // while inspection is still in progress, and any later
+                // re-save after inspection was already complete (e.g. fixing
+                // a typo in remarks). Each such call posted ANOTHER incoming
+                // transaction (BatchTransQty += 1 per chassis) via
+                // _partInventoryService.UpdateIncoming, inflating stock both
+                // before inspection was actually done and again on every
+                // subsequent edit.
+                //
+                // Stock must be posted exactly once: only on the transition
+                // from not-inspected to inspected.
+                bool justCompleted = !wasAlreadyInspected && header.IsLotInspected == true;
+
+                if (justCompleted)
+                {
+                    foreach (var item in model.lotInspectedDetails)
                     {
-                        var partNo = lstIltems.FirstOrDefault(x => x.ItemCode == detail.Itemcode);
+                        var detail = dbDetails.FirstOrDefault(x => x.ChassisNo == item.chassisNo
+                                                              && x.LotHeaderId == item.lotHeaderID);
 
-                        if (partNo != null)
+                        if (detail?.Itemcode != null)
                         {
-                            partNo.BatchTransQty += 1;
-                        }
-                        else
-                        {
-                            lstIltems.Add(new PartsInventory
+                            var partNo = lstIltems.FirstOrDefault(x => x.ItemCode == detail.Itemcode);
+
+                            if (partNo != null)
                             {
-                                TransId = Guid.NewGuid().ToString(),
-                                ItemCode = detail.Itemcode,
-                                VoucherNo = null!,
-                                TransType = "P",
-                                BatchNo = "Batch 1",
-                                BatchTransQty = 1,
-                                BatchOpeningQty = 0,
-                                BatchClosingQty = 0,
-                                TransDate = DateOnly.FromDateTime(DateTime.Now.Date),
-                                DealerLocation = header?.LocationName,
-                                VendorCode = dealerCode,
-                                TotalRate = 100.00M,
-                                PurchaseRate = 110.00M,
-                                Potype = "B2C",
-                                PostTransaction = 0,
-                                CreatedBy = userId,
-                                CreatedDate = DateTime.Now
-                            });
+                                partNo.BatchTransQty += 1;
+                            }
+                            else
+                            {
+                                lstIltems.Add(new PartsInventory
+                                {
+                                    TransId = Guid.NewGuid().ToString(),
+                                    ItemCode = detail.Itemcode,
+                                    VoucherNo = null!,
+                                    TransType = "P",
+                                    BatchNo = "Batch 1",
+                                    BatchTransQty = 1,
+                                    BatchOpeningQty = 0,
+                                    BatchClosingQty = 0,
+                                    TransDate = DateOnly.FromDateTime(DateTime.Now.Date),
+                                    DealerLocation = header?.LocationName,
+                                    VendorCode = dealerCode,
+                                    TotalRate = 100.00M,
+                                    PurchaseRate = 110.00M,
+                                    Potype = "B2C",
+                                    PostTransaction = 0,
+                                    CreatedBy = userId,
+                                    CreatedDate = DateTime.Now
+                                });
+                            }
                         }
                     }
 
-                }
-
-                foreach (var vehicle in lstIltems)
-                {
-                    await _partInventoryService.UpdateIncoming(vehicle);
+                    foreach (var vehicle in lstIltems)
+                    {
+                        await _partInventoryService.UpdateIncoming(vehicle);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -329,7 +369,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                         LocationName = x.LocationName,
                         IsLotInspected = x.IsLotInspected,
                         CreatedDate = x.CreatedDate,
-                        UpdatedDate= x.UpdatedDate
+                        UpdatedDate = x.UpdatedDate
                     })
                     .ToListAsync();
 
@@ -342,12 +382,12 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
         }
 
 
-        public async Task<byte[]> DownloadLotInspecteddetailsExcel(string? invoiceNo,DateOnly? fromDate,DateOnly?toDate)
+        public async Task<byte[]> DownloadLotInspecteddetailsExcel(string? invoiceNo, DateOnly? fromDate, DateOnly? toDate)
         {
             try
             {
 
-                var data = await _details.GetAllDetailsByInvoiceAsync(invoiceNo,fromDate,toDate);
+                var data = await _details.GetAllDetailsByInvoiceAsync(invoiceNo, fromDate, toDate);
                 if (data == null)
                 {
                     throw new Exception("data is NULL");
@@ -381,7 +421,7 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
 
                 return await _excelService.GenerateExcel(model);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception(
         $"Message: {ex.Message} \n Inner: {ex.InnerException?.Message} \n Stack: {ex.StackTrace}",

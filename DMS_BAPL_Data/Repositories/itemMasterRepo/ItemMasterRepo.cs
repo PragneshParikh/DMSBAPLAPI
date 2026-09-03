@@ -600,47 +600,21 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 var result = await (
                     from IM in _context.ItemMasters
 
-                    join HM in _context.HsncodeMasters
-                        on IM.Hsncode equals HM.Hsncode
-
+                        // REMOVED: inner join to HsncodeMasters. It wasn't used for
+                        // anything except the join condition itself (no HM.* field was
+                        // ever selected), and being an inner join it silently dropped
+                        // any item from this list whose Hsncode had no matching row in
+                        // HsncodeMasters -- such an item simply never appeared in the
+                        // Part Purchase Order dropdown, with no error anywhere. Since
+                        // GST no longer depends on the HSN tables at all (see below),
+                        // there's nothing left needing that join.
                     join PI in _context.PartsInventories
                             .Where(x => x.FinalStockFlag == "Y")
                         on IM.Itemcode equals PI.ItemCode into PIGroup
-
                     from PI in PIGroup.DefaultIfEmpty()
 
                     where IM.Grpidno == groupId &&
                          (IM.DealerCode == dealerCode || IM.DealerCode == null)
-
-                    // Only the LOCAL (intrastate, StateFlag "S") mapping is needed -
-                    // this is where CGST and SGST live, and is now the single
-                    // source of truth for BOTH intrastate and interstate rates.
-                    // The old "otherTaxCode" (StateFlag "O") lookup that fed a
-                    // separately-configured IGST rate has been removed entirely -
-                    // that separate rate is what disagreed with the correct
-                    // CGST+SGST total in the first place.
-                    let stateTaxCode = _context.HsnwiseTaxCodes
-                        .Where(x =>
-                            x.Hsncode == IM.Hsncode &&
-                            x.StateFlag.Trim() == "S")
-                        .OrderByDescending(x => x.EffectiveDate)
-                        .FirstOrDefault()
-
-                    let cgstPercentage = _context.AggregateTaxCodes
-                        .Where(x =>
-                            stateTaxCode != null &&
-                            x.AtaxCode == stateTaxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("CGST"))
-                        .Select(x => (decimal?)x.TaxRate)
-                        .FirstOrDefault() ?? 0
-
-                    let sgstPercentage = _context.AggregateTaxCodes
-                        .Where(x =>
-                            stateTaxCode != null &&
-                            x.AtaxCode == stateTaxCode.AtaxCode &&
-                            x.TaxCode.StartsWith("SGST"))
-                        .Select(x => (decimal?)x.TaxRate)
-                        .FirstOrDefault() ?? 0
 
                     select new
                     {
@@ -656,19 +630,21 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         IM.Grpidno,
                         IM.Colorcode,
                         IM.MinOrderQty,
-
                         BatchClosingQty = PI != null
                             ? PI.BatchClosingQty
                             : 0,
 
-                        CgstPercentage = cgstPercentage,
-                        SgstPercentage = sgstPercentage,
-                        // IGST is ALWAYS CGST% + SGST%, never looked up separately -
-                        // matches ComputeTaxLinesAsync on the save side exactly.
-                        IgstPercentage = cgstPercentage + sgstPercentage,
-
-                        TotalGSTSameState = cgstPercentage + sgstPercentage,
-                        TotalGSTOtherState = cgstPercentage + sgstPercentage
+                        // CHANGED: GST is now read directly off ItemMaster instead of
+                        // being resolved via HsnwiseTaxCode -> AggregateTaxCode ->
+                        // TaxCodeMaster. This is the same source PurchaseOrderService's
+                        // ComputeTaxLinesAsync now uses when the PO is actually saved,
+                        // so the rate shown here when a part is added to a Purchase
+                        // Order and the rate persisted on save can never disagree.
+                        CgstPercentage = IM.Cgst,
+                        SgstPercentage = IM.Sgst,
+                        IgstPercentage = IM.Igst,
+                        TotalGSTSameState = IM.Cgst + IM.Sgst,
+                        TotalGSTOtherState = IM.Igst
                     }
                 )
                 .Distinct()
