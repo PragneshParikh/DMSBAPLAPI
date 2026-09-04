@@ -1,6 +1,6 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,15 +14,12 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
     {
         private readonly BapldmsvadContext _context;
 
-        // NEW — hashes/verifies the separate location-login password. The
-        // generic type parameter is just a marker Identity's hasher needs; it
-        // never reads or persists anything from the EmployeeMaster instance
-        // passed to it, so it's safe to use before Id is even assigned.
-        private static readonly PasswordHasher<EmployeeMaster> _locationPasswordHasher = new();
+        private readonly IDataProtector _locationPasswordProtector;
 
-        public EmployeeMasterRepo(BapldmsvadContext context)
+        public EmployeeMasterRepo(BapldmsvadContext context, IDataProtectionProvider dataProtectionProvider)
         {
             _context = context;
+            _locationPasswordProtector = dataProtectionProvider.CreateProtector("LocationPassword.v1");
         }
 
         async Task<IEnumerable<EmployeeMaster>> IEmployeeMasterRepo.Get()
@@ -50,12 +47,20 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
             {
                 // NEW — location login: enforce a unique Location Login ID and
                 // turn whatever plaintext password came in from the client into
-                // a hash before it ever reaches the database.
+                // an encrypted value before it ever reaches the database.
                 if (!string.IsNullOrWhiteSpace(employeeMaster.LocationLoginId))
                 {
                     await EnsureLocationLoginIdIsUnique(employeeMaster.LocationLoginId, excludeEmployeeId: 0);
                 }
-                HashLocationPasswordIfProvided(employeeMaster, existingHash: null);
+                ProtectLocationPasswordIfProvided(employeeMaster, existingProtectedValue: null);
+
+                // FIXED: force new employees active by default. See header
+                // comment — AuthController.Login rejects any Employee-role
+                // login with 401 whenever this is false, and it defaults to
+                // false in C# unless explicitly set. Creating a brand-new
+                // employee who is immediately inactive isn't a realistic
+                // scenario; deactivate via Update afterward if truly needed.
+                employeeMaster.IsActive = true;
 
                 _context.EmployeeMasters.Add(employeeMaster);
                 var result = await _context.SaveChangesAsync();
@@ -77,15 +82,16 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 if (existingEmployee == null)
                     return 0;
 
-                // NEW — same uniqueness + hashing rules as create, excluding this
-                // employee's own row from the uniqueness check, and falling back
-                // to the existing hash whenever the password field was left blank
-                // (so editing an employee doesn't force re-entering the password).
+                // NEW — same uniqueness + encryption rules as create, excluding
+                // this employee's own row from the uniqueness check, and
+                // falling back to the existing encrypted value whenever the
+                // password field was left blank (so editing an employee
+                // doesn't force re-entering the password).
                 if (!string.IsNullOrWhiteSpace(employeeMaster.LocationLoginId))
                 {
                     await EnsureLocationLoginIdIsUnique(employeeMaster.LocationLoginId, excludeEmployeeId: existingEmployee.Id);
                 }
-                HashLocationPasswordIfProvided(employeeMaster, existingEmployee.LocationPasswordHash);
+                ProtectLocationPasswordIfProvided(employeeMaster, existingEmployee.LocationPasswordHash);
 
                 existingEmployee.EmployeeCode = employeeMaster.EmployeeCode;
                 existingEmployee.FirstName = employeeMaster.FirstName;
@@ -136,14 +142,14 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
                 throw new InvalidOperationException($"Location Login ID '{locationLoginId}' is already in use by another employee.");
         }
 
-        // NEW — LocationPasswordHash arrives from the client holding a
+        // CHANGED — LocationPasswordHash arrives from the client holding a
         // *plaintext* password whenever the admin typed a new one into the
-        // "Location Password" field (same convention this codebase already
-        // uses for the main `Password` field — plaintext in, transformed
-        // before it's persisted). Blank means "leave the stored hash
+        // "Location Password" field. Blank means "leave the stored value
         // untouched" on update. No LocationLoginId at all means location
-        // login isn't configured for this employee, so the hash is cleared.
-        private static void HashLocationPasswordIfProvided(EmployeeMaster employeeMaster, string? existingHash)
+        // login isn't configured for this employee, so the stored value is
+        // cleared. The plaintext is now encrypted (reversibly) rather than
+        // one-way hashed, so it can be decrypted and shown back later.
+        private void ProtectLocationPasswordIfProvided(EmployeeMaster employeeMaster, string? existingProtectedValue)
         {
             if (string.IsNullOrWhiteSpace(employeeMaster.LocationLoginId))
             {
@@ -153,12 +159,12 @@ namespace DMS_BAPL_Data.Repositories.EmployeeMasterRepo
 
             if (string.IsNullOrWhiteSpace(employeeMaster.LocationPasswordHash))
             {
-                employeeMaster.LocationPasswordHash = existingHash;
+                employeeMaster.LocationPasswordHash = existingProtectedValue;
                 return;
             }
 
             employeeMaster.LocationPasswordHash =
-                _locationPasswordHasher.HashPassword(employeeMaster, employeeMaster.LocationPasswordHash);
+                _locationPasswordProtector.Protect(employeeMaster.LocationPasswordHash);
         }
 
         private async Task SaveEmployeeRoleMappings(int employeeId, List<RoleMappingDto>? roleMappings)

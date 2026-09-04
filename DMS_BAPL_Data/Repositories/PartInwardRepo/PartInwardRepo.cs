@@ -234,68 +234,115 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
         async Task<object> IPartInwardRepo.GetInwardPartDetailsByInvoiceNo(string invoiceNo)
         {
-            var partInwards = await (from pi in _context.PartsInwards
-                                     join im in _context.ItemMasters
-                                        on pi.PartNo equals im.Itemcode
-                                     where pi.InvoiceNo == invoiceNo
-                                     select new
-                                     {
-                                         pi.InvoiceDate,
-                                         pi.InvoiceNo,
-                                         pi.PartNo,
-                                         pi.ItemHsncode,
-                                         pi.ItemRate,
+            if (string.IsNullOrWhiteSpace(invoiceNo))
+                return null!;
 
-                                         ItemAmount = pi.ItemRate * pi.ItemQty,
+            invoiceNo = invoiceNo.Trim();
 
-                                         ItemMrp = pi.ItemRate +
-                                         (pi.ItemRate * (pi.Igst > 0
-                                         ? pi.Igst : (pi.Cgst + pi.Sgst)) / 100m),
+            // Get Part Inward records first.
+            // ItemMaster is optional, so use LEFT JOIN.
+            var partInwards = await (
+                from pi in _context.PartsInwards
 
-                                         pi.ItemQty,
-                                         pi.Sgst,
-                                         pi.Cgst,
-                                         pi.Igst,
-                                         pi.ItemDisc,
-                                         pi.DiscountType,
-                                         pi.LocCode,
-                                         pi.DealerCode,
-                                         pi.IsAccepted,
-                                         pi.DocumentNo,
-                                         pi.ReceiptDate,
+                join im in _context.ItemMasters
+                    on pi.PartNo equals im.Itemcode into itemGroup
 
-                                         im.Itemtype,
-                                         im.Itemname,
-                                         im.Itemdesc,
-                                     })
-                                     .ToListAsync();
+                from im in itemGroup.DefaultIfEmpty()
 
+                where pi.InvoiceNo == invoiceNo
+
+                select new
+                {
+                    pi.InvoiceDate,
+                    pi.InvoiceNo,
+                    pi.PartNo,
+                    pi.ItemHsncode,
+                    pi.ItemRate,
+
+                    ItemAmount = pi.ItemRate * pi.ItemQty,
+
+                    ItemMrp = pi.ItemRate +
+                        (
+                            pi.ItemRate *
+                            (
+                                pi.Igst > 0
+                                    ? pi.Igst
+                                    : (pi.Cgst + pi.Sgst)
+                            ) / 100m
+                        ),
+
+                    pi.ItemQty,
+                    pi.Sgst,
+                    pi.Cgst,
+                    pi.Igst,
+                    pi.ItemDisc,
+                    pi.DiscountType,
+                    pi.LocCode,
+                    pi.DealerCode,
+                    pi.IsAccepted,
+                    pi.DocumentNo,
+                    pi.ReceiptDate,
+
+                    Itemtype = im != null ? im.Itemtype.ToString() : null,
+                    Itemname = im != null ? im.Itemname : null,
+                    Itemdesc = im != null ? im.Itemdesc : null
+                }
+            ).ToListAsync();
+
+            // Invoice not found
             if (!partInwards.Any())
+            {
                 return null;
+            }
 
-            var dealerCode = partInwards.First().DealerCode;
+            var firstPart = partInwards.First();
 
+            var dealerCode = firstPart.DealerCode;
+
+            // Find sequence for this dealer
             var sequence = await _context.NumberSequences
                 .FirstOrDefaultAsync(x =>
                     x.DealerCode == dealerCode &&
                     x.SequenceName == "part_inward");
 
-            if (sequence == null)
-                return null;
+            string? prefixNo = null;
 
-            int digitCount = sequence.SequenceCode.Count(c => c == '#');
-            string formattedNo = sequence.NextNo.ToString().PadLeft(digitCount, '0');
-            string prefixNo = sequence.SequenceCode.Replace(new string('#', digitCount), formattedNo);
+            // Sequence is optional.
+            // Do NOT return null just because sequence is missing.
+            if (sequence != null &&
+                !string.IsNullOrWhiteSpace(sequence.SequenceCode))
+            {
+                int digitCount =
+                    sequence.SequenceCode.Count(c => c == '#');
+
+                string formattedNo =
+                    sequence.NextNo
+                        .ToString()
+                        .PadLeft(digitCount, '0');
+
+                prefixNo =
+                    sequence.SequenceCode.Replace(
+                        new string('#', digitCount),
+                        formattedNo
+                    );
+            }
 
             return new
             {
-                IsAccepted = partInwards.First().IsAccepted,
-                DocumentNo = partInwards.First().DocumentNo,
+                IsAccepted = firstPart.IsAccepted,
+
+                DocumentNo = firstPart.DocumentNo,
+
                 PrefixNo = prefixNo,
-                InvoiceDate = partInwards.First().InvoiceDate,
-                LocationCode = partInwards.First().LocCode,
-                InvoiceNo = partInwards.First().InvoiceNo,
-                ReceiptDate = partInwards.First().ReceiptDate ?? null,
+
+                InvoiceDate = firstPart.InvoiceDate,
+
+                LocationCode = firstPart.LocCode,
+
+                InvoiceNo = firstPart.InvoiceNo,
+
+                ReceiptDate = firstPart.ReceiptDate,
+
                 PartInwards = partInwards
             };
         }

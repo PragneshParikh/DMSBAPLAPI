@@ -55,6 +55,11 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 bgEmployee.CreatedDate = DateTime.Now;
                 bgEmployee.UpdatedDate = DateTime.Now;
 
+                // FIXED: see header comment. Force new BG employees active
+                // by default — Login rejects with 401 whenever this is
+                // false, and it defaults to false unless explicitly set.
+                bgEmployee.IsActive = true;
+
                 _context.BgEmployeeMasters.Add(bgEmployee);
                 await _context.SaveChangesAsync();
 

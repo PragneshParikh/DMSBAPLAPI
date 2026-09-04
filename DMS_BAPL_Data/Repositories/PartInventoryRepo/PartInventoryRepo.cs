@@ -51,7 +51,15 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
                 };
 
                 if (closingQty < 0)
-                    throw new Exception("Negative stock not allowed");
+                {
+                    throw new InvalidOperationException(
+                        $"Insufficient stock. " +
+                        $"ItemCode: {partsInventory.ItemCode}, " +
+                        $"DealerCode: {partsInventory.VendorCode}, " +
+                        $"Location: {partsInventory.DealerLocation}, " +
+                        $"Available: {openingQty}, " +
+                        $"Required: {partsInventory.BatchTransQty}");
+                }
 
                 var newRecord = new PartsInventory
                 {

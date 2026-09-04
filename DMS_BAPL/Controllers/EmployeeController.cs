@@ -1,9 +1,11 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.EmployeeMasterService;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -15,15 +17,17 @@ namespace DMS_BAPL_Api.Controllers
         private readonly ILogger<EmployeeController> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IDataProtector _locationPasswordProtector;
 
         public EmployeeController(
             IEmployeeService employeeService, ILogger<EmployeeController> logger, UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager, IDataProtectionProvider dataProtectionProvider)
         {
             _employeeService = employeeService;
             _logger = logger;
             _userManager = userManager;
             _roleManager = roleManager;
+            _locationPasswordProtector = dataProtectionProvider.CreateProtector("LocationPassword.v1");
         }
 
         [HttpGet]
@@ -77,6 +81,21 @@ namespace DMS_BAPL_Api.Controllers
                 }
 
                 var mappings = await _employeeService.GetRoleMappings(Id);
+                string? locationPassword = null;
+                if (!string.IsNullOrWhiteSpace(user.LocationPasswordHash))
+                {
+                    try
+                    {
+                        locationPassword = _locationPasswordProtector.Unprotect(user.LocationPasswordHash);
+                    }
+                    catch (CryptographicException ex)
+                    {
+                        _logger.LogWarning(
+                            "Could not decrypt LocationPasswordHash for employee {EmployeeId} — likely saved under the " +
+                            "old one-way hash scheme. Admin will need to re-enter the location password once. {Message}",
+                            Id, ex.Message);
+                    }
+                }
 
                 var response = new
                 {
@@ -105,17 +124,11 @@ namespace DMS_BAPL_Api.Controllers
                     user.CreatedDate,
                     user.UpdatedBy,
                     user.UpdatedDate,
-
-                    // NEW — Location Login ID only; the hash itself never goes to the client.
                     user.LocationLoginId,
+                    locationPassword,
 
                     selectedDepartments = mappings.Select(m => m.Category).Distinct().ToList(),
                     roles = mappings.Select(m => m.RoleName).Distinct().ToList(),
-
-                    // NEW — category + roleId pairs, straight from
-                    // EmployeeRoleMapping. The frontend uses roleId directly
-                    // against Role Master's menu-access endpoint to prefill
-                    // Edit mode — no name-matching involved at all.
                     roleMappings = mappings
                         .Select(m => new { category = m.Category, roleName = m.RoleName, roleId = m.RoleId })
                         .ToList(),
@@ -224,13 +237,7 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // NOTE: Location Login authentication now lives in AuthController
-        // (POST /api/auth/location-login), next to the regular email/password
-        // Login action — that's where JWT issuance already happens, and a
-        // location-scoped token needs the same treatment (DealerCode/roles/
-        // LocationCode claims) to actually be usable against other endpoints.
-        // GetEmployeeByLocationLoginId below is what that new endpoint calls
-        // into via IEmployeeService.
+
 
         private async Task EnsureEmployeeLogin(EmployeeMaster emp)
         {

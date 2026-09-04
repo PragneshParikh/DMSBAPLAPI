@@ -662,6 +662,274 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }
         }
 
+        //public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
+        //{
+        //    try
+        //    {
+        //        //  Get Sale Bill with details
+        //        var saleBill = await _context.VehicleSaleBillHeaders
+        //            .Include(i => i.VehicleSaleBillDetails)
+        //            .FirstOrDefaultAsync(i => i.SaleBillNo == saleBillNo);
+        //        var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+        //        if (saleBill == null)
+        //            return 0;
+
+        //        saleBill.SaleDate = DateTime.Now;
+
+        //        // Get all chassis numbers
+        //        var chassisNos = saleBill.VehicleSaleBillDetails
+        //            .Select(d => d.ChassisNo)
+        //            .ToList();
+
+        //        // Get ItemCodes from VehicleInward using chassis
+        //        var vehicleItemCodes = await _context.ChassisDetails
+        //            .Where(v => v.ChassisNo != null && chassisNos.Contains(v.ChassisNo))
+        //            .Select(v => v.ItemCode)
+        //            .ToListAsync();
+        //        var groupedItems = vehicleItemCodes
+        //            .GroupBy(x => x)
+        //            .Select(g => new
+        //            {
+        //                ItemCode = g.Key,
+        //                Qty = g.Count()
+        //            }).ToList();
+
+
+        //        //  REDUCE STOCK
+        //        foreach (var item in groupedItems)
+        //        {
+        //            var stockTransaction = new PartsInventory
+        //            {
+        //                TransId = Guid.NewGuid().ToString(),
+        //                ItemCode = item.ItemCode,
+        //                VoucherNo = null!,
+        //                TransType = "S",
+        //                BatchNo = "Batch 1",
+        //                BatchTransQty = item.Qty,
+        //                BatchOpeningQty = 0,
+        //                BatchClosingQty = 0,
+        //                TransDate = DateOnly.FromDateTime(DateTime.Now),
+        //                DealerLocation = saleBill?.Location,
+        //                VendorCode = saleBill.DealerCode,
+        //                TotalRate = 100.00M,
+        //                PurchaseRate = 110.00M,
+        //                Potype = saleBill?.CustomerType,
+        //                PostTransaction = 0,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now
+        //            };
+
+        //            await _partInventoryService.UpdateOutgoing(stockTransaction);
+        //        }
+
+
+
+        //        var jobCardList = await _context.JobCardCustomers
+        //            .Where(x => chassisNos.Contains(x.ChassisNo))
+        //            .ToListAsync();
+
+
+        //        foreach (var job in jobCardList)
+        //        {
+        //            var saleDetail = saleBill.VehicleSaleBillDetails
+        //                .FirstOrDefault(d => d.ChassisNo == job.ChassisNo);
+
+        //            if (saleDetail == null) continue;
+
+        //            job.CustomerLedgerId = saleBill.LedgerId;
+        //            job.VehicleSaleBillid = saleBill.Id;
+        //            job.SaleDate = saleBill.SaleDate;
+        //            job.InsuranceExpDate = saleDetail.InsExpDate;
+        //            job.RegisterNo = saleDetail.RegNo;
+        //        }
+
+        //        var invalidSalesBills = await _context.VehicleSaleBillHeaders
+        //        .Include(x => x.VehicleSaleBillDetails)
+        //        .Where(x => x.SaleBillNo != saleBillNo &&
+        //                    x.VehicleSaleBillDetails.Any(c => chassisNos.Contains(c.ChassisNo)))
+        //        .ToListAsync();
+
+        //        //foreach (var bill in invalidSalesBills)
+        //        //{
+        //        //    //bill.Erpstatus = "Invalid";
+
+        //        //    var detailsToRemove = await _context.VehicleSaleBillDetails
+        //        //         .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
+        //        //            .ToListAsync();
+
+        //        //    _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
+
+        //        //}
+        //        var existingInvoice = _context.InvoiceHeaders
+        //            .FirstOrDefault(x => x.DocumentNo == saleBill.SaleBillNo);
+
+        //        InvoiceHeader invoice;
+
+        //        if (existingInvoice != null)
+        //        {
+        //            // UPDATE EXISTING INVOICE
+        //            invoice = existingInvoice;
+
+        //            invoice.InvoiceType = "Invoice";
+        //            invoice.ServiceType = "Vehicle Sale Bill";
+        //            invoice.CustomerId = saleBill.LedgerId;
+        //            invoice.Status = "Invoiced";
+        //            invoice.UpdatedBy = userId;
+        //            invoice.UpdatedDate = DateTime.Now;
+        //            invoice.InvoiceNo = "IN" + saleBill.SaleBillNo;
+        //            _context.InvoiceDetails.RemoveRange(invoice.InvoiceDetails);
+        //            invoice.InvoiceDetails.Clear();
+        //        }
+        //        else
+        //        {
+        //            // CREATE NEW INVOICE
+        //            invoice = new InvoiceHeader
+        //            {
+        //                InvoiceType = "Invoice",
+        //                ServiceType = "Vehicle Sale Bill",
+        //                DocumentNo = saleBill.SaleBillNo,
+        //                InvoiceNo = "IN" + saleBill.SaleBillNo,
+        //                ReferenceId = saleBill.Id,
+        //                CustomerId = saleBill.LedgerId,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //                Status = "Invoiced"
+        //            };
+
+        //            _context.InvoiceHeaders.Add(invoice);
+        //        }
+        //        foreach (var detail in saleBill.VehicleSaleBillDetails)
+        //        {
+        //            var item = new InvoiceDetail
+        //            {
+        //                ItemId = detail.Id,
+        //                Description = detail.ModelName,
+        //                Quantity = 1,
+        //                Rate = detail.FinalAmount,
+        //                TaxPercent = detail.Igstper ?? (detail.Cgstper + detail.Sgstper),
+        //            };
+
+        //            item.Amount = (item.Quantity ?? 0) * (item.Rate ?? 0);
+
+        //            invoice.InvoiceDetails.Add(item);
+        //        }
+
+        //        // RECALCULATE TOTALS
+        //        decimal total = invoice.InvoiceDetails.Sum(x => x.Amount ?? 0);
+        //        decimal tax = invoice.InvoiceDetails.Sum(x => (x.Amount ?? 0) * (x.TaxPercent ?? 0) / 100);
+
+        //        invoice.TotalAmount = total;
+        //        invoice.TaxAmount = tax;
+        //        invoice.NetAmount = total + tax;
+
+        //        // UPDATE SALE BILL STATUS
+        //        saleBill.Status = "Invoiced";
+
+        //        var chassisDetailsToUpdate = await _context.ChassisDetails
+        //            .Where(i => chassisNos.Contains(i.ChassisNo)).ToListAsync();
+
+        //        foreach (var chassis in chassisDetailsToUpdate)
+        //        {
+        //            chassis.SaleDate = saleBill.SaleDate;
+        //            chassis.LedgerId = saleBill.LedgerId;
+        //            chassis.UpdatedBy = userId;
+        //            chassis.UpdatedDate = DateTime.Now;
+        //        }
+
+
+        //        await _context.SaveChangesAsync();
+
+        //        if (saleBill.IsD2d == true)
+        //        {
+        //            var chassises = saleBill.VehicleSaleBillDetails.Select(x => x.ChassisNo).ToList();
+        //            await updateChassisForD2d(chassises, saleBill?.LedgerId, saleBill.DealerCode, saleBill.Location);
+
+        //            var batteryDetails = await _context.ChassisBatteryDetails.Where(x => chassisNos.Contains(x.ChassisNo)).ToListAsync();
+
+        //            var vehicleInwards = await _context.VehicleInwards.Where(x => chassisNos.Contains(x.ChasisNo) && x.DealerCode == saleBill.DealerCode).ToListAsync();
+
+        //            var receivingDealerCode = await _context.LedgerMasters.Where(x => x.Id == saleBill.LedgerId).Select(x => x.DealerCode).FirstOrDefaultAsync();
+
+        //            var gstNo = await _context.DealerMasters.Where(x => x.Dealercode == saleBill.DealerCode).Select(x => x.CompgstinNo).FirstOrDefaultAsync();
+
+        //            var vehicleLookup = vehicleInwards.GroupBy(x => x.ChasisNo).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
+
+        //            var batteryLookup = batteryDetails.GroupBy(x => x.ChassisNo).ToDictionary(x => x.Key, x => x.ToList());
+
+        //            foreach (var item in saleBill.VehicleSaleBillDetails)
+        //            {
+        //                vehicleLookup.TryGetValue(item.ChassisNo, out var vehicle);
+
+        //                batteryLookup.TryGetValue(item.ChassisNo, out var batteries);
+
+        //                var vehicleInward = new VehicleInward
+        //                {
+        //                    InvoiceDate = invoice.CreatedDate.HasValue ? DateOnly.FromDateTime(invoice.CreatedDate.Value) : null,
+        //                    InvoiceNo = invoice.InvoiceNo,
+        //                    MfgYear = item.MfgYear,
+        //                    ItemCode = item.ItemCode,
+        //                    ColrCode = vehicle.ColrCode,
+        //                    ChasisNo = item.ChassisNo,
+        //                    MotorNo = batteries?.FirstOrDefault(x => x.MotorOrderNo == 1)?.MotorNo,
+        //                    BatteryNo = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 1)?.BatteryNo,
+        //                    BatteryNo2 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 2)?.BatteryNo,
+        //                    BatteryNo3 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 3)?.BatteryNo,
+        //                    BatteryNo4 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 4)?.BatteryNo,
+        //                    BatteryNo5 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 5)?.BatteryNo,
+        //                    BatteryNo6 = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 6)?.BatteryNo,
+        //                    EcuSerno = vehicle?.EcuSerno,
+        //                    EcuImEi = vehicle?.EcuImEi,
+        //                    EcuBalMac = vehicle?.EcuBalMac,
+        //                    ImmoblizerStatus = vehicle?.ImmoblizerStatus,
+        //                    ImmoblizerNo = vehicle?.ImmoblizerNo,
+        //                    BikeSimid = vehicle?.BikeSimid,
+        //                    BikeMobileno = vehicle?.BikeMobileno,
+        //                    SoundbarSerno = vehicle?.SoundbarSerno,
+        //                    SoundbarBalMac = vehicle?.SoundbarBalMac,
+        //                    Voltage = vehicle?.Voltage,
+        //                    Validity = vehicle?.Validity,
+        //                    Startdate = vehicle?.Startdate,
+        //                    TyreNo1 = vehicle?.TyreNo1,
+        //                    TyreNo2 = vehicle?.TyreNo2,
+        //                    BatteryIdno = vehicle?.BatteryIdno,
+        //                    Dlrprice = vehicle?.Dlrprice,
+        //                    Custprice = vehicle?.Custprice,
+        //                    GstIdno = int.TryParse(gstNo, out var gst) ? gst : 0,
+        //                    DealerCode = receivingDealerCode,
+        //                    LocCode = $"{receivingDealerCode}S1",
+        //                    BatteryChemistry = item.BatteryChemical,
+        //                    BatteryCapacity = item.BatteryCapacity,
+        //                    BatteryMake = item.BatteryMake,
+        //                    Fame2Discount = item.FameIi,
+        //                    Converter = item.ConvertorNo,
+        //                    Vcu = item.Vcu,
+        //                    IsAccepted = false,
+        //                    PoType = saleBill.CustomerType,
+        //                    IsD2d = true,
+        //                    InwardType = saleBill.CustomerType,
+        //                    KeyNo = item.Key,
+        //                    ServBkno = item.BookNo,
+        //                    BatteryId = vehicle.BatteryId,
+        //                    ChargerNo = item.ChargerNo,
+        //                    ControllerNo = item.ControllerNo,
+        //                    Regnumber = item.RegNo,
+        //                    MfgMonth = vehicle.MfgMonth,
+        //                    CreatedBy = userId,
+        //                    CreatedDate = DateTime.Now
+
+        //                };
+
+        //                _context.VehicleInwards.Add(vehicleInward);
+        //            }
+        //        }
+        //        return saleBill.Id;
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
         public async Task<int> ConfirmInvoiceAndReserveChassis(string saleBillNo)
         {
             try
@@ -749,19 +1017,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             x.VehicleSaleBillDetails.Any(c => chassisNos.Contains(c.ChassisNo)))
                 .ToListAsync();
 
-                //foreach (var bill in invalidSalesBills)
-                //{
-                //    //bill.Erpstatus = "Invalid";
-
-                //    var detailsToRemove = await _context.VehicleSaleBillDetails
-                //         .Where(d => d.VehicleSaleBillId == bill.Id && chassisNos.Contains(d.ChassisNo))
-                //            .ToListAsync();
-
-                //    _context.VehicleSaleBillDetails.RemoveRange(detailsToRemove);
-
-                //}
-                var existingInvoice = _context.InvoiceHeaders
-                    .FirstOrDefault(x => x.DocumentNo == saleBill.SaleBillNo);
+                var existingInvoice = await _context.InvoiceHeaders
+                    .FirstOrDefaultAsync(x => x.DocumentNo == saleBill.SaleBillNo);
 
                 InvoiceHeader invoice;
 
@@ -868,7 +1125,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             InvoiceNo = invoice.InvoiceNo,
                             MfgYear = item.MfgYear,
                             ItemCode = item.ItemCode,
-                            ColrCode = vehicle.ColrCode,
+                            // FIXED: was `vehicle.ColrCode` — threw NullReferenceException
+                            // whenever this chassis has no VehicleInward row yet for
+                            // saleBill.DealerCode (vehicleLookup miss -> vehicle == null).
+                            ColrCode = vehicle?.ColrCode,
                             ChasisNo = item.ChassisNo,
                             MotorNo = batteries?.FirstOrDefault(x => x.MotorOrderNo == 1)?.MotorNo,
                             BatteryNo = batteries?.FirstOrDefault(x => x.BatteryOrderNo == 1)?.BatteryNo,
@@ -909,11 +1169,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             InwardType = saleBill.CustomerType,
                             KeyNo = item.Key,
                             ServBkno = item.BookNo,
-                            BatteryId = vehicle.BatteryId,
+                            // FIXED: was `vehicle.BatteryId` — same null-reference risk.
+                            BatteryId = vehicle?.BatteryId,
                             ChargerNo = item.ChargerNo,
                             ControllerNo = item.ControllerNo,
                             Regnumber = item.RegNo,
-                            MfgMonth = vehicle.MfgMonth,
+                            // FIXED: was `vehicle.MfgMonth` — same null-reference risk.
+                            MfgMonth = vehicle?.MfgMonth,
                             CreatedBy = userId,
                             CreatedDate = DateTime.Now
 
