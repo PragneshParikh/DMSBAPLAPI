@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Services.ChassisBatteryDetailService;
 using DMS_BAPL_Data.Services.ChassisDetailsService;
 using DMS_BAPL_Data.Services.VehicleDispatchService;
@@ -112,55 +113,53 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
 
                 if (vehicleInwardViewModel is null)
-                    return BadRequest(new { message = "Invalid data" });
+                    return BadRequest(new ApiResponse
+                    {
+                        Valid = false,
+                        Description = "Invalid data",
+                        Value = new List<ApiResponseValue>()
+                    });
 
-                dynamic result = await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
+                var result = (ApiResponse)await _vehicleInwardService.InsertVehicleInwardDetail(vehicleInwardViewModel);
 
-                var success = (bool?)result.GetType().GetProperty("Success")?.GetValue(result) ?? false;
-
-                if (success)
+                if (result.Valid)
                 {
                     await _chassisDetailService.InsertChassis(vehicleInwardViewModel, userId);
                     await _chassisBatteryDetailService.InsertBatteryDetail(vehicleInwardViewModel, userId);
-                }
 
-                if (success)
-                {
-                    result = new
+                    return Ok(new ApiResponse
                     {
                         Valid = true,
-                        Description = "Data Saved Successfully",
-                        Value = new
-                        {
-                            Msg = "Data Saved Successfully",
-                            StatusCode = "200",
-                            ResponseStatus = "true"
-                        }
-                    };
-                }
-                else
+                        Description = result.Description,
+                        Value = new List<ApiResponseValue>
                 {
-                    result = new
+                    new ApiResponseValue
                     {
-                        Valid = false,
-                        Description = "Data not saved.",
-                        Value = (object)null
-                    };
+                        Msg = result.Description ?? "Data Saved Successfully.",
+                        StatusCode = "200",
+                        ResponseStatus = "true"
+                    }
+                }
+                    });
                 }
 
-                return Ok(result);
+                return Ok(new ApiResponse
+                {
+                    Valid = false,
+                    Description = result.Description,
+                    Value = new List<ApiResponseValue>()
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new
+                return StatusCode(500, new ApiResponse
                 {
                     Valid = false,
                     Description = "Data not saved.",
-                    Value = (object)null
+                    Value = new List<ApiResponseValue>()
                 });
             }
         }
-
         /// <summary>
         /// Updates the status of an invoice based on the provided invoice number.
         /// Validates the user from the token, then calls the service layer to perform the update.
@@ -184,12 +183,31 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var vehicleInward = await _vehicleInwardService.UpdateInvoiceStatus(invoiceNo, userId);
+                var updated = await _vehicleInwardService.UpdateInvoiceStatus(invoiceNo, userId);
 
-                return Ok(new
+                if (updated)
                 {
-                    StatusCode = StatusCodes.Status200OK,
-                    message = "Invoice status updated"
+                    return Ok(new ApiResponse
+                    {
+                        Valid = true,
+                        Description = "Data Saved Successfully.",
+                        Value = new List<ApiResponseValue>
+                {
+                    new ApiResponseValue
+                    {
+                        Msg = "Invoice status updated",
+                        StatusCode = "200",
+                        ResponseStatus = "true"
+                    }
+                }
+                    });
+                }
+
+                return Ok(new ApiResponse
+                {
+                    Valid = false,
+                    Description = "Invoice not found or status not updated.",
+                    Value = new List<ApiResponseValue>()
                 });
             }
             catch (Exception ex)
@@ -198,6 +216,5 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
-
     }
 }

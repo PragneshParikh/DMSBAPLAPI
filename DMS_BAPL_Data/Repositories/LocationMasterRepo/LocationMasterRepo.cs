@@ -109,12 +109,57 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         }
         public async Task<bool> AddLocationMaster(LocationMasterViewModel model)
         {
+            // ADDED — this method previously inserted unconditionally, even when a
+            // location with the same code already existed. Any repeated call (a
+            // double-click, or a sync job re-adding the same location) created a
+            // second row, which is very likely how at least some of the existing
+            // duplicates got in. Now checks first, case/whitespace-insensitively,
+            // same comparison style as UpdateByLocationCode already uses.
+            var normalizedCode = model.Loccode?.Trim().ToUpper();
+
+            var existing = await _context.LocationMasters
+                .FirstOrDefaultAsync(x => x.Loccode.ToUpper() == normalizedCode);
+
+            if (existing != null)
+            {
+                // Already exists — update instead of creating a duplicate.
+                existing.Action = model.Action;
+                existing.Locname = model.Locname;
+                existing.Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode);
+                existing.Add1 = model.Add1;
+                existing.Add2 = model.Add2;
+                existing.State = model.State;
+                existing.City = model.City;
+                existing.Pincode = model.Pincode;
+                existing.Gstinno = model.Gstinno;
+                existing.Email = model.Email;
+                existing.Mobileno = model.Mobileno;
+                existing.Contpername1 = model.Contpername1;
+                existing.Contpername2 = model.Contpername2;
+                existing.Contpermob1 = model.Contpermob1;
+                existing.Contpermob2 = model.Contpermob2;
+                existing.Contperemail1 = model.Contperemail1;
+                existing.Contperemail2 = model.Contperemail2;
+                existing.Compid = model.Compid;
+                existing.Acntidno = model.Acntidno;
+                existing.Formtype = ResolveFormType(model.Formtype, existing.Formtype);
+                existing.Dealercode = model.Dealercode;
+                existing.Lineno = model.Lineno;
+                existing.Rrglocationidno = model.Rrglocationidno;
+                existing.Active = model.Active;
+                existing.UpdatedBy = model.CreatedBy;
+                existing.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
             LocationMaster locationMaster = new LocationMaster();
 
             locationMaster.Action = model.Action;
             locationMaster.Loccode = model.Loccode;
             locationMaster.Locname = model.Locname;
-            locationMaster.Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode);   // CHANGED
+            locationMaster.Locareaidno = ResolveAreaId(model.Locareaidno, model.Loccode);
             locationMaster.Add1 = model.Add1;
             locationMaster.Add2 = model.Add2;
             locationMaster.State = model.State;
@@ -131,7 +176,7 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             locationMaster.Contperemail2 = model.Contperemail2;
             locationMaster.Compid = model.Compid;
             locationMaster.Acntidno = model.Acntidno;
-            locationMaster.Formtype = ResolveFormType(model.Formtype);                     // CHANGED
+            locationMaster.Formtype = ResolveFormType(model.Formtype);
             locationMaster.Dealercode = model.Dealercode;
             locationMaster.Lineno = model.Lineno;
             locationMaster.Rrglocationidno = model.Rrglocationidno;
@@ -146,7 +191,9 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         }
         public async Task<bool> UpdateLocationMaster(LocationMasterViewModel model)
         {
-            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Loccode == model.Loccode);
+            var normalizedCode = model.Loccode?.Trim().ToUpper();
+
+            var location = await _context.LocationMasters.FirstOrDefaultAsync(x => x.Loccode.ToUpper() == normalizedCode);
 
             if (location == null)
             {
@@ -250,7 +297,8 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         public async Task<List<LocationTypewiseNameViewModel>> GetLocationNameTypewiseListAsync(string? dealerCode)
         {
             Console.WriteLine($"DealerCode = '{dealerCode}'");
-            var result = await _context.LocationMasters
+
+            var rawResult = await _context.LocationMasters
                 .Where(x => x.Active == "Y" &&
                             (dealerCode == "null" || x.Dealercode == dealerCode))
                 .Select(x => new LocationTypewiseNameViewModel
@@ -260,6 +308,18 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
                     locareadidNo = x.Locareaidno
                 })
                 .ToListAsync();
+
+            // ADDED — de-duplicate by normalized loccode, same pattern already used
+            // in GetAllLocationByDealerCode elsewhere in this file. Guards against
+            // duplicate/near-duplicate rows (exact repeats from AddLocationMaster's
+            // missing existence check, or casing/whitespace variants that slipped
+            // past UpdateLocationMaster's exact-match comparison) so this dropdown
+            // never shows the same location twice regardless of how the DB got there.
+            var result = rawResult
+                .GroupBy(x => (x.locCode ?? "").Trim().ToUpperInvariant())
+                .Select(g => g.First())
+                .OrderBy(x => x.locname)
+                .ToList();
 
             return result;
         }

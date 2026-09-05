@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Api.Controllers
@@ -349,7 +350,10 @@ namespace DMS_BAPL_Api.Controllers
                 foreach (var line in lines)
                     responses.Add(await PostToErpAsync(line));
 
-                return Ok(responses);
+                return Ok(new
+                {
+                    invoiceLineResponses = responses
+                });
             }
             catch (InvalidOperationException ex)
             {
@@ -370,6 +374,18 @@ namespace DMS_BAPL_Api.Controllers
             var dealer = !string.IsNullOrWhiteSpace(header.DealerCode)
                 ? await _context.DealerMasters.FirstOrDefaultAsync(d => d.Dealercode == header.DealerCode)
                 : null;
+
+
+            PurchaseOrder? latestDealerPo = !string.IsNullOrWhiteSpace(header.DealerCode)
+                ? await _context.PurchaseOrders
+                    .Where(p => p.CustomerCode == header.DealerCode && p.ErpPoNumber != null)
+                    .OrderByDescending(p => p.ErpSubmittedDate)
+                    .ThenByDescending(p => p.Id)
+                    .FirstOrDefaultAsync()
+                : null;
+
+            string vendorPoNo = latestDealerPo?.ErpPoNumber ?? "";
+            string vendorPoDate = latestDealerPo?.ErpPoDate?.ToString("dd-MM-yyyy") ?? "";
 
             var orderIds = await _context.WarrantyInvoiceDetails
                 .Where(d => d.WarrantyInvoiceHeaderId == invoiceId)
@@ -421,14 +437,10 @@ namespace DMS_BAPL_Api.Controllers
                     DealerCode = header.DealerCode ?? "",
                     Location = g.LocationName ?? "",
                     LocationCity = "",
-                    // Truncated to 20 chars - the ERP's own R_WarrantyClaimJobData.JobNo
-                    // column rejects anything longer (confirmed via its own error).
                     JobNo = Truncate(g.JobCardNo, 20),
                     JobDate = g.JobCardDate?.ToString("dd-MM-yyyy") ?? "",
                     ClaimNo = g.ClaimNo ?? "",
                     ClaimDate = g.ClaimDate?.ToString("dd-MM-yyyy") ?? "",
-                    // g.Kms is decimal? - cast to int first so a value like 15000.00
-                    // doesn't get sent as "15000.00" instead of "15000".
                     Kms = ((int?)g.Kms)?.ToString() ?? "",
                     VehicleSaleDate = chassisDetail?.SaleDate?.ToString("dd-MM-yyyy") ?? "",
                     PartFailureDate = failureDate?.ToString("dd-MM-yyyy") ?? "",
@@ -454,11 +466,11 @@ namespace DMS_BAPL_Api.Controllers
                     InvoiceDate = g.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
                     DocNo = $"{header.InvoicePrefix}{header.InvoiceNo}",
                     DocDate = header.InvoiceDate?.ToString("dd-MM-yyyy") ?? "",
-                    VendorPoNo = "",
-                    VendorPoDate = "",
+                    VendorPoNo = vendorPoNo,
+                    VendorPoDate = vendorPoDate,
+                    PoNo = "",
+                    PoDate = "",
                     Total = g.TotalAmount ?? 0,
-                    // Pulled from dbo.ErpUniqueIdSequence - a real running sequence,
-                    // not a formula, so it can never repeat a value already issued.
                     UniqueId = await GetNextErpUniqueIdAsync(),
                 });
             }
@@ -466,16 +478,8 @@ namespace DMS_BAPL_Api.Controllers
             return lines;
         }
 
-        // Caps a value at maxLen so it fits the ERP's own column width - the
-        // ERP rejects the whole insert if a field exceeds its column size,
-        // so we truncate defensively on the way out. 20 confirmed for JobNo
-        // via the ERP's own truncation error (R_WarrantyClaimJobData.JobNo).
         private static string Truncate(string? value, int maxLen) =>
             string.IsNullOrEmpty(value) || value.Length <= maxLen ? value ?? "" : value[..maxLen];
-
-        // Real running sequence, not a formula - ERP-issued UniqueIds are
-        // shared state, so this must never repeat a value the ERP has
-        // already seen.
         private async Task<int> GetNextErpUniqueIdAsync()
         {
             var connection = _context.Database.GetDbConnection();
@@ -497,14 +501,18 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
-        // Shape of what the ERP echoes back per line - Succeed/ConfirmMessage
-        // carry the real pass/fail signal since the ERP always returns HTTP 200
-        // even on a rejected line.
+ 
         private class ErpLineResponse
         {
             public bool Succeed { get; set; }
             public string? UniqueId { get; set; }
             public string? ConfirmMessage { get; set; }
+
+            [JsonPropertyName("PO No")]
+            public string? PoNo { get; set; }
+
+            [JsonPropertyName("PO Date")]
+            public string? PoDate { get; set; }
         }
 
         private async Task<string> PostToErpAsync(ErpWarrantyClaimLineViewModel line)
@@ -522,14 +530,12 @@ namespace DMS_BAPL_Api.Controllers
                 var json = JsonSerializer.Serialize(line);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(requestUrl, content);
-                response.EnsureSuccessStatusCode();
-
                 var responseBody = await response.Content.ReadAsStringAsync();
 
-                // Logged every attempt, not just the final one - a retry sequence
-                // (e.g. duplicate-id, then success) is fully visible in one query
-                // instead of only ever seeing the last outcome.
-                await LogApiTrackingAsync(json, $"{(int)response.StatusCode} (attempt {attempt})", responseBody);
+   
+                await LogApiTrackingAsync("WarrantyInvoice/UATWarrantyData", json, $"{(int)response.StatusCode} (attempt {attempt})", responseBody);
+
+                response.EnsureSuccessStatusCode();
 
                 ErpLineResponse? parsed;
                 try
@@ -553,13 +559,13 @@ namespace DMS_BAPL_Api.Controllers
             throw new InvalidOperationException("Failed to submit line to ERP after retrying with new UniqueIds.");
         }
 
-        private async Task LogApiTrackingAsync(string? payload, string? status, string? response)
+        private async Task LogApiTrackingAsync(string endpoint, string? payload, string? status, string? response)
         {
             try
             {
                 await _context.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO APITracking (endpoint, dateofhit, payload, status, response)
-            VALUES ({"WarrantyInvoice/UATWarrantyData"}, {DateTime.Now}, {payload}, {status}, {response})");
+            VALUES ({endpoint}, {DateTime.Now}, {payload}, {status}, {response})");
             }
             catch (Exception ex)
             {

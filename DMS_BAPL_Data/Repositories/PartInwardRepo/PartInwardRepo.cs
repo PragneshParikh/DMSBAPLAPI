@@ -32,18 +32,13 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return await Task.FromResult(_context.PartsInwards.ToList());
         }
 
-        //async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetPartInwardByDealerAsync(string dealerCode)
-        //{
-        //    return await Task.FromResult(_context.PartsInwards.Where(p => p.DealerCode == dealerCode && p.IsAccepted == false).ToList());
-        //}
-
         async Task<IEnumerable<PartsInward>> IPartInwardRepo.GetPartInwardByDealerAsync(string dealerCode)
         {
             return await Task.FromResult(
                 _context.PartsInwards
                     .Where(p => p.DealerCode == dealerCode
                              && p.IsAccepted == false
-                             && (p.PartNo == null || !p.PartNo.Contains("EW")))   // ADDED — exclude EW parts, they belong only in the EBW tab
+                             && (p.PartNo == null || !p.PartNo.Contains("EW")))
                     .ToList());
         }
 
@@ -90,11 +85,10 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                         TransId = Guid.NewGuid().ToString(),
                         ItemCode = g.Key,
 
-                        VoucherNo = null!,
+                        VoucherNo = partsInwardDetailsViewModel.InvoiceNo,
                         TransType = "P",
                         BatchNo = "Batch 1",
 
-                        // total qty by part
                         BatchTransQty = g.Sum(x => x.ItemQty),
 
                         BatchOpeningQty = 0,
@@ -165,8 +159,10 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 Igst = dispatch.Igst ?? 0,
                 LocCode = dispatch.LocCode,
                 DealerCode = dispatch.DealerCode,
-                IsAccepted = isAccepted,        // CHANGED — from payload, not hardcoded false
-                SourceType = "ERP",             // ADDED — fits source_type's 10-char limit (fixes the truncation error)
+                IsAccepted = isAccepted,
+
+                SourceType = "DMS",
+
                 CreatedBy = userId,
                 CreatedDate = DateTime.UtcNow
             };
@@ -201,7 +197,9 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 PartNo = partsInwardViewModel.part_no,
                 ItemQty = partsInwardViewModel.item_qty,
                 ItemRate = partsInwardViewModel.item_rate,
-                IsAccepted = false,
+                IsAccepted = false,   // NOTE — partsInwardViewModel.is_accepted exists on the incoming
+                                      // payload but is never read here. Confirm with the ERP integration
+                                      // owner whether this should flow through instead of always false.
                 InvoiceDate = DateTime.ParseExact(partsInwardViewModel.invoice_date, "dd/MM/yyyy", CultureInfo.InvariantCulture),
                 ItemIdno = partsInwardViewModel.item_idno,
                 ItemHsncode = partsInwardViewModel.item_hsncode,
@@ -210,7 +208,10 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 Cgst = partsInwardViewModel.cgst,
                 Igst = partsInwardViewModel.igst,
                 ItemDisc = partsInwardViewModel.item_disc,
-                DiscountType = partsInwardViewModel.discount_type
+                DiscountType = partsInwardViewModel.discount_type,
+                SourceType = "ERP",
+                CreatedBy = "ERP_INTEGRATION",
+                CreatedDate = DateTime.UtcNow
             };
 
             await _context.PartsInwards.AddAsync(entity);
@@ -239,8 +240,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
             invoiceNo = invoiceNo.Trim();
 
-            // Get Part Inward records first.
-            // ItemMaster is optional, so use LEFT JOIN.
             var partInwards = await (
                 from pi in _context.PartsInwards
 
@@ -282,6 +281,8 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                     pi.IsAccepted,
                     pi.DocumentNo,
                     pi.ReceiptDate,
+                    pi.PartyName,
+                    pi.SourceType,
 
                     Itemtype = im != null ? im.Itemtype.ToString() : null,
                     Itemname = im != null ? im.Itemname : null,
@@ -289,42 +290,45 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 }
             ).ToListAsync();
 
-            // Invoice not found
             if (!partInwards.Any())
             {
                 return null;
             }
 
             var firstPart = partInwards.First();
-
             var dealerCode = firstPart.DealerCode;
 
-            // Find sequence for this dealer
             var sequence = await _context.NumberSequences
                 .FirstOrDefaultAsync(x =>
                     x.DealerCode == dealerCode &&
                     x.SequenceName == "part_inward");
 
+            // Purchase No. is the raw running number with no zero-padding.
+            // Prefix No. is the literal text before the '#' run.
             string? prefixNo = null;
+            string? purchaseNo = null;
 
-            // Sequence is optional.
-            // Do NOT return null just because sequence is missing.
-            if (sequence != null &&
-                !string.IsNullOrWhiteSpace(sequence.SequenceCode))
+            if (sequence != null && !string.IsNullOrWhiteSpace(sequence.SequenceCode))
             {
-                int digitCount =
-                    sequence.SequenceCode.Count(c => c == '#');
+                int digitCount = sequence.SequenceCode.Count(c => c == '#');
+                string runningPlaceholder = new string('#', digitCount);
+                int placeholderIndex = digitCount > 0
+                    ? sequence.SequenceCode.IndexOf(runningPlaceholder)
+                    : -1;
 
-                string formattedNo =
-                    sequence.NextNo
-                        .ToString()
-                        .PadLeft(digitCount, '0');
+                string rawNo = sequence.NextNo.ToString();
 
-                prefixNo =
-                    sequence.SequenceCode.Replace(
-                        new string('#', digitCount),
-                        formattedNo
-                    );
+                if (placeholderIndex >= 0)
+                {
+                    prefixNo = sequence.SequenceCode.Substring(0, placeholderIndex);
+                    purchaseNo = rawNo;
+                }
+                else
+                {
+                    string formattedNo = sequence.NextNo.ToString().PadLeft(Math.Max(digitCount, 1), '0');
+                    prefixNo = sequence.SequenceCode.Replace(runningPlaceholder, formattedNo);
+                    purchaseNo = rawNo;
+                }
             }
 
             return new
@@ -334,6 +338,7 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 DocumentNo = firstPart.DocumentNo,
 
                 PrefixNo = prefixNo,
+                PurchaseNo = purchaseNo,
 
                 InvoiceDate = firstPart.InvoiceDate,
 
@@ -342,6 +347,20 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                 InvoiceNo = firstPart.InvoiceNo,
 
                 ReceiptDate = firstPart.ReceiptDate,
+
+                PartyCode = firstPart.PartyName,
+
+                // CHANGED — trust the value actually recorded at creation
+                // time (CreateFromDispatchAsync -> "ERP", PartsInward() ->
+                // "DMS", now that both paths set it). Only rows created
+                // through the manual endpoint *before* today's fix will
+                // still have a null SourceType in the DB; those legacy rows
+                // fall back to "DMS" here because that endpoint is the only
+                // one that was ever missing the assignment — it's a
+                // historically-accurate fallback, not a guess pulled from nowhere.
+                SourceType = string.IsNullOrWhiteSpace(firstPart.SourceType)
+                    ? "DMS"
+                    : firstPart.SourceType,
 
                 PartInwards = partInwards
             };

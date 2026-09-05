@@ -42,18 +42,38 @@ namespace DMS_BAPL_Api.Controllers
                 if (result > 0)
                 {
                     await _lotInspectionDetailsService.InsertLotDetailsByInvoiceNo(invoiceNo, result, userId);
+
+                    return Ok(new ApiResponse
+                    {
+                        Valid = true,
+                        Description = "Data Saved Successfully.",
+                        Value = new List<ApiResponseValue>
+                {
+                    new ApiResponseValue
+                    {
+                        Msg = "Data Saved Successfully.",
+                        StatusCode = "200",
+                        ResponseStatus = "true"
+                    }
+                }
+                    });
                 }
 
-                return Ok(new
+                string description = result == -1
+                    ? "Invoice already exists."
+                    : "Invoice data not found.";
+
+                return Ok(new ApiResponse
                 {
-                    Message = "Invoices inserted successfully",
-                    Data = result
+                    Valid = false,
+                    Description = description,
+                    Value = new List<ApiResponseValue>()
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while inserting invoices header details in DB for invoice number: {InvoiceNo}", invoiceNo);
-                throw; // Rethrow the exception to be handled by global exception handler
+                throw;
             }
         }
 
@@ -75,16 +95,35 @@ namespace DMS_BAPL_Api.Controllers
 
                 var result = await _invoiceService.UpdateLotInspectionAsync(model, userId, dealerCode);
 
-                return Ok(new
+                if (result)
                 {
-                    Message = "Updated successfully",
-                    Success = result
+                    return Ok(new ApiResponse
+                    {
+                        Valid = true,
+                        Description = "Data Saved Successfully.",
+                        Value = new List<ApiResponseValue>
+                {
+                    new ApiResponseValue
+                    {
+                        Msg = "Data Saved Successfully.",
+                        StatusCode = "200",
+                        ResponseStatus = "true"
+                    }
+                }
+                    });
+                }
+
+                return Ok(new ApiResponse
+                {
+                    Valid = false,
+                    Description = "Lot inspection header not found, or update failed.",
+                    Value = new List<ApiResponseValue>()
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while Updating invoices header and other details in DB : {model}", model);
-                throw; // Rethrow the exception to be handled by global exception handler
+                throw;
             }
         }
         //Summary: Get list of all accepted invoice

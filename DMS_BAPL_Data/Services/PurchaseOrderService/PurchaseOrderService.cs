@@ -414,18 +414,70 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
             }
         }
 
+        // ── ERP two-way sync ────────────────────────────────────────────────
+        // This is still a thin proxy by design: the caller (frontend) builds
+        // the full poHeader/poLine JSON and hands it in as erpObject; this
+        // method's job is (1) forward it to the ERP, (2) pull the PO No/PO
+        // Date the ERP assigns back out of the response, (3) persist those
+        // onto the matching DMS PurchaseOrder row, (4) hand the caller both
+        // the raw ERP response and the parsed values.
+        //
+        // BREAKING CHANGE vs. before: this used to return the raw ERP
+        // response string as-is. It now returns an object - {raw, erpPoNo,
+        // erpPoDate} - so any existing frontend code expecting a bare JSON
+        // string back from this endpoint will need to read result.raw instead.
         public async Task<object> ConvertPOToERPJsonAsync(object erpObject)
         {
             try
             {
-                var result = await SendToERP(erpObject);
+                var (rawResponse, erpPoNo, erpPoDate) = await SendToERP(erpObject);
 
-                return result;
+                // poHeader.Ref_No in the outgoing payload is assumed to be
+                // DMS's own Ponumber - that's how we know which local row to
+                // update with what the ERP just handed back.
+                // UNCONFIRMED: verify the caller always populates Ref_No with
+                // the real PO number before relying on this in production.
+                var poNumber = TryGetRefNo(erpObject);
+
+                if (!string.IsNullOrWhiteSpace(poNumber) && (erpPoNo != null || erpPoDate != null))
+                {
+                    await _repo.SaveErpPurchaseOrderResultAsync(poNumber!, erpPoNo, erpPoDate);
+                }
+
+                return new
+                {
+                    raw = rawResponse,
+                    erpPoNo,
+                    erpPoDate
+                };
             }
             catch (Exception)
             {
                 throw;
             }
+        }
+
+        // [FromBody] object binds via System.Text.Json in this project, so at
+        // runtime erpObject is actually a JsonElement, not a POCO - this reads
+        // poHeader.Ref_No back out of it without needing a strongly-typed
+        // request model.
+        private static string? TryGetRefNo(object erpObject)
+        {
+            try
+            {
+                if (erpObject is JsonElement root &&
+                    root.TryGetProperty("poHeader", out var header) &&
+                    header.TryGetProperty("Ref_No", out var refNo))
+                {
+                    return refNo.GetString();
+                }
+            }
+            catch
+            {
+                // A missing/odd Ref_No shouldn't block returning the ERP's
+                // response to the caller - just skip the DB write-back.
+            }
+            return null;
         }
 
         public async Task<bool> UpdatePOAsync(PurchaseOrderViewModel model, string userId)
@@ -652,35 +704,65 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
 
         public async Task<bool> UpdatePOStatusAsync(UpdatePOStatusViewModel updatePOStatusViewModel) => await _repo.UpdatePOStatusAsync(updatePOStatusViewModel);
 
-        private async Task<string> SendToERP(object erpObject)
+        // PLACEHOLDER property names below ("PoNo"/"PoDate") - these are a
+        // guess and almost certainly wrong. The endpoint is literally named
+        // BAPLSOHeader (Sales Order, from the ERP's side), so the returned
+        // field is more likely something like "SONo"/"SODate" or "DocNo" -
+        // swap these two TryGetProperty calls for the real names once you
+        // have a sample successful response body. That sample can now
+        // actually be pulled from APITracking (endpoint =
+        // 'PurchaseOrder/SendToERP') - this call previously logged nothing
+        // at all, so there was no way to check what the ERP had returned.
+        private async Task<(string RawResponse, string? ErpPoNo, DateTime? ErpPoDate)> SendToERP(object erpObject)
         {
+            using var client = new HttpClient();
+
+            var json = JsonSerializer.Serialize(erpObject);
+
+            var content = new StringContent(
+                json,
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var response = await client.PostAsync(
+                "https://uatbaplai-cpapc4h7gvdkfxh4.centralindia-01.azurewebsites.net/api/BAPLSOHeader",
+                content
+            );
+
+            var rawResponse = await response.Content.ReadAsStringAsync();
+
+            // Log BEFORE checking status - same fix applied to
+            // WarrantyInvoiceController's ERP calls: a rejected/error
+            // response is exactly the case where APITracking visibility
+            // matters most.
+            await _repo.LogApiTrackingAsync("PurchaseOrder/SendToERP", json, ((int)response.StatusCode).ToString(), rawResponse);
+
+            response.EnsureSuccessStatusCode();
+
+            string? erpPoNo = null;
+            DateTime? erpPoDate = null;
+
             try
             {
-                using var client = new HttpClient();
+                using var doc = JsonDocument.Parse(rawResponse);
+                var root = doc.RootElement;
 
-                var json = JsonSerializer.Serialize(erpObject);
+                // TODO: replace "PoNo"/"PoDate" with the ERP's real field names.
+                if (root.TryGetProperty("PoNo", out var poNoEl))
+                    erpPoNo = poNoEl.GetString();
 
-                var content = new StringContent(
-                    json,
-                    Encoding.UTF8,
-                    "application/json"
-                );
-
-                var response = await client.PostAsync(
-                    "https://uatbaplai-cpapc4h7gvdkfxh4.centralindia-01.azurewebsites.net/api/BAPLSOHeader",
-                    content
-                );
-
-                response.EnsureSuccessStatusCode();
-
-                var _response = await response.Content.ReadAsStringAsync();
-
-                return _response;
+                if (root.TryGetProperty("PoDate", out var poDateEl) &&
+                    DateTime.TryParse(poDateEl.GetString(), out var parsedDate))
+                    erpPoDate = parsedDate;
             }
-            catch (Exception ex)
+            catch (JsonException)
             {
-                throw;
+                // Response wasn't JSON, or didn't match the expected shape -
+                // rawResponse is still returned to the caller either way.
             }
+
+            return (rawResponse, erpPoNo, erpPoDate);
         }
 
         public Task<object> GetOrderDetailsByItemCode(string itemCode, string dealerCode) => _repo.GetOrderDetailsByItemCode(itemCode, dealerCode);

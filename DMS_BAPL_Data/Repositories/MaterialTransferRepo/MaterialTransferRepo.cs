@@ -278,6 +278,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         on DM.State equals S.StateName
 
                     where MT.JobId == jobId
+                          && JCH.IsDelete != true
 
                     let taxType = S.StateId == LM.State ? "S" : "O"
 
@@ -370,11 +371,125 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             }
         }
 
+        //async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(
+        //    string? searchTerm,
+        //    string dealerCode,
+        //    int pageIndex,
+        //    int pageSize)
+        //{
+        //    try
+        //    {
+        //        var materialTransferGroup = _context.MaterialTransfers
+        //            .GroupBy(x => x.JobId)
+        //            .Select(g => new
+        //            {
+        //                JobId = g.Key,
+        //                MaterialIssueNumber = g
+        //                .OrderByDescending(x => x.CreatedDate)
+        //                .Select(x => x.MaterialIssueNumber)
+        //                .FirstOrDefault(),
+        //                CreatedDate = g.Max(x => x.CreatedDate)
+        //            });
+
+        //        var query =
+        //            from MT in materialTransferGroup
+
+        //            join JH in _context.JobCardHeaders
+        //                on MT.JobId equals JH.Id
+
+        //            join JC in _context.JobCardCustomers
+        //                on JH.Id equals JC.JobCardHeaderId
+
+        //            join U in _context.AspNetUsers
+        //                on JH.CreatedBy equals U.Id into userGroup
+        //            from U in userGroup.DefaultIfEmpty()
+
+        //            join UM in _context.AspNetUsers
+        //                on JH.UpdateBy equals UM.Id into userModGroup
+        //            from UM in userModGroup.DefaultIfEmpty()
+
+        //            join RB in _context.RepairBillHeaders
+        //                on JH.Id equals RB.JobId into repairBillStatus
+        //            from RB in repairBillStatus.DefaultIfEmpty()
+
+        //            where JH.DealerCode == dealerCode
+
+        //            select new
+        //            {
+        //                JH.Id,
+        //                JH.InvoiceNo,
+        //                JH.Chassisno,
+        //                JH.JobinDate,
+        //                JH.JobNo,
+        //                JH.Serviceloc,
+
+        //                PreparedBy = U != null ? U.DealerCode : null,
+        //                ModifiedBy = UM != null ? UM.DealerCode : null,
+
+        //                JC.CustomerName,
+        //                JC.RegisterNo,
+
+        //                MT.MaterialIssueNumber,
+        //                MT.CreatedDate,
+        //                JobCardStatus = RB.RepairbillStatus == "Billed" ? "Closed" : "Open"
+        //            };
+
+        //        if (!string.IsNullOrWhiteSpace(searchTerm))
+        //        {
+        //            searchTerm = searchTerm.Trim();
+
+        //            query = query.Where(x =>
+        //                (x.InvoiceNo != null && x.InvoiceNo.Contains(searchTerm)) ||
+        //                (x.Chassisno != null && x.Chassisno.Contains(searchTerm)) ||
+        //                (x.JobNo != null && x.JobNo.ToString().Contains(searchTerm)) ||
+        //                (x.CustomerName != null && x.CustomerName.Contains(searchTerm)) ||
+        //                (x.RegisterNo != null && x.RegisterNo.Contains(searchTerm))
+        //            );
+        //        }
+
+        //        int totalRecords = await query.CountAsync();
+
+        //        var result = await query
+        //            .OrderByDescending(x => x.CreatedDate)
+        //            .Skip((pageIndex - 1) * pageSize)
+        //            .Take(pageSize)
+        //            .ToListAsync();
+
+        //        var data = result.Select((x, index) => new
+        //        {
+        //            SrNo = ((pageIndex - 1) * pageSize) + index + 1,
+        //            x.Id,
+        //            x.InvoiceNo,
+        //            x.Chassisno,
+        //            x.JobinDate,
+        //            x.JobNo,
+        //            x.Serviceloc,
+        //            x.PreparedBy,
+        //            x.ModifiedBy,
+        //            x.CustomerName,
+        //            x.MaterialIssueNumber,
+        //            x.CreatedDate,
+        //            x.RegisterNo,
+        //            x.JobCardStatus
+        //        }).Cast<object>().ToList();
+
+        //        return new PagedResponse<object>
+        //        {
+        //            Data = data,
+        //            TotalRecords = totalRecords
+        //        };
+        //    }
+        //    catch
+        //    {
+        //        throw;
+        //    }
+        //}
+
         async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(
-            string? searchTerm,
-            string dealerCode,
-            int pageIndex,
-            int pageSize)
+    string? searchTerm,
+    string dealerCode,
+    int pageIndex,
+    int pageSize)
         {
             try
             {
@@ -411,7 +526,11 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         on JH.Id equals RB.JobId into repairBillStatus
                     from RB in repairBillStatus.DefaultIfEmpty()
 
+                        // FIXED: exclude soft-deleted job cards (JobCardHeader.IsDelete == true)
+                        // so a deleted job card no longer shows up in the Material Transfer
+                        // job card search grid.
                     where JH.DealerCode == dealerCode
+                          && JH.IsDelete != true
 
                     select new
                     {
@@ -483,7 +602,6 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                 throw;
             }
         }
-
         async Task<List<MaterialTransferExcelViewModel>> IMaterialTransferRepo.GetMaterialTransferExcelByDealer(string? dealerCode)
         {
             try
@@ -513,8 +631,13 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         on JH.UpdateBy equals UM.Id into userModGroup
                     from UM in userModGroup.DefaultIfEmpty()
 
-                    where string.IsNullOrEmpty(dealerCode)
-                        || JH.DealerCode == dealerCode
+                        // FIXED: parentheses around the dealer-code condition so IsDelete != true
+                        // applies regardless of whether a specific dealer was requested or not.
+                        // Previously this method had no IsDelete filter at all — a deleted job
+                        // card's material transfer row would still land in the Excel export.
+                    where (string.IsNullOrEmpty(dealerCode)
+                            || JH.DealerCode == dealerCode)
+                          && JH.IsDelete != true
 
                     select new
                     {

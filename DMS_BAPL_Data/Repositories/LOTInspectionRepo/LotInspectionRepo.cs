@@ -44,8 +44,11 @@ namespace DMS_BAPL_Data.Repositories.LOTInspectionRepo
                 var isExist = await _context.LotinspectionHeaders
                     .AnyAsync(x => x.InvoiceNo == invoiceNo);
 
+                // FIXED: distinct sentinel (-1) for "already exists" so the controller
+                // can report an accurate Description instead of a generic failure
+                // message shared with the "invoice not found" case below.
                 if (isExist)
-                    return 0;
+                    return -1;
 
                 // Get invoice data from DB table
                 var invoiceData = await _context.VehicleInwards

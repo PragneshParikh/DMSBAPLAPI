@@ -313,11 +313,6 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }
 
                 bool isSuperAdmin = string.IsNullOrWhiteSpace(dealerCode);
-
-                // NEW: normalize once. Guards against ChassisDetails.DealerId differing
-                // only in case/trailing whitespace from what the frontend sends
-                // (e.g. "CUS0435 " vs "cus0435"), which previously failed the exact
-                // string match below and silently hid an otherwise valid chassis.
                 var normalizedDealerCode = dealerCode?.Trim().ToUpper();
 
                 if (jobTypeId == 1)
@@ -331,21 +326,10 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         join v in _context.ChassisDetails
                           on d.ChassisNo equals v.ChassisNo
 
-                        // FIXED: was an INNER join. If ChassisDetails.DealerId has no
-                        // matching LedgerMasters row with LedgerType == "Dealer" (missing
-                        // ledger, renamed dealer, mismatched code), the chassis was
-                        // silently dropped from the ENTIRE list even though it's a
-                        // perfectly valid, lot-inspected, unsold chassis. Left join now
-                        // — a missing dealer ledger only blanks the dealer-derived
-                        // customer fields instead of hiding the chassis.
                         join dealerLg in _context.LedgerMasters.Where(x => x.LedgerType == "Dealer")
                             on v.DealerId equals dealerLg.DealerCode into dealerLgGroup
                         from dealerLg in dealerLgGroup.DefaultIfEmpty()
 
-                            // FIXED: was an INNER join. Any ItemCode mismatch (stale code,
-                            // case/whitespace difference) silently dropped the chassis too.
-                            // Left join keeps the chassis visible even if the model lookup
-                            // comes back empty.
                         join i in _context.ItemMasters
                             on v.ItemCode equals i.Itemcode into itemGroup
                         from i in itemGroup.DefaultIfEmpty()
@@ -371,8 +355,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
                         where h.IsLotInspected == true
                          && v.SaleDate == null
-                         // FIXED: case/whitespace-insensitive dealer match instead of a
-                         // brittle exact-string comparison.
+
                          && (isSuperAdmin || (v.DealerId != null && v.DealerId.Trim().ToUpper() == normalizedDealerCode))
 
                         select new LotInspectionChassisVM
@@ -2087,6 +2070,8 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                         on jc.Id equals cust.JobCardHeaderId
                         select new { jc, cust };
 
+            query = query.Where(x => x.jc.IsDelete != true);
+
             // Dealer
             if (!string.IsNullOrWhiteSpace(model.DealerCode))
                 query = query.Where(x => x.jc.DealerCode == model.DealerCode);
@@ -2137,7 +2122,6 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                     CustomerMobile = x.cust.CustomerMobile
                 },
 
-                // JOIN OPTIMIZED (no subquery performance issue)
                 Jobtype = _context.JobTypes
                             .Where(j => j.Id == x.jc.Jobtype)
                             .Select(j => j.JobTypeName)
@@ -2660,6 +2644,10 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                         rb,
                         fr
                     };
+
+           
+                query = query.Where(x => x.jh.IsDelete != true);
+
                 query = query.Where(x => !_context.RepairBillHeaders.Any(rbh => rbh.JobId == x.jh.Id && rbh.IsActive == true));
 
                 // Dealer Filter
@@ -2806,8 +2794,6 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                     .OrderByDescending(x => x.JobCardHeader.Id)
                     .ToListAsync();
 
-                jobCardsResult = jobCardsResult.Where(x => x.JobCardHeader.IsDelete != true).ToList();
-
                 return jobCardsResult;
             }
             catch (Exception ex)
@@ -2832,16 +2818,14 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                                 on jh.Chassisno equals lotDetail.ChassisNo
                             join item in _context.ItemMasters
                                 on lotDetail.Itemcode equals item.Itemcode
-
                             join rb in _context.RepairBillHeaders
                                 on jh.Id equals rb.JobId into repairBillGroup
-
                             from rb in repairBillGroup.DefaultIfEmpty()
-
                             join jc in _context.JobCardCustomers
                                 on jh.Id equals jc.JobCardHeaderId into customerGroup
-
                             from jc in customerGroup.DefaultIfEmpty()
+
+                            where jh.IsDelete != true
 
                             select new
                             {
@@ -2893,7 +2877,6 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                     Data = data,
                     TotalRecords = totalRecords,
                 };
-
             }
             catch { throw; }
         }

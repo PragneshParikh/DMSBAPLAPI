@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -272,6 +273,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         //            .ToListAsync();
 
         //        var chassisNos = inwards
+        //        var chassisNos = inwards
         //            .Where(x => x.IsD2d == true)
         //            .Select(x => x.ChasisNo)
         //            .ToList();
@@ -343,18 +345,17 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         {
             try
             {
-
                 var exist = await _context.VehicleInwards
-               .FirstOrDefaultAsync(x =>
-                   x.ChasisNo == vehicleInwardViewModel.chasis_no);
+                .FirstOrDefaultAsync(x =>
+                    x.ChasisNo == vehicleInwardViewModel.chasis_no);
 
                 if (exist != null)
                 {
-                    return new
+                    return new ApiResponse
                     {
                         Valid = false,
-                        Message = "Chassis number already exist. Duplicate entry.",
-                        Value = Array.Empty<object>()
+                        Description = "Chassis No Already exists.",
+                        Value = new List<ApiResponseValue>()
                     };
                 }
 
@@ -415,13 +416,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     CreatedDate = DateTime.Now,
                 };
 
-                _context.VehicleInwards.Add(vehicleInward);
                 var result = await _context.SaveChangesAsync();
 
-                return new
+                return new ApiResponse
                 {
-                    Success = result > 0,
-                    Message = result > 0 ? "Invoice saved successfully." : "Failed to save invoice."
+                    Valid = result > 0,
+                    Description = result > 0 ? "Data Saved Successfully." : "Failed to save invoice.",
+                    Value = new List<ApiResponseValue>()
                 };
             }
             catch (Exception ex)

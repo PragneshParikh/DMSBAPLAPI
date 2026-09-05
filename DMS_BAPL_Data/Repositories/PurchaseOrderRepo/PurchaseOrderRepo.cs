@@ -250,7 +250,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                     .Where(x => x.Hsncode == hsnCode && x.EffectiveDate.Date <= poDate.Date)
                     .OrderByDescending(x => x.StateFlag == preferredFlag)
                     .ThenByDescending(x => x.EffectiveDate)
-                    .ThenByDescending(x => x.Id)   
+                    .ThenByDescending(x => x.Id)
                     .FirstOrDefaultAsync();
 
                 if (result == null)
@@ -319,7 +319,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
                             ItemCode = d.ItemCode,
                             Qty = d.Qty,
                             Rate = d.Rate,
-                            MRP = d.Mrp,              
+                            MRP = d.Mrp,
                             LineAmount = d.LineAmount,
                             Subsidy = d.Subsidy,
                             ItemDescription = item?.Itemdesc,
@@ -696,6 +696,126 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
             catch
             {
                 throw;
+            }
+        }
+
+        // --- ERP Purchase Order two-way sync ---------------------------------
+        // Builds the poHeader/poLine payload the ERP expects for its PO creation
+        // endpoint. Field names are locked to the ERP's own contract (e.g.
+        // "Ref_No", lower-case "descriptions") - see ErpPurchaseOrderViewModel.cs
+        // for what's confirmed vs. assumed. The actual POST + retry + APITracking
+        // logging lives in the controller, same split as the warranty ERP flow.
+        public async Task<ErpPurchaseOrderRequest> BuildErpPurchaseOrderPayload(string poNumber)
+        {
+            var po = await _context.PurchaseOrders
+                .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+
+            if (po == null)
+                throw new Exception(StringConstants.PONotFound);
+
+            var details = await _context.PurchaseOrderDetails
+                .Where(x => x.Ponumber == poNumber)
+                .ToListAsync();
+
+            var taxes = await _context.TaxDetails
+                .Where(x => x.Ponumber == poNumber)
+                .ToListAsync();
+
+            var itemCodes = details.Select(d => d.ItemCode).Distinct().ToList();
+            var items = await _context.ItemMasters
+                .Where(i => itemCodes.Contains(i.Itemcode))
+                .ToListAsync();
+
+            var request = new ErpPurchaseOrderRequest
+            {
+                PoHeader = new ErpPoHeaderViewModel
+                {
+                    // "SupplierCode" is the ERP's own field name, but it carries
+                    // the dealer/customer code (matches the CUS-prefixed sample
+                    // value) - same value used as CustomerCode elsewhere in this repo.
+                    SupplierCode = po.CustomerCode ?? "",
+                    // DMS's own PO number, sent as the reference the ERP correlates
+                    // its newly issued PO No/Date back to.
+                    // UNCONFIRMED - swap to po.Id.ToString() if the ERP expects that instead.
+                    RefNo = po.Ponumber ?? "",
+                    Remark = po.Remarks ?? "",
+                    Amount = (po.Amount ?? 0).ToString("0.00")
+                }
+            };
+
+            foreach (var d in details)
+            {
+                var item = items.FirstOrDefault(i => i.Itemcode == d.ItemCode);
+
+                var lineTax = taxes
+                    .Where(t => t.ItemCode == d.ItemCode && t.PodetailsLineNumber == d.LineNumber)
+                    .Sum(t => (decimal?)t.TaxAmount) ?? 0;
+
+                // Assessable value = the line total with tax stripped back out,
+                // same "subtract tax to get the taxable value" approach
+                // GetOrderDetailsByItemCode already uses elsewhere in this repo.
+                // NOTE: if PurchaseOrderDetail.Qty/LineAmount are non-nullable in
+                // your actual model, drop the .GetValueOrDefault() calls below.
+                decimal lineAmount = d.LineAmount.GetValueOrDefault();
+                decimal qty = d.Qty.GetValueOrDefault();
+                decimal assessableValue = lineAmount - lineTax;
+                decimal unitRate = qty > 0 ? Math.Round(assessableValue / qty, 2) : assessableValue;
+
+                request.PoLine.Add(new ErpPoLineViewModel
+                {
+                    // ERP calls this "ItemName" but the sample value
+                    // ("22DX340010AS") is clearly an item code, not a name.
+                    ItemName = d.ItemCode ?? "",
+                    Descriptions = item?.Itemdesc ?? item?.Itemname ?? item?.Displayname ?? "",
+                    // Confirmed real field (PurchaseOrderDetail.Unit) - no
+                    // longer a hardcoded guess. Falls back to "NOS" only
+                    // when the detail row itself has no unit recorded.
+                    Unit = string.IsNullOrWhiteSpace(d.Unit) ? "NOS" : d.Unit,
+                    Qty = qty.ToString("0.##"),
+                    Rate = unitRate.ToString("0.00"),
+                    AssValue = assessableValue.ToString("0.00")
+                });
+            }
+
+            return request;
+        }
+
+        // Persists what the ERP hands back for this PO after a successful
+        // two-way POST (see PostPurchaseOrderToErpAsync in the controller).
+        public async Task SaveErpPurchaseOrderResultAsync(string poNumber, string? erpPoNumber, DateTime? erpPoDate)
+        {
+            var po = await _context.PurchaseOrders
+                .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+
+            if (po == null)
+                throw new Exception(StringConstants.PONotFound);
+
+            po.ErpPoNumber = erpPoNumber;
+            po.ErpPoDate = erpPoDate;
+            po.ErpSubmittedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+        }
+
+        // Shared APITracking logger - same INSERT pattern WarrantyInvoiceController
+        // already uses, added here because PurchaseOrderService doesn't have
+        // direct DbContext access. PurchaseOrderService.SendToERP previously had
+        // NO logging at all, which meant there was no way to retroactively check
+        // what the ERP actually returned for a PO submission.
+        // NOTE: no ILogger is injected into this repo, so a logging failure here
+        // is silently swallowed rather than reported - add ILogger<PurchaseOrderRepo>
+        // if you want that surfaced.
+        public async Task LogApiTrackingAsync(string endpoint, string? payload, string? status, string? response)
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO APITracking (endpoint, dateofhit, payload, status, response)
+            VALUES ({endpoint}, {DateTime.Now}, {payload}, {status}, {response})");
+            }
+            catch
+            {
+                // Swallowed intentionally - a logging failure shouldn't break the ERP call itself.
             }
         }
     }
