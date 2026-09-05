@@ -22,7 +22,8 @@ namespace DMS_BAPL_Data.DBModels
         public DateTime? CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
-
+        public string? ErpPoNumber { get; set; }
+        public DateTime? ErpPoDate { get; set; }
         public string? ErpUniqueId { get; set; }
         public DateTime? ErpSubmittedDate { get; set; }
 

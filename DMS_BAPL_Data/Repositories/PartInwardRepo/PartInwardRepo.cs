@@ -250,6 +250,9 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
 
                 where pi.InvoiceNo == invoiceNo
 
+                let taxRate = pi.Igst > 0 ? pi.Igst : (pi.Cgst + pi.Sgst)
+                let baseAmount = pi.ItemRate * pi.ItemQty
+
                 select new
                 {
                     pi.InvoiceDate,
@@ -258,17 +261,18 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                     pi.ItemHsncode,
                     pi.ItemRate,
 
-                    ItemAmount = pi.ItemRate * pi.ItemQty,
+                    ItemAmount = baseAmount + (baseAmount * taxRate / 100m),
 
-                    ItemMrp = pi.ItemRate +
-                        (
-                            pi.ItemRate *
-                            (
-                                pi.Igst > 0
-                                    ? pi.Igst
-                                    : (pi.Cgst + pi.Sgst)
-                            ) / 100m
-                        ),
+                    // FIXED: MRP comes from ItemMaster.Custprice (the master data
+                    // rate, confirmed 709.00 for this part) — not from
+                    // PartsInward.ItemMrp, which was showing 500.56, identical to
+                    // ItemRate. That means the incoming payload's own "item_mrp"
+                    // field is carrying the rate instead of the customer price for
+                    // this transaction — a data-quality issue upstream of this
+                    // query, not something this fix can correct at the source.
+                    // Falls back to the stored pi.ItemMrp only if the part has no
+                    // matching ItemMaster row at all (im is null via the left join).
+                    ItemMrp = im != null ? im.Custprice : pi.ItemMrp,
 
                     pi.ItemQty,
                     pi.Sgst,
@@ -303,8 +307,6 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
                     x.DealerCode == dealerCode &&
                     x.SequenceName == "part_inward");
 
-            // Purchase No. is the raw running number with no zero-padding.
-            // Prefix No. is the literal text before the '#' run.
             string? prefixNo = null;
             string? purchaseNo = null;
 
@@ -334,30 +336,15 @@ namespace DMS_BAPL_Data.Repositories.PartInwardRepo
             return new
             {
                 IsAccepted = firstPart.IsAccepted,
-
                 DocumentNo = firstPart.DocumentNo,
-
                 PrefixNo = prefixNo,
                 PurchaseNo = purchaseNo,
-
                 InvoiceDate = firstPart.InvoiceDate,
-
                 LocationCode = firstPart.LocCode,
-
                 InvoiceNo = firstPart.InvoiceNo,
-
                 ReceiptDate = firstPart.ReceiptDate,
-
                 PartyCode = firstPart.PartyName,
 
-                // CHANGED — trust the value actually recorded at creation
-                // time (CreateFromDispatchAsync -> "ERP", PartsInward() ->
-                // "DMS", now that both paths set it). Only rows created
-                // through the manual endpoint *before* today's fix will
-                // still have a null SourceType in the DB; those legacy rows
-                // fall back to "DMS" here because that endpoint is the only
-                // one that was ever missing the assignment — it's a
-                // historically-accurate fallback, not a guess pulled from nowhere.
                 SourceType = string.IsNullOrWhiteSpace(firstPart.SourceType)
                     ? "DMS"
                     : firstPart.SourceType,

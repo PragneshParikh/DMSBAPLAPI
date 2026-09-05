@@ -38,7 +38,7 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
         Task<TaxCodeMaster> GetTaxMasterAsync(string taxCode, DateTime effectiveAsOf);
 
         Task<ErpPurchaseOrderRequest> BuildErpPurchaseOrderPayload(string poNumber);
-        Task SaveErpPurchaseOrderResultAsync(string poNumber, string? erpPoNumber, DateTime? erpPoDate);
+        //Task SaveErpPurchaseOrderResultAsync(string poNumber, string? erpPoNumber, DateTime? erpPoDate);
         Task LogApiTrackingAsync(string endpoint, string? payload, string? status, string? response);
     }
 }

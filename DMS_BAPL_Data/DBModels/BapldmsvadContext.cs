@@ -4709,6 +4709,8 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.ErpUniqueId).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ErpPoNumber).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ErpPoDate).HasColumnType("datetime");    
 
             entity.Property(e => e.DateFrom).HasColumnType("datetime");
             entity.Property(e => e.DateTo).HasColumnType("datetime");

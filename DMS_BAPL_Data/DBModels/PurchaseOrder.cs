@@ -49,7 +49,4 @@ public partial class PurchaseOrder
 
     public DateTime? UpdatedDate { get; set; }
 
-    public string? ErpPoNumber { get; set; }
-    public DateTime? ErpPoDate { get; set; }
-    public DateTime? ErpSubmittedDate { get; set; }
 }

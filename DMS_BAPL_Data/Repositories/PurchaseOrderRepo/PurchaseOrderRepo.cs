@@ -782,20 +782,20 @@ namespace DMS_BAPL_Data.Repositories.PurchaseOrderRepo
 
         // Persists what the ERP hands back for this PO after a successful
         // two-way POST (see PostPurchaseOrderToErpAsync in the controller).
-        public async Task SaveErpPurchaseOrderResultAsync(string poNumber, string? erpPoNumber, DateTime? erpPoDate)
-        {
-            var po = await _context.PurchaseOrders
-                .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
+        //public async Task SaveErpPurchaseOrderResultAsync(string poNumber, string? erpPoNumber, DateTime? erpPoDate)
+        //{
+        //    var po = await _context.PurchaseOrders
+        //        .FirstOrDefaultAsync(x => x.Ponumber == poNumber);
 
-            if (po == null)
-                throw new Exception(StringConstants.PONotFound);
+        //    if (po == null)
+        //        throw new Exception(StringConstants.PONotFound);
 
-            po.ErpPoNumber = erpPoNumber;
-            po.ErpPoDate = erpPoDate;
-            po.ErpSubmittedDate = DateTime.Now;
+        //    po.ErpPoNumber = erpPoNumber;
+        //    po.ErpPoDate = erpPoDate;
+        //    po.ErpSubmittedDate = DateTime.Now;
 
-            await _context.SaveChangesAsync();
-        }
+        //    await _context.SaveChangesAsync();
+        //}
 
         // Shared APITracking logger - same INSERT pattern WarrantyInvoiceController
         // already uses, added here because PurchaseOrderService doesn't have

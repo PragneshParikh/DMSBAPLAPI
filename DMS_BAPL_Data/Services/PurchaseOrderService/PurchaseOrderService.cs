@@ -425,24 +425,17 @@ namespace DMS_BAPL_Data.Services.PurchaseOrder
         // BREAKING CHANGE vs. before: this used to return the raw ERP
         // response string as-is. It now returns an object - {raw, erpPoNo,
         // erpPoDate} - so any existing frontend code expecting a bare JSON
-        // string back from this endpoint will need to read result.raw instead.
+        // FIXED: PurchaseOrder.ErpPoNumber/ErpPoDate/ErpSubmittedDate no longer
+        // exist on PurchaseOrder (moved to WarrantyInvoice, where they track the
+        // ERP's response to a warranty claim submission — an unrelated flow).
+        // Per decision: this PO -> ERP Sales Order sync (BAPLSOHeader) does NOT
+        // need its own persistence for regular POs — the ERP PO No/Date is
+        // returned to the caller in this response only, and not saved anywhere.
         public async Task<object> ConvertPOToERPJsonAsync(object erpObject)
         {
             try
             {
                 var (rawResponse, erpPoNo, erpPoDate) = await SendToERP(erpObject);
-
-                // poHeader.Ref_No in the outgoing payload is assumed to be
-                // DMS's own Ponumber - that's how we know which local row to
-                // update with what the ERP just handed back.
-                // UNCONFIRMED: verify the caller always populates Ref_No with
-                // the real PO number before relying on this in production.
-                var poNumber = TryGetRefNo(erpObject);
-
-                if (!string.IsNullOrWhiteSpace(poNumber) && (erpPoNo != null || erpPoDate != null))
-                {
-                    await _repo.SaveErpPurchaseOrderResultAsync(poNumber!, erpPoNo, erpPoDate);
-                }
 
                 return new
                 {
