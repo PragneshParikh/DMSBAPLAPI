@@ -118,6 +118,25 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     _context.RepairBillDetails.Add(RepairBillDetail);
                 }
 
+                // 2026-09-07 fix ("in jobcard invoiceno why not update?" - JobCardHeader.InvoiceNo
+                // was never written by this flow at all, on either the proforma or invoice step).
+                // Most repair bills go through "Save as Proforma" first (RepairbillStatus something
+                // like "Performa created") and only become "Billed" via UpdateRepairBill below - but
+                // if a bill can ever be created already-Billed directly through InsertRepairBill in
+                // your flow, this keeps JobCardHeader.InvoiceNo in sync for that case too. Guarded on
+                // BillNo actually being assigned so this never writes a blank/placeholder invoice no.
+                // (BillNo is a plain non-nullable int on this model, not int? - checked as > 0.)
+                if (string.Equals(RepairBillheader.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
+                    && RepairBillheader.BillNo > 0
+                    && RepairBillheader.JobId > 0)
+                {
+                    var job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == RepairBillheader.JobId);
+                    if (job != null)
+                    {
+                        job.InvoiceNo = $"{RepairBillheader.Prefix}{RepairBillheader.BillNo}";
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -399,14 +418,14 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                            PartQty = d.PartQty ?? 0,
                            PartRate = d.PartRate ?? 0,
-                           TotalTaxPer=d.TotalTaxPer ?? 0,
+                           TotalTaxPer = d.TotalTaxPer ?? 0,
 
-                           DiscountValue = d.DiscountValue??0,
+                           DiscountValue = d.DiscountValue ?? 0,
                            Discount = d.LabourDiscount ?? 0,
                            DiscountType = d.DiscountType,
 
                            PartDiscount = d.PartDiscount ?? 0,
-                           
+
 
                            TaxableAmount = d.LabourTaxblAmount ?? 0,
                            NetAmount = d.LabourNetAmount ?? 0,
@@ -442,6 +461,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             {
                 var header = await _context.RepairBillHeaders
                 .Include(x => x.RepairBillDetails)
+                .Include(x => x.Job) // 2026-09-07 fix: needed so header.Job.InvoiceNo below is
+                                     // actually tracked/loaded, not null - see fix block after
+                                     // header.RepairbillStatus is set.
                 .FirstOrDefaultAsync(x => x.Id == model.RepairBillheader.Id);
 
                 if (header == null)
@@ -467,6 +489,32 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 header.RepairbillStatus = model.RepairBillheader.RepairBillStatus;
                 header.UpdatedBy = userId;
                 header.UpdatedDate = DateTime.Now;
+
+                // 2026-09-07 fix ("in jobcard invoiceno why not update? ... thats why in our
+                // jobscanner invoice not download") - this is the actual "Save as Invoice" step
+                // (Angular sets RepairBillStatus to "Billed" here), and it never wrote the invoice
+                // number back onto the job it belongs to. JobCardScanner (and anything else reading
+                // JobCardHeader directly) only ever sees InvoiceNo, never RepairBillHeader - so
+                // without this, that column just stays NULL forever even after a bill is fully
+                // invoiced. Guarded on BillNo actually being assigned so this can't write a blank
+                // invoice number if RepairbillStatus is set to "Billed" before BillNo is finalized -
+                // if that can happen in your flow, this block needs to move to wherever BillNo is
+                // actually assigned instead. (BillNo is a plain non-nullable int here, not int? -
+                // checked as > 0, same as the InsertRepairBill block above.)
+                if (string.Equals(header.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
+                    && header.BillNo > 0)
+                {
+                    if (header.Job == null)
+                    {
+                        // Include(x => x.Job) above should normally cover this, but fall back to an
+                        // explicit lookup in case JobId ever points at a header not already tracked.
+                        header.Job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == header.JobId);
+                    }
+                    if (header.Job != null)
+                    {
+                        header.Job.InvoiceNo = $"{header.Prefix}{header.BillNo}";
+                    }
+                }
 
                 // Existing DB Details
                 var existingDetails = header.RepairBillDetails.ToList();
