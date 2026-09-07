@@ -22,9 +22,9 @@ namespace DMS_BAPL_Data.Services.InventoryService
             _partInventoryRepo = partInventoryRepo;
         }
 
-        async Task<int> IPartInventoryService.GetCurrentStockByItem(string itemCode)
+        async Task<int> IPartInventoryService.GetCurrentStockByItem(string itemCode, string? dealerCode, string? dealerLocation)
         {
-            return await _partInventoryRepo.GetCurrentStockByItem(itemCode);
+            return await _partInventoryRepo.GetCurrentStockByItem(itemCode, dealerCode, dealerLocation);
         }
 
         async Task IPartInventoryService.UpdateIncoming(PartsInventory partsInventory)

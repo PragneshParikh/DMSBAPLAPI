@@ -340,7 +340,6 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                 throw;
             }
         }
-
         async Task<object> IVehicleInwardRepo.InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel)
         {
             try
@@ -415,6 +414,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
                     CreatedBy = "Admin",
                     CreatedDate = DateTime.Now,
                 };
+
+                _context.VehicleInwards.Add(vehicleInward);
 
                 var result = await _context.SaveChangesAsync();
 

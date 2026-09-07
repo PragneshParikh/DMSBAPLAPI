@@ -112,9 +112,11 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<PagedResponse<object>>> GetMaterialTransferDetailByDealer(
             [FromQuery] string? searchTerm,
-            [FromQuery] string dealerCode,
+            [FromQuery] string? dealerCode,
             [FromQuery] int pageIndex = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -123,7 +125,16 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var materials = await _materialTransferService.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize);
+                bool isSuperAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+
+                // Only a Super Admin's request is allowed to actually search "all dealers".
+                // A regular user's dealerCode is always forced server-side, ignoring
+                // whatever value the client sent.
+                string? effectiveDealerCode = isSuperAdmin
+                    ? dealerCode
+                    : GetUserInfoFromToken.GetDealerCode(HttpContext);
+
+                var materials = await _materialTransferService.GetMaterialTransferDetailsByDealer(searchTerm, effectiveDealerCode, pageIndex, pageSize, fromDate, toDate);
 
                 return Ok(materials);
             }
@@ -247,6 +258,43 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception)
             {
+                throw;
+            }
+        }
+
+        [HttpDelete("by-job/{jobId}")]
+        [ProducesResponseType(typeof(MaterialTransferDeleteResultViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<MaterialTransferDeleteResultViewModel>> DeleteMaterialTransferByJobId(int jobId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                bool isSuperAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+
+                var result = await _materialTransferService.DeleteMaterialsByJobId(jobId, isSuperAdmin, userId);
+
+                if (result.DeletedCount > 0)
+                {
+                    await _jobCardRepo.UpdateMaterialTransferStatus(jobId, false);
+                    await _jobCardRepo.MarkJobCardAsDeleted(jobId, userId);
+                }
+
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error while deleting material transfer for job {jobId}: {ex.Message}");
                 throw;
             }
         }

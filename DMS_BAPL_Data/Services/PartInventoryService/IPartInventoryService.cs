@@ -14,9 +14,11 @@ namespace DMS_BAPL_Data.Services.InventoryService
     {
         Task UpdateIncoming(PartsInventory partsInventory);
         Task UpdateOutgoing(PartsInventory partsInventory);
-        Task<int> GetCurrentStockByItem(string itemCode);
+        Task<int> GetCurrentStockByItem(string itemCode, string? dealerCode, string? dealerLocation);
         Task<IEnumerable<object>> Get();
         Task<IEnumerable<object>> GetByItemCode(List<string> itemCode);
         Task<IEnumerable<object>> GetPartsByDealerAndDateRange(InventoryFilterViewModel inventoryFilterViewModel);
+
+        
     }
 }

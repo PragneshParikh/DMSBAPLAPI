@@ -76,15 +76,13 @@ namespace DMS_BAPL_Data.Services.LedgerMasterService
         }
 
         // Export ledger list to Excel
+        // Export ledger list to Excel
         public async Task<byte[]> DownloadExcel(string? dealerCode)
         {
             try
             {
-                var data = await _ledgerMasterRepo.GetExcelData();
-                if (dealerCode != null)
-                {
-                    data = data.Where(i => i.DealerCode == dealerCode).ToList();
-                }
+
+                var data = await _ledgerMasterRepo.GetExcelData(dealerCode);
 
                 var properties = typeof(LedgerExcelViewModel)
                     .GetProperties()

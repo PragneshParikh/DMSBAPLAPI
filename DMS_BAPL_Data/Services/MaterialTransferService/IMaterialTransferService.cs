@@ -13,9 +13,10 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
     {
         Task<object> Get();
         Task<string> GetIssueIdAsync();
+        Task<MaterialTransferDeleteResultViewModel> DeleteMaterialsByJobId(int jobId, bool isSuperAdmin, string createdBy);
         Task<IEnumerable<MaterialTransferViewModel>> GetMeterialTransferByJobId(int JobId);
         Task<IEnumerable<object>> GetMeterialByJobId(int jobId);
-        Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(string searchTerm, string dealerCode, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(string? searchTerm, string dealerCode, int pageIndex, int pageSize, DateTime? fromDate, DateTime? toDate);
         Task<int> InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels);
         Task<int> DeleteMaterials(List<int> ids);
         Task<int> UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels);

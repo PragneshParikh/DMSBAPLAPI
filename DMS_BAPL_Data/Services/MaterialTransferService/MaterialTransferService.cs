@@ -31,7 +31,8 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         async Task<string> IMaterialTransferService.GetIssueIdAsync() => await _materialTransferRepo.GetIssueIdAsync();
         async Task<IEnumerable<object>> IMaterialTransferService.GetMeterialByJobId(int jobId) => await _materialTransferRepo.GetMeterialByJobId(jobId);
         Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferService.GetMeterialTransferByJobId(int JobId) => _materialTransferRepo.GetMeterialTransferByJobId(JobId);
-        async Task<PagedResponse<object>> IMaterialTransferService.GetMaterialTransferDetailsByDealer(string? searchTerm, string dealerCode, int pageIndex, int pageSize) => await _materialTransferRepo.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize);
+        async Task<PagedResponse<object>> IMaterialTransferService.GetMaterialTransferDetailsByDealer(string? searchTerm, string? dealerCode, int pageIndex, int pageSize, DateTime? fromDate, DateTime? toDate)
+        => await _materialTransferRepo.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize, fromDate, toDate);
         async Task<int> IMaterialTransferService.InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels
             )
         {
@@ -208,6 +209,64 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                 Console.WriteLine(ex.ToString());
                 throw;
             }
+        }
+        async Task<MaterialTransferDeleteResultViewModel> IMaterialTransferService.DeleteMaterialsByJobId(int jobId, bool isSuperAdmin, string createdBy)
+        {
+            var existingItems = await _materialTransferRepo.GetMeterialTransferByJobId(jobId);
+
+            var groupedItems = existingItems
+                .GroupBy(x => x.ItemCode)
+                .Select(g => new
+                {
+                    ItemCode = g.Key,
+                    Qty = g.Sum(x => x.Quantity),
+                    DealerLocation = g.First().DealerLocation,
+                    DealerCode = g.First().DealerCode
+                });
+
+            // NEW — collected as we go, so the response reflects exactly what was
+            // actually written to each reversal transaction (not re-queried
+            // afterward), making it immediately visible if DealerCode/DealerLocation
+            // came through populated or blank for this specific delete.
+            var reversedItems = new List<ReversedStockItemViewModel>();
+
+            foreach (var item in groupedItems)
+            {
+                var stockTransaction = new PartsInventory
+                {
+                    TransId = Guid.NewGuid().ToString(),
+                    ItemCode = item.ItemCode,
+                    VoucherNo = null!,
+                    TransType = "SD",
+                    BatchNo = "Batch 1",
+                    BatchTransQty = item.Qty,
+                    BatchOpeningQty = 0,
+                    BatchClosingQty = 0,
+                    TransDate = DateOnly.FromDateTime(DateTime.Now),
+                    DealerLocation = item.DealerLocation,
+                    VendorCode = item.DealerCode,
+                    CreatedBy = createdBy,
+                    CreatedDate = DateTime.Now
+                };
+
+                await _partInventoryService.UpdateIncoming(stockTransaction);
+
+                reversedItems.Add(new ReversedStockItemViewModel
+                {
+                    ItemCode = item.ItemCode,
+                    Quantity = item.Qty,
+                    DealerCode = item.DealerCode,
+                    DealerLocation = item.DealerLocation
+                });
+            }
+
+            var deletedCount = await _materialTransferRepo.DeleteMaterialsByJobId(jobId, isSuperAdmin);
+
+            return new MaterialTransferDeleteResultViewModel
+            {
+                DeletedCount = deletedCount,
+                ReversedItems = reversedItems
+            };
         }
     }
 }

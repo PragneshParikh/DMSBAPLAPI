@@ -3243,5 +3243,26 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
             return await _context.RepairBillHeaders
                 .AnyAsync(x => x.JobId == id && x.RepairbillStatus == "Billed");
         }
+
+        public async Task MarkJobCardAsDeleted(int jobId, string updatedBy)
+        {
+            try
+            {
+                var jobCard = await _context.JobCardHeaders.FindAsync(jobId);
+
+                if (jobCard == null)
+                    return;
+
+                jobCard.IsDelete = true;
+                jobCard.UpdateBy = updatedBy;
+                jobCard.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
 {
     public interface ILedgerMasterRepo
@@ -25,10 +24,11 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
         Task<List<LedgerMaster>> GetLedgerByLedgerType(string ledgerType);
         Task<List<string>> GetAllMobileNumberByDealerCode(string dealerCode);
         Task<string> GetNextLedCode(string dealerCode);
-        Task<IEnumerable<LedgerExcelViewModel>> GetExcelData();
         Task<List<LedgerMaster>> GetLedgerForSale(string? dealerCode, bool isSuperAdmin);
         Task<IEnumerable<LedgerMaster>> GetLotRelatedLedgers(string? invoiceNo, bool? IsD2D);
         Task<IEnumerable<LedgerMaster>> GetSupplierLedgers(string? dealerCode);
         Task<IEnumerable<LedgerMaster>> GetLedgerByLedgerTypes(string[] ledgerTypes);
+        Task<PagedResponse<object>> GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize, string dealerCode, string filter, string? ledgerType);
+        Task<IEnumerable<LedgerExcelViewModel>> GetExcelData(string? dealerCode);
     }
 }

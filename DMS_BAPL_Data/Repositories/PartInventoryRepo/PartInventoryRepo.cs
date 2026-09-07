@@ -18,16 +18,19 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
             _context = context;
         }
 
-        async Task<int> IPartInventoryRepo.GetCurrentStockByItem(string itemCode)
+        async Task<int> IPartInventoryRepo.GetCurrentStockByItem(string itemCode, string? dealerCode, string? dealerLocation)
         {
             var item = await _context.PartsInventories
-                .Where(x => x.ItemCode == itemCode)
-                .Select(x => x.BatchClosingQty)
+                .Where(x =>
+                    x.ItemCode == itemCode &&
+                    x.FinalStockFlag == "Y" &&
+                    x.VendorCode == dealerCode &&
+                    x.DealerLocation == dealerLocation)
+                .Select(x => (int?)x.BatchClosingQty)
                 .FirstOrDefaultAsync();
 
-            return item;
+            return item ?? 0;
         }
-
         public async Task UpdateStock(PartsInventory partsInventory)
         {
             try

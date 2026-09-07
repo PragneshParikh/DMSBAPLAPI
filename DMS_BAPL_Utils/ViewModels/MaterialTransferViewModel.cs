@@ -27,8 +27,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? ValidDays { get; set; }
         public int IssueType { get; set; }
 
-        public string? Location { get; set; }        
-        public string? DealerCode { get; set; }        
+        public string? Location { get; set; }
+        public string? DealerCode { get; set; }
         public string? DealerLocation { get; set; }    // ADDED
         public decimal? Mrp { get; set; }              // ADDED
 
@@ -36,5 +36,20 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+    }
+
+    public class MaterialTransferDeleteResultViewModel
+    {
+        public int DeletedCount { get; set; }
+        public List<ReversedStockItemViewModel> ReversedItems { get; set; } = new();
+    }
+
+    public class ReversedStockItemViewModel
+    {
+        public string ItemCode { get; set; } = null!;
+        public int Quantity { get; set; }
+        public string? DealerCode { get; set; }
+        public string? DealerLocation { get; set; }
+
     }
 }

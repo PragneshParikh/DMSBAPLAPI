@@ -40,11 +40,31 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             catch { throw; }
         }
 
-        async Task<IEnumerable<LedgerExcelViewModel>> ILedgerMasterRepo.GetExcelData()
+        async Task<IEnumerable<LedgerExcelViewModel>> ILedgerMasterRepo.GetExcelData(string? dealerCode)
         {
             try
             {
                 var query = _context.LedgerMasters.AsNoTracking();
+
+                // FIXED: mirror the exact same visibility rule GetLedgerByPagedAsync
+                // uses for the on-screen paged list — Dealer-type ledger rows stay
+                // visible to every dealer as trading partners (same precedent as
+                // GetLedgerForSale), and a record counts as "this dealer's own" via
+                // either DealerCode or LedgerVisibility. This method previously took
+                // no dealerCode at all; DownloadExcel() filtered afterward, in
+                // memory, using only DealerCode == dealerCode — which silently
+                // dropped every other dealer's own "Dealer"-type row (visible on
+                // screen) and any record tied to this dealer only via
+                // LedgerVisibility. That's what made Excel exports come back with
+                // fewer rows than the paged list showed for the same dealer.
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(i =>
+                        i.LedgerType.ToLower() == "dealer"
+                        || i.DealerCode == dealerCode
+                        || i.LedgerVisibility == dealerCode);
+                }
+
                 var result = await (
                    from LM in query
                    join C in _context.Cities
@@ -86,10 +106,8 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                        stateName = state != null ? state.StateName : string.Empty
                    }
                )
-
                .ToListAsync();
                 return result;
-
             }
             catch
             {
@@ -102,22 +120,27 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
             try
             {
                 var query = _context.LedgerMasters.AsNoTracking();
-                if (dealerCode != null)
+
+      
+                if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    query = query.Where(i => i.LedgerVisibility == dealerCode || i.LedgerVisibility.ToLower() == "all");
+                    query = query.Where(i =>
+                        i.LedgerType.ToLower() == "dealer"
+                        || i.DealerCode == dealerCode
+                        || i.LedgerVisibility == dealerCode);
                 }
-                if (filter != null)
+
+                if (!string.IsNullOrWhiteSpace(filter))
                 {
                     query = query.Where(i => i.DealerCode == filter);
                 }
+
                 if (!string.IsNullOrWhiteSpace(searchTerms))
                 {
                     query = query.Where(c => c.LedgerType.Contains(searchTerms)
                                         || c.LedgerName.Contains(searchTerms)
                                         || c.MobileNumber.Contains(searchTerms)
                                         || c.EMail.Contains(searchTerms));
-                    //|| c.City.Contains(searchTerms)
-                    //|| c.State.Contains(searchTerms));
                 }
 
                 int totalRecords = await query.CountAsync();
@@ -569,5 +592,100 @@ namespace DMS_BAPL_Data.Repositories.LedgerMasterRepo
                 .Where(x => ledgerTypes.Contains(x.LedgerType))
                 .ToListAsync();
         }
+
+        async Task<PagedResponse<object>> ILedgerMasterRepo.GetLedgerByPagedAsync(string? searchTerms, int pageIndex, int pageSize, string dealerCode, string filter, string? ledgerType)
+        {
+            try
+            {
+                var query = _context.LedgerMasters.AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(dealerCode))
+                {
+                    query = query.Where(i =>
+                        i.LedgerType.ToLower() == "dealer"
+                        || i.DealerCode == dealerCode
+                        || i.LedgerVisibility == dealerCode);
+                }
+
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    query = query.Where(i => i.DealerCode == filter);
+                }
+
+                // NEW: Ledger Type filter for the Customer Ledger list's new
+                // "Ledger Type" dropdown.
+                if (!string.IsNullOrWhiteSpace(ledgerType))
+                {
+                    query = query.Where(i => i.LedgerType == ledgerType);
+                }
+
+                if (!string.IsNullOrWhiteSpace(searchTerms))
+                {
+                    query = query.Where(c => c.LedgerType.Contains(searchTerms)
+                                        || c.LedgerName.Contains(searchTerms)
+                                        || c.MobileNumber.Contains(searchTerms)
+                                        || c.EMail.Contains(searchTerms));
+                }
+
+                int totalRecords = await query.CountAsync();
+
+                var result = await (
+                    from LM in query
+                    join C in _context.Cities
+                        on LM.City equals C.CityId into cityGroup
+                    from city in cityGroup.DefaultIfEmpty()
+
+                    join S in _context.States
+                        on LM.State equals S.StateId into stateGroup
+                    from state in stateGroup.DefaultIfEmpty()
+
+                    join D in _context.DealerMasters
+                        on LM.DealerCode equals D.Dealercode into DealerInfo
+                    from dealer in DealerInfo.DefaultIfEmpty()
+
+                    orderby LM.CreatedDate descending
+
+                    select new
+                    {
+                        Id = LM.Id,
+                        LedgerCode = LM.LedgerCode,
+                        LedgerName = LM.LedgerName,
+                        LedgerType = LM.LedgerType,
+                        Gstno = LM.Gstno,
+                        Pan = LM.Pan,
+                        AadharNumber = LM.AadharNumber,
+                        MobileNumber = LM.MobileNumber,
+                        Address = LM.Address,
+                        City = LM.City,
+                        State = LM.State,
+                        Pin = LM.Pin,
+                        EMail = LM.EMail,
+                        Gender = LM.Gender,
+                        DateOfBirth = LM.DateOfBirth,
+                        CreatedBy = LM.CreatedBy,
+                        CreatedDate = LM.CreatedDate,
+                        UpdatedBy = LM.UpdatedBy,
+                        UpdatedDate = LM.UpdatedDate,
+                        LedgerVisibility = LM.LedgerVisibility,
+                        cityName = city.CityName,
+                        stateName = state.StateName,
+                        DealerCode = dealer.Dealercode,
+                        DealerName = dealer.Compname,
+                    }
+                )
+                .Skip(pageIndex * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+                return new PagedResponse<object>
+                {
+                    Data = result.Cast<object>().ToList(),
+                    TotalRecords = totalRecords
+                };
+            }
+            catch { throw; }
+        }
+
+
     }
 }

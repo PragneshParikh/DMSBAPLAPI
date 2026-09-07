@@ -11,10 +11,11 @@ namespace DMS_BAPL_Data.Repositories.PartInventoryRepo
 {
     public interface IPartInventoryRepo
     {
-        Task<int> GetCurrentStockByItem(string itemCode);
+        Task<int> GetCurrentStockByItem(string itemCode, string? dealerCode, string? dealerLocation);
         Task UpdateStock(PartsInventory partsInventory);
         Task<IEnumerable<object>> Get();
         Task<IEnumerable<object>> GetByItemCode(List<string> itemCode);
         Task<IEnumerable<object>> GetPartsByDealerAndDateRange(InventoryFilterViewModel inventoryFilterViewModel);
+
     }
 }

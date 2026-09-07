@@ -2,6 +2,8 @@
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.EntityFrameworkCore;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Services.MaterialTransferService;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +17,14 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
     {
 
         private readonly BapldmsvadContext _context;
+        private readonly IJobCardRepo _jobCardRepo;
+        private readonly IMaterialTransferService _materialTransferService;
 
-        public RepairBillRepo(BapldmsvadContext context)
+        public RepairBillRepo(BapldmsvadContext context, IJobCardRepo jobCardRepo, IMaterialTransferService materialTransferService)
         {
             _context = context;
+            _jobCardRepo = jobCardRepo;
+            _materialTransferService = materialTransferService;
         }
 
         public async Task<int> InsertRepairBill(RepairBillInsertVM model, string userId)
@@ -578,39 +584,51 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 throw new Exception(ex.Message);
             }
         }
-        public async Task<int> DeleteRepairbill(int repairbillId, string role)
+        public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
         {
-
-            var repairbillHeader = await _context.RepairBillHeaders.FirstOrDefaultAsync(x => x.Id == repairbillId);
-            if (repairbillHeader == null)
-            {
-                throw new Exception("Repair bill header not found");
-            }
-            if (role != "SuperAdmin")
-            {
+            if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 throw new Exception("Only SuperAdmin can delete repair bills.");
-            }
-            // Delete Repair Bill if exists
-            var repairBills = await _context.RepairBillHeaders
-                .Where(x => x.Id == repairbillId)
-                .ToListAsync();
-            if (repairBills.Any())
-            {
-                var repairBillHeaderDetails = _context.RepairBillHeaders;
-                repairBills.ForEach(repairBills =>
-                {
-                    var repairBillDetails = _context.RepairBillHeaders.Where(d => d.Id == repairbillId).ToList();
-                    repairBillDetails.ForEach(detail =>
-                    {
-                        detail.IsDelete = true;
-                        detail.UpdatedBy = role;
-                        detail.UpdatedDate = DateTime.UtcNow;
-                    });
-                });
 
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var repairbillHeader = await _context.RepairBillHeaders
+                    .FirstOrDefaultAsync(x => x.Id == repairbillId);
+
+                if (repairbillHeader == null)
+                    throw new Exception("Repair bill header not found");
+
+                repairbillHeader.IsDelete = true;
+                repairbillHeader.UpdatedBy = userId;
+                repairbillHeader.UpdatedDate = DateTime.UtcNow;
+
+                var result = await _context.SaveChangesAsync();
+
+                // CHANGED from last turn: the Job Card is NO LONGER soft-deleted here —
+                // it stays live and visible, with its computed status reverting to
+                // "Open" (see the query fixes below — this alone isn't sufficient).
+                // UpdateMaterialTransferStatus(jobId, false) restored — this was
+                // dropped when the cascade was wired straight through the service
+                // layer instead of the controller flow that normally sets it.
+                if (repairbillHeader.JobId > 0)
+                {
+                    int jobId = repairbillHeader.JobId;
+
+                    await _materialTransferService.DeleteMaterialsByJobId(
+                        jobId, isSuperAdmin: true, createdBy: userId);
+
+                    await _jobCardRepo.UpdateMaterialTransferStatus(jobId, false);
+                }
+
+                await transaction.CommitAsync();
+                return result;
             }
-            _context.RepairBillHeaders.Update(repairbillHeader);
-            return await _context.SaveChangesAsync();
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
 

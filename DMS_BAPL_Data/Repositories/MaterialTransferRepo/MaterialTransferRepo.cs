@@ -486,10 +486,12 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
         //}
 
         async Task<PagedResponse<object>> IMaterialTransferRepo.GetMaterialTransferDetailsByDealer(
-    string? searchTerm,
-    string dealerCode,
-    int pageIndex,
-    int pageSize)
+           string? searchTerm,
+           string? dealerCode,
+           int pageIndex,
+           int pageSize,
+           DateTime? fromDate,
+           DateTime? toDate)
         {
             try
             {
@@ -521,15 +523,14 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     join UM in _context.AspNetUsers
                         on JH.UpdateBy equals UM.Id into userModGroup
                     from UM in userModGroup.DefaultIfEmpty()
-
-                    join RB in _context.RepairBillHeaders
+                    
+                    join RB in _context.RepairBillHeaders.Where(r => r.IsDelete != true)
                         on JH.Id equals RB.JobId into repairBillStatus
                     from RB in repairBillStatus.DefaultIfEmpty()
 
-                        // FIXED: exclude soft-deleted job cards (JobCardHeader.IsDelete == true)
-                        // so a deleted job card no longer shows up in the Material Transfer
-                        // job card search grid.
-                    where JH.DealerCode == dealerCode
+                        // Empty/null dealerCode = "All Locations" (no dealer filter).
+                        // The controller only allows this to reach here for Super Admins.
+                    where (string.IsNullOrEmpty(dealerCode) || JH.DealerCode == dealerCode)
                           && JH.IsDelete != true
 
                     select new
@@ -563,6 +564,18 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         (x.CustomerName != null && x.CustomerName.Contains(searchTerm)) ||
                         (x.RegisterNo != null && x.RegisterNo.Contains(searchTerm))
                     );
+                }
+
+                if (fromDate.HasValue)
+                {
+                    var from = fromDate.Value.Date;
+                    query = query.Where(x => x.CreatedDate >= from);
+                }
+
+                if (toDate.HasValue)
+                {
+                    var toExclusive = toDate.Value.Date.AddDays(1);
+                    query = query.Where(x => x.CreatedDate < toExclusive);
                 }
 
                 int totalRecords = await query.CountAsync();
@@ -677,7 +690,6 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                 throw;
             }
         }
-
         async Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferRepo.GetMeterialTransferByJobId(int jobId)
         {
             var result = await (
@@ -696,11 +708,46 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     JobId = mt.JobId,
                     ItemId = mt.ItemId,
                     ItemCode = im.Itemcode,
-                    Quantity = mt.Quantity
+                    Quantity = mt.Quantity,
+                    // CHANGED: sourced from JobCardHeader, not MaterialTransfer's own
+                    // DealerCode/DealerLocation columns — those are confirmed blank on
+                    // every reversal-affected row, since they're populated from a
+                    // ViewModel field distinct from "Location" (the one actually used
+                    // when the original outgoing stock transaction was created).
+                    // JobCardHeader.DealerCode/Serviceloc are reliably populated and
+                    // match what "Location" was always bound to in the UI.
+                    DealerCode = jch.DealerCode,
+                    DealerLocation = jch.Serviceloc
                 }
             ).ToListAsync();
 
             return result;
+        }
+
+        async Task<int> IMaterialTransferRepo.DeleteMaterialsByJobId(int jobId, bool isSuperAdmin)
+        {
+            try
+            {
+                if (!isSuperAdmin)
+                {
+                    var isBilled = await _context.RepairBillHeaders
+                        .AnyAsync(x => x.JobId == jobId && x.RepairbillStatus == "Billed");
+
+                    if (isBilled)
+                        throw new InvalidOperationException("This job card has already been billed and its material transfer cannot be deleted.");
+                }
+
+                var result = await _context.MaterialTransfers
+                    .Where(x => x.JobId == jobId)
+                    .ExecuteDeleteAsync();
+
+                // ExecuteDeleteAsync bypasses the change tracker, so flush the pending
+                // stock-reversal rows staged earlier via IPartInventoryService.UpdateIncoming.
+                await _context.SaveChangesAsync();
+
+                return result;
+            }
+            catch { throw; }
         }
     }
 }

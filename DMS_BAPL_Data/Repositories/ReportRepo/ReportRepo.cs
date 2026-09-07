@@ -464,10 +464,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var complaintLookup = complaintRows
                     .GroupBy(c => c.JobCardHeaderId)
                     .ToDictionary(g => g.Key, g => g.ToList());
-
+                
                 var repairBillRows = await _context.RepairBillHeaders
-                    .Where(r => headerIds.Contains(r.JobId))
+                    .Where(r => headerIds.Contains(r.JobId) && r.IsDelete != true)   // added IsDelete filter
                     .ToListAsync();
+                
                 var repairBillLookup = repairBillRows
                     .GroupBy(r => r.JobId)
                     .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
@@ -3266,9 +3267,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             var headerIds = rows.Select(r => r.Jh.Id).Distinct().ToList();
 
             var repairBillRows = await _context.RepairBillHeaders
-                .AsNoTracking()
-                .Where(r => headerIds.Contains(r.JobId))
-                .ToListAsync();
+                          .AsNoTracking()
+                          .Where(r => headerIds.Contains(r.JobId) && r.IsDelete != true)   // added IsDelete filter
+                          .ToListAsync();
             var repairBillLookup = repairBillRows
                 .GroupBy(r => r.JobId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
@@ -4196,10 +4197,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         //}
 
         async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(
-            int groupId,
-            DateTime fromDate,
-            DateTime toDate,
-            string? dealerCode)
+    int groupId,
+    DateTime fromDate,
+    DateTime toDate,
+    string? dealerCode)
         {
             var aggregatedTaxes = _context.AggregateTaxCodes
                 .GroupBy(at => at.AtaxCode)
@@ -4225,14 +4226,45 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     VendorCode = g.Key.VendorCode,
                     DealerLocation = g.Key.DealerLocation,
                     ItemCode = g.Key.ItemCode,
-                    SaleCount = g.Count()
+                    SaleQty = g.Sum(x => x.BatchTransQty)
                 });
 
-            var purchaseCounts = _context.PartsInventories
+            // CHANGED — Purchase Qty's real source is now PartsInward (the actual
+            // goods-receipt / GRN record), not PartsInventory's derived TransType
+            // == "P" rows. PartsInward.PartNo/DealerCode/LocCode are the keys that
+            // map onto this report's ItemCode/VendorCode/DealerLocation grouping.
+            // Filtered on InvoiceDate, matching the date field GetPartsInwardDetailsByDealer
+            // already filters on elsewhere in this codebase.
+            // ASSUMPTION: counts ALL PartsInward rows in range regardless of
+            // IsAccepted. If you want accepted-only (matching exactly what today's
+            // TransType=="P" rows represent), add `&& x.IsAccepted == true` to the
+            // Where below.
+            var partsInwardCounts = _context.PartsInwards
+                .Where(x =>
+                    x.InvoiceDate >= fromDate.Date &&
+                    x.InvoiceDate <= toDate.Date)
+                .GroupBy(x => new
+                {
+                    DealerCode = x.DealerCode ?? "",
+                    LocCode = x.LocCode ?? "",
+                    PartNo = x.PartNo ?? ""
+                })
+                .Select(g => new
+                {
+                    g.Key.DealerCode,
+                    g.Key.LocCode,
+                    g.Key.PartNo,
+                    InwardQty = g.Sum(x => x.ItemQty)
+                });
+
+            // Stock returned via a Material Transfer delete ("SD") — kept separate
+            // from PartsInward since a delete-reversal isn't a goods receipt and has
+            // no PartsInward row behind it at all.
+            var reversedCounts = _context.PartsInventories
                 .Where(x =>
                     x.TransDate >= DateOnly.FromDateTime(fromDate) &&
                     x.TransDate <= DateOnly.FromDateTime(toDate) &&
-                    x.TransType == "P")
+                    x.TransType == "SD")
                 .GroupBy(x => new
                 {
                     VendorCode = x.VendorCode ?? "",
@@ -4244,7 +4276,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     g.Key.VendorCode,
                     g.Key.DealerLocation,
                     g.Key.ItemCode,
-                    PurchaseCount = g.Count()
+                    ReversedQty = g.Sum(x => x.BatchTransQty)
                 });
 
             try
@@ -4255,13 +4287,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         join im in _context.ItemMasters
                             on pi.ItemCode equals im.Itemcode
 
-
                         join lm in _context.LocationMasters
-                            on pi.DealerLocation equals lm.Loccode
-
-                        join mt in _context.MaterialTransfers
-                            on im.Id equals mt.ItemId into materialGroup
-                        from mt in materialGroup.DefaultIfEmpty()
+                            on pi.DealerLocation equals lm.Loccode into locJoin
+                        from lm in locJoin.DefaultIfEmpty()
 
                         join h in _context.HsnwiseTaxCodes
                             on im.Hsncode equals h.Hsncode into hsnTaxGroup
@@ -4291,10 +4319,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             sc.ItemCode
                         }
                         into saleGroup
-
                         from sc in saleGroup.DefaultIfEmpty()
 
-                        join pc in purchaseCounts
+                            // NEW join — PartsInward-sourced quantity, keyed the same
+                            // way as the sc/rc joins below (VendorCode/DealerLocation/
+                            // ItemCode side coalesced to "" so a blank matches a blank).
+                        join pic in partsInwardCounts
                         on new
                         {
                             VendorCode = pi.VendorCode ?? "",
@@ -4303,18 +4333,32 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         }
                         equals new
                         {
-                            VendorCode = pc.VendorCode ?? "",
-                            DealerLocation = pc.DealerLocation ?? "",
-                            ItemCode = pc.ItemCode ?? ""
+                            VendorCode = pic.DealerCode,
+                            DealerLocation = pic.LocCode,
+                            ItemCode = pic.PartNo
                         }
-                        into purchaseGroup
-                        from pc in purchaseGroup.DefaultIfEmpty()
+                        into inwardGroup
+                        from pic in inwardGroup.DefaultIfEmpty()
+
+                        join rc in reversedCounts
+                        on new
+                        {
+                            VendorCode = pi.VendorCode ?? "",
+                            DealerLocation = pi.DealerLocation ?? "",
+                            ItemCode = pi.ItemCode ?? ""
+                        }
+                        equals new
+                        {
+                            VendorCode = rc.VendorCode,
+                            DealerLocation = rc.DealerLocation,
+                            ItemCode = rc.ItemCode
+                        }
+                        into reversedGroup
+                        from rc in reversedGroup.DefaultIfEmpty()
 
                         where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
                               && pi.FinalStockFlag == "Y"
                               && im.Grpidno == groupId
-                              && pi.TransDate >= DateOnly.FromDateTime(fromDate)
-                              && pi.TransDate <= DateOnly.FromDateTime(toDate)
 
                         select new
                         {
@@ -4330,18 +4374,24 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
 
-                            pi.BatchClosingQty,
                             pi.VendorCode,
                             pi.DealerLocation,
 
-                            lm.Locname,
+                            Locname = lm != null ? lm.Locname : "Unknown",
 
                             GST = at != null ? at.TotalTaxRate : 0,
 
                             MRP = im.Dlrprice +
                             ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
-                            SaleCount = (int?)sc.SaleCount ?? 0,
-                            PurchaseCount = (int?)pc.PurchaseCount ?? 0
+
+                            SaleCount = (int?)sc.SaleQty ?? 0,
+
+                            // Purchase Qty = PartsInward quantity + SD (delete-returned)
+                            PurchaseCount = ((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0),
+
+                            // Balance uses the same combined figure, minus MT
+                            BatchClosingQty = (((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0))
+                                               - ((int?)sc.SaleQty ?? 0)
                         })
                         .ToListAsync();
 
@@ -4373,7 +4423,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 throw;
             }
         }
-        
+
         // ═════════════════════════════════════════════════════════════════════
         // WARRANTY REGISTER REPORT
         // ═════════════════════════════════════════════════════════════════════
