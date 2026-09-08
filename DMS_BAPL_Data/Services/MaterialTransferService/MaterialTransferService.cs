@@ -240,7 +240,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     Qty = g.Sum(x => x.Quantity),
                     DealerLocation = g.First().DealerLocation,
                     DealerCode = g.First().DealerCode
-                });.
+                });
             var reversedItems = new List<ReversedStockItemViewModel>();
 
             foreach (var item in groupedItems)

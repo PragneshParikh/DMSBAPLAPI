@@ -626,6 +626,68 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
         //    }
         //}
 
+        //public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
+        //{
+        //    if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+        //        throw new Exception("Only SuperAdmin can delete repair bills.");
+
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        var repairbillHeader = await _context.RepairBillHeaders
+        //            .FirstOrDefaultAsync(x => x.Id == repairbillId);
+
+        //        if (repairbillHeader == null)
+        //            throw new Exception("Repair bill header not found");
+
+        //        repairbillHeader.IsDelete = true;
+        //        repairbillHeader.UpdatedBy = userId;
+        //        repairbillHeader.UpdatedDate = DateTime.UtcNow;
+
+        //        var result = await _context.SaveChangesAsync();
+
+        //        await transaction.CommitAsync();
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+
+        //public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
+        //{
+        //    if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+        //        throw new Exception("Only SuperAdmin can delete repair bills.");
+
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        var repairbillHeader = await _context.RepairBillHeaders
+        //            .FirstOrDefaultAsync(x => x.Id == repairbillId);
+
+        //        if (repairbillHeader == null)
+        //            throw new Exception("Repair bill header not found");
+
+        //        repairbillHeader.IsDelete = true;
+        //        repairbillHeader.UpdatedBy = userId;
+        //        repairbillHeader.UpdatedDate = DateTime.UtcNow;
+
+        //        var result = await _context.SaveChangesAsync();
+
+        //        await transaction.CommitAsync();
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+
         public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
         {
             if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
@@ -647,6 +709,29 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                 var result = await _context.SaveChangesAsync();
 
+
+                if (repairbillHeader.JobId > 0)
+                {
+                    var jobCardHeader = await _context.JobCardHeaders
+                        .FirstOrDefaultAsync(x => x.Id == repairbillHeader.JobId);
+
+                    if (jobCardHeader != null)
+                    {
+                        var ffir = await _context.Ffirheaders
+                            .Where(f => f.JobCardHeaderId == jobCardHeader.Id)
+                            .OrderByDescending(f => f.CreatedDate)
+                            .FirstOrDefaultAsync();
+
+                        jobCardHeader.JobStatus =
+                            jobCardHeader.IsMaterialTransfer == true ? "Material Transfer"
+                            : ffir != null && ffir.Ffirstatus == "Closed" ? "FFIR Closed"
+                            : ffir != null ? "FFIR Created"
+                            : "Open";
+
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
                 await transaction.CommitAsync();
                 return result;
             }
@@ -656,8 +741,6 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 throw;
             }
         }
-
-
         public async Task<RepairBillPerformaVM?> generateRepairBillPerformaDetails(string dealerCode, int repairBillId)
         {
             var result = await (

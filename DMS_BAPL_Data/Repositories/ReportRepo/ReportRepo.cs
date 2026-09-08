@@ -4197,10 +4197,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         //}
 
         async Task<IEnumerable<object>> IReportRepo.GetPartsStockDetailsByDealer(
-    int groupId,
-    DateTime fromDate,
-    DateTime toDate,
-    string? dealerCode)
+            int groupId,
+            DateTime fromDate,
+            DateTime toDate,
+            string? dealerCode)
         {
             var aggregatedTaxes = _context.AggregateTaxCodes
                 .GroupBy(at => at.AtaxCode)
@@ -4229,16 +4229,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     SaleQty = g.Sum(x => x.BatchTransQty)
                 });
 
-            // CHANGED — Purchase Qty's real source is now PartsInward (the actual
-            // goods-receipt / GRN record), not PartsInventory's derived TransType
-            // == "P" rows. PartsInward.PartNo/DealerCode/LocCode are the keys that
-            // map onto this report's ItemCode/VendorCode/DealerLocation grouping.
-            // Filtered on InvoiceDate, matching the date field GetPartsInwardDetailsByDealer
-            // already filters on elsewhere in this codebase.
-            // ASSUMPTION: counts ALL PartsInward rows in range regardless of
-            // IsAccepted. If you want accepted-only (matching exactly what today's
-            // TransType=="P" rows represent), add `&& x.IsAccepted == true` to the
-            // Where below.
             var partsInwardCounts = _context.PartsInwards
                 .Where(x =>
                     x.InvoiceDate >= fromDate.Date &&
@@ -4257,9 +4247,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     InwardQty = g.Sum(x => x.ItemQty)
                 });
 
-            // Stock returned via a Material Transfer delete ("SD") — kept separate
-            // from PartsInward since a delete-reversal isn't a goods receipt and has
-            // no PartsInward row behind it at all.
             var reversedCounts = _context.PartsInventories
                 .Where(x =>
                     x.TransDate >= DateOnly.FromDateTime(fromDate) &&
@@ -4277,6 +4264,39 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     g.Key.DealerLocation,
                     g.Key.ItemCode,
                     ReversedQty = g.Sum(x => x.BatchTransQty)
+                });
+
+            // NEW — Stock Adjustment, sourced from PartsInventory per request. No
+            // dedicated "adjustment" TransType exists in PartInventoryRepo.UpdateStock
+            // (only P/S/TI/TO/PI/SD are recognized), so this uses "TI" (Touch point
+            // inward) and "TO" (Touch point out) — the two types representing internal
+            // stock movement/correction rather than a Purchase, Sale, Return, or
+            // Sale-deletion-reversal. TI adds, TO subtracts, matching the exact sign
+            // convention UpdateStock's own switch statement already uses, so this
+            // stays consistent with how closing quantity is calculated elsewhere.
+            //
+            // ASSUMPTION — flag if "Stock Adjustment" actually means something else
+            // in your process (e.g. a manual correction from a different table not
+            // shown here); the TransType filter below is the one line to change.
+            var stockAdjustmentCounts = _context.PartsInventories
+                .Where(x =>
+                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                    (x.TransType == "TI" || x.TransType == "TO"))
+                .GroupBy(x => new
+                {
+                    VendorCode = x.VendorCode ?? "",
+                    DealerLocation = x.DealerLocation ?? "",
+                    ItemCode = x.ItemCode ?? ""
+                })
+                .Select(g => new
+                {
+                    g.Key.VendorCode,
+                    g.Key.DealerLocation,
+                    g.Key.ItemCode,
+                    // Net adjustment: TI (inward) adds, TO (outward) subtracts —
+                    // one signed quantity per item/location/dealer.
+                    AdjustmentQty = g.Sum(x => x.TransType == "TI" ? x.BatchTransQty : -x.BatchTransQty)
                 });
 
             try
@@ -4321,9 +4341,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into saleGroup
                         from sc in saleGroup.DefaultIfEmpty()
 
-                            // NEW join — PartsInward-sourced quantity, keyed the same
-                            // way as the sc/rc joins below (VendorCode/DealerLocation/
-                            // ItemCode side coalesced to "" so a blank matches a blank).
                         join pic in partsInwardCounts
                         on new
                         {
@@ -4356,6 +4373,23 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into reversedGroup
                         from rc in reversedGroup.DefaultIfEmpty()
 
+                            // NEW join — Stock Adjustment, keyed identically to sc/pic/rc.
+                        join sa in stockAdjustmentCounts
+                        on new
+                        {
+                            VendorCode = pi.VendorCode ?? "",
+                            DealerLocation = pi.DealerLocation ?? "",
+                            ItemCode = pi.ItemCode ?? ""
+                        }
+                        equals new
+                        {
+                            VendorCode = sa.VendorCode,
+                            DealerLocation = sa.DealerLocation,
+                            ItemCode = sa.ItemCode
+                        }
+                        into adjustmentGroup
+                        from sa in adjustmentGroup.DefaultIfEmpty()
+
                         where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
                               && pi.FinalStockFlag == "Y"
                               && im.Grpidno == groupId
@@ -4386,10 +4420,16 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             SaleCount = (int?)sc.SaleQty ?? 0,
 
-                            // Purchase Qty = PartsInward quantity + SD (delete-returned)
                             PurchaseCount = ((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0),
 
-                            // Balance uses the same combined figure, minus MT
+                            // NEW — net TI/TO quantity in the selected date range.
+                            StockAdjustmentQty = (int?)sa.AdjustmentQty ?? 0,
+
+                            // Balance stays exactly as before — Purchase + reversed
+                            // sale-deletions minus Sale. Intentionally NOT folding
+                            // StockAdjustmentQty into this formula, since doing so
+                            // wasn't asked for and would silently change the existing,
+                            // already-verified Bal.Qty column's meaning.
                             BatchClosingQty = (((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0))
                                                - ((int?)sc.SaleQty ?? 0)
                         })
@@ -4415,6 +4455,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     x.GroupType,
                     x.SaleCount,
                     x.PurchaseCount,
+                    x.StockAdjustmentQty,
                     x.MRP
                 });
             }
