@@ -1997,9 +1997,85 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
 
             }
         }
+        //public async Task<int> DeleteJobCard(int jobId, string role)
+        //{
+
+        //    var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobId);
+        //    if (jobCardHeader == null)
+        //    {
+        //        throw new Exception("Job card header not found");
+        //    }
+        //    if (role != "SuperAdmin")
+        //    {
+        //        throw new Exception("Only SuperAdmin can delete job cards.");
+        //    }
+        //    // Delete Repair Bill if exists
+        //    var repairBills = await _context.RepairBillHeaders
+        //        .Where(x => x.JobId == jobId)
+        //        .ToListAsync();
+        //    if (repairBills.Any())
+        //    {
+        //        var repairBillHeaderDetails = _context.RepairBillHeaders;
+        //        repairBills.ForEach(repairBills =>
+        //        {
+        //            var repairBillDetails = _context.RepairBillHeaders.Where(d => d.JobId == jobId).ToList();
+        //            repairBillDetails.ForEach(detail =>
+        //            {
+        //                detail.IsDelete = true;
+        //                detail.UpdatedBy = role;
+        //                detail.UpdatedDate = DateTime.UtcNow;
+        //            });
+        //        });
+
+        //    }
+
+        //    // Delete FFIR if exists
+        //    var ffirs = await _context.Ffirheaders
+        //    .Where(x => x.JobCardHeaderId == jobId)
+        //    .ToListAsync();
+        //    if (ffirs.Any())
+        //    {
+        //        var ffirHeaderDetails = _context.Ffirheaders;
+        //        ffirs.ForEach(ffir =>
+        //        {
+        //            var ffirDetails = _context.Ffirheaders.Where(d => d.JobCardHeaderId == jobId).ToList();
+        //            ffirDetails.ForEach(detail =>
+        //            {
+        //                detail.IsDelete = true;
+        //                detail.UpdatedBy = role;
+        //                detail.UpdatedDate = DateTime.UtcNow;
+        //            });
+        //        });
+        //    }
+
+        //    // Delete Material Transfer if exists
+        //    var materialTransfers = await _context.MaterialTransfers
+        //    .Where(x => x.JobId == jobId)
+        //    .ToListAsync();
+        //    if (materialTransfers.Any())
+        //    {
+        //        var materialTransferDetails = _context.MaterialTransfers;
+        //        materialTransfers.ForEach(mt =>
+        //        {
+        //            var mtDetails = _context.MaterialTransfers.Where(d => d.JobId == jobId).ToList();
+        //            mtDetails.ForEach(detail =>
+        //            {
+        //                detail.IsDelete = true;
+        //                detail.UpdatedBy = role;
+        //                detail.UpdatedDate = DateTime.UtcNow;
+        //            });
+        //        });
+        //    }
+        //    // Soft Delete Job Card
+        //    jobCardHeader.IsDelete = true;
+        //    jobCardHeader.UpdateBy = role;
+        //    jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
+
+        //    _context.JobCardHeaders.Update(jobCardHeader);
+        //    return await _context.SaveChangesAsync();
+        //}
         public async Task<int> DeleteJobCard(int jobId, string role)
         {
-
             var jobCardHeader = await _context.JobCardHeaders.FirstOrDefaultAsync(x => x.Id == jobId);
             if (jobCardHeader == null)
             {
@@ -2009,70 +2085,72 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
             {
                 throw new Exception("Only SuperAdmin can delete job cards.");
             }
-            // Delete Repair Bill if exists
-            var repairBills = await _context.RepairBillHeaders
-                .Where(x => x.JobId == jobId)
-                .ToListAsync();
-            if (repairBills.Any())
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                var repairBillHeaderDetails = _context.RepairBillHeaders;
-                repairBills.ForEach(repairBills =>
+                // Delete Repair Bill if exists
+     
+                var repairBills = await _context.RepairBillHeaders
+                    .Where(x => x.JobId == jobId)
+                    .ToListAsync();
+                if (repairBills.Any())
                 {
-                    var repairBillDetails = _context.RepairBillHeaders.Where(d => d.JobId == jobId).ToList();
-                    repairBillDetails.ForEach(detail =>
+                    repairBills.ForEach(detail =>
                     {
                         detail.IsDelete = true;
                         detail.UpdatedBy = role;
                         detail.UpdatedDate = DateTime.UtcNow;
                     });
-                });
+                }
 
-            }
-
-            // Delete FFIR if exists
-            var ffirs = await _context.Ffirheaders
-            .Where(x => x.JobCardHeaderId == jobId)
-            .ToListAsync();
-            if (ffirs.Any())
-            {
-                var ffirHeaderDetails = _context.Ffirheaders;
-                ffirs.ForEach(ffir =>
+                // Delete FFIR if exists
+                // FIXED: same redundant re-query pattern as above, removed the
+                // same way.
+                var ffirs = await _context.Ffirheaders
+                    .Where(x => x.JobCardHeaderId == jobId)
+                    .ToListAsync();
+                if (ffirs.Any())
                 {
-                    var ffirDetails = _context.Ffirheaders.Where(d => d.JobCardHeaderId == jobId).ToList();
-                    ffirDetails.ForEach(detail =>
+                    ffirs.ForEach(detail =>
                     {
                         detail.IsDelete = true;
                         detail.UpdatedBy = role;
                         detail.UpdatedDate = DateTime.UtcNow;
                     });
-                });
-            }
+                }
 
-            // Delete Material Transfer if exists
-            var materialTransfers = await _context.MaterialTransfers
-            .Where(x => x.JobId == jobId)
-            .ToListAsync();
-            if (materialTransfers.Any())
-            {
-                var materialTransferDetails = _context.MaterialTransfers;
-                materialTransfers.ForEach(mt =>
+                // Delete Material Transfer if exists
+                var materialTransfers = await _context.MaterialTransfers
+                    .Where(x => x.JobId == jobId)
+                    .ToListAsync();
+                if (materialTransfers.Any())
                 {
-                    var mtDetails = _context.MaterialTransfers.Where(d => d.JobId == jobId).ToList();
-                    mtDetails.ForEach(detail =>
+                    materialTransfers.ForEach(detail =>
                     {
                         detail.IsDelete = true;
                         detail.UpdatedBy = role;
                         detail.UpdatedDate = DateTime.UtcNow;
                     });
-                });
-            }
-            // Soft Delete Job Card
-            jobCardHeader.IsDelete = true;
-            jobCardHeader.UpdateBy = role;
-            jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
+                }
 
-            _context.JobCardHeaders.Update(jobCardHeader);
-            return await _context.SaveChangesAsync();
+                // Soft Delete Job Card
+                jobCardHeader.IsDelete = true;
+                jobCardHeader.UpdateBy = role;
+                jobCardHeader.UpdatedDate = DateTime.UtcNow; // optional
+
+                _context.JobCardHeaders.Update(jobCardHeader);
+                var result = await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
         public async Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model)
         {
@@ -2558,6 +2636,20 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
 
             return data;
         }
+        //public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
+        //{
+        //    var jobCard = await _context.JobCardHeaders
+        //            .FirstOrDefaultAsync(x => x.Id == jobId);
+
+        //    if (jobCard == null)
+        //        throw new Exception("Job card not found");
+
+        //    jobCard.IsMaterialTransfer = status;
+
+        //    await _context.SaveChangesAsync();
+        //    return true;
+        //}
+
         public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
         {
             var jobCard = await _context.JobCardHeaders
@@ -2567,6 +2659,20 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                 throw new Exception("Job card not found");
 
             jobCard.IsMaterialTransfer = status;
+            var ffir = await _context.Ffirheaders
+                .Where(f => f.JobCardHeaderId == jobId)
+                .OrderByDescending(f => f.CreatedDate)
+                .FirstOrDefaultAsync();
+
+            var hasLiveBilledRepairBill = await _context.RepairBillHeaders
+                .AnyAsync(r => r.JobId == jobId && r.IsDelete != true && r.RepairbillStatus == "Billed");
+
+            jobCard.JobStatus =
+                hasLiveBilledRepairBill ? "Closed"
+                : jobCard.IsMaterialTransfer == true ? "Material Transfer"
+                : ffir != null && ffir.Ffirstatus == "Closed" ? "FFIR Closed"
+                : ffir != null ? "FFIR Created"
+                : "Open";
 
             await _context.SaveChangesAsync();
             return true;
