@@ -167,14 +167,22 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpDelete("DeleteRepairbill/{id}/{role}")]
-        [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteRepairbill(int id, string role, string userId)
+        public async Task<IActionResult> DeleteRepairbill(int id, string role)
         {
             try
             {
-                if (role != "SuperAdmin")
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                // CHANGED: case-insensitive, matching every other SuperAdmin check
+                // in this codebase (e.g. GetUserGroup(...).ToLower() == "superadmin")
+                if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
                     return Unauthorized("Only Super Admin can delete");
 
                 var result = await _repairBillRepo.DeleteRepairbill(id, role, userId);
@@ -184,12 +192,15 @@ namespace DMS_BAPL_Api.Controllers
 
                 return NotFound("Repair Bill not found");
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in DeleteRepairBill");
                 return StatusCode(500, "An error occurred while deleting the repair bill.");
             }
-
         }
     }
 }

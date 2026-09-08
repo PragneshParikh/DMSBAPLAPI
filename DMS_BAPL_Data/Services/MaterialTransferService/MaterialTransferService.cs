@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Repositories.MaterialTransferRepo;
 using DMS_BAPL_Data.Services.ExcelServices;
 using DMS_BAPL_Data.Services.InventoryService;
@@ -20,11 +21,27 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         private readonly IExcelService _excelService;
         private readonly IPartInventoryService _partInventoryService;
 
-        public MaterialTransferService(IMaterialTransferRepo materialTransferRepo, IExcelService excelService, IPartInventoryService partInventoryService)
+        // NEW — needed so that DeleteMaterialsByJobId can flip
+        // JobCardHeader.IsMaterialTransfer back to false once the
+        // material transfer rows for a job are gone. Previously this
+        // reset only happened inside RepairBillRepo.DeleteRepairbill as
+        // a side effect of deleting a repair bill — which was wrong,
+        // because it fired even when the repair bill delete should have
+        // left MT status alone (Condition 1). Now the reset lives here,
+        // directly on the action that actually removes the material
+        // transfer, so it fires exactly when it should (Condition 2).
+        private readonly IJobCardRepo _jobCardRepo;
+
+        public MaterialTransferService(
+            IMaterialTransferRepo materialTransferRepo,
+            IExcelService excelService,
+            IPartInventoryService partInventoryService,
+            IJobCardRepo jobCardRepo)
         {
             _materialTransferRepo = materialTransferRepo;
             _excelService = excelService;
             _partInventoryService = partInventoryService;
+            _jobCardRepo = jobCardRepo;
         }
 
         Task<object> IMaterialTransferService.Get() => _materialTransferRepo.Get();
@@ -33,10 +50,9 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferService.GetMeterialTransferByJobId(int JobId) => _materialTransferRepo.GetMeterialTransferByJobId(JobId);
         async Task<PagedResponse<object>> IMaterialTransferService.GetMaterialTransferDetailsByDealer(string? searchTerm, string? dealerCode, int pageIndex, int pageSize, DateTime? fromDate, DateTime? toDate)
         => await _materialTransferRepo.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize, fromDate, toDate);
-        async Task<int> IMaterialTransferService.InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels
-            )
-        {
 
+        async Task<int> IMaterialTransferService.InsertMaterials(List<MaterialTransferViewModel> materialTransferViewModels)
+        {
             var groupedItems = materialTransferViewModels
                 .GroupBy(x => x.ItemCode)
                 .Select(g => new
@@ -79,6 +95,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         }
 
         async Task<int> IMaterialTransferService.DeleteMaterials(List<int> ids) => await _materialTransferRepo.DeleteMaterials(ids);
+
         async Task<int> IMaterialTransferService.UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels)
         {
             var existingItems = await _materialTransferRepo.GetMeterialTransferByJobId(materialTransferViewModels[0].JobId);
@@ -210,6 +227,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                 throw;
             }
         }
+
         async Task<MaterialTransferDeleteResultViewModel> IMaterialTransferService.DeleteMaterialsByJobId(int jobId, bool isSuperAdmin, string createdBy)
         {
             var existingItems = await _materialTransferRepo.GetMeterialTransferByJobId(jobId);
@@ -222,12 +240,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     Qty = g.Sum(x => x.Quantity),
                     DealerLocation = g.First().DealerLocation,
                     DealerCode = g.First().DealerCode
-                });
-
-            // NEW — collected as we go, so the response reflects exactly what was
-            // actually written to each reversal transaction (not re-queried
-            // afterward), making it immediately visible if DealerCode/DealerLocation
-            // came through populated or blank for this specific delete.
+                });.
             var reversedItems = new List<ReversedStockItemViewModel>();
 
             foreach (var item in groupedItems)
@@ -261,6 +274,10 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
             }
 
             var deletedCount = await _materialTransferRepo.DeleteMaterialsByJobId(jobId, isSuperAdmin);
+            if (deletedCount > 0)
+            {
+                await _jobCardRepo.UpdateMaterialTransferStatus(jobId, false);
+            }
 
             return new MaterialTransferDeleteResultViewModel
             {

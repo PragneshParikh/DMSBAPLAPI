@@ -1,12 +1,13 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.JobCardRepo;
+using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.EntityFrameworkCore;
-using DMS_BAPL_Data.Repositories.JobCardRepo;
-using DMS_BAPL_Data.Services.MaterialTransferService;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using static DMS_BAPL_Utils.ViewModels.RepairBillViewModel;
@@ -17,14 +18,14 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
     {
 
         private readonly BapldmsvadContext _context;
-        private readonly IJobCardRepo _jobCardRepo;
         private readonly IMaterialTransferService _materialTransferService;
+        private readonly IJobCardRepo _jobCardRepo;
 
-        public RepairBillRepo(BapldmsvadContext context, IJobCardRepo jobCardRepo, IMaterialTransferService materialTransferService)
+        public RepairBillRepo(BapldmsvadContext context, IMaterialTransferService  materialTransferService, IJobCardRepo jobCardRepo)
         {
             _context = context;
-            _jobCardRepo = jobCardRepo;
             _materialTransferService = materialTransferService;
+            _jobCardRepo = jobCardRepo;
         }
 
         public async Task<int> InsertRepairBill(RepairBillInsertVM model, string userId)
@@ -632,6 +633,47 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 throw new Exception(ex.Message);
             }
         }
+        //public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
+        //{
+        //    if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+        //        throw new Exception("Only SuperAdmin can delete repair bills.");
+
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        var repairbillHeader = await _context.RepairBillHeaders
+        //            .FirstOrDefaultAsync(x => x.Id == repairbillId);
+
+        //        if (repairbillHeader == null)
+        //            throw new Exception("Repair bill header not found");
+
+        //        repairbillHeader.IsDelete = true;
+        //        repairbillHeader.UpdatedBy = userId;   // now a real, non-null value from the token
+        //        repairbillHeader.UpdatedDate = DateTime.UtcNow;
+
+        //        var result = await _context.SaveChangesAsync();
+
+        //        if (repairbillHeader.JobId > 0)
+        //        {
+        //            int jobId = repairbillHeader.JobId;
+
+        //            await _materialTransferService.DeleteMaterialsByJobId(
+        //                jobId, isSuperAdmin: true, createdBy: userId);
+
+        //            await _jobCardRepo.UpdateMaterialTransferStatus(jobId, false);
+        //        }
+
+        //        await transaction.CommitAsync();
+        //        return result;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+
         public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)
         {
             if (!string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
@@ -653,22 +695,6 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                 var result = await _context.SaveChangesAsync();
 
-                // CHANGED from last turn: the Job Card is NO LONGER soft-deleted here —
-                // it stays live and visible, with its computed status reverting to
-                // "Open" (see the query fixes below — this alone isn't sufficient).
-                // UpdateMaterialTransferStatus(jobId, false) restored — this was
-                // dropped when the cascade was wired straight through the service
-                // layer instead of the controller flow that normally sets it.
-                if (repairbillHeader.JobId > 0)
-                {
-                    int jobId = repairbillHeader.JobId;
-
-                    await _materialTransferService.DeleteMaterialsByJobId(
-                        jobId, isSuperAdmin: true, createdBy: userId);
-
-                    await _jobCardRepo.UpdateMaterialTransferStatus(jobId, false);
-                }
-
                 await transaction.CommitAsync();
                 return result;
             }
@@ -678,7 +704,6 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 throw;
             }
         }
-
 
 
         public async Task<RepairBillPerformaVM?> generateRepairBillPerformaDetails(string dealerCode, int repairBillId)

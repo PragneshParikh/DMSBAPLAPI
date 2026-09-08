@@ -23,7 +23,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<JobCardlistDetailsViewModel>> GetJobCardListViewAsync(JobCardSearchVM search);
         Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId);
         Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails);
-        Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize);
+        Task<PagedResponse<object>> GetFilterdJobCardDetails(DateTime? fromDate, DateTime? toDate, int? jobNo, int? manualJobNo, int pageIndex, int pageSize, string? dealerCode);
         Task<int> UpdateSaleDetails(UpdateSaleDetailsVM updateSale);
         Task<int> DeleteJobCard(int jobId, string role);
         Task<List<JobCardlistDetailsViewModel>> SearchJobCards(JobCardSearchModel model);
@@ -41,6 +41,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate);
         Task<JobCardPrintVM?> GetJobCardForPrint(int jobId);
         Task<bool> GetJobCardStatusById(int Id);
+
+        Task<List<LabourCodeDetails>> GetLabourCodesByPartAndJob(string partCode, int jobId);
 
         Task MarkJobCardAsDeleted(int jobId, string updatedBy);
     }
