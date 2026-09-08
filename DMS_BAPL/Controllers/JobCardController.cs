@@ -323,7 +323,6 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
-
         [HttpGet("GetFilteredJobCard")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -334,7 +333,8 @@ namespace DMS_BAPL_Api.Controllers
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate,
             [FromQuery] int? jobNo,
-            [FromQuery] int? manualJobNo)
+            [FromQuery] int? manualJobNo,
+            [FromQuery] string? dealerCode)
         {
             try
             {
@@ -343,7 +343,12 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobCards = await _jobCardRepo.GetFilterdJobCardDetails(fromDate, toDate, jobNo, manualJobNo, pageIndex, pageSize);
+                bool isSuperAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                string? effectiveDealerCode = isSuperAdmin
+                    ? dealerCode
+                    : GetUserInfoFromToken.GetDealerCode(HttpContext);
+
+                var jobCards = await _jobCardRepo.GetFilterdJobCardDetails(fromDate, toDate, jobNo, manualJobNo, pageIndex, pageSize, effectiveDealerCode);
 
                 return Ok(jobCards);
             }
@@ -605,6 +610,28 @@ namespace DMS_BAPL_Api.Controllers
             {
                 _logger.LogError(ex, "Error in GetJobCardForPrint");
                 return StatusCode(500, "An error occurred while fetching job card for print.");
+            }
+        }
+
+        [HttpGet("GetLabourCodesByPart")]
+        [ProducesResponseType(typeof(List<LabourCodeDetails>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLabourCodesByPart([FromQuery] string partCode, [FromQuery] int jobId)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var result = await _jobCardRepo.GetLabourCodesByPartAndJob(partCode, jobId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetLabourCodesByPart");
+                return StatusCode(500, "An error occurred while fetching labour codes for the part.");
             }
         }
 
