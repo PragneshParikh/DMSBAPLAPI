@@ -4594,6 +4594,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .GroupBy(im => im.Itemcode, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
+            var jobCardHeaderIds = claims
+                                .Where(c => c.JobCardHeader != null)
+                                .Select(c => c.JobCardHeader.Id)
+                                .Distinct()
+                                .ToList();
+
+            var jobCardCustomerByHeaderId = jobCardHeaderIds.Count == 0
+                                        ? new Dictionary<int, JobCardCustomer>()
+                                        : (await _context.JobCardCustomers.AsNoTracking()
+                                                .Where(jc => jobCardHeaderIds.Contains(jc.JobCardHeaderId))
+                                                .ToListAsync())
+                                            .GroupBy(jc => jc.JobCardHeaderId)
+                                            .ToDictionary(g => g.Key, g => g.First());
+
 
             var uwByClaimId = (await _context.UwLineItems.AsNoTracking()
                     .Where(u => claimIds.Contains(u.WarrantyJcclaimId))
@@ -4727,15 +4741,21 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             foreach (var c in claims)
             {
+                JobCardCustomer? jobCardCustomer = c.JobCardHeader != null &&
+                        jobCardCustomerByHeaderId.TryGetValue(c.JobCardHeader.Id, out var jcCustomerVal)
+                        ? jcCustomerVal
+                        : null;
                 var order = latestOrderByClaimId.TryGetValue(c.Id, out var ord) ? ord : null;
                 var invoice = order != null && latestInvoiceByOrderId.TryGetValue(order.Id, out var inv) ? inv : null;
                 var invoicePackingSlip = invoice != null && packingSlipsByInvoiceId.TryGetValue(invoice.Id, out var slp) ? slp : null;
                 var uw = uwByClaimId.TryGetValue(c.Id, out var uwVal) ? uwVal : null;
                 var claimGridRows = gridRowsByClaimId.TryGetValue(c.Id, out var grList) ? grList : new List<WarrantyOrderGridDetail>();
-
+                string? customerName = jobCardCustomer?.CustomerName;
+                string? customerMobile = jobCardCustomer?.CustomerMobile;
                 string claimStatus = uw?.Status ?? "Pending";
                 string orderStatus = order == null ? "" : (order.IsApproved ? "Approved" : "Pending");
                 string invoiceStatus = invoice == null ? "" : (invoice.IsApproved ? "Approved" : "Pending");
+                
 
                 string? approverName = null;
                 if (uw != null && !string.IsNullOrWhiteSpace(uw.ActionBy))
@@ -4774,6 +4794,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     string? itemDesc = d == null
                         ? null
                         : (isLabour ? (rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName) : rbd?.PartItem?.Itemdesc);
+                    string? partCode = (d == null || isLabour) ? null : rbd?.PartItem?.Itemcode;
                     string? partName = (d == null || isLabour) ? null : rbd?.PartItem?.Itemname;
                     string? partDescription = (d == null || isLabour) ? null : rbd?.PartItem?.Itemdesc;
 
@@ -4834,7 +4855,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                         ItemName = itemCode,
                         Description = itemDesc,
-
+                        PartCode = partCode,
                         PartName = partName,
                         PartDescription = partDescription,
                         LabourName = labourName,
@@ -4864,6 +4885,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         LocationName = c.LocationName,
 
                         PartyName = c.Supplier?.LedgerName,
+                        CustomerName = customerName,       
+                        CustomerMobile = customerMobile,   
 
                         WarrantyClaimStatus = claimStatus,
                         ApproverEngineerName = approverName,
@@ -4874,6 +4897,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         WarrantyOrderStatus = orderStatus,
                         WarrantyOrderNo = order?.OrderNo,
                         WarrantyOrderDate = order?.OrderDate,
+                        ErpPoNumber = order?.ErpPoNumber,
+                        ErpPoDate = order?.ErpPoDate,
 
                         WarrantyInvoiceStatus = invoiceStatus,
                         WarrantyInvoiceNo = invoice != null ? $"{invoice.InvoicePrefix}{invoice.InvoiceNo}" : null,

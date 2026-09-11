@@ -418,6 +418,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string JobType { get; set; }
         public DateOnly? JobInDate { get; set; }
         public string JobLocation { get; set; }
+        public string? JobLocationCode { get; set; }
         public string serviceHead { get; set; }
         public string serviceType { get; set; }
         public string CustomerName { get; set; }
@@ -432,7 +433,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? RepairBillDate { get; set; }
         public decimal PartMRP { get; set; }
         public string? ItemType { get; set; }
-        public int? IssueTypeId { get; set; }   
+        public int? IssueTypeId { get; set; }
         public string? LabourName { get; set; }
         public string? PartLabourName { get; set; }
         public string? PartitemName { get; set; }
@@ -446,16 +447,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? LabourRate { get; set; }
         public decimal? PartLabourRate { get; set; }
 
-        public decimal? IgstAmount { get;set; }
+        public decimal? IgstAmount { get; set; }
         public decimal? RowSubTotal { get; set; }
         public decimal? TotalWithTax { get; set; }
         public string? ClaimType { get; set; }
         public string? DealerObservation { get; set; }
 
         public string? RootCauseAnalysis { get; set; }
-
-        public string? JobLocationCode { get; set; }
-
 
         public List<IssueTypebasedJobDetails> RepairBillDetails { get; set; }
     }
