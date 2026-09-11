@@ -77,7 +77,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public string VendorPoNo { get; set; } = "";
         [JsonPropertyName("Vendor PO Date")]
         public string VendorPoDate { get; set; } = "";
-        
+
         [JsonPropertyName("PO No")]
         public string PoNo { get; set; } = "";
         [JsonPropertyName("PO Date")]
@@ -114,6 +114,9 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("Amount")]
         public string Amount { get; set; } = "";
+
+        //[JsonPropertyName("UniqueId")]
+        //public int UniqueId { get; set; }
     }
 
     public class ErpPoLineViewModel
@@ -136,7 +139,6 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("AssValue")]
         public string AssValue { get; set; } = "";
     }
-
     public class ErpPurchaseOrderResponse
     {
         [JsonPropertyName("Succeed")]
@@ -145,10 +147,10 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("ConfirmMessage")]
         public string? ConfirmMessage { get; set; }
 
-        [JsonPropertyName("PoNo")]
+        [JsonPropertyName("OrderNo")]    
         public string? PoNo { get; set; }
 
-        [JsonPropertyName("PoDate")]
+        [JsonPropertyName("OrderDate")]    
         public string? PoDate { get; set; }
     }
 
@@ -177,5 +179,10 @@ namespace DMS_BAPL_Utils.ViewModels
 
         [JsonPropertyName("PO Date")]
         public string? PoDate { get; set; }
+    }
+
+    public class SendWarrantyOrderToErpRequest
+    {
+        public int OrderId { get; set; }
     }
 }

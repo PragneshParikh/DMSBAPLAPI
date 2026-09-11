@@ -90,6 +90,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 if (header == null)
                     return false;
 
+                // Update Warranty Order Header
                 header.DateFrom = model.DateFrom!.Value;
                 header.DateTo = model.DateTo!.Value;
                 header.BatchNo = model.BatchNo!;
@@ -102,34 +103,88 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 header.IsApproved = model.IsApproved;
                 header.UpdatedBy = userId;
                 header.UpdatedDate = DateTime.Now;
+
+                // ---------------------------------------------------------
+                // Update WarrantyOrderDetails
+                // ---------------------------------------------------------
                 _context.WarrantyOrderDetails.RemoveRange(header.WarrantyOrderDetails);
-                var oldGridRows = await _context.WarrantyOrderGridDetails
-                    .Where(g => g.WarrantyOrderHeaderId == header.Id)
-                    .ToListAsync();
-                _context.WarrantyOrderGridDetails.RemoveRange(oldGridRows);
 
                 if (model.WarrantyClaimIds != null && model.WarrantyClaimIds.Any())
                 {
-                    var newDetails = model.WarrantyClaimIds.Select(claimId => new WarrantyOrderDetail
-                    {
-                        WarrantyOrderHeaderId = header.Id,
-                        WarrantyJcclaimId = claimId,
-                        IsApproved = model.ClaimApprovals?.FirstOrDefault(a => a.ClaimId == claimId)?.IsApproved ?? false,
-                        CreatedBy = userId,
-                        CreatedDate = DateTime.Now
-                    }).ToList();
+                    var newDetails = model.WarrantyClaimIds
+                        .Select(claimId => new WarrantyOrderDetail
+                        {
+                            WarrantyOrderHeaderId = header.Id,
+                            WarrantyJcclaimId = claimId,
+                            IsApproved = model.ClaimApprovals?
+                                .FirstOrDefault(a => a.ClaimId == claimId)?
+                                .IsApproved ?? false,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now
+                        })
+                        .ToList();
 
                     await _context.WarrantyOrderDetails.AddRangeAsync(newDetails);
                     await _context.SaveChangesAsync();
 
-                    foreach (var claimId in model.WarrantyClaimIds)
+                    // -----------------------------------------------------
+                    // IMPORTANT:
+                    // Do NOT RemoveRange() existing WarrantyOrderGridDetails
+                    // because PackingSlipDetails may reference them.
+                    // -----------------------------------------------------
+
+                    var existingGridRows = await _context.WarrantyOrderGridDetails
+                        .Where(g => g.WarrantyOrderHeaderId == header.Id)
+                        .ToListAsync();
+
+                    // Claims currently selected in the update
+                    var selectedClaimIds = model.WarrantyClaimIds
+                        .Distinct()
+                        .ToHashSet();
+
+                    // Delete only grid rows belonging to claims
+                    // that are no longer part of the order AND are
+                    // not referenced by a packing slip.
+                    foreach (var existingRow in existingGridRows)
                     {
-                        await SnapshotClaimGridRows(header.Id, claimId, userId);
+                        if (!selectedClaimIds.Contains(existingRow.WarrantyJcclaimId))
+                        {
+                            var isUsedInPackingSlip =
+                                await _context.WarrantyPackingSlipDetails
+                                    .AnyAsync(x =>
+                                        x.WarrantyOrderGridDetailId == existingRow.Id);
+
+                            if (!isUsedInPackingSlip)
+                            {
+                                _context.WarrantyOrderGridDetails.Remove(existingRow);
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    // -----------------------------------------------------
+                    // Snapshot only claims that are not already present.
+                    // This prevents unnecessary delete/recreate operations.
+                    // -----------------------------------------------------
+                    foreach (var claimId in selectedClaimIds)
+                    {
+                        var claimAlreadyExists = existingGridRows
+                            .Any(g => g.WarrantyJcclaimId == claimId);
+
+                        if (!claimAlreadyExists)
+                        {
+                            await SnapshotClaimGridRows(
+                                header.Id,
+                                claimId,
+                                userId);
+                        }
                     }
                 }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
                 return true;
             }
             catch (Exception)
@@ -138,6 +193,68 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 throw;
             }
         }
+
+        //public async Task<bool> UpdateWarrantyOrder(WarrantyOrderViewModel model, string userId)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        var header = await _context.WarrantyOrders
+        //            .Include(x => x.WarrantyOrderDetails)
+        //            .FirstOrDefaultAsync(x => x.Id == model.Id && x.IsActive);
+
+        //        if (header == null)
+        //            return false;
+
+        //        header.DateFrom = model.DateFrom!.Value;
+        //        header.DateTo = model.DateTo!.Value;
+        //        header.BatchNo = model.BatchNo!;
+        //        header.BatchDate = model.BatchDate!.Value;
+        //        header.OrderNo = model.OrderNo!;
+        //        header.OrderDate = model.OrderDate!.Value;
+        //        header.Location = model.Location!;
+        //        header.ClaimType = model.ClaimType!;
+        //        header.SupplierId = model.SupplierId!.Value;
+        //        header.IsApproved = model.IsApproved;
+        //        header.UpdatedBy = userId;
+        //        header.UpdatedDate = DateTime.Now;
+        //        _context.WarrantyOrderDetails.RemoveRange(header.WarrantyOrderDetails);
+        //        var oldGridRows = await _context.WarrantyOrderGridDetails
+        //            .Where(g => g.WarrantyOrderHeaderId == header.Id)
+        //            .ToListAsync();
+        //        _context.WarrantyOrderGridDetails.RemoveRange(oldGridRows);
+
+        //        if (model.WarrantyClaimIds != null && model.WarrantyClaimIds.Any())
+        //        {
+        //            var newDetails = model.WarrantyClaimIds.Select(claimId => new WarrantyOrderDetail
+        //            {
+        //                WarrantyOrderHeaderId = header.Id,
+        //                WarrantyJcclaimId = claimId,
+        //                IsApproved = model.ClaimApprovals?.FirstOrDefault(a => a.ClaimId == claimId)?.IsApproved ?? false,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now
+        //            }).ToList();
+
+        //            await _context.WarrantyOrderDetails.AddRangeAsync(newDetails);
+        //            await _context.SaveChangesAsync();
+
+        //            foreach (var claimId in model.WarrantyClaimIds)
+        //            {
+        //                await SnapshotClaimGridRows(header.Id, claimId, userId);
+        //            }
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch (Exception)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
 
         public async Task<bool> DeleteWarrantyOrder(int id, string userId)
         {
@@ -323,10 +440,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             int fyEndYear = fyStartYear + 1;
             string fySuffix = $"{fyStartYear % 100:D2}-{fyEndYear % 100:D2}";
 
-            // FIX: format changed from "{seq}/BT/{fy}" to "BT/{fy}/{seq}" - the
-            // prefix now leads, so matching existing batch numbers for this
-            // dealer/year switches from EndsWith to StartsWith, and the sequence
-            // is parsed from the LAST segment instead of the first.
             string batchPrefix = $"BT/{fySuffix}/";
 
             var existingBatchNos = await _context.WarrantyOrders
@@ -345,18 +458,33 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             string nextBatchNo = $"{batchPrefix}{maxBatchSeq + 1}";
 
+            // Order No now carries a prefix too - "WO/{fy}/{seq}" instead of a bare
+            // number - per explicit request. Matching/sequencing mirrors BatchNo's
+            // own logic exactly: existing order numbers for this dealer+FY are
+            // matched via StartsWith on the prefix, and the running sequence is
+            // parsed from the LAST segment.
+            //
+            // ASSUMPTION: like Batch No, the sequence resets to 1 each financial
+            // year (only order numbers already carrying THIS FY's "WO/{fy}/" prefix
+            // count toward the max - older plain-number OrderNos, e.g. "45", are
+            // ignored since they don't match the prefix). Flag if you actually want
+            // one continuously-incrementing number across years/formats instead.
+            string orderPrefix = $"WO/{fySuffix}/";
+
             var existingOrderNos = await _context.WarrantyOrders
-                .Where(x => x.DealerCode == dealerCode)
+                .Where(x => x.DealerCode == dealerCode && x.OrderNo.StartsWith(orderPrefix))
                 .Select(x => x.OrderNo)
                 .ToListAsync();
 
             int maxOrderSeq = 0;
             foreach (var o in existingOrderNos)
             {
-                if (int.TryParse(o, out int seq) && seq > maxOrderSeq)
+                var parts = o.Split('/');
+                var numPart = parts.Length > 0 ? parts[parts.Length - 1] : null;
+                if (int.TryParse(numPart, out int seq) && seq > maxOrderSeq)
                     maxOrderSeq = seq;
             }
-            string nextOrderNo = (maxOrderSeq + 1).ToString();
+            string nextOrderNo = $"{orderPrefix}{maxOrderSeq + 1}";
 
             return new NextOrderNumberViewModel
             {
@@ -733,6 +861,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 .Where(l => distinctCodes.Contains(l.Loccode))
                 .Select(l => new { l.Loccode, l.Locname })
                 .ToListAsync();
+
 
             var nameByCode = names.ToDictionary(n => n.Loccode, n => n.Locname);
 

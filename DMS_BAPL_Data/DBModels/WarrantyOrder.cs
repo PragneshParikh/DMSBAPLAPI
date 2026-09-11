@@ -27,6 +27,10 @@ namespace DMS_BAPL_Data.DBModels
         public DateTime? UpdatedDate { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsApproved { get; set; } = false;
+        public int? ErpUniqueId { get; set; }
+        public string? ErpPoNumber { get; set; }
+        public DateTime? ErpPoDate { get; set; }
+        public DateTime? ErpSubmittedDate { get; set; }
 
         public virtual ICollection<WarrantyOrderDetail> WarrantyOrderDetails { get; set; } = new List<WarrantyOrderDetail>();
     }

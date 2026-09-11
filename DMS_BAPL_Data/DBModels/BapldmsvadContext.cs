@@ -1,4 +1,4946 @@
-﻿using System;
+﻿//using System;
+//using System.Collections.Generic;
+//using DMS_BAPL_Data.Middleware;
+//using DocumentFormat.OpenXml.Spreadsheet;
+//using Microsoft.EntityFrameworkCore;
+
+//namespace DMS_BAPL_Data.DBModels;
+
+//public partial class BapldmsvadContext : DbContext
+//{
+//    public BapldmsvadContext()
+//    {
+//    }
+
+//    public BapldmsvadContext(DbContextOptions<BapldmsvadContext> options)
+//        : base(options)
+//    {
+//    }
+
+//    public virtual DbSet<AggregateTaxCode> AggregateTaxCodes { get; set; }
+
+//    public virtual DbSet<Apikey> Apikeys { get; set; }
+
+//    public virtual DbSet<Apitracking> Apitrackings { get; set; }
+
+//    public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
+
+//    public virtual DbSet<AspNetRoleClaim> AspNetRoleClaims { get; set; }
+
+//    public virtual DbSet<AspNetUser> AspNetUsers { get; set; }
+
+//    public virtual DbSet<AspNetUserClaim> AspNetUserClaims { get; set; }
+
+//    public virtual DbSet<AspNetUserLogin> AspNetUserLogins { get; set; }
+
+//    public virtual DbSet<AspNetUserToken> AspNetUserTokens { get; set; }
+
+//    public virtual DbSet<BatteryCapacityMaster> BatteryCapacityMasters { get; set; }
+
+//    public virtual DbSet<BgEmployeeMaster> BgEmployeeMasters { get; set; }
+
+//    public virtual DbSet<BgEmployeeProfileMapping> BgEmployeeProfileMappings { get; set; }
+
+//    public virtual DbSet<BgEmployeeRoleMapping> BgEmployeeRoleMappings { get; set; }
+
+//    public virtual DbSet<BgRoleCategoryMapping> BgRoleCategoryMappings { get; set; }
+
+//    public virtual DbSet<ChassisBatteryDetail> ChassisBatteryDetails { get; set; }
+
+//    public virtual DbSet<ChassisDetail> ChassisDetails { get; set; }
+
+//    public virtual DbSet<ChassisDetailsD2dhistory> ChassisDetailsD2dhistories { get; set; }
+
+//    public virtual DbSet<CircularDealerAssignment> CircularDealerAssignments { get; set; }
+
+//    public virtual DbSet<CircularMaster> CircularMasters { get; set; }
+
+//    public virtual DbSet<CircularMasterAttachment> CircularMasterAttachments { get; set; }
+
+//    public virtual DbSet<City> Cities { get; set; }
+
+//    public virtual DbSet<ColorMaster> ColorMasters { get; set; }
+
+//    public virtual DbSet<ComplaintMaster> ComplaintMasters { get; set; }
+
+//    public virtual DbSet<CounterBillDetail> CounterBillDetails { get; set; }
+
+//    public virtual DbSet<CounterBillDetailsAuditLog> CounterBillDetailsAuditLogs { get; set; }
+
+//    public virtual DbSet<CounterBillHeader> CounterBillHeaders { get; set; }
+
+//    public virtual DbSet<CounterBillHeaderAuditLog> CounterBillHeaderAuditLogs { get; set; }
+
+//    public virtual DbSet<DealerMaster> DealerMasters { get; set; }
+
+//    public virtual DbSet<DepartmentMaster> DepartmentMasters { get; set; }
+
+//    public virtual DbSet<DesignationMaster> DesignationMasters { get; set; }
+
+//    public virtual DbSet<EmployeeMaster> EmployeeMasters { get; set; }
+
+//    public virtual DbSet<EmployeeProfileMaster> EmployeeProfileMasters { get; set; }
+
+//    public virtual DbSet<EmployeeRoleMapping> EmployeeRoleMappings { get; set; }
+
+//    public virtual DbSet<ErpVehicleSale> ErpVehicleSales { get; set; }
+
+//    public virtual DbSet<EstimateDetail> EstimateDetails { get; set; }
+
+//    public virtual DbSet<EstimateHeader> EstimateHeaders { get; set; }
+
+//    public virtual DbSet<ExceptionLog> ExceptionLogs { get; set; }
+
+//    public virtual DbSet<ExtendedBatteryWarranty> ExtendedBatteryWarranties { get; set; }
+
+//    public virtual DbSet<FfirdetailObservation> FfirdetailObservations { get; set; }
+
+//    public virtual DbSet<Ffirheader> Ffirheaders { get; set; }
+
+//    public virtual DbSet<Form22Master> Form22Masters { get; set; }
+
+//    public virtual DbSet<FreeServiceClaimDetail> FreeServiceClaimDetails { get; set; }
+
+//    public virtual DbSet<FreeServiceClaimHeader> FreeServiceClaimHeaders { get; set; }
+
+//    public virtual DbSet<FreeServiceRate> FreeServiceRates { get; set; }
+
+//    public virtual DbSet<GroupMaster> GroupMasters { get; set; }
+
+//    public virtual DbSet<HsncodeMaster> HsncodeMasters { get; set; }
+
+//    public virtual DbSet<HsnwiseTaxCode> HsnwiseTaxCodes { get; set; }
+
+//    public virtual DbSet<Hsrporder> Hsrporders { get; set; }
+
+//    public virtual DbSet<InvoiceDetail> InvoiceDetails { get; set; }
+
+//    public virtual DbSet<InvoiceHeader> InvoiceHeaders { get; set; }
+
+//    public virtual DbSet<ItemMaster> ItemMasters { get; set; }
+
+//    public virtual DbSet<JobCardBatteryDetail> JobCardBatteryDetails { get; set; }
+
+//    public virtual DbSet<JobCardComplaint> JobCardComplaints { get; set; }
+
+//    public virtual DbSet<JobCardCustomer> JobCardCustomers { get; set; }
+
+//    public virtual DbSet<JobCardHeader> JobCardHeaders { get; set; }
+
+//    public virtual DbSet<JobSource> JobSources { get; set; }
+
+//    public virtual DbSet<JobType> JobTypes { get; set; }
+
+//    public virtual DbSet<KitDetail> KitDetails { get; set; }
+
+//    public virtual DbSet<KitHeader> KitHeaders { get; set; }
+
+//    public virtual DbSet<LabourMaster> LabourMasters { get; set; }
+
+//    public virtual DbSet<LedgerMaster> LedgerMasters { get; set; }
+
+//    public virtual DbSet<LmsleadMaster> LmsleadMasters { get; set; }
+
+//    public virtual DbSet<LocationMaster> LocationMasters { get; set; }
+
+//    public virtual DbSet<LotinspectionDetail> LotinspectionDetails { get; set; }
+
+//    public virtual DbSet<LotinspectionHeader> LotinspectionHeaders { get; set; }
+
+//    public virtual DbSet<MainPartAffectedFfir> MainPartAffectedFfirs { get; set; }
+
+//    public virtual DbSet<MaterialTransfer> MaterialTransfers { get; set; }
+
+//    public virtual DbSet<MenuMaster> MenuMasters { get; set; }
+
+//    public virtual DbSet<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; }
+
+//    public virtual DbSet<NumberSequence> NumberSequences { get; set; }
+
+//    public virtual DbSet<OccupationMaster> OccupationMasters { get; set; }
+
+//    public virtual DbSet<OemmodelMaster> OemmodelMasters { get; set; }
+
+//    public virtual DbSet<OemmodelWarranty> OemmodelWarranties { get; set; }
+
+//    public virtual DbSet<ParameterMasterTable> ParameterMasterTables { get; set; }
+
+//    public virtual DbSet<PartWiseLabourMaster> PartWiseLabourMasters { get; set; }
+
+//    public virtual DbSet<PartsInventory> PartsInventories { get; set; }
+
+//    public virtual DbSet<PartsInward> PartsInwards { get; set; }
+
+//    public virtual DbSet<PdichecklistChassisWise> PdichecklistChassisWises { get; set; }
+
+//    public virtual DbSet<PdichecklistMaster> PdichecklistMasters { get; set; }
+
+//    public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+
+//    public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
+
+//    public virtual DbSet<ReceiptEntry> ReceiptEntries { get; set; }
+
+//    public virtual DbSet<ReceiptEntryDetail> ReceiptEntryDetails { get; set; }
+
+//    public virtual DbSet<RepairBillDetail> RepairBillDetails { get; set; }
+
+//    public virtual DbSet<RepairBillHeader> RepairBillHeaders { get; set; }
+
+//    public virtual DbSet<RoleCategoryMapping> RoleCategoryMappings { get; set; }
+
+//    public virtual DbSet<RoleMenuMapping> RoleMenuMappings { get; set; }
+
+//    public virtual DbSet<RoleWiseMenuRight> RoleWiseMenuRights { get; set; }
+
+//    public virtual DbSet<SalesServicesCondition> SalesServicesConditions { get; set; }
+
+//    public virtual DbSet<ServiceHead> ServiceHeads { get; set; }
+
+//    public virtual DbSet<ServiceType> ServiceTypes { get; set; }
+
+//    public virtual DbSet<State> States { get; set; }
+
+//    public virtual DbSet<TaxCodeMaster> TaxCodeMasters { get; set; }
+
+//    public virtual DbSet<TaxDetail> TaxDetails { get; set; }
+
+//    public virtual DbSet<TermandConditionMaster> TermandConditionMasters { get; set; }
+
+//    public virtual DbSet<VehicleInward> VehicleInwards { get; set; }
+
+//    public virtual DbSet<VehicleQuotation> VehicleQuotations { get; set; }
+
+//    public virtual DbSet<VehicleSaleBillDetail> VehicleSaleBillDetails { get; set; }
+
+//    public virtual DbSet<VehicleSaleBillHeader> VehicleSaleBillHeaders { get; set; }
+
+//    public virtual DbSet<VehicleStockTransferDetail> VehicleStockTransferDetails { get; set; }
+
+//    public virtual DbSet<VehicleStockTransferHeader> VehicleStockTransferHeaders { get; set; }
+
+//    public virtual DbSet<WarrantyJcclaim> WarrantyJcclaims { get; set; }
+
+//    public virtual DbSet<WarrantyJcclaimDetail> WarrantyJcclaimDetails { get; set; }
+
+//    public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
+//    public virtual DbSet<ZDmsPartDispWarranty> ZDmsPartDispWarranties { get; set; }
+//    public virtual DbSet<DmsPartDispatch> DmsPartDispatches { get; set; }
+//    public virtual DbSet<EbwInvoiceHeader> EbwInvoiceHeaders { get; set; }
+//    public virtual DbSet<EbwInvoiceDetail> EbwInvoiceDetails { get; set; }
+
+//    public virtual DbSet<WarrantyOrder> WarrantyOrders { get; set; }
+//    public virtual DbSet<WarrantyOrderDetail> WarrantyOrderDetails { get; set; }
+//    public virtual DbSet<WarrantyOrderGridDetail> WarrantyOrderGridDetails { get; set; }
+
+//    public virtual DbSet<WarrantyInvoice> WarrantyInvoices { get; set; }
+//    public virtual DbSet<WarrantyInvoiceDetail> WarrantyInvoiceDetails { get; set; }
+//    public virtual DbSet<WarrantyInvoiceGridDetail> WarrantyInvoiceGridDetails { get; set; }
+//    public virtual DbSet<UwLineItem> UwLineItems { get; set; }
+
+//    public virtual DbSet<WarrantyPackingSlip> WarrantyPackingSlips { get; set; }
+//    public virtual DbSet<WarrantyPackingSlipBox> WarrantyPackingSlipBoxes { get; set; }
+//    public virtual DbSet<WarrantyPackingSlipDetail> WarrantyPackingSlipDetails { get; set; }
+//    public virtual DbSet<InvoiceDispatch> InvoiceDispatches { get; set; }
+//    public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
+//    public virtual DbSet<ImpersonationLog> ImpersonationLogs { get; set; }
+
+
+
+//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//        => optionsBuilder.UseSqlServer("Server=tcp:bapldmsvad01.database.windows.net,1433;Initial Catalog=BAPLDMSvad;User ID=bapladmin;Password=$@plDMS_v@d1205;TrustServerCertificate=True;");
+
+//    protected override void OnModelCreating(ModelBuilder modelBuilder)
+//    {
+//        modelBuilder.Entity<AggregateTaxCode>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Aggregat__3214EC07F8C7B74F");
+
+//            entity.ToTable("AggregateTaxCode");
+
+//            entity.Property(e => e.AtaxCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("ATaxCode");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Description)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TaxCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<Apikey>(entity =>
+//        {
+//            entity.ToTable("APIKeys");
+
+//            entity.Property(e => e.Apikey1)
+//                .HasMaxLength(500)
+//                .IsUnicode(false)
+//                .HasColumnName("APIKey");
+//        });
+
+//        modelBuilder.Entity<Apitracking>(entity =>
+//        {
+//            entity.ToTable("APITracking");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Dateofhit)
+//                .HasColumnType("datetime")
+//                .HasColumnName("dateofhit");
+//            entity.Property(e => e.Endpoint)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("endpoint");
+//            entity.Property(e => e.Payload)
+//                .IsUnicode(false)
+//                .HasColumnName("payload");
+//            entity.Property(e => e.Response)
+//                .IsUnicode(false)
+//                .HasColumnName("response");
+//            entity.Property(e => e.Status)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("status");
+//        });
+
+//        modelBuilder.Entity<AspNetRole>(entity =>
+//        {
+//            entity.HasIndex(e => e.NormalizedName, "RoleNameIndex")
+//                .IsUnique()
+//                .HasFilter("([NormalizedName] IS NOT NULL)");
+
+//            entity.Property(e => e.Name).HasMaxLength(256);
+//            entity.Property(e => e.NormalizedName).HasMaxLength(256);
+//        });
+
+//        modelBuilder.Entity<AspNetRoleClaim>(entity =>
+//        {
+//            entity.HasIndex(e => e.RoleId, "IX_AspNetRoleClaims_RoleId");
+
+//            entity.HasOne(d => d.Role).WithMany(p => p.AspNetRoleClaims).HasForeignKey(d => d.RoleId);
+//        });
+
+//        modelBuilder.Entity<AspNetUser>(entity =>
+//        {
+//            entity.HasIndex(e => e.NormalizedEmail, "EmailIndex");
+
+//            entity.HasIndex(e => e.NormalizedUserName, "UserNameIndex")
+//                .IsUnique()
+//                .HasFilter("([NormalizedUserName] IS NOT NULL)");
+
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Email).HasMaxLength(256);
+//            entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
+//            entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
+//            entity.Property(e => e.UserName).HasMaxLength(256);
+
+//            entity.HasMany(d => d.Roles).WithMany(p => p.Users)
+//                .UsingEntity<Dictionary<string, object>>(
+//                    "AspNetUserRole",
+//                    r => r.HasOne<AspNetRole>().WithMany().HasForeignKey("RoleId"),
+//                    l => l.HasOne<AspNetUser>().WithMany().HasForeignKey("UserId"),
+//                    j =>
+//                    {
+//                        j.HasKey("UserId", "RoleId");
+//                        j.ToTable("AspNetUserRoles");
+//                        j.HasIndex(new[] { "RoleId" }, "IX_AspNetUserRoles_RoleId");
+//                    });
+//        });
+
+//        modelBuilder.Entity<AspNetUserClaim>(entity =>
+//        {
+//            entity.HasIndex(e => e.UserId, "IX_AspNetUserClaims_UserId");
+
+//            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserClaims).HasForeignKey(d => d.UserId);
+//        });
+
+//        modelBuilder.Entity<AspNetUserLogin>(entity =>
+//        {
+//            entity.HasKey(e => new { e.LoginProvider, e.ProviderKey });
+
+//            entity.HasIndex(e => e.UserId, "IX_AspNetUserLogins_UserId");
+
+//            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserLogins).HasForeignKey(d => d.UserId);
+//        });
+
+//        modelBuilder.Entity<AspNetUserToken>(entity =>
+//        {
+//            entity.HasKey(e => new { e.UserId, e.LoginProvider, e.Name });
+
+//            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserTokens).HasForeignKey(d => d.UserId);
+//        });
+
+//        modelBuilder.Entity<BatteryCapacityMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__BatteryC__3214EC07BF68DD87");
+
+//            entity.ToTable("BatteryCapacityMaster");
+
+//            entity.Property(e => e.BatteryCapacity).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<BgEmployeeMaster>(entity =>
+//        {
+//            entity.ToTable("BgEmployeeMaster");
+
+//            entity.Property(e => e.AreaOfficeId).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
+//            entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.Email).HasMaxLength(150);
+//            entity.Property(e => e.EmailId)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EmployeeCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FirstName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Gender)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.LastName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MappedEmployeeIds)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MappedEmployees).IsUnicode(false);
+//            entity.Property(e => e.MappedZoneIds)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MappedZones).IsUnicode(false);
+//            entity.Property(e => e.Mobile)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Password)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Pincode)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ProfileImage).IsUnicode(false);
+//            entity.Property(e => e.ReportingTo)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TsmCode).HasMaxLength(50);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+
+
+//            entity.HasOne(d => d.CityNavigation).WithMany(p => p.BgEmployeeMasters)
+//                .HasForeignKey(d => d.City)
+//                .HasConstraintName("FK_BgEmployeeMaster_Cities");
+
+//            entity.HasOne(d => d.DepartmentNavigation).WithMany(p => p.BgEmployeeMasters)
+//                .HasForeignKey(d => d.Department)
+//                .HasConstraintName("FK_BgEmployeeMaster_Department");
+
+//            entity.HasOne(d => d.StateNavigation).WithMany(p => p.BgEmployeeMasters)
+//                .HasForeignKey(d => d.State)
+//                .HasConstraintName("FK_BgEmployeeMaster_States");
+//        });
+
+//        modelBuilder.Entity<BgEmployeeProfileMapping>(entity =>
+//        {
+//            entity.ToTable("BgEmployeeProfileMapping");
+
+//            entity.HasIndex(e => new { e.BgEmployeeId, e.EmployeeId, e.ProfileId }, "UQ_BgEmployeeProfileMapping").IsUnique();
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeProfileMappings)
+//                .HasForeignKey(d => d.BgEmployeeId)
+//                .HasConstraintName("FK_BgEmpProfileMap_BgEmployee");
+
+//            entity.HasOne(d => d.Employee).WithMany(p => p.BgEmployeeProfileMappings)
+//                .HasForeignKey(d => d.EmployeeId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_BgEmpProfileMap_Employee");
+
+//            entity.HasOne(d => d.Profile).WithMany(p => p.BgEmployeeProfileMappings)
+//                .HasForeignKey(d => d.ProfileId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_BgEmpProfileMap_Profile");
+//        });
+
+//        modelBuilder.Entity<BgEmployeeRoleMapping>(entity =>
+//        {
+//            entity.HasIndex(e => e.BgEmployeeId, "IX_BgEmployeeRoleMappings_BgEmployeeId");
+
+//            entity.HasIndex(e => new { e.BgEmployeeId, e.Category, e.RoleName }, "UQ_BgEmployeeRoleMappings_Employee_Category_Role").IsUnique();
+
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.RoleName).HasMaxLength(100);
+
+//            entity.HasOne(d => d.BgEmployee).WithMany(p => p.BgEmployeeRoleMappings)
+//                .HasForeignKey(d => d.BgEmployeeId)
+//                .HasConstraintName("FK_BgEmployeeRoleMappings_BgEmployeeMaster");
+//        });
+
+//        modelBuilder.Entity<BgRoleCategoryMapping>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__BgRoleCa__3214EC077444B867");
+
+//            entity.ToTable("BgRoleCategoryMapping");
+
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.RoleId).HasMaxLength(450);
+//            entity.Property(e => e.RoleName).HasMaxLength(256);
+//        });
+
+//        modelBuilder.Entity<ChassisBatteryDetail>(entity =>
+//        {
+//            entity.Property(e => e.BatteryCapacity)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryChemical)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryMake)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChargerNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ControllerNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ConverterNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.MotorNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ChassisDetail>(entity =>
+//        {
+//            entity.HasIndex(e => e.ChassisNo, "UQ_ChassisNo").IsUnique();
+
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerId)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemColor)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RegNo)
+//                .HasMaxLength(15)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SaleDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ChassisDetailsD2dhistory>(entity =>
+//        {
+//            entity.ToTable("ChassisDetailsD2DHistory");
+
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IssueingDealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IssueingDealerLocation)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemColor)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemName)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SaleDate).HasColumnType("datetime");
+//            entity.Property(e => e.TransDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<CircularDealerAssignment>(entity =>
+//        {
+//            entity.ToTable("CircularDealerAssignment");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<CircularMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK_NewsBulletinMaster");
+
+//            entity.ToTable("CircularMaster");
+
+//            entity.Property(e => e.Category)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Description)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+//            entity.Property(e => e.PublishDate).HasColumnType("datetime");
+//            entity.Property(e => e.Title)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<CircularMasterAttachment>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK_NewsBulletinMasterAttachment");
+
+//            entity.ToTable("CircularMasterAttachment");
+
+//            entity.Property(e => e.ContentType)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.FileName)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Circular).WithMany(p => p.CircularMasterAttachments)
+//                .HasForeignKey(d => d.CircularId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_NewsBulletinMasterAttachment_NewsBulletinMaster");
+//        });
+
+//        modelBuilder.Entity<City>(entity =>
+//        {
+//            entity.HasKey(e => e.CityId).HasName("PK__cities__031491A8B7001752");
+
+//            entity.ToTable("cities");
+
+//            entity.Property(e => e.CityId).HasColumnName("city_id");
+//            entity.Property(e => e.Abbreviation)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CityName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("city_name");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.StateId).HasColumnName("state_id");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.State).WithMany(p => p.Cities)
+//                .HasForeignKey(d => d.StateId)
+//                .HasConstraintName("FK_Cities_States");
+//        });
+
+//        modelBuilder.Entity<ColorMaster>(entity =>
+//        {
+//            entity.ToTable("ColorMaster");
+
+//            entity.HasIndex(e => e.Colorcode, "UQ_ColorMaster_colorcode").IsUnique();
+
+//            entity.HasIndex(e => e.Colorname, "UQ_ColorMaster_colorname").IsUnique();
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Colorcode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("colorcode");
+//            entity.Property(e => e.Colorname)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("colorname");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Rrgcoloridno).HasColumnName("rrgcoloridno");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ComplaintMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Complain__3214EC07BD393BD7");
+
+//            entity.ToTable("ComplaintMaster");
+
+//            entity.Property(e => e.ComplaintName)
+//                .HasMaxLength(300)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.GroupNameNavigation).WithMany(p => p.ComplaintMasters)
+//                .HasForeignKey(d => d.GroupName)
+//                .HasConstraintName("FK_ComplaintMaster_GroupMaster");
+//        });
+
+//        modelBuilder.Entity<CounterBillDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC0732BF9CF7");
+
+//            entity.ToTable(tb => tb.HasTrigger("trg_countr_bill_details_audit"));
+
+//            entity.Property(e => e.Cgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTAmnt");
+//            entity.Property(e => e.Cgstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("CGSTPer");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DiscType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Igstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTAmnt");
+//            entity.Property(e => e.Igstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("IGSTPer");
+//            entity.Property(e => e.Mrp)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("MRP");
+//            entity.Property(e => e.PartCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.SaleType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Sgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTAmnt");
+//            entity.Property(e => e.Sgstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("SGSTPer");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.CounterBill).WithMany(p => p.CounterBillDetails)
+//                .HasForeignKey(d => d.CounterBillId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_CounterBillDetails_CounterBill");
+//        });
+
+//        modelBuilder.Entity<CounterBillDetailsAuditLog>(entity =>
+//        {
+//            entity.HasKey(e => e.AuditId).HasName("PK__CounterB__A17F2398FC951189");
+
+//            entity.ToTable("CounterBillDetailsAuditLog");
+
+//            entity.Property(e => e.AuditAction)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.AuditTimestamp)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.AuditUser)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Cgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTAmnt");
+//            entity.Property(e => e.Cgstper)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTPer");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DiscType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Igstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTAmnt");
+//            entity.Property(e => e.Igstper)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTPer");
+//            entity.Property(e => e.Mrp)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("MRP");
+//            entity.Property(e => e.PartCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.SaleType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Sgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTAmnt");
+//            entity.Property(e => e.Sgstper)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTPer");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<CounterBillHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__CounterB__3214EC070A322689");
+
+//            entity.ToTable("CounterBillHeader", tb => tb.HasTrigger("trg_countr_bill_header_audit"));
+
+//            entity.HasIndex(e => e.BillNo, "UQ__CounterB__11F284187E180751").IsUnique();
+
+//            entity.Property(e => e.BillAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.BillDate).HasColumnType("datetime");
+//            entity.Property(e => e.BillNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BillType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CashCreditAcc)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MobileNo)
+//                .HasMaxLength(15)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartyName)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<CounterBillHeaderAuditLog>(entity =>
+//        {
+//            entity.HasKey(e => e.AuditId).HasName("PK__CounterB__A17F2398935536E3");
+
+//            entity.ToTable("CounterBillHeaderAuditLog");
+
+//            entity.Property(e => e.AuditAction)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.AuditTimestamp)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.AuditUser)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BillAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.BillDate).HasColumnType("datetime");
+//            entity.Property(e => e.BillNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BillType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CashCreditAcc)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MobileNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartyName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks).IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<DealerMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__DealerMa__3213E83FE6BF4BFD");
+
+//            entity.ToTable("DealerMaster");
+
+//            entity.HasIndex(e => e.Dealercode, "UQ_DealerMaster_dealercode").IsUnique();
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Adress1)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("adress1");
+//            entity.Property(e => e.Adress2)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("adress2");
+//            entity.Property(e => e.Areaofficeid).HasColumnName("areaofficeid");
+//            entity.Property(e => e.B2b).HasColumnName("b2b");
+//            entity.Property(e => e.BrandName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("brand_name");
+//            entity.Property(e => e.CeditLimit)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("cedit_limit");
+//            entity.Property(e => e.CinNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("cin_no");
+//            entity.Property(e => e.City)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("city");
+//            entity.Property(e => e.CompImage)
+//                .HasMaxLength(700)
+//                .IsUnicode(false)
+//                .HasColumnName("comp_image");
+//            entity.Property(e => e.Compcode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("compcode");
+//            entity.Property(e => e.CompgstinNo)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("compgstin_no");
+//            entity.Property(e => e.Compname)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("compname");
+//            entity.Property(e => e.Contactperson)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("contactperson");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Dealercode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealercode");
+//            entity.Property(e => e.Email)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("email");
+//            entity.Property(e => e.FameiiCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("fameii_code");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.IsTcs).HasColumnName("is_tcs");
+//            entity.Property(e => e.Mobile)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("mobile");
+//            entity.Property(e => e.Pan)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("pan");
+//            entity.Property(e => e.PhoneOff)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("phone_off");
+//            entity.Property(e => e.Pin)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("pin");
+//            entity.Property(e => e.RegAddress)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("reg_address");
+//            entity.Property(e => e.RegDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("reg_date");
+//            entity.Property(e => e.State)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("state");
+//            entity.Property(e => e.TcsPercent)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("tcs_percent");
+//            entity.Property(e => e.TradCert)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("trad_cert");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.VatNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("vat_no");
+//        });
+
+//        modelBuilder.Entity<DepartmentMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.DepartmentId).HasName("PK__Departme__B2079BEDFB840A32");
+
+//            entity.ToTable("DepartmentMaster");
+
+//            entity.HasIndex(e => e.Abbreviation, "UQ__Departme__6EA8896D64AD26EC").IsUnique();
+
+//            entity.Property(e => e.Abbreviation).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DepartmentName).HasMaxLength(150);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+//            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<DesignationMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.DesignationId).HasName("PK__Designat__BABD60DED9667047");
+
+//            entity.ToTable("DesignationMaster");
+
+//            entity.HasIndex(e => e.Abbreviation, "UQ__Designat__B676DA1F8AEE8BD3").IsUnique();
+
+//            entity.Property(e => e.Abbreviation).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DesignationName).HasMaxLength(150);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+//            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Department).WithMany(p => p.DesignationMasters)
+//                .HasForeignKey(d => d.DepartmentId)
+//                .HasConstraintName("FK_Designation_Department");
+//        });
+
+//        modelBuilder.Entity<EmployeeMaster>(entity =>
+//        {
+//            entity.ToTable("EmployeeMaster");
+
+//            entity.Property(e => e.Address)
+//                .HasMaxLength(2000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Department)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Designation)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EmailId)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("EmailID");
+//            entity.Property(e => e.EmployeeCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FirstName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Gender)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LastName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Mobile)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Notes)
+//                .HasMaxLength(2000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Password)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ProfileImage).IsUnicode(false);
+//            entity.Property(e => e.Supervisor)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.LocationLoginId).HasMaxLength(50).HasColumnName("locationLoginId");
+//            entity.Property(e => e.LocationPasswordHash).HasMaxLength(256).HasColumnName("locationPasswordHash");
+//        });
+
+//        modelBuilder.Entity<EmployeeProfileMaster>(entity =>
+//        {
+//            entity.ToTable("EmployeeProfileMaster");
+
+//            entity.HasIndex(e => e.ProfileName, "UQ_EmployeeProfileMaster_ProfileName").IsUnique();
+
+//            entity.Property(e => e.ProfileName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//        });
+
+//        modelBuilder.Entity<EmployeeRoleMapping>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Employee__3214EC072155A37E");
+
+//            entity.ToTable("EmployeeRoleMapping");
+
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.RoleName).HasMaxLength(256);
+//        });
+
+//        modelBuilder.Entity<ErpVehicleSale>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__ERP_Vehi__3214EC07FB52AB2F");
+
+//            entity.ToTable("ERP_VehicleSales");
+
+//            entity.HasIndex(e => e.ChassisNo, "IX_ERP_VehicleSales_ChassisNo");
+
+//            entity.HasIndex(e => e.DealerCode, "IX_ERP_VehicleSales_DealerCode");
+
+//            entity.HasIndex(e => e.InvoiceDate, "IX_ERP_VehicleSales_InvoiceDate").IsDescending();
+
+//            entity.HasIndex(e => e.State, "IX_ERP_VehicleSales_State");
+
+//            entity.Property(e => e.AccountType).HasMaxLength(100);
+//            entity.Property(e => e.AcsryAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Address1).HasMaxLength(500);
+//            entity.Property(e => e.Address2).HasMaxLength(500);
+//            entity.Property(e => e.Battery).HasMaxLength(200);
+//            entity.Property(e => e.BatteryCapacity).HasMaxLength(100);
+//            entity.Property(e => e.BatteryChemical).HasMaxLength(200);
+//            entity.Property(e => e.BatteryMake).HasMaxLength(200);
+//            entity.Property(e => e.Cgstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTAmount");
+//            entity.Property(e => e.Cgstper)
+//                .HasColumnType("decimal(8, 2)")
+//                .HasColumnName("CGSTPer");
+//            entity.Property(e => e.ChargerNo).HasMaxLength(200);
+//            entity.Property(e => e.ChargerNo2).HasMaxLength(200);
+//            entity.Property(e => e.ChassisNo).HasMaxLength(100);
+//            entity.Property(e => e.City).HasMaxLength(200);
+//            entity.Property(e => e.ColorCode).HasMaxLength(50);
+//            entity.Property(e => e.ControllerNo).HasMaxLength(200);
+//            entity.Property(e => e.Converter).HasMaxLength(200);
+//            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+//            entity.Property(e => e.CusMob).HasMaxLength(50);
+//            entity.Property(e => e.CustDob).HasColumnName("CustDOB");
+//            entity.Property(e => e.DealerCode).HasMaxLength(50);
+//            entity.Property(e => e.DealerName).HasMaxLength(500);
+//            entity.Property(e => e.DiscTypeName).HasMaxLength(100);
+//            entity.Property(e => e.ExecutiveName).HasMaxLength(200);
+//            entity.Property(e => e.FameIi)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("FameII");
+//            entity.Property(e => e.FameIirequired)
+//                .HasMaxLength(10)
+//                .HasColumnName("FameIIRequired");
+//            entity.Property(e => e.FinAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.FinancedBy).HasMaxLength(300);
+//            entity.Property(e => e.Gender).HasMaxLength(20);
+//            entity.Property(e => e.Hsnsaccode)
+//                .HasMaxLength(50)
+//                .HasColumnName("HSNSACCode");
+//            entity.Property(e => e.Igstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTAmount");
+//            entity.Property(e => e.Igstper)
+//                .HasColumnType("decimal(8, 2)")
+//                .HasColumnName("IGSTPer");
+//            entity.Property(e => e.InstitutionalName).HasMaxLength(200);
+//            entity.Property(e => e.InsuAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+//            entity.Property(e => e.ItemModel).HasMaxLength(300);
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LocCode).HasMaxLength(100);
+//            entity.Property(e => e.Location).HasMaxLength(500);
+//            entity.Property(e => e.LocationCity).HasMaxLength(200);
+//            entity.Property(e => e.MotorNo).HasMaxLength(100);
+//            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Oemmodel)
+//                .HasMaxLength(300)
+//                .HasColumnName("OEMModel");
+//            entity.Property(e => e.PartyEmail).HasMaxLength(300);
+//            entity.Property(e => e.Pin).HasMaxLength(20);
+//            entity.Property(e => e.PostGstdisc)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("PostGSTDisc");
+//            entity.Property(e => e.PreGstdiscAmount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("PreGSTDiscAmount");
+//            entity.Property(e => e.ReferenceNo).HasMaxLength(100);
+//            entity.Property(e => e.RegnAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Remarks).HasMaxLength(500);
+//            entity.Property(e => e.SaleType).HasMaxLength(100);
+//            entity.Property(e => e.SchemeName).HasMaxLength(200);
+//            entity.Property(e => e.SegmentName).HasMaxLength(200);
+//            entity.Property(e => e.Sgstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTAmount");
+//            entity.Property(e => e.Sgstper)
+//                .HasColumnType("decimal(8, 2)")
+//                .HasColumnName("SGSTPer");
+//            entity.Property(e => e.SoldTo).HasMaxLength(500);
+//            entity.Property(e => e.State).HasMaxLength(200);
+//            entity.Property(e => e.StateFameIi)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("StateFameII");
+//            entity.Property(e => e.TotalCount).HasMaxLength(50);
+//            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
+//            entity.Property(e => e.Vcu)
+//                .HasMaxLength(200)
+//                .HasColumnName("VCU");
+//            entity.Property(e => e.VehicleGroup).HasMaxLength(100);
+//            entity.Property(e => e.VehicleType).HasMaxLength(100);
+//        });
+
+//        modelBuilder.Entity<EstimateDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Estimate__3214EC070E7F0B10");
+
+//            entity.ToTable("EstimateDetail");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CgstPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.IgstPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.ItemCode).HasMaxLength(50);
+//            entity.Property(e => e.ItemDescription).HasMaxLength(200);
+//            entity.Property(e => e.ItemType).HasMaxLength(20);
+//            entity.Property(e => e.Qty)
+//                .HasDefaultValue(1m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.SgstPercent).HasColumnType("decimal(5, 2)");
+
+//            entity.HasOne(d => d.EstimateHeader).WithMany(p => p.EstimateDetails)
+//                .HasForeignKey(d => d.EstimateHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_EstimateDetail_EstimateHeader");
+//        });
+
+//        modelBuilder.Entity<EstimateHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Estimate__3214EC07D192CBB7");
+
+//            entity.ToTable("EstimateHeader");
+
+//            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+//            entity.Property(e => e.ContactNumber).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.CustomerAddress).HasMaxLength(300);
+//            entity.Property(e => e.CustomerCity).HasMaxLength(100);
+//            entity.Property(e => e.CustomerEmail).HasMaxLength(150);
+//            entity.Property(e => e.CustomerMobile).HasMaxLength(20);
+//            entity.Property(e => e.CustomerName).HasMaxLength(200);
+//            entity.Property(e => e.CustomerPin).HasMaxLength(20);
+//            entity.Property(e => e.CustomerState).HasMaxLength(100);
+//            entity.Property(e => e.DealerCode).HasMaxLength(50);
+//            entity.Property(e => e.EstimationNo).HasMaxLength(50);
+//            entity.Property(e => e.InsDescription).HasMaxLength(500);
+//            entity.Property(e => e.PolicyNo).HasMaxLength(100);
+//            entity.Property(e => e.Status)
+//                .HasMaxLength(50)
+//                .HasDefaultValue("Open");
+//            entity.Property(e => e.SurveyorName).HasMaxLength(200);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobType).WithMany(p => p.EstimateHeaders)
+//                .HasForeignKey(d => d.JobTypeId)
+//                .HasConstraintName("FK_EstimateHeader_JobType");
+//        });
+
+//        modelBuilder.Entity<ExceptionLog>(entity =>
+//        {
+//            entity.ToTable("ExceptionLog");
+
+//            entity.Property(e => e.Action)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Controller)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.ExceptionMessage).IsUnicode(false);
+//            entity.Property(e => e.HttpMethod)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.OccureAt).HasColumnType("datetime");
+//            entity.Property(e => e.Path)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.QueryString)
+//                .HasMaxLength(1000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.StackTrace).IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UserName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//        });
+
+//        modelBuilder.Entity<ExtendedBatteryWarranty>(entity =>
+//        {
+//            entity.ToTable("ExtendedBatteryWarranty");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.CustomerPrice).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DealerPrice).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.FromDate).HasColumnType("datetime");
+//            entity.Property(e => e.Gstpercentage).HasColumnName("GSTPercentage");
+//            entity.Property(e => e.Kms)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("KMS");
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.SchemeName)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ToDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.ExtendedBatteryWarranties)
+//                .HasForeignKey(d => d.OemmodelId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_ExtendedBatteryWarranty_OEMModelMaster");
+//        });
+
+//        modelBuilder.Entity<FfirdetailObservation>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__FFIRDeta__3214EC0773FED17E");
+
+//            entity.ToTable("FFIRDetailObservation");
+
+//            entity.Property(e => e.CorrectiveAction)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+//            entity.Property(e => e.ObservationFailedParts)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PresentStatusofVehicle)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ResolutionComplaint)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RootCauseofFailure)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.VehicleOffRoadReason)
+//                .HasMaxLength(300)
+//                .IsUnicode(false);
+
+//            entity.HasOne(d => d.Ffir).WithMany(p => p.FfirdetailObservations)
+//                .HasForeignKey(d => d.Ffirid)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_FFIRDetailObservation_FFIRHeader");
+//        });
+
+//        modelBuilder.Entity<Ffirheader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__FFIRHead__3214EC07FE3E802F");
+
+//            entity.ToTable("FFIRHeader");
+
+//            entity.Property(e => e.Cirdate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("CIRDate");
+//            entity.Property(e => e.Cirno).HasColumnName("CIRNo");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FailureDate).HasColumnType("datetime");
+//            entity.Property(e => e.FfirchassisNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("FFIRChassisNo");
+//            entity.Property(e => e.Ffirprefix)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("FFIRPrefix");
+//            entity.Property(e => e.Ffirremarks)
+//                .HasMaxLength(500)
+//                .IsUnicode(false)
+//                .HasColumnName("FFIRRemarks");
+//            entity.Property(e => e.Ffirstatus)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("FFIRStatus");
+//            entity.Property(e => e.PurposeOfCir)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("PurposeOfCIR");
+//            entity.Property(e => e.ReportPreparedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ReportTitle)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TypeOfRoadSurface)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobCardCustomer).WithMany(p => p.Ffirheaders)
+//                .HasForeignKey(d => d.JobCardCustomerId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_FFIRHeader_JobCardCustomer");
+
+//            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.Ffirheaders)
+//                .HasForeignKey(d => d.JobCardHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_FFIRHeader_JobCardHeader");
+//        });
+
+//        modelBuilder.Entity<Form22Master>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Form22Ma__3214EC07F814C78A");
+
+//            entity.ToTable("Form22Master");
+
+//            entity.Property(e => e.ApprovalCertificateNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.OemModelName)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.PassbyNoiseLevel)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SoundLevelHorn)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.Form22Masters)
+//                .HasForeignKey(d => d.OemmodelId)
+//                .HasConstraintName("FK_Form22Master_OEMModelMaster");
+//        });
+
+//        modelBuilder.Entity<FreeServiceClaimDetail>(entity =>
+//        {
+//            entity.Property(e => e.ApprovedRejectBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ApprovedRejectDate).HasColumnType("datetime");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.RejectReason)
+//                .HasMaxLength(2000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.HeaderClaim).WithMany(p => p.FreeServiceClaimDetails)
+//                .HasForeignKey(d => d.HeaderClaimId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_FreeServiceClaimDetails_FreeServiceClaimHeader");
+//        });
+
+//        modelBuilder.Entity<FreeServiceClaimHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK_FreeServiceClaim");
+
+//            entity.ToTable("FreeServiceClaimHeader");
+
+//            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+//            entity.Property(e => e.ClaimNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ClaimPrefix)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(2000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//        });
+
+//        modelBuilder.Entity<FreeServiceRate>(entity =>
+//        {
+//            entity.ToTable("FreeServiceRate");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.MetroGst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("MetroGST");
+//            entity.Property(e => e.MetroRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.NonMetroGst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("NonMetroGST");
+//            entity.Property(e => e.NonMetroRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.FreeServiceRates)
+//                .HasForeignKey(d => d.OemmodelId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_FreeServiceRate_OEMModelMaster");
+//        });
+
+//        modelBuilder.Entity<GroupMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__GroupMas__3214EC07EE6E94C6");
+
+//            entity.ToTable("GroupMaster");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.GroupName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<HsncodeMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__HSNCodeM__3214EC07751AF33E");
+
+//            entity.ToTable("HSNCodeMaster");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Description)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Hsncode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("HSNCode");
+//            entity.Property(e => e.Type)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<HsnwiseTaxCode>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__HSNWiseT__3214EC07CF7F1937");
+
+//            entity.ToTable("HSNWiseTaxCode");
+
+//            entity.Property(e => e.AtaxCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("ATaxCode");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.Hsncode)
+//                .HasMaxLength(250)
+//                .IsUnicode(false)
+//                .HasColumnName("HSNCode");
+//            entity.Property(e => e.StateFlag)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .IsFixedLength();
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<Hsrporder>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__HSRPOrde__3214EC07EA749058");
+
+//            entity.ToTable("HSRPOrder");
+
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(30)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.CustomerLedgerId).HasColumnName("CustomerLedgerID");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DispatchDate).HasColumnType("datetime");
+//            entity.Property(e => e.DispatchNumber)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DispatchResponse)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DispatchStatus)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FitmentDate).HasColumnType("datetime");
+//            entity.Property(e => e.FitmentResponse).HasMaxLength(500);
+//            entity.Property(e => e.FitmentStatus).HasMaxLength(100);
+//            entity.Property(e => e.FrontLasercode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Hsrpresponse)
+//                .HasMaxLength(300)
+//                .IsUnicode(false)
+//                .HasColumnName("HSRPResponse");
+//            entity.Property(e => e.Hsrpstatus)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("HSRPStatus");
+//            entity.Property(e => e.InvoiceNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InwardDate).HasColumnType("datetime");
+//            entity.Property(e => e.InwardResponse)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InwardStatus)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsTlpsticker).HasColumnName("IsTLPSticker");
+//            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+//            entity.Property(e => e.OrderNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Rearlasercode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RegNo)
+//                .HasMaxLength(30)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SaleBillNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.SupplierLedger).WithMany(p => p.Hsrporders)
+//                .HasForeignKey(d => d.SupplierLedgerId)
+//                .HasConstraintName("FK_HSRPOrder_SupplierLedger");
+//        });
+
+//        modelBuilder.Entity<InvoiceDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__InvoiceI__3214EC079CDA5F45");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.Description)
+//                .HasMaxLength(255)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TaxPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Invoice).WithMany(p => p.InvoiceDetails)
+//                .HasForeignKey(d => d.InvoiceId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK__InvoiceIt__Invoi__34B3CB38");
+//        });
+
+//        modelBuilder.Entity<InvoiceHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__InvoiceH__3214EC07BF73A8AC");
+
+//            entity.ToTable("InvoiceHeader");
+
+//            entity.HasIndex(e => e.DocumentNo, "UQ__InvoiceH__1ABE364E9B602188").IsUnique();
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode).HasMaxLength(20);
+//            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DocumentNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InvoiceNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InvoiceType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsFinalized).HasDefaultValue(false);
+//            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ServiceType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Status)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasDefaultValue("ACTIVE");
+//            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ItemMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__ItemMast__3213E83FA7C38EFE");
+
+//            entity.ToTable("ItemMaster");
+
+//            entity.HasIndex(e => e.Itemcode, "UQ_ItemMaster_itemcode").IsUnique();
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Batterytypeidno).HasColumnName("batterytypeidno");
+//            entity.Property(e => e.Boq).HasColumnName("boq");
+//            entity.Property(e => e.Cgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("cgst");
+//            entity.Property(e => e.Colorcode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("colorcode");
+//            entity.Property(e => e.Compcode)
+//                .HasMaxLength(150)
+//                .HasColumnName("compcode");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Custprice)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("custprice");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealerCode");
+//            entity.Property(e => e.Displayname)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("displayname");
+//            entity.Property(e => e.Dlrprice)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("dlrprice");
+//            entity.Property(e => e.Fame2amount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("fame2amount");
+//            entity.Property(e => e.Grpidno).HasColumnName("grpidno");
+//            entity.Property(e => e.Hsncode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("hsncode");
+//            entity.Property(e => e.HsncodeId).HasColumnName("HSNCodeId");
+//            entity.Property(e => e.Igst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("igst");
+//            entity.Property(e => e.Ipurrate)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("ipurrate");
+//            entity.Property(e => e.IsVor).HasColumnName("IsVOR");
+//            entity.Property(e => e.Iselectric).HasColumnName("iselectric");
+//            entity.Property(e => e.Itemcc).HasColumnName("itemcc");
+//            entity.Property(e => e.Itemcode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("itemcode");
+//            entity.Property(e => e.Itemdesc)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("itemdesc");
+//            entity.Property(e => e.Itemname)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("itemname");
+//            entity.Property(e => e.Itemtype).HasColumnName("itemtype");
+//            entity.Property(e => e.Moq).HasColumnName("moq");
+//            entity.Property(e => e.Noofbatteries).HasColumnName("noofbatteries");
+//            entity.Property(e => e.Oemmodelname)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("oemmodelname");
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(1000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Rrgitemidno).HasColumnName("rrgitemidno");
+//            entity.Property(e => e.Sgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("sgst");
+//            entity.Property(e => e.Status).HasColumnName("status");
+//            entity.Property(e => e.Ugst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("ugst");
+//            entity.Property(e => e.Uom).HasColumnName("UOM");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Vehtype).HasColumnName("vehtype");
+//            entity.Property(e => e.Vorrate)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("VORRate");
+
+//            entity.HasOne(d => d.HsncodeNavigation).WithMany(p => p.ItemMasters)
+//                .HasForeignKey(d => d.HsncodeId)
+//                .HasConstraintName("FK_HSNCodeMaster_ItemMaster");
+//        });
+
+//        modelBuilder.Entity<JobCardBatteryDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__JobCardB__3214EC07DA8AD946");
+
+//            entity.ToTable("JobCardBatteryDetail");
+
+//            entity.Property(e => e.BatteryCapacity)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryCapacityAh)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("BatteryCapacityAH");
+//            entity.Property(e => e.BatteryCcv)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("BatteryCCV");
+//            entity.Property(e => e.BatteryChemical)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryDischarge)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryMake)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryOcv)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("BatteryOCV");
+//            entity.Property(e => e.BatterySerialNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatteryVoltage)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChargerMake)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChargerNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ControllerNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ConverterNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MotorDrawing)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardBatteryDetails)
+//                .HasForeignKey(d => d.JobCardHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_JobCardBatteryDetail_JobCardHeader");
+//        });
+
+//        modelBuilder.Entity<JobCardComplaint>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__JobCardC__3214EC0738EA4177");
+
+//            entity.ToTable("JobCardComplaint");
+
+//            entity.Property(e => e.Complaint)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ComplaintCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.CustomerVoice)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardComplaints)
+//                .HasForeignKey(d => d.JobCardHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_JobCardComplaint_JobCardHeader");
+//        });
+
+//        modelBuilder.Entity<JobCardCustomer>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__JobCardC__3214EC07618DE00D");
+
+//            entity.ToTable("JobCardCustomer");
+
+//            entity.Property(e => e.BatteryNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChassisNo).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.CustomerAltMobile)
+//                .HasMaxLength(70)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CustomerMobile)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CustomerName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InsuranceExpDate).HasColumnType("datetime");
+//            entity.Property(e => e.ModelName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MotorNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.NextserviceDueDate).HasColumnType("datetime");
+//            entity.Property(e => e.RegisterNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RsarenewalDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("RSARenewalDate");
+//            entity.Property(e => e.SaleDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.JobCardCustomers)
+//                .HasForeignKey(d => d.CustomerLedgerId)
+//                .HasConstraintName("FK_JobCardCustomer_LedgerMaster");
+
+//            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.JobCardCustomers)
+//                .HasForeignKey(d => d.JobCardHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_JobCardCustomer_JobCardHeader");
+
+//            entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.JobCardCustomers)
+//                .HasForeignKey(d => d.VehicleSaleBillid)
+//                .HasConstraintName("FK_JobCardCustomer_VehicleSaleBillHeader");
+//        });
+
+//        modelBuilder.Entity<JobCardHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__JobCardH__3214EC078282DA4B");
+
+//            entity.ToTable("JobCardHeader");
+
+//            entity.Property(e => e.Chassisno).HasMaxLength(100);
+//            entity.Property(e => e.Couponno)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EstNo).HasMaxLength(50);
+//            entity.Property(e => e.EstdelTime)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+//            entity.Property(e => e.InwardType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsDelete).HasDefaultValue(false);
+//            entity.Property(e => e.JobStatus)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.JobinTime)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Jobprefix)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Observation)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Serviceloc)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Supervisor)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SupervisorComment)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Technician)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobSourceNavigation).WithMany(p => p.JobCardHeaders)
+//                .HasForeignKey(d => d.JobSource)
+//                .HasConstraintName("FK_JobCardHeader_JobSource");
+
+//            entity.HasOne(d => d.JobtypeNavigation).WithMany(p => p.JobCardHeaders)
+//                .HasForeignKey(d => d.Jobtype)
+//                .HasConstraintName("FK_JobCardHeader_JobType");
+
+//            entity.HasOne(d => d.ServiceheadNavigation).WithMany(p => p.JobCardHeaders)
+//                .HasForeignKey(d => d.Servicehead)
+//                .HasConstraintName("FK_JobCardHeader_ServiceHead");
+
+//            entity.HasOne(d => d.ServicetypeNavigation).WithMany(p => p.JobCardHeaders)
+//                .HasForeignKey(d => d.Servicetype)
+//                .HasConstraintName("FK_JobCardHeader_ServiceType");
+//        });
+
+//        modelBuilder.Entity<JobSource>(entity =>
+//        {
+//            entity.ToTable("JobSource");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.JobSourceName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<JobType>(entity =>
+//        {
+//            entity.ToTable("JobType");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.JobTypeName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<KitDetail>(entity =>
+//        {
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Item).WithMany(p => p.KitDetails)
+//                .HasForeignKey(d => d.ItemId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_KitDetails_ItemMaster");
+
+//            entity.HasOne(d => d.KitHeader).WithMany(p => p.KitDetails)
+//                .HasForeignKey(d => d.KitHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_KitDetails_KitHeader");
+//        });
+
+//        modelBuilder.Entity<KitHeader>(entity =>
+//        {
+//            entity.ToTable("KitHeader");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.KitDate).HasColumnType("datetime");
+//            entity.Property(e => e.KitName)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<LabourMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__LabourMa__3213E83FB9BA15D1");
+
+//            entity.ToTable("LabourMaster");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Category)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Cgst)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("CGST");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("createdBy");
+//            entity.Property(e => e.CreatedDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("createdDate");
+//            entity.Property(e => e.EffectiveDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("effectiveDate");
+//            entity.Property(e => e.Hsncode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("HSNCode");
+//            entity.Property(e => e.Igst)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("IGST");
+//            entity.Property(e => e.IsLabourActive).HasColumnName("isLabourActive");
+//            entity.Property(e => e.LabourCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LabourDescription)
+//                .HasMaxLength(255)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 6)");
+//            entity.Property(e => e.ModelCc).HasColumnName("ModelCC");
+//            entity.Property(e => e.ModelCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Oemmodelname)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("oemmodelname");
+//            entity.Property(e => e.Sgst)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("SGST");
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("updateBy");
+//            entity.Property(e => e.UpdatedDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("updatedDate");
+
+//            entity.HasOne(d => d.JobtypeNavigation).WithMany(p => p.LabourMasters)
+//                .HasForeignKey(d => d.Jobtype)
+//                .HasConstraintName("fk_labourmaster_jobtype");
+
+//            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.LabourMasters)
+//                .HasForeignKey(d => d.ServiceHead)
+//                .HasConstraintName("fk_labourmaster_ServiceHead");
+
+//            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.LabourMasters)
+//                .HasForeignKey(d => d.ServiceType)
+//                .HasConstraintName("fk_labourmaster_ServiceType");
+//        });
+
+//        modelBuilder.Entity<LedgerMaster>(entity =>
+//        {
+//            entity.ToTable("LedgerMaster");
+
+//            entity.HasIndex(e => e.LedgerCode, "Ledgerunique").IsUnique();
+
+//            entity.Property(e => e.AadharNumber)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Address)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Address2)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.AlternateMobileNo)
+//                .HasMaxLength(15)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.D2dprovision).HasColumnName("D2DProvision");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EMail)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("eMail");
+//            entity.Property(e => e.Gender)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Gstno)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("GSTNo");
+//            entity.Property(e => e.LedgerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LedgerName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LedgerType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LedgerVisibility)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MobileNumber)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Pan)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("PAN");
+//            entity.Property(e => e.Pin)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.CityNavigation).WithMany(p => p.LedgerMasters)
+//                .HasForeignKey(d => d.City)
+//                .HasConstraintName("FK_LedgerMaster_cities");
+
+//            entity.HasOne(d => d.StateNavigation).WithMany(p => p.LedgerMasters)
+//                .HasForeignKey(d => d.State)
+//                .HasConstraintName("FK_LedgerMaster_states");
+//        });
+
+//        modelBuilder.Entity<LmsleadMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__LMSLeadM__3213E83F94CA5A34");
+
+//            entity.ToTable("LMSLeadMaster");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Area)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("area");
+//            entity.Property(e => e.Brancharea)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("brancharea");
+//            entity.Property(e => e.Branchpin).HasColumnName("branchpin");
+//            entity.Property(e => e.City)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("city");
+//            entity.Property(e => e.Color)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("color");
+//            entity.Property(e => e.ColorId).HasColumnName("colorId");
+//            entity.Property(e => e.Company)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("company");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Date)
+//                .HasColumnType("datetime")
+//                .HasColumnName("date");
+//            entity.Property(e => e.DealerId).HasColumnName("dealerId");
+//            entity.Property(e => e.Dealercode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealercode");
+//            entity.Property(e => e.Email)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("email");
+//            entity.Property(e => e.Leadid).HasColumnName("leadid");
+//            entity.Property(e => e.Mobile)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("mobile");
+//            entity.Property(e => e.Model)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("model");
+//            entity.Property(e => e.Name)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("name");
+//            entity.Property(e => e.Pincode).HasColumnName("pincode");
+//            entity.Property(e => e.Productcode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("productcode");
+//            entity.Property(e => e.Sourceapp)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("sourceapp");
+//            entity.Property(e => e.Time).HasColumnName("time");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Variant)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("variant");
+
+//            entity.HasOne(d => d.Dealer).WithMany(p => p.LmsleadMasters)
+//                .HasForeignKey(d => d.DealerId)
+//                .HasConstraintName("FKDealerMaster");
+//        });
+
+//        modelBuilder.Entity<LocationMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Location__3213E83F3DF6EF21");
+
+//            entity.ToTable("LocationMaster");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.Acntidno).HasColumnName("acntidno");
+//            entity.Property(e => e.Action)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("action");
+//            entity.Property(e => e.Active)
+//                .HasMaxLength(1)
+//                .IsUnicode(false)
+//                .HasDefaultValue("Y")
+//                .IsFixedLength()
+//                .HasColumnName("active");
+//            entity.Property(e => e.Add1)
+//                .HasMaxLength(255)
+//                .IsUnicode(false)
+//                .HasColumnName("add1");
+//            entity.Property(e => e.Add2)
+//                .HasMaxLength(255)
+//                .IsUnicode(false)
+//                .HasColumnName("add2");
+//            entity.Property(e => e.City)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("city");
+//            entity.Property(e => e.Compid).HasColumnName("compid");
+//            entity.Property(e => e.Contperemail1)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("contperemail1");
+//            entity.Property(e => e.Contperemail2)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("contperemail2");
+//            entity.Property(e => e.Contpermob1)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("contpermob1");
+//            entity.Property(e => e.Contpermob2)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("contpermob2");
+//            entity.Property(e => e.Contpername1)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("contpername1");
+//            entity.Property(e => e.Contpername2)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("contpername2");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Dealercode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealercode");
+//            entity.Property(e => e.Email)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("email");
+//            entity.Property(e => e.Formtype)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("formtype");
+//            entity.Property(e => e.Gstinno)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("gstinno");
+//            entity.Property(e => e.Lineno)
+//                .HasDefaultValue(0)
+//                .HasColumnName("lineno");
+//            entity.Property(e => e.Locareaidno).HasColumnName("locareaidno");
+//            entity.Property(e => e.Loccode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("loccode");
+//            entity.Property(e => e.Locname)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("locname");
+//            entity.Property(e => e.Mobileno)
+//                .HasMaxLength(15)
+//                .IsUnicode(false)
+//                .HasColumnName("mobileno");
+//            entity.Property(e => e.Pincode)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("pincode");
+//            entity.Property(e => e.Rrglocationidno).HasColumnName("rrglocationidno");
+//            entity.Property(e => e.State)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("state");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<LotinspectionDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__LOTInspe__3213E83FC262210D");
+
+//            entity.ToTable("LOTInspectionDetails");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.AttributeCard).HasColumnName("attributeCard");
+//            entity.Property(e => e.BatteryNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("batteryNo");
+//            entity.Property(e => e.ChargerNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("chargerNo");
+//            entity.Property(e => e.ChargerQty).HasColumnName("chargerQty");
+//            entity.Property(e => e.ChargingKit).HasColumnName("chargingKit");
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("chassisNo");
+//            entity.Property(e => e.ChassisWiseRemarks)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("chassisWiseRemarks");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DamageDetails)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("damageDetails");
+//            entity.Property(e => e.FirstaidkitQty).HasColumnName("firstaidkitQty");
+//            entity.Property(e => e.IgnitionKeyset).HasColumnName("ignitionKeyset");
+//            entity.Property(e => e.InspectionDate).HasColumnName("inspectionDate");
+//            entity.Property(e => e.Itemcode)
+//                .HasMaxLength(200)
+//                .HasColumnName("itemcode");
+//            entity.Property(e => e.KeyFobSetQty).HasColumnName("keyFobSetQty");
+//            entity.Property(e => e.LotHeaderId).HasColumnName("lotHeaderId");
+//            entity.Property(e => e.LotVehicleDamageImage)
+//                .HasMaxLength(500)
+//                .IsUnicode(false)
+//                .HasColumnName("lotVehicleDamageImage");
+//            entity.Property(e => e.MirrorsetQty).HasColumnName("mirrorsetQty");
+//            entity.Property(e => e.MotorNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("motorNo");
+//            entity.Property(e => e.NoofVehicle).HasColumnName("noofVehicle");
+//            entity.Property(e => e.OwnersManual).HasColumnName("ownersManual");
+//            entity.Property(e => e.ToolKitQty).HasColumnName("toolKitQty");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.VehicleStatus)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("vehicleStatus");
+
+//            entity.HasOne(d => d.LotHeader).WithMany(p => p.LotinspectionDetails)
+//                .HasForeignKey(d => d.LotHeaderId)
+//                .HasConstraintName("FK_LOTInspectionDetails_Header");
+//        });
+
+//        modelBuilder.Entity<LotinspectionHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__LOTInspe__3213E83FE7743E50");
+
+//            entity.ToTable("LOTInspectionHeader");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.ArrivalDate).HasColumnName("arrivalDate");
+//            entity.Property(e => e.ArrivalTime)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("arrivalTime");
+//            entity.Property(e => e.CommonRemarks)
+//                .HasMaxLength(250)
+//                .IsUnicode(false)
+//                .HasColumnName("commonRemarks");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealer_code");
+//            entity.Property(e => e.DriverContact)
+//                .HasMaxLength(100)
+//                .HasColumnName("driverContact");
+//            entity.Property(e => e.DriverName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("driverName");
+//            entity.Property(e => e.InvoiceDate).HasColumnName("invoiceDate");
+//            entity.Property(e => e.InvoiceNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("invoiceNo");
+//            entity.Property(e => e.InwardType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsD2d)
+//                .HasDefaultValue(false)
+//                .HasColumnName("IsD2D");
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("loc_code");
+//            entity.Property(e => e.LocationName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("locationName");
+//            entity.Property(e => e.LotNo).HasColumnName("lotNo");
+//            entity.Property(e => e.LrDate).HasColumnName("lrDate");
+//            entity.Property(e => e.LrNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("lrNo");
+//            entity.Property(e => e.PlasticCover)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("plasticCover");
+//            entity.Property(e => e.SupervisorName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false)
+//                .HasColumnName("supervisorName");
+//            entity.Property(e => e.TransporterName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("transporterName");
+//            entity.Property(e => e.TruckNo)
+//                .HasMaxLength(100)
+//                .HasColumnName("truckNo");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.VehicleFasteningBracket)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("vehicleFasteningBracket");
+
+//            entity.HasOne(d => d.Ledger).WithMany(p => p.LotinspectionHeaders)
+//                .HasForeignKey(d => d.LedgerId)
+//                .HasConstraintName("FK_LotInspectionHeader_LedgerMaster");
+//        });
+
+//        modelBuilder.Entity<MainPartAffectedFfir>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__MainPart__3214EC0747337187");
+
+//            entity.ToTable("MainPartAffectedFFIR");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+//            entity.Property(e => e.PartAffectedDescription)
+//                .HasMaxLength(300)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartAffectedName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Ffir).WithMany(p => p.MainPartAffectedFfirs)
+//                .HasForeignKey(d => d.Ffirid)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_MainPartAffectedFFIR_FFIRHeader");
+//        });
+
+//        modelBuilder.Entity<MaterialTransfer>(entity =>
+//        {
+//            entity.ToTable("MaterialTransfer");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.DealerLocation).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Mrp).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Ffi).HasColumnName("FFI");
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemReceived)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MaterialPrefix)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(5000)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SerialNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Item).WithMany(p => p.MaterialTransfers)
+//                .HasForeignKey(d => d.ItemId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_MaterialTransfer_ItemMaster");
+//        });
+
+//        modelBuilder.Entity<MenuMaster>(entity =>
+//        {
+//            entity.ToTable("MenuMaster");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.MenuName)
+//                .HasMaxLength(500)
+//                .IsUnicode(false)
+//                .HasColumnName("menuName");
+//            entity.Property(e => e.ModuleName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("moduleName");
+//            entity.Property(e => e.ParentMenuId).HasColumnName("parentMenuId");
+//            entity.Property(e => e.PathName)
+//                .HasMaxLength(1000)
+//                .IsUnicode(false)
+//                .HasColumnName("pathName");
+//            entity.Property(e => e.SerialNo).HasColumnName("serialNo");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ModelwiseServiceSchedule>(entity =>
+//        {
+//            entity.ToTable("ModelwiseServiceSchedule");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.Seqno).HasColumnName("seqno");
+//            entity.Property(e => e.SrNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.ModelwiseServiceSchedules)
+//                .HasForeignKey(d => d.OemmodelId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_ModelwiseServiceSchedule_OemModel");
+
+//            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.ModelwiseServiceSchedules)
+//                .HasForeignKey(d => d.ServiceHead)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceHead");
+
+//            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.ModelwiseServiceSchedules)
+//                .HasForeignKey(d => d.ServiceType)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_ModelwiseServiceSchedule_ServiceType");
+//        });
+
+//        modelBuilder.Entity<NumberSequence>(entity =>
+//        {
+//            entity.ToTable("NumberSequence");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Format)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SequenceCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SequenceName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Year)
+//                .HasMaxLength(30)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BillingType);   // ADDED
+//        });
+
+//        modelBuilder.Entity<OccupationMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Occupati__891711ADE0A56719");
+
+//            entity.ToTable("OccupationMaster");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.OccupationName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<OemmodelMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC07901A12F4");
+
+//            entity.ToTable("OEMModelMaster");
+
+//            entity.HasIndex(e => e.ModelName, "OEM_NameUnique").IsUnique();
+
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.ModelName).HasMaxLength(150);
+//            entity.Property(e => e.ModelShortName).HasMaxLength(150);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<OemmodelWarranty>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__OEMModel__3214EC0726AF3F6D");
+
+//            entity.ToTable("OEMModelWarranty");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Duration).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DurationType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsB2b).HasColumnName("IsB2B");
+//            entity.Property(e => e.Odoreading)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("ODOReading");
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.OemmodelWarranties)
+//                .HasForeignKey(d => d.OemmodelId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_OEMModelWarranty_OEMModelMaster");
+//        });
+
+//        modelBuilder.Entity<ParameterMasterTable>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Paramete__3214EC073BC8EE12");
+
+//            entity.ToTable("ParameterMasterTable");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.ParameterName)
+//                .HasMaxLength(255)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ParameterValue).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<PartWiseLabourMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__PartWise__3214EC07DB4F8264");
+
+//            entity.ToTable("PartWiseLabourMaster");
+
+//            entity.Property(e => e.Cgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGST");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.Hsncode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("HSNCode");
+//            entity.Property(e => e.Igst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGST");
+//            entity.Property(e => e.LabourCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LabourHrs).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LabourName)
+//                .HasMaxLength(255)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ModelName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartDescription)
+//                .HasMaxLength(255)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Sgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGST");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.ServiceHeadNavigation).WithMany(p => p.PartWiseLabourMasters)
+//                .HasForeignKey(d => d.ServiceHead)
+//                .HasConstraintName("fk_partWiseLabourMaster_ServiceHead");
+
+//            entity.HasOne(d => d.ServiceTypeNavigation).WithMany(p => p.PartWiseLabourMasters)
+//                .HasForeignKey(d => d.ServiceType)
+//                .HasConstraintName("fk_partWiseLabourMaster_ServiceType");
+//        });
+
+//        modelBuilder.Entity<PartsInventory>(entity =>
+//        {
+//            entity.ToTable("PartsInventory");
+
+//            entity.Property(e => e.BatchNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerLocation)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FinalStockFlag)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Potype)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("POType");
+//            entity.Property(e => e.PurchaseRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TransId)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TransType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.VendorCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.VoucherNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//        });
+
+//        modelBuilder.Entity<PartsInward>(entity =>
+//        {
+//            entity.ToTable("PartsInward");
+
+//            entity.Property(e => e.Cgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("cgst");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("dealer_code");
+//            entity.Property(e => e.DiscountType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("discount_type");
+//            entity.Property(e => e.DocumentNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("document_no");
+//            entity.Property(e => e.Igst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("igst");
+//            entity.Property(e => e.InvoiceDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("invoice_date");
+//            entity.Property(e => e.InvoiceNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("invoice_no");
+//            entity.Property(e => e.IsAccepted).HasColumnName("isAccepted");
+//            entity.Property(e => e.ItemDisc)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("item_disc");
+//            entity.Property(e => e.ItemHsncode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("item_hsncode");
+//            entity.Property(e => e.ItemIdno).HasColumnName("item_idno");
+//            entity.Property(e => e.ItemMrp)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("item_mrp");
+//            entity.Property(e => e.ItemQty).HasColumnName("item_qty");
+//            entity.Property(e => e.ItemRate)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("item_rate");
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("loc_code");
+//            entity.Property(e => e.PartNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("part_no");
+//            entity.Property(e => e.PartyName)
+//                .HasMaxLength(30)
+//                .IsUnicode(false)
+//                .HasColumnName("party_name");
+//            entity.Property(e => e.PoType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("po_type");
+//            entity.Property(e => e.PrefixNo)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("prefix_no");
+//            entity.Property(e => e.ReceiptDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("receipt_date");
+//            entity.Property(e => e.Sgst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("sgst");
+//            entity.Property(e => e.SourceType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("source_type");
+//            entity.Property(e => e.Ugst)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("ugst");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<PdichecklistChassisWise>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__PDICheck__3214EC073DCBEF00");
+
+//            entity.ToTable("PDIChecklistChassisWise");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.OemmodelId).HasColumnName("OEMModelId");
+//            entity.Property(e => e.PdichecklistMasterId).HasColumnName("PDIChecklistMasterId");
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobCardMaster).WithMany(p => p.PdichecklistChassisWises)
+//                .HasForeignKey(d => d.JobCardMasterId)
+//                .HasConstraintName("FK_PDIChecklist_JobCard");
+
+//            entity.HasOne(d => d.Oemmodel).WithMany(p => p.PdichecklistChassisWises).HasForeignKey(d => d.OemmodelId);
+
+//            entity.HasOne(d => d.PdichecklistMaster).WithMany(p => p.PdichecklistChassisWises)
+//                .HasForeignKey(d => d.PdichecklistMasterId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_PDIChecklistChassisWise_Master");
+//        });
+
+//        modelBuilder.Entity<PdichecklistMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__PDICheck__3214EC0750181595");
+
+//            entity.ToTable("PDIChecklistMaster");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.PdicheckName)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("PDICheckName");
+//            entity.Property(e => e.Pdidescription)
+//                .HasMaxLength(200)
+//                .IsUnicode(false)
+//                .HasColumnName("PDIDescription");
+//            entity.Property(e => e.PdiheadName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("PDIHeadName");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.OemModel).WithMany(p => p.PdichecklistMasters)
+//                .HasForeignKey(d => d.OemModelId)
+//                .HasConstraintName("FK_PDIChecklistMaster_OemModelMaster");
+//        });
+
+//        modelBuilder.Entity<PurchaseOrder>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Purchase__3214EC07451B4139");
+
+//            entity.ToTable("PurchaseOrder");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ConsigneeCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.CustomerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.FameIiflag)
+//                .HasMaxLength(10)
+//                .IsUnicode(false)
+//                .HasColumnName("FameIIFlag");
+//            entity.Property(e => e.LedgerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.OrderType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Ponumber)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("PONumber");
+//            entity.Property(e => e.PurchaseDate).HasColumnType("datetime");
+//            entity.Property(e => e.ReferenceNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SubOrderType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TestCertificate)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TransactionType)
+//                .HasMaxLength(3)
+//                .IsUnicode(false)
+//                .IsFixedLength();
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<PurchaseOrderDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Purchase__3214EC073EB72DCD");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LineAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Mrp)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("MRP");
+//            entity.Property(e => e.Ponumber)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("PONumber");
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Status).HasDefaultValue(true);
+//            entity.Property(e => e.Subsidy).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Unit)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ReceiptEntry>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__ReceiptE__3214EC07F28D8BBC");
+
+//            entity.ToTable("ReceiptEntry");
+
+//            entity.Property(e => e.BookingId)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BusinessType).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Financier)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Location)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MobileNo).HasMaxLength(15);
+//            entity.Property(e => e.Narration)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PartyName)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ProductCode)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ReceiptNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ReceiptType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RefNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SaleType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SalesExecutive)
+//                .HasMaxLength(150)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ReceiptEntryDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__ReceiptE__3214EC0717FB5612");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.LineDate).HasColumnType("datetime");
+//            entity.Property(e => e.ReceiptType)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Receipt).WithMany(p => p.ReceiptEntryDetails)
+//                .HasForeignKey(d => d.ReceiptId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_ReceiptEntryDetails_ReceiptEntry");
+//        });
+
+//        modelBuilder.Entity<RepairBillDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__RepairBi__3214EC07F0FF2241");
+
+//            entity.Property(e => e.Cgstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTAmount");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DiscountType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Fscrate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Igstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTAmount");
+//            entity.Property(e => e.ItemType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LabourDiscount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LabourNetAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LabourQty).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LabourRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.LabourTaxblAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PartDiscount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PartNetAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PartQty).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PartRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PartTaxblAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Sgstamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTAmount");
+//            entity.Property(e => e.TotalTaxPer).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.LabourMaster).WithMany(p => p.RepairBillDetails)
+//                .HasForeignKey(d => d.LabourMasterId)
+//                .HasConstraintName("FK__RepairBil__Labou__6339AFF7");
+
+//            entity.HasOne(d => d.Material).WithMany(p => p.RepairBillDetails)
+//                .HasForeignKey(d => d.MaterialId)
+//                .HasConstraintName("FK__RepairBil__Mater__62458BBE");
+
+//            entity.HasOne(d => d.PartItem).WithMany(p => p.RepairBillDetails)
+//                .HasForeignKey(d => d.PartItemId)
+//                .HasConstraintName("FK_RepairBillDetail_ItemMaster");
+
+//            entity.HasOne(d => d.PartWiseLabour).WithMany(p => p.RepairBillDetails)
+//                .HasForeignKey(d => d.PartWiseLabourId)
+//                .HasConstraintName("FK__RepairBil__PartW__642DD430");
+
+//            entity.HasOne(d => d.RepairBill).WithMany(p => p.RepairBillDetails)
+//                .HasForeignKey(d => d.RepairBillId)
+//                .HasConstraintName("FK__RepairBil__Repai__61516785");
+//        });
+
+//        modelBuilder.Entity<RepairBillHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__RepairBi__3214EC07B775251A");
+
+//            entity.ToTable("RepairBillHeader");
+
+//            entity.Property(e => e.AmountReceived)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.BillType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ContactNumber).HasColumnName("contactNumber");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.InsDecription)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("insDecription");
+//            entity.Property(e => e.InsValidTill).HasColumnType("datetime");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.IsSavedInvoice).HasDefaultValue(false);
+//            entity.Property(e => e.IsSavedPerforma).HasDefaultValue(false);
+//            entity.Property(e => e.LocationCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.PolicyNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("policyNo");
+//            entity.Property(e => e.Prefix)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks).IsUnicode(false);
+//            entity.Property(e => e.RepairbillStatus)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SurveyorName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("surveyorName");
+//            entity.Property(e => e.TotalDiscount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalNetAmount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalTaxableAmount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.RepairBillHeaderCustomerLedgers)
+//                .HasForeignKey(d => d.CustomerLedgerId)
+//                .HasConstraintName("FK_RepairBillHeader_LeadgerMaster_CustomerID");
+
+//            entity.HasOne(d => d.Insurance).WithMany(p => p.RepairBillHeaderInsurances)
+//                .HasForeignKey(d => d.InsuranceId)
+//                .HasConstraintName("FK_RepairBillHeader_LeadgerMaster");
+
+//            entity.HasOne(d => d.Job).WithMany(p => p.RepairBillHeaders)
+//                .HasForeignKey(d => d.JobId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_RepairBillHeader_JobCardHeader");
+//        });
+
+//        modelBuilder.Entity<RoleCategoryMapping>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__RoleCate__3214EC07ABD432C5");
+
+//            entity.ToTable("RoleCategoryMapping");
+
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.RoleId).HasMaxLength(450);
+//            entity.Property(e => e.RoleName).HasMaxLength(256);
+//            entity.Property(e => e.IsSystemGenerated).HasDefaultValue(false);
+//        });
+
+//        modelBuilder.Entity<RoleMenuMapping>(entity =>
+//        {
+//            entity
+//                .HasNoKey()
+//                .ToTable("RoleMenuMapping");
+
+//            entity.Property(e => e.CanView).HasDefaultValue(true);
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.MenuName).HasMaxLength(200);
+//            entity.Property(e => e.ModuleName).HasMaxLength(100);
+//            entity.Property(e => e.PathName).HasMaxLength(300);
+//            entity.Property(e => e.RoleName).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<RoleWiseMenuRight>(entity =>
+//        {
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.RoleId).HasMaxLength(450);
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.Role).WithMany(p => p.RoleWiseMenuRights)
+//                .HasForeignKey(d => d.RoleId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_User_RoleWiseMenuRights");
+
+//            entity.HasOne(d => d.SubMenu).WithMany(p => p.RoleWiseMenuRights)
+//                .HasForeignKey(d => d.SubMenuId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_MenuMaster_RoleWiseMenuRights");
+//        });
+
+//        modelBuilder.Entity<SalesServicesCondition>(entity =>
+//        {
+//            entity.HasNoKey();
+
+//            entity.Property(e => e.ConditionText)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ConditionType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Id)
+//                .ValueGeneratedOnAdd()
+//                .HasColumnName("id");
+//            entity.Property(e => e.Status)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ServiceHead>(entity =>
+//        {
+//            entity.ToTable("ServiceHead");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.ServiceHeadName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(50);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.JobType).WithMany(p => p.ServiceHeads)
+//                .HasForeignKey(d => d.JobTypeId)
+//                .HasConstraintName("FK_ServiceHead_JobType");
+//        });
+
+//        modelBuilder.Entity<ServiceType>(entity =>
+//        {
+//            entity.ToTable("ServiceType");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.ServiceTypeName)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.ServiceHead).WithMany(p => p.ServiceTypes)
+//                .HasForeignKey(d => d.ServiceHeadId)
+//                .HasConstraintName("FK_ServiceType_ServiceHead");
+//        });
+
+//        modelBuilder.Entity<State>(entity =>
+//        {
+//            entity.HasKey(e => e.StateId).HasName("PK__states__81A474171B182568");
+
+//            entity.ToTable("states");
+
+//            entity.HasIndex(e => e.StateName, "UQ__states__8D2CE19A1CF7F0B8").IsUnique();
+
+//            entity.Property(e => e.StateId).HasColumnName("state_id");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.StateName)
+//                .HasMaxLength(100)
+//                .IsUnicode(false)
+//                .HasColumnName("state_name");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<TaxCodeMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__TaxCodeM__3214EC0754AFA1A1");
+
+//            entity.ToTable("TaxCodeMaster");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Description)
+//                .HasMaxLength(250)
+//                .IsUnicode(false);
+//            entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.TaxCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TaxRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<TaxDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__TaxDetai__3214EC0758AC8F4C");
+
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.ItemCode).HasMaxLength(50);
+//            entity.Property(e => e.PodetailsLineNumber).HasColumnName("PODetailsLineNumber");
+//            entity.Property(e => e.Ponumber)
+//                .HasMaxLength(50)
+//                .HasColumnName("PONumber");
+//            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TaxCode).HasMaxLength(20);
+//            entity.Property(e => e.TaxRate).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<TermandConditionMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__TermandC__3214EC073C7C7D8F");
+
+//            entity.ToTable("TermandConditionMaster");
+
+//            entity.Property(e => e.ConditionEffectiveDate).HasColumnType("datetime");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.TermCondition)
+//                .HasMaxLength(700)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdateBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<VehicleInward>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleD__3214EC0732A91997");
+
+//            entity.ToTable("VehicleInward");
+
+//            entity.Property(e => e.BatteryCapacity)
+//                .HasMaxLength(20)
+//                .HasColumnName("battery_capacity");
+//            entity.Property(e => e.BatteryChemistry)
+//                .HasMaxLength(20)
+//                .HasColumnName("battery_chemistry");
+//            entity.Property(e => e.BatteryId)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_id");
+//            entity.Property(e => e.BatteryIdno).HasColumnName("battery_idno");
+//            entity.Property(e => e.BatteryMake)
+//                .HasMaxLength(100)
+//                .HasColumnName("battery_make");
+//            entity.Property(e => e.BatteryNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no");
+//            entity.Property(e => e.BatteryNo2)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no2");
+//            entity.Property(e => e.BatteryNo3)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no3");
+//            entity.Property(e => e.BatteryNo4)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no4");
+//            entity.Property(e => e.BatteryNo5)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no5");
+//            entity.Property(e => e.BatteryNo6)
+//                .HasMaxLength(50)
+//                .HasColumnName("battery_no6");
+//            entity.Property(e => e.BikeMobileno)
+//                .HasMaxLength(15)
+//                .HasColumnName("bike_mobileno");
+//            entity.Property(e => e.BikeSimid)
+//                .HasMaxLength(10)
+//                .HasColumnName("bike_simid");
+//            entity.Property(e => e.ChargerNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("charger_no");
+//            entity.Property(e => e.ChasisNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("chasis_no");
+//            entity.Property(e => e.ColrCode)
+//                .HasMaxLength(10)
+//                .HasColumnName("colr_code");
+//            entity.Property(e => e.ControllerNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("controller_no");
+//            entity.Property(e => e.Converter)
+//                .HasMaxLength(50)
+//                .HasColumnName("converter");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Custprice)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("custprice");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(20)
+//                .HasColumnName("dealer_code");
+//            entity.Property(e => e.Dlrprice)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("dlrprice");
+//            entity.Property(e => e.EcuBalMac)
+//                .HasMaxLength(50)
+//                .HasColumnName("ecu_bal_mac");
+//            entity.Property(e => e.EcuImEi)
+//                .HasMaxLength(50)
+//                .HasColumnName("ecu_im_ei");
+//            entity.Property(e => e.EcuSerno)
+//                .HasMaxLength(50)
+//                .HasColumnName("ecu_serno");
+//            entity.Property(e => e.Fame2Discount)
+//                .HasColumnType("decimal(10, 2)")
+//                .HasColumnName("fame2_discount");
+//            entity.Property(e => e.GstIdno).HasColumnName("gst_idno");
+//            entity.Property(e => e.ImmoblizerNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("immoblizer_no");
+//            entity.Property(e => e.ImmoblizerStatus)
+//                .HasMaxLength(10)
+//                .HasColumnName("immoblizer_status");
+//            entity.Property(e => e.InvoiceDate).HasColumnName("invoice_date");
+//            entity.Property(e => e.InvoiceNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("invoice_no");
+//            entity.Property(e => e.InwardType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsAccepted)
+//                .HasDefaultValue(false)
+//                .HasColumnName("isAccepted");
+//            entity.Property(e => e.IsD2d)
+//                .HasDefaultValue(false)
+//                .HasColumnName("IsD2D");
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(50)
+//                .HasColumnName("item_code");
+//            entity.Property(e => e.KeyNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("key_no");
+//            entity.Property(e => e.LocCode)
+//                .HasMaxLength(20)
+//                .HasColumnName("loc_code");
+//            entity.Property(e => e.MfgMonth).HasColumnName("mfg_month");
+//            entity.Property(e => e.MfgYear).HasColumnName("mfg_year");
+//            entity.Property(e => e.MotorNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("motor_no");
+//            entity.Property(e => e.Ordertype)
+//                .HasMaxLength(50)
+//                .HasColumnName("ordertype");
+//            entity.Property(e => e.PoType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("po_type");
+//            entity.Property(e => e.Ponumber)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("PONumber");
+//            entity.Property(e => e.Regnumber)
+//                .HasMaxLength(20)
+//                .HasColumnName("regnumber");
+//            entity.Property(e => e.ServBkno)
+//                .HasMaxLength(50)
+//                .HasColumnName("serv_bkno");
+//            entity.Property(e => e.SoundbarBalMac)
+//                .HasMaxLength(50)
+//                .HasColumnName("soundbar_bal_mac");
+//            entity.Property(e => e.SoundbarSerno)
+//                .HasMaxLength(50)
+//                .HasColumnName("soundbar_serno");
+//            entity.Property(e => e.Startdate)
+//                .HasMaxLength(50)
+//                .IsUnicode(false)
+//                .HasColumnName("startdate");
+//            entity.Property(e => e.TyreNo1)
+//                .HasMaxLength(50)
+//                .HasColumnName("tyre_no1");
+//            entity.Property(e => e.TyreNo2)
+//                .HasMaxLength(50)
+//                .HasColumnName("tyre_no2");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Validity)
+//                .HasMaxLength(20)
+//                .HasColumnName("validity");
+//            entity.Property(e => e.Vcu)
+//                .HasMaxLength(50)
+//                .HasColumnName("vcu");
+//            entity.Property(e => e.Voltage)
+//                .HasMaxLength(20)
+//                .HasColumnName("voltage");
+//            entity.Property(e => e.LrNo)
+//            .HasMaxLength(50)
+//            .HasColumnName("LRNo");
+//            entity.Property(e => e.LrDate)
+//                .HasColumnType("datetime")
+//                .HasColumnName("LRDate");
+//            entity.Property(e => e.TruckNo)
+//                .HasMaxLength(50)
+//                .HasColumnName("TruckNo");
+//            entity.Property(e => e.TransporterName)
+//                .HasMaxLength(200)
+//                .HasColumnName("TransporterName");
+//        });
+
+//        modelBuilder.Entity<VehicleQuotation>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleQ__3214EC075D35F639");
+
+//            entity.ToTable("VehicleQuotation");
+
+//            entity.Property(e => e.AccessoriesAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Address).HasMaxLength(500);
+//            entity.Property(e => e.Amcamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("AMCAmount");
+//            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.CustPrice).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CustomerGstno)
+//                .HasMaxLength(20)
+//                .HasColumnName("CustomerGSTNo");
+//            entity.Property(e => e.CustomerName).HasMaxLength(200);
+//            entity.Property(e => e.CustomerPanNo).HasMaxLength(15);
+//            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DownPayment).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.EmailId).HasMaxLength(100);
+//            entity.Property(e => e.ExShowroomPrice).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ExchangeAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ExtendedWarrantyAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Fame2Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.HypothecationAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.InsuranceAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.LoanAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.MobileNo).HasMaxLength(15);
+//            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+//            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
+//            entity.Property(e => e.OldCompanyName).HasMaxLength(200);
+//            entity.Property(e => e.OldModelName).HasMaxLength(200);
+//            entity.Property(e => e.OtherCharges).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PlateAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.QuotationDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.QuotationNo).HasMaxLength(50);
+//            entity.Property(e => e.Remarks).HasMaxLength(1000);
+//            entity.Property(e => e.Rtocharges)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("RTOCharges");
+//            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+//            //entity.Property(e => e.Status)
+//            //    .HasMaxLength(30)
+//            //    .HasDefaultValue("Draft");
+//            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+//        });
+
+//        modelBuilder.Entity<VehicleSaleBillDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07E02F8CDE");
+
+//            entity.Property(e => e.Battery).HasMaxLength(50);
+//            entity.Property(e => e.BatteryCapacity).HasMaxLength(50);
+//            entity.Property(e => e.BatteryChemical).HasMaxLength(50);
+//            entity.Property(e => e.BatteryMake).HasMaxLength(50);
+//            entity.Property(e => e.BookNo).HasMaxLength(50);
+//            entity.Property(e => e.Cgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("CGSTAmnt");
+//            entity.Property(e => e.Cgstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("CGSTPer");
+//            entity.Property(e => e.ChargerNo).HasMaxLength(50);
+//            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+//            entity.Property(e => e.Colour).HasMaxLength(50);
+//            entity.Property(e => e.ControllerNo).HasMaxLength(50);
+//            entity.Property(e => e.ConvertorNo).HasMaxLength(50);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.ExtWarranty).HasMaxLength(50);
+//            entity.Property(e => e.FameIi)
+//                .HasDefaultValue(0.00m)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("FameII");
+//            entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Hsrpstatus)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("HSRPStatus");
+//            entity.Property(e => e.Igstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("IGSTAmnt");
+//            entity.Property(e => e.Igstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("IGSTPer");
+//            entity.Property(e => e.InsExpDate).HasColumnType("datetime");
+//            entity.Property(e => e.InsNo).HasMaxLength(50);
+//            entity.Property(e => e.InsStartDate).HasColumnType("datetime");
+//            entity.Property(e => e.InstitutionalType).HasMaxLength(50);
+//            entity.Property(e => e.InsuranceAmount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemCode).HasMaxLength(50);
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Key).HasMaxLength(50);
+//            entity.Property(e => e.ModelName).HasMaxLength(100);
+//            entity.Property(e => e.Narration).HasMaxLength(255);
+//            entity.Property(e => e.PostGstDisc)
+//                .HasDefaultValue(0.00m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PreGstDiscount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.RegAmount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.RegNo).HasMaxLength(50);
+//            entity.Property(e => e.SchemeName).HasMaxLength(100);
+//            entity.Property(e => e.Segment).HasMaxLength(50);
+//            entity.Property(e => e.Sgstamnt)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("SGSTAmnt");
+//            entity.Property(e => e.Sgstper)
+//                .HasColumnType("decimal(5, 2)")
+//                .HasColumnName("SGSTPer");
+//            entity.Property(e => e.StockDetailsNo).HasMaxLength(50);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.Vcu)
+//                .HasMaxLength(50)
+//                .HasColumnName("VCU");
+
+//            entity.HasOne(d => d.InsuranceLedger).WithMany(p => p.VehicleSaleBillDetails)
+//                .HasForeignKey(d => d.InsuranceLedgerId)
+//                .HasConstraintName("FK_VehicleSaleBillDetails_Insurance");
+
+//            entity.HasOne(d => d.VehicleSaleBill).WithMany(p => p.VehicleSaleBillDetails)
+//                .HasForeignKey(d => d.VehicleSaleBillId)
+//                .HasConstraintName("FK_VehicleSaleBillDetails_Header");
+//        });
+
+//        modelBuilder.Entity<VehicleSaleBillHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC0703CE9932");
+
+//            entity.ToTable("VehicleSaleBillHeader");
+
+//            entity.HasIndex(e => e.SaleBillNo, "UQ__VehicleS__591B9B95AB63AB2D").IsUnique();
+
+//            entity.Property(e => e.AccessoryAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.AccessoryBillNo).HasMaxLength(50);
+//            entity.Property(e => e.BillFrom).HasMaxLength(50);
+//            entity.Property(e => e.BillingName).HasMaxLength(150);
+//            entity.Property(e => e.BookingId).HasMaxLength(50);
+//            entity.Property(e => e.CashAccount).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.CustomerName).HasMaxLength(150);
+//            entity.Property(e => e.CustomerType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DealerCode).HasMaxLength(50);
+//            entity.Property(e => e.DeletedDate).HasColumnType("datetime");
+//            entity.Property(e => e.HandlingCharges).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Hpamount)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("HPAmount");
+//            entity.Property(e => e.IsD2d).HasColumnName("IsD2D");
+//            entity.Property(e => e.Location).HasMaxLength(100);
+//            entity.Property(e => e.NoPlateAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.PrintType)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.RefAddress).HasMaxLength(255);
+//            entity.Property(e => e.RefEmail).HasMaxLength(150);
+//            entity.Property(e => e.RefMobile).HasMaxLength(15);
+//            entity.Property(e => e.RefName).HasMaxLength(150);
+//            entity.Property(e => e.RefRemarks).HasMaxLength(255);
+//            entity.Property(e => e.SaleBillNo).HasMaxLength(50);
+//            entity.Property(e => e.SaleDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.SaleType)
+//                .HasMaxLength(10)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SalesExecutive).HasMaxLength(100);
+//            entity.Property(e => e.StateSubsidyAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Status)
+//                .HasMaxLength(20)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TempRegNo).HasMaxLength(50);
+//            entity.Property(e => e.TotalAmount)
+//                .HasDefaultValue(0m)
+//                .HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<VehicleStockTransferDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC075139C83D");
+
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.FameIi)
+//                .HasColumnType("decimal(18, 2)")
+//                .HasColumnName("FameII");
+//            entity.Property(e => e.ItemAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Margin).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.TransferHeader).WithMany(p => p.VehicleStockTransferDetails)
+//                .HasForeignKey(d => d.TransferHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_VehicleStockTransferDetails_Header");
+//        });
+
+//        modelBuilder.Entity<VehicleStockTransferHeader>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__VehicleS__3214EC07A4167337");
+
+//            entity.ToTable("VehicleStockTransferHeader");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IssuingLocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IssuingStaffCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ReceivingLocationCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ReceivingStaffCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Remarks)
+//                .HasMaxLength(500)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TransferDate).HasColumnType("datetime");
+//            entity.Property(e => e.TransferNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.TransferTotal).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<WarrantyJcclaim>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Warranty__3214EC0760ACBD66");
+
+//            entity.ToTable("WarrantyJCClaim");
+
+//            entity.Property(e => e.ApprovedEmpCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ChassisNo)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ClaimAccount)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+//            entity.Property(e => e.ClaimPrefix)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.LocationCode).HasMaxLength(50).IsUnicode(false).HasColumnName("LocationCode");
+//            entity.Property(e => e.LocationName).HasMaxLength(150).IsUnicode(false).HasColumnName("LocationName");
+//            entity.Property(e => e.Ffirid).HasColumnName("FFIRId");
+//            entity.Property(e => e.IsWjcclaimApproved).HasColumnName("IsWJCClaimApproved");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.HasOne(d => d.CustomerLedger).WithMany(p => p.WarrantyJcclaimCustomerLedgers)
+//                .HasForeignKey(d => d.CustomerLedgerId)
+//                .HasConstraintName("FK_WarrantyJCClaim_CustomerLedger");
+
+//            entity.HasOne(d => d.Ffir).WithMany(p => p.WarrantyJcclaims)
+//                .HasForeignKey(d => d.Ffirid)
+//                .HasConstraintName("FK_WarrantyJCClaim_FFIR");
+
+//            entity.HasOne(d => d.JobCardHeader).WithMany(p => p.WarrantyJcclaims)
+//                .HasForeignKey(d => d.JobCardHeaderId)
+//                .HasConstraintName("FK_WarrantyJCClaim_JobCardHeader");
+
+//            entity.HasOne(d => d.RepairBillHeader).WithMany(p => p.WarrantyJcclaims)
+//                .HasForeignKey(d => d.RepairBillHeaderId)
+//                .HasConstraintName("FK_WarrantyJCClaim_RepairBillHeader");
+
+//            entity.HasOne(d => d.Supplier).WithMany(p => p.WarrantyJcclaimSuppliers)
+//                .HasForeignKey(d => d.SupplierId)
+//                .HasConstraintName("FK_WarrantyJCClaim_Supplier");
+//        });
+
+//        modelBuilder.Entity<WarrantyJcclaimDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__Warranty__3214EC07DCB0C822");
+
+//            entity.ToTable("WarrantyJCClaimDetail");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ClaimType)
+//                .HasMaxLength(80)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.ItemType)
+//                .HasMaxLength(70)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.WarrantyJcclaimHeaderId).HasColumnName("WarrantyJCClaimHeaderId");
+
+//            entity.HasOne(d => d.RepairBillDetail).WithMany(p => p.WarrantyJcclaimDetails)
+//                .HasForeignKey(d => d.RepairBillDetailId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyJCClaimDetail_RepairBillDetail");
+
+//            entity.HasOne(d => d.WarrantyJcclaimHeader).WithMany(p => p.WarrantyJcclaimDetails)
+//                .HasForeignKey(d => d.WarrantyJcclaimHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyJCClaimDetail_Header");
+//        });
+
+//        modelBuilder.Entity<ZoneMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id).HasName("PK__zone_mas__3213E83F6CBD7969");
+
+//            entity.ToTable("zone_master");
+
+//            entity.Property(e => e.Id).HasColumnName("id");
+//            entity.Property(e => e.CityId).HasColumnName("city_id");
+//            entity.Property(e => e.DealerId).HasColumnName("dealer_id");
+//            entity.Property(e => e.IsActive)
+//                .HasDefaultValue(true)
+//                .HasColumnName("is_active");
+//            entity.Property(e => e.StateId).HasColumnName("state_id");
+//            entity.Property(e => e.Zone)
+//                .HasMaxLength(20)
+//                .IsUnicode(false)
+//                .HasColumnName("zone");
+//        });
+//        modelBuilder.HasSequence("cir_no_seq");
+//        modelBuilder.HasSequence("LotNo_Seq");
+
+//        modelBuilder.Entity<EstimateHeader>(entity =>
+//        {
+//            entity.ToTable("EstimateHeader");
+
+//            entity.Property(e => e.EstimationNo).HasMaxLength(50);
+//            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+//            entity.Property(e => e.CustomerName).HasMaxLength(200);
+//            entity.Property(e => e.CustomerMobile).HasMaxLength(20);
+//            entity.Property(e => e.CustomerAddress).HasMaxLength(300);
+//            entity.Property(e => e.CustomerPin).HasMaxLength(20);
+//            entity.Property(e => e.CustomerEmail).HasMaxLength(150);
+//            entity.Property(e => e.CustomerCity).HasMaxLength(100);
+//            entity.Property(e => e.CustomerState).HasMaxLength(100);
+//            entity.Property(e => e.DealerCode).HasMaxLength(50);
+//            entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Open");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getdate())")
+//                                               .HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+//            //entity.HasOne(d => d.JobType)
+//            //    .WithMany()
+//            //    .HasForeignKey(d => d.JobTypeId)
+//            //    .HasConstraintName("FK_EstimateHeader_JobType");
+//        });
+
+//        modelBuilder.Entity<EstimateDetail>(entity =>
+//        {
+//            entity.ToTable("EstimateDetail");
+
+//            entity.Property(e => e.ItemType).HasMaxLength(20).IsRequired();
+//            entity.Property(e => e.ItemCode).HasMaxLength(50);
+//            entity.Property(e => e.ItemDescription).HasMaxLength(200);
+
+//            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)").HasDefaultValue(1m);
+//            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+
+//            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
+
+//            entity.Property(e => e.CgstPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.SgstPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.IgstPercent).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+
+//            entity.HasOne(d => d.EstimateHeader)
+//                .WithMany(p => p.EstimateDetails)
+//                .HasForeignKey(d => d.EstimateHeaderId)
+//                .HasConstraintName("FK_EstimateDetail_EstimateHeader");
+//        });
+
+//        modelBuilder.Entity<BgRoleCategoryMapping>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+
+//            entity.ToTable("BgRoleCategoryMapping");
+
+//            entity.Property(e => e.Category).HasMaxLength(100);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.LocationId);
+
+//            entity.HasIndex(e => e.LocationId, "UQ_BgRoleCategoryMapping_LocationId")
+//                .IsUnique()
+//                .HasFilter("[LocationId] IS NOT NULL");
+//            entity.Property(e => e.RoleId).HasMaxLength(450);
+//            entity.Property(e => e.RoleName).HasMaxLength(256);
+//        });
+
+//        modelBuilder.Entity<ZDmsPartDispWarranty>(entity =>
+//        {
+//            entity.ToTable("Z_DMS_PartDispWarranty");
+
+//            entity.Property(e => e.Invoiceno).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Invoicetype).HasMaxLength(20).IsUnicode(false);
+//            entity.Property(e => e.Chassisnumber).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Itemcode).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Serialno).HasMaxLength(150).IsUnicode(false);
+//            entity.Property(e => e.Dealercode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.Devicetype).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Lotno).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Invoiceitemcode).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.Invoicedate).HasColumnType("datetime");
+//            entity.Property(e => e.Mfgdate).HasColumnType("datetime");
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<DmsPartDispatch>(entity =>
+//        {
+//            entity.ToTable("DMS_PartDispatch");
+
+//            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.PartNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.ItemHsncode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemMrp).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Sgst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Cgst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Igst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Ugst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemDisc).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DiscountType).HasMaxLength(10).IsUnicode(false);
+//            entity.Property(e => e.LocCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<WarrantyOrder>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+//        modelBuilder.Entity<EbwInvoiceHeader>(entity =>
+//        {
+//            entity.ToTable("EbwInvoiceHeader");
+
+//            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.PrefixNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.LocationCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.BillType).HasMaxLength(20).IsUnicode(false);
+
+//            entity.Property(e => e.SchemeName).HasMaxLength(200).IsUnicode(false);
+
+//            entity.Property(e => e.ChassisNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.SoldByDealerCode).HasMaxLength(50).IsUnicode(false);
+
+//            entity.Property(e => e.PartyName).HasMaxLength(200).IsUnicode(false);
+//            entity.Property(e => e.PartyMobile).HasMaxLength(20).IsUnicode(false);
+//            entity.Property(e => e.PartyAddress).HasMaxLength(300).IsUnicode(false);
+//            entity.Property(e => e.PartyCity).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.PartyPincode).HasMaxLength(20).IsUnicode(false);
+//            entity.Property(e => e.PartyState).HasMaxLength(100).IsUnicode(false);
+
+//            entity.Property(e => e.DealerState).HasMaxLength(100).IsUnicode(false);
+
+//            entity.Property(e => e.SerialNo).HasMaxLength(150).IsUnicode(false);
+//            entity.Property(e => e.ItemCode).HasMaxLength(100).IsUnicode(false);
+
+//            entity.Property(e => e.PartsAmount).HasColumnType("decimal(18, 3)");
+//            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 2)");
+
+//            entity.Property(e => e.Remarks).HasMaxLength(500).IsUnicode(false);
+//            entity.Property(e => e.Status).HasMaxLength(20).IsUnicode(false);
+
+//            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+//            entity.Property(e => e.ChassisSaleDate).HasColumnType("datetime");
+//            entity.Property(e => e.ValidityExpiryDate).HasColumnType("datetime");
+
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasIndex(e => e.SerialNo).IsUnique();
+
+//            entity.HasMany(e => e.EbwInvoiceDetails)
+//                .WithOne(d => d.EbwInvoiceHeader)
+//                .HasForeignKey(d => d.EbwInvoiceHeaderId)
+//                .OnDelete(DeleteBehavior.Cascade);
+//        });
+
+//        modelBuilder.Entity<EbwInvoiceDetail>(entity =>
+//        {
+//            entity.ToTable("EbwInvoiceDetail");
+
+//            entity.Property(e => e.ItemCode).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.ItemName).HasMaxLength(200).IsUnicode(false);
+//            entity.Property(e => e.Description).HasMaxLength(200).IsUnicode(false);
+//            entity.Property(e => e.HsnCode).HasMaxLength(50).IsUnicode(false);
+
+//            entity.Property(e => e.ItemMrp).HasColumnType("decimal(18, 3)");
+//            entity.Property(e => e.BaseItemRate).HasColumnType("decimal(18, 3)");
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 3)");
+
+//            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DiscountType).HasMaxLength(10).IsUnicode(false);
+
+//            entity.Property(e => e.IgstPer).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 3)");
+//            entity.Property(e => e.CgstPer).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 3)");
+//            entity.Property(e => e.SgstPer).HasColumnType("decimal(5, 2)");
+//            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 3)");
+
+//            entity.Property(e => e.Amount).HasColumnType("decimal(18, 3)");
+
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        OnModelCreatingPartial(modelBuilder);
+
+//            entity.ToTable("WarrantyOrder");
+
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.DateFrom).HasColumnType("datetime");
+//            entity.Property(e => e.DateTo).HasColumnType("datetime");
+//            entity.Property(e => e.BatchNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+//            entity.Property(e => e.OrderNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+//            entity.Property(e => e.Location)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.ClaimType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//        });
+
+//        modelBuilder.Entity<WarrantyOrderDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+
+//            entity.ToTable("WarrantyOrderDetail");
+
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.WarrantyOrderHeader).WithMany(p => p.WarrantyOrderDetails)
+//                .HasForeignKey(d => d.WarrantyOrderHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyOrderDetail_WarrantyOrder");
+
+//            entity.HasOne(d => d.WarrantyJcclaim).WithMany()
+//                .HasForeignKey(d => d.WarrantyJcclaimId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyOrderDetail_WarrantyJcclaim");
+//        });
+
+//        modelBuilder.Entity<WarrantyOrderGridDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+//            entity.ToTable("WarrantyOrderGridDetail");
+
+//            entity.Property(e => e.ClaimNo).HasMaxLength(100);
+//            entity.Property(e => e.ClaimDate).HasColumnType("datetime");
+//            entity.Property(e => e.JobCardNo).HasMaxLength(100);
+//            entity.Property(e => e.JobCardDate).HasColumnType("datetime");
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(100);
+//            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+//            entity.Property(e => e.ServiceHead).HasMaxLength(150);
+//            entity.Property(e => e.LocationName).HasMaxLength(150);
+//            entity.Property(e => e.ChassisNo).HasMaxLength(100);
+//            entity.Property(e => e.MotorNo).HasMaxLength(100);
+//            entity.Property(e => e.PartyName).HasMaxLength(200);
+//            entity.Property(e => e.ItemType).HasMaxLength(50);
+//            entity.Property(e => e.PartName).HasMaxLength(150);
+//            entity.Property(e => e.PartDescription).HasMaxLength(250);
+//            entity.Property(e => e.PartCode).HasMaxLength(100);
+//            entity.Property(e => e.LabourCode).HasMaxLength(100);
+//            entity.Property(e => e.LabourDescription).HasMaxLength(250);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.WarrantyOrderHeader).WithMany()
+//                .HasForeignKey(d => d.WarrantyOrderHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyOrderGridDetail_WarrantyOrder");
+//        });
+
+//        modelBuilder.Entity<WarrantyInvoice>(entity =>
+//        {
+//            entity.ToTable("WarrantyInvoice");
+//            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.DealerCode).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.BatchNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.InvoicePrefix).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ClaimType).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ErpUniqueId).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.ErpPoNumber).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.ErpPoDate).HasColumnType("datetime");    
+
+//            entity.Property(e => e.DateFrom).HasColumnType("datetime");
+//            entity.Property(e => e.DateTo).HasColumnType("datetime");
+//            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+//            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+//            entity.Property(e => e.ErpSubmittedDate).HasColumnType("datetime");
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//        });
+
+//        modelBuilder.Entity<WarrantyInvoiceDetail>(entity =>
+//        {
+//            entity.ToTable("WarrantyInvoiceDetail");
+//            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+
+//            entity.HasOne(d => d.WarrantyInvoiceHeader)
+//                .WithMany(p => p.WarrantyInvoiceDetails)
+//                .HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+
+//            entity.HasOne(d => d.WarrantyOrderHeader)
+//                .WithMany()
+//                .HasForeignKey(d => d.WarrantyOrderHeaderId);
+//        });
+
+//        modelBuilder.Entity<WarrantyInvoiceGridDetail>(entity =>
+//        {
+//            entity.ToTable("WarrantyInvoiceGridDetail");
+
+//            entity.HasOne(d => d.WarrantyInvoiceHeader)
+//                .WithMany()
+//                .HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+//            entity.Property(e => e.OrderNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.BatchNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.Location).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.LocationName).HasMaxLength(150).IsUnicode(false);
+//            entity.Property(e => e.ClaimType).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.PartyName).HasMaxLength(200).IsUnicode(false);
+
+//            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+//            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+//            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.TotalMrp).HasColumnType("decimal(18, 2)");
+
+//            entity.HasOne(d => d.WarrantyInvoiceHeader).WithMany().HasForeignKey(d => d.WarrantyInvoiceHeaderId);
+//        });
+//        modelBuilder.Entity<UwLineItem>(
+//    entity =>
+//    {
+//        entity.ToTable("UwLineItem"); 
+
+//        entity.HasOne(d => d.WarrantyJcclaim)        
+//            .WithMany()
+//            .HasForeignKey(d => d.WarrantyJcclaimId) 
+//            .OnDelete(DeleteBehavior.ClientSetNull)
+//            .HasConstraintName("FK_UwLineItem_WarrantyJcclaim"); 
+//    });
+
+//        modelBuilder.Entity<WarrantyPackingSlip>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+//            entity.ToTable("WarrantyPackingSlip");
+
+//            entity.Property(e => e.DealerCode)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SlipPrefix)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SlipNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.SlipDate).HasColumnType("datetime");
+//            entity.Property(e => e.IsActive).HasDefaultValue(true);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.WarrantyInvoiceHeader).WithMany()
+//                .HasForeignKey(d => d.WarrantyInvoiceHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyPackingSlip_WarrantyInvoice");
+//        });
+
+//        modelBuilder.Entity<WarrantyPackingSlipBox>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+//            entity.ToTable("WarrantyPackingSlipBox");
+
+//            entity.Property(e => e.BoxNumber)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.BoxType)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Length).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.Width).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Height).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Weight).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.WarrantyPackingSlipHeader).WithMany(p => p.WarrantyPackingSlipBoxes)
+//                .HasForeignKey(d => d.WarrantyPackingSlipHeaderId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyPackingSlipBox_Header");
+//        });
+
+//        modelBuilder.Entity<WarrantyPackingSlipDetail>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+//            entity.ToTable("WarrantyPackingSlipDetail");
+
+//            entity.Property(e => e.PrnNo)
+//                .HasMaxLength(50)
+//                .IsUnicode(false);
+//            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+//            entity.HasOne(d => d.WarrantyPackingSlipBox).WithMany(p => p.WarrantyPackingSlipDetails)
+//                .HasForeignKey(d => d.WarrantyPackingSlipBoxId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyPackingSlipDetail_Box");
+
+//            entity.HasOne(d => d.WarrantyOrderGridDetail).WithMany()
+//                .HasForeignKey(d => d.WarrantyOrderGridDetailId)
+//                .OnDelete(DeleteBehavior.ClientSetNull)
+//                .HasConstraintName("FK_WarrantyPackingSlipDetail_OrderGridDetail");
+//        });
+
+//        modelBuilder.Entity<DispatchMaster>(entity =>
+//        {
+//            entity.HasKey(e => e.Id);
+
+//            entity.ToTable("DispatchMaster");
+
+//            entity.HasIndex(e => new { e.MasterType, e.MasterName }, "UQ_DispatchMaster_Type_Name").IsUnique();
+
+//            entity.Property(e => e.MasterType)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.MasterName)
+//                .HasMaxLength(200)
+//                .IsUnicode(false);
+//            entity.Property(e => e.IsActive)
+//                .HasDefaultValue(true);
+//            entity.Property(e => e.CreatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.CreatedDate)
+//                .HasDefaultValueSql("(getdate())")
+//                .HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy)
+//                .HasMaxLength(100)
+//                .IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate)
+//                .HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<InvoiceDispatch>(entity =>
+//        {
+//            entity.ToTable("InvoiceDispatch");
+
+//            entity.Property(e => e.InvoiceNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+//            entity.Property(e => e.DispatchType).HasMaxLength(20).IsUnicode(false);
+
+//            entity.Property(e => e.DealerCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.LocCode).HasMaxLength(50).IsUnicode(false);
+
+//            // Part-specific
+//            entity.Property(e => e.PartNo).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.ItemHsncode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ItemRate).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemMrp).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.ItemDisc).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.DiscountType).HasMaxLength(10).IsUnicode(false);
+//            entity.Property(e => e.Cgst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Sgst).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Igst).HasColumnType("decimal(18, 2)");
+
+//            // Vehicle-specific
+//            entity.Property(e => e.ChasisNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.MotorNo).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ItemCode).HasMaxLength(50).IsUnicode(false);
+//            entity.Property(e => e.ColrCode).HasMaxLength(10).IsUnicode(false);
+//            entity.Property(e => e.MfgYear).HasMaxLength(10).IsUnicode(false);
+//            entity.Property(e => e.MfgMonth).HasMaxLength(10).IsUnicode(false);
+//            entity.Property(e => e.Dlrprice).HasColumnType("decimal(18, 2)");
+//            entity.Property(e => e.Custprice).HasColumnType("decimal(18, 2)");
+
+//            // Shared status / audit
+//            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+//            entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
+//            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+//        });
+
+//        modelBuilder.Entity<ImpersonationLog>(entity =>
+//        {
+//            entity.ToTable("ImpersonationLog");
+//            entity.Property(e => e.SuperAdminEmail).HasMaxLength(256);
+//            entity.Property(e => e.TargetDealerCode).HasMaxLength(50);
+//            entity.Property(e => e.TargetDealerEmail).HasMaxLength(256);
+//            entity.Property(e => e.StartedDate).HasColumnType("datetime");
+//            entity.Property(e => e.EndedDate).HasColumnType("datetime");
+//        });
+
+//        OnModelCreatingPartial(modelBuilder);
+
+
+//    }
+//    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+//}
+
+
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using DMS_BAPL_Data.Middleware;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -4528,6 +9470,44 @@ public partial class BapldmsvadContext : DbContext
         modelBuilder.Entity<WarrantyOrder>(entity =>
         {
             entity.HasKey(e => e.Id);
+
+            entity.ToTable("WarrantyOrder");
+
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.DateFrom).HasColumnType("datetime");
+            entity.Property(e => e.DateTo).HasColumnType("datetime");
+            entity.Property(e => e.BatchNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.BatchDate).HasColumnType("datetime");
+            entity.Property(e => e.OrderNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
+            entity.Property(e => e.Location)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ClaimType)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.ErpUniqueId).HasColumnName("ErpUniqueId");
+            entity.Property(e => e.ErpPoNumber).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ErpPoDate).HasColumnType("datetime");
+            entity.Property(e => e.ErpSubmittedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<EbwInvoiceHeader>(entity =>
         {
             entity.ToTable("EbwInvoiceHeader");
@@ -4608,41 +9588,6 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
-        OnModelCreatingPartial(modelBuilder);
-
-            entity.ToTable("WarrantyOrder");
-
-            entity.Property(e => e.DealerCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.DateFrom).HasColumnType("datetime");
-            entity.Property(e => e.DateTo).HasColumnType("datetime");
-            entity.Property(e => e.BatchNo)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.BatchDate).HasColumnType("datetime");
-            entity.Property(e => e.OrderNo)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.OrderDate).HasColumnType("datetime");
-            entity.Property(e => e.Location)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.ClaimType)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.UpdatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
-            entity.Property(e => e.IsApproved).HasDefaultValue(false);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-        });
-
         modelBuilder.Entity<WarrantyOrderDetail>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -4710,7 +9655,7 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.CreatedBy).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.UpdatedBy).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.ErpPoNumber).HasMaxLength(100).IsUnicode(false);
-            entity.Property(e => e.ErpPoDate).HasColumnType("datetime");    
+            entity.Property(e => e.ErpPoDate).HasColumnType("datetime");
 
             entity.Property(e => e.DateFrom).HasColumnType("datetime");
             entity.Property(e => e.DateTo).HasColumnType("datetime");
@@ -4762,13 +9707,13 @@ public partial class BapldmsvadContext : DbContext
         modelBuilder.Entity<UwLineItem>(
     entity =>
     {
-        entity.ToTable("UwLineItem"); 
- 
-        entity.HasOne(d => d.WarrantyJcclaim)        
+        entity.ToTable("UwLineItem");
+
+        entity.HasOne(d => d.WarrantyJcclaim)
             .WithMany()
-            .HasForeignKey(d => d.WarrantyJcclaimId) 
+            .HasForeignKey(d => d.WarrantyJcclaimId)
             .OnDelete(DeleteBehavior.ClientSetNull)
-            .HasConstraintName("FK_UwLineItem_WarrantyJcclaim"); 
+            .HasConstraintName("FK_UwLineItem_WarrantyJcclaim");
     });
 
         modelBuilder.Entity<WarrantyPackingSlip>(entity =>

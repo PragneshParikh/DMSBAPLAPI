@@ -17,6 +17,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? RbillDate { get; set; }
         public string ItemName { get; set; }
         public string Description { get; set; }
+        public string? PartCode { get; set; }  
         public string? PartName { get; set; }
         public string? PartDescription { get; set; }
         public string? LabourName { get; set; }
@@ -38,11 +39,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public string WarrantyClaimNo { get; set; }
         public DateTime? WarrantyClaimDate { get; set; }
         public string ChasisNo { get; set; }
+        public string PartyName { get; set; }
 
+        public string? CustomerName { get; set; }
+        public string? CustomerMobile { get; set; }
         public string? LocationCode { get; set; }
         public string? LocationName { get; set; }
+        public string? ErpPoNumber { get; set; }
 
-        public string PartyName { get; set; }
+        public DateTime? ErpPoDate { get; set; }
+
         public string WarrantyClaimStatus { get; set; }
         public string? ApproverEngineerName { get; set; }
         public string ClaimAcceptRejectReason { get; set; }
