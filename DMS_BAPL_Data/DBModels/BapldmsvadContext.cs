@@ -5187,7 +5187,8 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
     public virtual DbSet<ImpersonationLog> ImpersonationLogs { get; set; }
 
-
+    public virtual DbSet<WarrantyDispatchHeader> WarrantyDispatchHeaders { get; set; }
+    public virtual DbSet<WarrantyDispatchDetails> WarrantyDispatchDetails { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -5220,6 +5221,20 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<WarrantyDispatchHeader>(entity =>
+        {
+            entity.ToTable("WarrantyDispatchHeader");
+            entity.Property(e => e.CourierCharges).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<WarrantyDispatchDetails>(entity =>
+        {
+            entity.ToTable("WarrantyDispatchDetails");
+            entity.HasOne(d => d.WarrantyDispatchHeader)
+                .WithMany(p => p.WarrantyDispatchDetails)
+                .HasForeignKey(d => d.WarrantyDispatchHeaderId);
         });
 
         modelBuilder.Entity<Apikey>(entity =>

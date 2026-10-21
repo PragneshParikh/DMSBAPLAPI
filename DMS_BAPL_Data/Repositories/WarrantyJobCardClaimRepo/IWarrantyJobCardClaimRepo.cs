@@ -21,6 +21,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
 
         Task<byte[]> GenerateWarrantyJCClaimListPdf(WarrantyJCClaimSearchViewModel filter);
 
+
+
         Task<byte[]> GenerateWarrantyJCClaimPdf(int id);
     }
 }

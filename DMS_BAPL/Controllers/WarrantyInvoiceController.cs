@@ -169,6 +169,24 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+
+
+
+        [HttpGet("GetPendingOrders")]
+        public async Task<IActionResult> GetPendingOrders([FromQuery] string dealerCode)
+        {
+            try
+            {
+                var result = await _warrantyInvoiceRepo.GetPendingOrders(dealerCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetPendingOrders");
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
         [HttpGet("SearchInvoiceBatchNos")]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

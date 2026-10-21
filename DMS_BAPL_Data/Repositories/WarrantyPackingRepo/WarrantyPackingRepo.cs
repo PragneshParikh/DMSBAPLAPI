@@ -19,7 +19,53 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
             _context = context;
         }
 
+        public async Task<int> SaveWarrantyDispatch(WarrantyDispatchViewModel model, string userId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var header = new WarrantyDispatchHeader
+                {
+                    DealerCode = model.DealerCode,
+                    SlipPrefix = model.SlipPrefix,
+                    DocNo = model.DocNo,
+                    DocDate = model.DocDate,
+                    DispatchedThrough = model.DispatchedThrough,
+                    ContactPerson = model.ContactPerson,
+                    MobileNumber = model.MobileNumber,
+                    CourierCharges = model.CourierCharges,
+                    GrNo = model.GrNo,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now
+                };
 
+                _context.WarrantyDispatchHeaders.Add(header);
+                await _context.SaveChangesAsync();
+
+                foreach (var slipId in model.PackingSlipIds)
+                {
+                    var detail = new WarrantyDispatchDetails
+                    {
+                        WarrantyDispatchHeaderId = header.Id,
+                        WarrantyPackingSlipHeaderId = slipId,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now
+                    };
+
+                    _context.WarrantyDispatchDetails.Add(detail);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return header.Id;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
 
         public async Task<List<PackingSlipLineViewModel>> GetPackableLines(int warrantyInvoiceHeaderId)
         {
@@ -28,10 +74,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 .Select(d => d.WarrantyOrderHeaderId)
                 .ToListAsync();
 
+            //var lines = await _context.WarrantyOrderGridDetails
+            //    .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) &&
+            //                (g.ItemType == "Part" || g.ItemType == "Labour"))
+            //    .ToListAsync();
             var lines = await _context.WarrantyOrderGridDetails
-                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) &&
-                            (g.ItemType == "Part" || g.ItemType == "Labour"))
-                .ToListAsync();
+        .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType == "Part")
+        .ToListAsync();
 
             var lineIds = lines.Select(l => l.Id).ToList();
 
@@ -224,6 +273,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                     BoxNumber = b.BoxNumber,
                     BoxType = b.BoxType,
                     Length = b.Length,
+                    // Width, Height, Weight kadun takle tar chalel
                     Lines = b.WarrantyPackingSlipDetails.Select(d =>
                     {
                         var isLabour = d.WarrantyOrderGridDetail?.ItemType == "Labour";
@@ -232,6 +282,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                             WarrantyOrderGridDetailId = d.WarrantyOrderGridDetailId,
                             ItemType = d.WarrantyOrderGridDetail?.ItemType,
                             ClaimNo = d.WarrantyOrderGridDetail?.ClaimNo,
+                            JobNo = d.WarrantyOrderGridDetail?.JobCardNo,
+                            ChassisNo = d.WarrantyOrderGridDetail?.ChassisNo,
                             PartCode = isLabour ? d.WarrantyOrderGridDetail?.LabourCode : d.WarrantyOrderGridDetail?.PartCode,
                             PartDescription = isLabour ? d.WarrantyOrderGridDetail?.LabourDescription : d.WarrantyOrderGridDetail?.PartDescription,
                             Qty = d.Qty
@@ -240,7 +292,6 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 }).ToList()
             };
         }
-
         public async Task<bool> DeleteWarrantyPackingSlip(int id, string userId)
         {
             var header = await _context.WarrantyPackingSlips
@@ -613,5 +664,67 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
 
             return $"BT/{fy}/{seq}";
         }
+
+        public async Task<object> SearchWarrantyDispatch(WarrantyDispatchSearchViewModel filter)
+        {
+            var query = _context.WarrantyDispatchHeaders
+                .Include(x => x.WarrantyDispatchDetails)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                query = query.Where(x => x.DealerCode == filter.DealerCode);
+
+            if (filter.DateFrom.HasValue)
+                query = query.Where(x => x.DocDate >= filter.DateFrom.Value);
+
+            if (filter.DateTo.HasValue)
+                query = query.Where(x => x.DocDate <= filter.DateTo.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.SlipNo))
+                query = query.Where(x => (x.SlipPrefix + x.DocNo).Contains(filter.SlipNo));
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.DocDate)
+                .ThenByDescending(x => x.Id)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    slipPrefix = x.SlipPrefix,
+                    docNo = x.DocNo,
+                    docDate = x.DocDate,
+                    dispatchedThrough = x.DispatchedThrough,
+                    contactPerson = x.ContactPerson,
+                    mobileNumber = x.MobileNumber,
+                    grNo = x.GrNo
+                })
+                .ToListAsync();
+
+            return new
+            {
+                items = items,
+                totalCount = totalCount
+            };
+        }
+
+        public async Task<object> GetWarrantyDispatchById(int id)
+        {
+            var dispatch = await _context.WarrantyDispatchHeaders
+                .Include(x => x.WarrantyDispatchDetails)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (dispatch == null)
+                return null;
+
+            return new
+            {
+                data = dispatch
+            };
+        }
+
+
     }
 }

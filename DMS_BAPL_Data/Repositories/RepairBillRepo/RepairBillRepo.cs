@@ -31,9 +31,20 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
         public async Task<int> InsertRepairBill(RepairBillInsertVM model, string userId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
-
+                        
             try
             {
+                var existingBill = await _context.RepairBillHeaders
+               .Where(x => x.JobId == model.RepairBillheader.JobId
+                        && x.IsDelete != true)
+               .Select(x => new { x.Id, x.BillNo, x.RepairbillStatus })
+               .FirstOrDefaultAsync();
+
+                if (existingBill != null)
+                    throw new InvalidOperationException(
+                        $"Bill No {existingBill.BillNo} already exists for this job ({existingBill.RepairbillStatus}). Please open that bill instead.");
+
+
                 var RepairBillheader = new RepairBillHeader
                 {
                     LocationCode = model.RepairBillheader.LocationCode,
@@ -125,6 +136,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                 return RepairBillheader.Id;
             }
+
             catch
             {
                 await transaction.RollbackAsync();
@@ -874,17 +886,31 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                                 ? d.PartItem.Itemdesc
                                 : "",
 
-                            Cgst = d.PartItem != null
-                                ? d.PartItem.Cgst
-                                : 0,
+                            //Cgst = d.PartItem != null
+                            //    ? d.PartItem.Cgst
+                            //    : 0,
 
-                            Sgst = d.PartItem != null
-                                ? d.PartItem.Sgst
-                                : 0,
+                            //Sgst = d.PartItem != null
+                            //    ? d.PartItem.Sgst
+                            //    : 0,
 
-                            Igst = d.PartItem != null
-                                ? d.PartItem.Igst
-                                : 0,
+                            //Igst = d.PartItem != null
+                            //    ? d.PartItem.Igst
+                            //    : 0,
+                            Cgst = d.ItemType == "Labour"
+    ? (d.LabourMaster != null ? d.LabourMaster.Cgst
+        : d.PartWiseLabour != null ? d.PartWiseLabour.Cgst : 0)
+    : (d.PartItem != null ? d.PartItem.Cgst : 0),
+
+                            Sgst = d.ItemType == "Labour"
+    ? (d.LabourMaster != null ? d.LabourMaster.Sgst
+        : d.PartWiseLabour != null ? d.PartWiseLabour.Sgst : 0)
+    : (d.PartItem != null ? d.PartItem.Sgst : 0),
+
+                            Igst = d.ItemType == "Labour"
+    ? (d.LabourMaster != null ? d.LabourMaster.Igst
+        : d.PartWiseLabour != null ? d.PartWiseLabour.Igst : 0)
+    : (d.PartItem != null ? d.PartItem.Igst : 0),
 
                             LabourCode = d.LabourMaster != null
                                 ? d.LabourMaster.LabourCode
@@ -915,12 +941,17 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                             PartTaxbleAmount = d.PartTaxblAmount ?? 0,
                             PartNetAmount = d.PartNetAmount ?? 0,
 
-                            LabourHSNCode = d.LabourMaster != null ? d.LabourMaster.Hsncode : "",
+                            //LabourHSNCode = d.LabourMaster != null ? d.LabourMaster.Hsncode : "",
+                           LabourHSNCode = d.LabourMaster != null ? d.LabourMaster.Hsncode: d.PartWiseLabour != null? d.PartWiseLabour.Hsncode: "",
                             PartHSNCode = d.PartItem != null ? d.PartItem.Hsncode : "",
 
-                            CgstAmount = d.PartItem != null ? d.PartItem.Cgst : 0,
-                            SgstAmount = d.PartItem != null ? d.PartItem.Sgst : 0,
-                            IgstAmount = d.PartItem != null ? d.PartItem.Igst : 0,
+                            //CgstAmount = d.PartItem != null ? d.PartItem.Cgst : 0,
+                            //SgstAmount = d.PartItem != null ? d.PartItem.Sgst : 0,
+                            //IgstAmount = d.PartItem != null ? d.PartItem.Igst : 0,
+                            CgstAmount = d.Cgstamount ?? 0,
+                            SgstAmount = d.Sgstamount ?? 0,
+                            IgstAmount = d.Igstamount ?? 0,
+
                             IssueType = d.IssutypeId ?? 0,
                         })
                         .ToListAsync();

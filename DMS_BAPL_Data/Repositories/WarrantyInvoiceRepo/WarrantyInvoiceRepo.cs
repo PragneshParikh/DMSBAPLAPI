@@ -45,7 +45,110 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             header.ErpSubmittedDate = DateTime.Now;
             await _context.SaveChangesAsync();
         }
+        //public async Task<int> InsertWarrantyInvoice(WarrantyInvoiceViewModel model, string userId)
+        //{
+        //    var header = new WarrantyInvoice
+        //    {
+        //        DealerCode = model.DealerCode!,
+        //        DateFrom = model.DateFrom!.Value,
+        //        DateTo = model.DateTo!.Value,
+        //        BatchNo = model.BatchNo,
+        //        BatchDate = model.BatchDate,
+        //        InvoicePrefix = model.InvoicePrefix,
+        //        InvoiceNo = model.InvoiceNo,
+        //        InvoiceDate = model.InvoiceDate,
+        //        ClaimType = model.ClaimType,
+        //        SupplierId = model.SupplierId,
+        //        IsApproved = model.IsApproved,
+        //        IsActive = true,
+        //        CreatedBy = userId,
+        //        CreatedDate = DateTime.Now
+        //    };
+
+        //    _context.WarrantyInvoices.Add(header);
+        //    await _context.SaveChangesAsync();
+
+        //    await InsertOrderLinksAndSnapshot(header.Id, model, userId);
+
+        //    return header.Id;
+        //}
+
+
+        //public async Task<int> InsertWarrantyInvoice(WarrantyInvoiceViewModel model, string userId)
+        //{
+        //    var itemTypes = await _context.WarrantyOrderGridDetails
+        //        .Where(g => model.WarrantyOrderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
+        //        .Select(g => g.ItemType)
+        //        .Distinct()
+        //        .ToListAsync();
+
+        //    bool hasLabour = itemTypes.Contains("Labour");
+        //    bool hasPart = itemTypes.Contains("Part");
+
+        //    int baseNo = int.TryParse(model.InvoiceNo, out var n) ? n : 1;
+        //    if (baseNo % 2 == 0) baseNo++;          
+
+        //    int? firstId = null;
+
+        //    if (hasLabour)
+        //        firstId = await InsertOneInvoice(model, userId, baseNo.ToString());          // odd
+
+        //    if (hasPart)
+        //    {
+        //        var partId = await InsertOneInvoice(model, userId, (baseNo + 1).ToString()); // even
+        //        firstId ??= partId;
+        //    }
+
+        //    
+        //    firstId ??= await InsertOneInvoice(model, userId, model.InvoiceNo ?? baseNo.ToString());
+
+        //    return firstId.Value;
+        //}
         public async Task<int> InsertWarrantyInvoice(WarrantyInvoiceViewModel model, string userId)
+        {
+            var alreadyInvoiced = await _context.WarrantyInvoiceDetails
+                .Where(d => model.WarrantyOrderIds.Contains(d.WarrantyOrderHeaderId)
+                         && _context.WarrantyInvoices.Any(h => h.Id == d.WarrantyInvoiceHeaderId && h.IsActive))
+                .AnyAsync();
+            if (alreadyInvoiced)
+                throw new InvalidOperationException("One or more selected orders are already invoiced.");
+
+            var itemTypes = await _context.WarrantyOrderGridDetails
+                .Where(g => model.WarrantyOrderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
+                .Select(g => g.ItemType).Distinct().ToListAsync();
+
+            bool hasLabour = itemTypes.Contains("Labour");
+            bool hasPart = itemTypes.Contains("Part");
+
+            var existingNos = await _context.WarrantyInvoices
+                .Where(x => x.DealerCode == model.DealerCode && x.InvoicePrefix == model.InvoicePrefix)
+                .Select(x => x.InvoiceNo).ToListAsync();
+
+            int maxNo = 0;
+            foreach (var n in existingNos)
+                if (int.TryParse(n, out int v) && v > maxNo) maxNo = v;
+
+            int labourNo = (maxNo % 2 == 0) ? maxNo + 1 : maxNo + 2;
+            int? firstId = null;
+
+            if (hasLabour)
+            {
+                firstId = await InsertOneInvoice(model, userId, labourNo.ToString());
+                if (hasPart)
+                    await InsertOneInvoice(model, userId, (labourNo + 1).ToString());
+            }
+            else if (hasPart)
+            {
+                int partNo = (maxNo % 2 == 0) ? maxNo + 2 : maxNo + 1;   // nehmi even
+                firstId = await InsertOneInvoice(model, userId, partNo.ToString());
+            }
+            else
+            {
+                firstId = await InsertOneInvoice(model, userId, labourNo.ToString());
+            }
+            return firstId.Value;
+        }
+        private async Task<int> InsertOneInvoice(WarrantyInvoiceViewModel model, string userId, string invoiceNo)
         {
             var header = new WarrantyInvoice
             {
@@ -55,7 +158,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 BatchNo = model.BatchNo,
                 BatchDate = model.BatchDate,
                 InvoicePrefix = model.InvoicePrefix,
-                InvoiceNo = model.InvoiceNo,
+                InvoiceNo = invoiceNo,
                 InvoiceDate = model.InvoiceDate,
                 ClaimType = model.ClaimType,
                 SupplierId = model.SupplierId,
@@ -69,10 +172,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             await _context.SaveChangesAsync();
 
             await InsertOrderLinksAndSnapshot(header.Id, model, userId);
-
             return header.Id;
         }
-
         // --- Update -----------------------------------------------------------
         // Wholesale-replaces WarrantyInvoiceDetail AND WarrantyInvoiceGridDetail,
         // same pattern as UpdateWarrantyOrder - simpler and less error-prone
@@ -99,21 +200,49 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             header.UpdatedBy = userId;
             header.UpdatedDate = DateTime.Now;
 
-            var oldDetails = await _context.WarrantyInvoiceDetails
-                .Where(d => d.WarrantyInvoiceHeaderId == header.Id)
-                .ToListAsync();
-            _context.WarrantyInvoiceDetails.RemoveRange(oldDetails);
+            //var oldDetails = await _context.WarrantyInvoiceDetails
+            //    .Where(d => d.WarrantyInvoiceHeaderId == header.Id)
+            //    .ToListAsync();
+            //_context.WarrantyInvoiceDetails.RemoveRange(oldDetails);
 
-            var oldGridRows = await _context.WarrantyInvoiceGridDetails
-                .Where(g => g.WarrantyInvoiceHeaderId == header.Id)
-                .ToListAsync();
-            _context.WarrantyInvoiceGridDetails.RemoveRange(oldGridRows);
+            //var oldGridRows = await _context.WarrantyInvoiceGridDetails
+            //    .Where(g => g.WarrantyInvoiceHeaderId == header.Id)
+            //    .ToListAsync();
+            //_context.WarrantyInvoiceGridDetails.RemoveRange(oldGridRows);
 
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
 
-            await InsertOrderLinksAndSnapshot(header.Id, model, userId);
+            //await InsertOrderLinksAndSnapshot(header.Id, model, userId);
 
+            //return true;
+
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                await _context.WarrantyInvoiceDetails
+                    .Where(d => d.WarrantyInvoiceHeaderId == header.Id)
+                    .ExecuteDeleteAsync();
+
+                await _context.WarrantyInvoiceGridDetails
+                    .Where(g => g.WarrantyInvoiceHeaderId == header.Id)
+                    .ExecuteDeleteAsync();
+
+                await _context.SaveChangesAsync();
+
+                await InsertOrderLinksAndSnapshot(
+                    header.Id, model, userId);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
             return true;
+
         }
 
         // Shared by Insert and Update - creates the WarrantyInvoiceDetail link
@@ -225,6 +354,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 .Where(g => g.WarrantyInvoiceHeaderId == id)
                 .ToListAsync();
 
+            var kind = await ResolveInvoiceKind(header.Id, header.InvoiceNo, header.BatchNo, header.DealerCode);
+
             var orders = new List<WarrantyOrderSummaryViewModel>();
             foreach (var g in gridRows)
             {
@@ -247,7 +378,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     InvoicePrefix = header.InvoicePrefix,
                     InvoiceNo = header.InvoiceNo,
                     InvoiceBatchNo = header.BatchNo,
-                    Claims = await GetClaimsForOrder(g.WarrantyOrderHeaderId)
+                    //Claims = await GetClaimsForOrder(g.WarrantyOrderHeaderId)
+                    Claims = await GetClaimsForOrder(g.WarrantyOrderHeaderId, kind)
                 });
             }
 
@@ -270,10 +402,16 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 Orders = orders
             };
         }
-        private async Task<List<WarrantyJCClaimFullViewModel>> GetClaimsForOrder(int orderId)
+        //private async Task<List<WarrantyJCClaimFullViewModel>> GetClaimsForOrder(int orderId)
+        //{
+        //    var orderGridRows = await _context.WarrantyOrderGridDetails
+        //        .Where(g => g.WarrantyOrderHeaderId == orderId)
+        //        .ToListAsync();
+        private async Task<List<WarrantyJCClaimFullViewModel>> GetClaimsForOrder(int orderId, string? kind = null)
         {
             var orderGridRows = await _context.WarrantyOrderGridDetails
-                .Where(g => g.WarrantyOrderHeaderId == orderId)
+                .Where(g => g.WarrantyOrderHeaderId == orderId
+                         && (kind == null || g.ItemType == kind))
                 .ToListAsync();
 
             var approvalByClaimId = await _context.WarrantyOrderDetails
@@ -327,15 +465,56 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 }).ToList();
         }
 
+
+
+
+        public async Task<List<WarrantyOrderSummaryViewModel>> GetPendingOrders(string dealerCode)
+{
+    var orders = await _context.WarrantyOrders
+        .Where(o => o.DealerCode == dealerCode && o.IsActive
+            && !_context.WarrantyInvoiceDetails.Any(d =>
+                d.WarrantyOrderHeaderId == o.Id &&
+                _context.WarrantyInvoices.Any(i => i.Id == d.WarrantyInvoiceHeaderId && i.IsActive)))
+        .OrderBy(o => o.Id)
+        .ToListAsync();
+
+    var result = new List<WarrantyOrderSummaryViewModel>();
+    foreach (var o in orders)
+    {
+        var locName = !string.IsNullOrWhiteSpace(o.Location)
+            ? await _context.LocationMasters.Where(l => l.Loccode == o.Location)
+                .Select(l => l.Locname).FirstOrDefaultAsync()
+            : null;
+
+        var claims = await GetClaimsForOrder(o.Id);
+
+        result.Add(new WarrantyOrderSummaryViewModel
+        {
+            Id = o.Id,
+            OrderNo = o.OrderNo,
+            OrderDate = o.OrderDate,
+            BatchNo = o.BatchNo,
+            BatchDate = o.BatchDate,
+            Location = o.Location,
+            LocationName = locName,
+            ClaimType = o.ClaimType,
+            SupplierId = o.SupplierId,
+            TotalClaims = claims.Count,
+            IsApproved = true,
+            Claims = claims
+        });
+    }
+    return result;
+}
+
         // --- Search / List ----------------------------------------------------
 
         public async Task<WarrantyInvoiceSearchResultViewModel> SearchWarrantyInvoices(WarrantyInvoiceSearchViewModel filter)
         {
             var query = _context.WarrantyInvoices.AsQueryable();
 
-            if (!filter.IncludeInactive)
-                query = query.Where(x => x.IsActive);
 
+           
             // Scopes results to the requesting dealer - this was missing
             // entirely before, so SearchWarrantyInvoices was returning every
             // dealer's invoices globally rather than just the caller's own.
@@ -402,6 +581,29 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 })
                 .ToListAsync();
 
+            //foreach (var item in items)
+            //{
+            //    var itemTypes = await (
+            //        from d in _context.WarrantyInvoiceDetails
+            //        join g in _context.WarrantyOrderGridDetails
+            //            on d.WarrantyOrderHeaderId equals g.WarrantyOrderHeaderId
+            //        where d.WarrantyInvoiceHeaderId == item.Id && g.ItemType != null
+            //        select g.ItemType
+            //    ).Distinct().ToListAsync();
+
+            //    item.ClaimSubType = itemTypes.Count switch
+            //    {
+            //        0 => null,
+            //        1 => $"Warranty -{(itemTypes[0] == "Labour" ? "Labour" : "Parts")}",
+            //        _ => "Warranty -Mixed"
+            //    };
+
+            //    item.LocationName = await _context.WarrantyInvoiceGridDetails
+            //        .Where(g => g.WarrantyInvoiceHeaderId == item.Id)
+            //        .OrderBy(g => g.Id)
+            //        .Select(g => g.LocationName)
+            ////        .FirstOrDefaultAsync();
+
             foreach (var item in items)
             {
                 var itemTypes = await (
@@ -412,18 +614,35 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                     select g.ItemType
                 ).Distinct().ToListAsync();
 
-                item.ClaimSubType = itemTypes.Count switch
+                if (itemTypes.Count > 1)
                 {
-                    0 => null,
-                    1 => $"Warranty -{(itemTypes[0] == "Labour" ? "Labour" : "Parts")}",
-                    _ => "Warranty -Mixed"
-                };
+                    var self = await _context.WarrantyInvoices
+                        .Where(h => h.Id == item.Id)
+                        .Select(h => new { h.DealerCode, h.BatchNo })
+                        .FirstAsync();
 
-                item.LocationName = await _context.WarrantyInvoiceGridDetails
+                    bool hasSibling = await _context.WarrantyInvoices.AnyAsync(x =>
+                        x.Id != item.Id && x.IsActive &&
+                        x.DealerCode == self.DealerCode && x.BatchNo == self.BatchNo);
+
+                    if (hasSibling && int.TryParse(item.InvoiceNo, out int no))
+                        item.ClaimSubType = no % 2 == 1 ? "Warranty -Labour" : "Warranty -Parts";
+                    else
+                        item.ClaimSubType = "Warranty -Mixed";
+                }
+                else
+                {
+                    item.ClaimSubType = itemTypes.Count == 0
+                        ? null
+                        : $"Warranty -{(itemTypes[0] == "Labour" ? "Labour" : "Parts")}";
+                }
+
+                    item.LocationName = await _context.WarrantyInvoiceGridDetails
                     .Where(g => g.WarrantyInvoiceHeaderId == item.Id)
                     .OrderBy(g => g.Id)
                     .Select(g => g.LocationName)
                     .FirstOrDefaultAsync();
+            
             }
 
             return new WarrantyInvoiceSearchResultViewModel
@@ -436,12 +655,52 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             };
         }
 
+        //public async Task<(string BatchNo, string InvoicePrefix, string InvoiceNo)> GetNextInvoiceNumbers(string dealerCode)
+        //{
+        //    var today = DateTime.Now;
+        //    var financialYearSuffix = GetFinancialYearSuffix(today);
+        //    var batchPrefix = $"BT/{financialYearSuffix}/";
+
+        //    var existingBatchNos = await _context.WarrantyInvoices
+        //        .Where(x => x.DealerCode == dealerCode && x.BatchNo.StartsWith(batchPrefix))
+        //        .Select(x => x.BatchNo)
+        //        .ToListAsync();
+
+        //    int maxBatchSeq = 0;
+        //    foreach (var b in existingBatchNos)
+        //    {
+        //        var parts = b.Split('/');
+        //        var numPart = parts.Length > 0 ? parts[parts.Length - 1] : null;
+        //        if (int.TryParse(numPart, out int seq) && seq > maxBatchSeq)
+        //            maxBatchSeq = seq;
+        //    }
+
+        //    var batchNo = $"{batchPrefix}{maxBatchSeq + 1}";
+        //    var invoicePrefix = $"WR/{financialYearSuffix}/";
+        //    var invoiceNo = $"{maxBatchSeq + 1}";
+
+        //    return (batchNo, invoicePrefix, invoiceNo);
+        //}
         public async Task<(string BatchNo, string InvoicePrefix, string InvoiceNo)> GetNextInvoiceNumbers(string dealerCode)
         {
             var today = DateTime.Now;
-            var financialYearSuffix = GetFinancialYearSuffix(today);
-            var batchPrefix = $"BT/{financialYearSuffix}/";
+            var fy = GetFinancialYearSuffix(today);
+            var batchPrefix = $"BT/{fy}/";
+            var invoicePrefix = $"WR/{fy}/";
 
+            // Invoice No: ODD number (Labour). Parts = Labour + 1 (EVEN).
+            var existingNos = await _context.WarrantyInvoices
+                .Where(x => x.DealerCode == dealerCode && x.InvoicePrefix == invoicePrefix)
+                .Select(x => x.InvoiceNo)
+                .ToListAsync();
+
+            int maxNo = 0;
+            foreach (var n in existingNos)
+                if (int.TryParse(n, out int v) && v > maxNo) maxNo = v;
+
+            int labourNo = (maxNo % 2 == 0) ? maxNo + 1 : maxNo + 2;
+
+           
             var existingBatchNos = await _context.WarrantyInvoices
                 .Where(x => x.DealerCode == dealerCode && x.BatchNo.StartsWith(batchPrefix))
                 .Select(x => x.BatchNo)
@@ -450,19 +709,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             int maxBatchSeq = 0;
             foreach (var b in existingBatchNos)
             {
-                var parts = b.Split('/');
-                var numPart = parts.Length > 0 ? parts[parts.Length - 1] : null;
-                if (int.TryParse(numPart, out int seq) && seq > maxBatchSeq)
+                var last = b.Split('/').LastOrDefault();
+                if (int.TryParse(last, out int seq) && seq > maxBatchSeq)
                     maxBatchSeq = seq;
             }
 
-            var batchNo = $"{batchPrefix}{maxBatchSeq + 1}";
-            var invoicePrefix = $"WR/{financialYearSuffix}/";
-            var invoiceNo = $"{maxBatchSeq + 1}";
-
-            return (batchNo, invoicePrefix, invoiceNo);
+            return ($"{batchPrefix}{maxBatchSeq + 1}", invoicePrefix, labourNo.ToString());
         }
-
         private static string GetFinancialYearSuffix(DateTime date)
         {
             int startYear = date.Month >= 4 ? date.Year : date.Year - 1;
@@ -470,6 +723,20 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
             return $"{startYear % 100:D2}-{endYear % 100:D2}";
         }
 
+
+
+        private async Task<string?> ResolveInvoiceKind(int invoiceId, string? invoiceNo, string? batchNo, string? dealerCode)
+        {
+            if (!int.TryParse(invoiceNo, out var no)) return null;
+
+            bool hasSibling = await _context.WarrantyInvoices.AnyAsync(x =>
+                x.Id != invoiceId && x.IsActive &&
+                x.DealerCode == dealerCode && x.BatchNo == batchNo);
+
+            if (!hasSibling) return null;
+
+            return no % 2 == 1 ? "Labour" : "Part";
+        }
 
         private class InvoicePdfLine
         {
@@ -542,9 +809,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 .Select(d => d.WarrantyOrderHeaderId)
                 .ToListAsync();
 
+            var kind = await ResolveInvoiceKind(header.Id, header.InvoiceNo, header.BatchNo, header.DealerCode);
+
+            //var gridRows = await _context.WarrantyOrderGridDetails
+            //    .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
+            //    .ToListAsync();
             var gridRows = await _context.WarrantyOrderGridDetails
-                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null)
-                .ToListAsync();
+                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType != null
+                  && (kind == null || g.ItemType == kind))
+                 .ToListAsync();
 
             var partLines = new List<InvoicePdfLine>();
             var labourLines = new List<InvoicePdfLine>();
@@ -596,20 +869,88 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
                 }
 
                 string? hsn = null;
-                if (isLabour && !string.IsNullOrWhiteSpace(g.LabourCode))
+
+                if (isLabour)
                 {
-                    hsn = await _context.LabourMasters
-                        .Where(l => l.LabourCode == g.LabourCode)
-                        .Select(l => l.Hsncode)
-                        .FirstOrDefaultAsync();
+                    if (!string.IsNullOrWhiteSpace(g.LabourCode))
+                    {
+                        hsn = await _context.LabourMasters
+                            .Where(l => l.LabourCode == g.LabourCode)
+                            .Select(l => l.Hsncode)
+                            .FirstOrDefaultAsync();
+
+                        if (string.IsNullOrWhiteSpace(hsn))
+                        {
+                            hsn = await _context.PartWiseLabourMasters
+                                .Where(l => l.LabourCode == g.LabourCode)
+                                .Select(l => l.Hsncode)
+                                .FirstOrDefaultAsync();
+                        }
+                    }
                 }
-                else if (!isLabour && !string.IsNullOrWhiteSpace(g.PartCode))
+                else
                 {
-                    hsn = await _context.ItemMasters
-                        .Where(i => i.Itemcode == g.PartCode)
-                        .Select(i => i.Hsncode)
-                        .FirstOrDefaultAsync();
+                   
+                    var partCodeClean = g.PartCode?.Trim();
+                    var partNameClean = g.PartName?.Trim();
+
+                    if (!string.IsNullOrWhiteSpace(partCodeClean))
+                    {
+                        hsn = await _context.ItemMasters
+                            .Where(i => i.Itemcode.Trim() == partCodeClean)
+                            .Select(i => i.Hsncode)
+                            .FirstOrDefaultAsync();
+                    }
+
+                    if (string.IsNullOrWhiteSpace(hsn) && !string.IsNullOrWhiteSpace(partNameClean))
+                    {
+                        hsn = await _context.ItemMasters
+                            .Where(i => i.Itemname.Trim() == partNameClean)
+                            .Select(i => i.Hsncode)
+                            .FirstOrDefaultAsync();
+                    }
                 }
+
+               
+
+
+
+                //string? hsn = null;
+                //if (isLabour && !string.IsNullOrWhiteSpace(g.LabourCode))
+                //{
+                //    hsn = await _context.LabourMasters
+                //        .Where(l => l.LabourCode == g.LabourCode)
+                //        .Select(l => l.Hsncode)
+                //        .FirstOrDefaultAsync();
+                //}
+
+                //if (string.IsNullOrWhiteSpace(hsn))
+                //{
+                //    hsn = await _context.PartWiseLabourMasters
+                //        .Where(l => l.LabourCode == g.LabourCode)
+                //        .Select(l => l.Hsncode)
+                //        .FirstOrDefaultAsync();
+                //}
+
+                ////else if (!isLabour && !string.IsNullOrWhiteSpace(g.PartCode))
+                ////{
+                ////    hsn = await _context.ItemMasters
+                ////        .Where(i => i.Itemcode == g.PartCode)
+                ////        .Select(i => i.Hsncode)
+                ////        .FirstOrDefaultAsync();
+                ////}
+                //else if (!isLabour)
+                //{
+                //    var partKey = !string.IsNullOrWhiteSpace(g.PartCode) ? g.PartCode : g.PartName;
+
+                //    if (!string.IsNullOrWhiteSpace(partKey))
+                //    {
+                //        hsn = await _context.ItemMasters
+                //            .Where(i => i.Itemcode == partKey || i.Itemname == partKey)
+                //            .Select(i => i.Hsncode)
+                //            .FirstOrDefaultAsync();
+                //    }
+                //}
 
                 var line = new InvoicePdfLine
                 {
@@ -928,6 +1269,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 
             return document.GeneratePdf();
         }
+
 
         public async Task<byte[]> GenerateWarrantyInvoicePartPdf(int invoiceId)
         {

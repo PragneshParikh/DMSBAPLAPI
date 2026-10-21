@@ -240,6 +240,235 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
             };
         }
 
+        //public async Task<(bool Success, string? ErrorMessage)> ApproveUwLineItem(UwLineItemActionViewModel model, string? userId)
+        //{
+        //    var lineItem = await _context.UwLineItems
+        //        .FirstOrDefaultAsync(u => u.Id == model.Id);
+
+        //    if (lineItem == null)
+        //    {
+        //        return (
+        //            false,
+        //            $"UW Line Item with Id {model.Id} not found."
+        //        );
+        //    }
+
+        //    var claim = await _context.WarrantyJcclaims
+        //        .FirstOrDefaultAsync(
+        //            c => c.Id == lineItem.WarrantyJcclaimId);
+
+        //    if (claim == null)
+        //    {
+        //        return (
+        //            false,
+        //            $"Warranty Claim with Id {lineItem.WarrantyJcclaimId} not found."
+        //        );
+        //    }
+
+        //    if (lineItem.Status == "Approved")
+        //    {
+        //        return (
+        //            false,
+        //            "This UW Line Item is already approved."
+        //        );
+        //    }
+
+
+        //    // ============================================================
+        //    // CLAIM / ORDER INFORMATION
+        //    // ============================================================
+
+        //    var jobCardHeader = claim.JobCardHeaderId.HasValue
+        //        ? await _context.JobCardHeaders
+        //            .FirstOrDefaultAsync(
+        //                j => j.Id == claim.JobCardHeaderId.Value)
+        //        : null;
+
+        //    var serviceLocation =
+        //        jobCardHeader?.Serviceloc;
+
+        //    var dealerCode =
+        //        claim.DealerCode ?? "";
+
+        //    var today =
+        //        DateTime.Now;
+
+        //    // ============================================================
+        //    // CREATE OR REUSE WARRANTY ORDER
+        //    // ============================================================
+        //    // FIX: previously this always called InsertWarrantyOrder,
+        //    // creating a brand-new WarrantyOrder row every single time —
+        //    // including when re-approving a claim that had been rejected
+        //    // before. RejectUwLineItem only deactivates the existing order
+        //    // (IsActive = false) via DeactivateDownstreamRecordsIfNoActive
+        //    // ClaimsAsync above; it never deletes the WarrantyOrderDetail
+        //    // link. So now: if this claim already has an order linked to
+        //    // it, that SAME order is reactivated and refreshed instead of a
+        //    // new one being inserted. A brand-new order is only created the
+        //    // first time a given claim is ever approved.
+        //    var existingOrderDetail = await _context.WarrantyOrderDetails
+        //        .FirstOrDefaultAsync(od => od.WarrantyJcclaimId == claim.Id);
+
+        //    int orderId;
+
+        //    if (existingOrderDetail != null &&
+        //        await _context.WarrantyOrders.AnyAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId))
+        //    {
+        //        var existingOrder = await _context.WarrantyOrders
+        //            .FirstAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId);
+
+        //        // Reactivate + refresh the existing order rather than
+        //        // inserting a new one. BatchNo/OrderNo/BatchDate/OrderDate
+        //        // are deliberately left untouched — this is the SAME order
+        //        // document coming back into use, not a new one, so its
+        //        // original numbering and creation date are preserved.
+        //        existingOrder.IsActive = true;
+        //        existingOrder.DateFrom = today;
+        //        existingOrder.DateTo = today;
+        //        existingOrder.Location = serviceLocation ?? existingOrder.Location;
+        //        existingOrder.SupplierId = claim.SupplierId ?? existingOrder.SupplierId;
+        //        existingOrder.IsApproved = false; // needs its own separate approval step again
+        //        existingOrder.UpdatedBy = userId ?? "system";
+        //        existingOrder.UpdatedDate = today;
+
+        //        existingOrderDetail.IsApproved = false;
+
+        //        orderId = existingOrder.Id;
+        //    }
+        //    else
+        //    {
+        //        var orderNumbers = await _warrantyOrderRepo.GetNextOrderNumbers(dealerCode);
+
+        //        var orderModel = new WarrantyOrderViewModel
+        //        {
+        //            Id = 0,
+        //            DealerCode = dealerCode,
+        //            DateFrom = today,
+        //            DateTo = today,
+        //            BatchNo = orderNumbers.BatchNo,
+        //            BatchDate = today,
+        //            OrderNo = orderNumbers.OrderNo,
+        //            OrderDate = today,
+        //            Location = serviceLocation,
+        //            ClaimType = "Warranty",
+        //            SupplierId = claim.SupplierId,
+        //            IsApproved = false,
+        //            WarrantyClaimIds = new List<int> { claim.Id },
+        //            ClaimApprovals = new List<ClaimApprovalViewModel>
+        //            {
+        //                new ClaimApprovalViewModel { ClaimId = claim.Id, IsApproved = false }
+        //            }
+        //        };
+
+        //        orderId = await _warrantyOrderRepo.InsertWarrantyOrder(orderModel, userId ?? "system");
+        //    }
+
+        //    // ============================================================
+        //    // UPDATE UW LINE ITEM
+        //    // ============================================================
+
+        //    lineItem.Status = "Approved";
+        //    lineItem.RejectionReason = null;
+        //    lineItem.ActionBy = userId;
+        //    lineItem.ActionDate = DateTime.Now;
+
+        //    await _context.SaveChangesAsync();
+
+        //    return (true, null);
+
+        //    // ============================================================
+        //    // CREATE WARRANTY INVOICE
+        //    // ============================================================
+
+        //    var invoiceNumbers =
+        //        await _warrantyInvoiceRepo
+        //            .GetNextInvoiceNumbers(dealerCode);
+
+
+        //    var invoiceModel =
+        //        new WarrantyInvoiceViewModel
+        //        {
+        //            Id = 0,
+
+        //            DealerCode =
+        //                dealerCode,
+
+        //            DateFrom =
+        //                today,
+
+        //            DateTo =
+        //                today,
+
+        //            BatchNo =
+        //                invoiceNumbers.BatchNo,
+
+        //            BatchDate =
+        //                today,
+
+        //            InvoicePrefix =
+        //                invoiceNumbers.InvoicePrefix,
+
+        //            InvoiceNo =
+        //                invoiceNumbers.InvoiceNo,
+
+        //            InvoiceDate =
+        //                today,
+
+        //            ClaimType =
+        //                "Warranty",
+
+        //            SupplierId =
+        //                claim.SupplierId,
+
+        //            IsApproved =
+        //                false,
+
+        //            WarrantyOrderIds =
+        //                new List<int>
+        //                {
+        //            orderId
+        //                },
+
+        //            OrderApprovals =
+        //                new List<OrderApprovalViewModel>
+        //                {
+        //            new OrderApprovalViewModel
+        //            {
+        //                OrderId =
+        //                    orderId,
+
+        //                IsApproved =
+        //                    false
+        //            }
+        //                }
+        //        };
+
+
+        //    await _warrantyInvoiceRepo
+        //        .InsertWarrantyInvoice(
+        //            invoiceModel,
+        //            userId ?? "system");
+
+
+        //    // ============================================================
+        //    // UPDATE UW LINE ITEM
+        //    // ============================================================
+
+        //    lineItem.Status = "Approved";
+        //    lineItem.RejectionReason = null;
+        //    lineItem.ActionBy = userId;
+        //    lineItem.ActionDate = DateTime.Now;
+
+
+        //    await _context.SaveChangesAsync();
+
+
+        //    return (
+        //        true,
+        //        null
+        //    );
+        //}
+
         public async Task<(bool Success, string? ErrorMessage)> ApproveUwLineItem(UwLineItemActionViewModel model, string? userId)
         {
             var lineItem = await _context.UwLineItems
@@ -247,227 +476,27 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
 
             if (lineItem == null)
             {
-                return (
-                    false,
-                    $"UW Line Item with Id {model.Id} not found."
-                );
-            }
-
-            var claim = await _context.WarrantyJcclaims
-                .FirstOrDefaultAsync(
-                    c => c.Id == lineItem.WarrantyJcclaimId);
-
-            if (claim == null)
-            {
-                return (
-                    false,
-                    $"Warranty Claim with Id {lineItem.WarrantyJcclaimId} not found."
-                );
+                return (false, $"UW Line Item with Id {model.Id} not found.");
             }
 
             if (lineItem.Status == "Approved")
             {
-                return (
-                    false,
-                    "This UW Line Item is already approved."
-                );
+                return (false, "This UW Line Item is already approved.");
             }
 
-
-            // ============================================================
-            // CLAIM / ORDER INFORMATION
-            // ============================================================
-
-            var jobCardHeader = claim.JobCardHeaderId.HasValue
-                ? await _context.JobCardHeaders
-                    .FirstOrDefaultAsync(
-                        j => j.Id == claim.JobCardHeaderId.Value)
-                : null;
-
-            var serviceLocation =
-                jobCardHeader?.Serviceloc;
-
-            var dealerCode =
-                claim.DealerCode ?? "";
-
-            var today =
-                DateTime.Now;
-
-            // ============================================================
-            // CREATE OR REUSE WARRANTY ORDER
-            // ============================================================
-            // FIX: previously this always called InsertWarrantyOrder,
-            // creating a brand-new WarrantyOrder row every single time —
-            // including when re-approving a claim that had been rejected
-            // before. RejectUwLineItem only deactivates the existing order
-            // (IsActive = false) via DeactivateDownstreamRecordsIfNoActive
-            // ClaimsAsync above; it never deletes the WarrantyOrderDetail
-            // link. So now: if this claim already has an order linked to
-            // it, that SAME order is reactivated and refreshed instead of a
-            // new one being inserted. A brand-new order is only created the
-            // first time a given claim is ever approved.
-            var existingOrderDetail = await _context.WarrantyOrderDetails
-                .FirstOrDefaultAsync(od => od.WarrantyJcclaimId == claim.Id);
-
-            int orderId;
-
-            if (existingOrderDetail != null &&
-                await _context.WarrantyOrders.AnyAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId))
-            {
-                var existingOrder = await _context.WarrantyOrders
-                    .FirstAsync(o => o.Id == existingOrderDetail.WarrantyOrderHeaderId);
-
-                // Reactivate + refresh the existing order rather than
-                // inserting a new one. BatchNo/OrderNo/BatchDate/OrderDate
-                // are deliberately left untouched — this is the SAME order
-                // document coming back into use, not a new one, so its
-                // original numbering and creation date are preserved.
-                existingOrder.IsActive = true;
-                existingOrder.DateFrom = today;
-                existingOrder.DateTo = today;
-                existingOrder.Location = serviceLocation ?? existingOrder.Location;
-                existingOrder.SupplierId = claim.SupplierId ?? existingOrder.SupplierId;
-                existingOrder.IsApproved = false; // needs its own separate approval step again
-                existingOrder.UpdatedBy = userId ?? "system";
-                existingOrder.UpdatedDate = today;
-
-                existingOrderDetail.IsApproved = false;
-
-                orderId = existingOrder.Id;
-            }
-            else
-            {
-                var orderNumbers = await _warrantyOrderRepo.GetNextOrderNumbers(dealerCode);
-
-                var orderModel = new WarrantyOrderViewModel
-                {
-                    Id = 0,
-                    DealerCode = dealerCode,
-                    DateFrom = today,
-                    DateTo = today,
-                    BatchNo = orderNumbers.BatchNo,
-                    BatchDate = today,
-                    OrderNo = orderNumbers.OrderNo,
-                    OrderDate = today,
-                    Location = serviceLocation,
-                    ClaimType = "Warranty",
-                    SupplierId = claim.SupplierId,
-                    IsApproved = false,
-                    WarrantyClaimIds = new List<int> { claim.Id },
-                    ClaimApprovals = new List<ClaimApprovalViewModel>
-                    {
-                        new ClaimApprovalViewModel { ClaimId = claim.Id, IsApproved = false }
-                    }
-                };
-
-                orderId = await _warrantyOrderRepo.InsertWarrantyOrder(orderModel, userId ?? "system");
-            }
-
-            // ============================================================
-            // UPDATE UW LINE ITEM
-            // ============================================================
-
+            // ─────────────────────────────────────────────────────────────
+            // FAKT YA EKACH ROW / LINE ITEM PURTA STATUS UPDATE KARA
+            // ─────────────────────────────────────────────────────────────
             lineItem.Status = "Approved";
             lineItem.RejectionReason = null;
-            lineItem.ActionBy = userId;
+            lineItem.ActionBy = userId ?? "system";
             lineItem.ActionDate = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
             return (true, null);
-
-            // ============================================================
-            // CREATE WARRANTY INVOICE
-            // ============================================================
-
-            var invoiceNumbers =
-                await _warrantyInvoiceRepo
-                    .GetNextInvoiceNumbers(dealerCode);
-
-
-            var invoiceModel =
-                new WarrantyInvoiceViewModel
-                {
-                    Id = 0,
-
-                    DealerCode =
-                        dealerCode,
-
-                    DateFrom =
-                        today,
-
-                    DateTo =
-                        today,
-
-                    BatchNo =
-                        invoiceNumbers.BatchNo,
-
-                    BatchDate =
-                        today,
-
-                    InvoicePrefix =
-                        invoiceNumbers.InvoicePrefix,
-
-                    InvoiceNo =
-                        invoiceNumbers.InvoiceNo,
-
-                    InvoiceDate =
-                        today,
-
-                    ClaimType =
-                        "Warranty",
-
-                    SupplierId =
-                        claim.SupplierId,
-
-                    IsApproved =
-                        false,
-
-                    WarrantyOrderIds =
-                        new List<int>
-                        {
-                    orderId
-                        },
-
-                    OrderApprovals =
-                        new List<OrderApprovalViewModel>
-                        {
-                    new OrderApprovalViewModel
-                    {
-                        OrderId =
-                            orderId,
-
-                        IsApproved =
-                            false
-                    }
-                        }
-                };
-
-
-            await _warrantyInvoiceRepo
-                .InsertWarrantyInvoice(
-                    invoiceModel,
-                    userId ?? "system");
-
-
-            // ============================================================
-            // UPDATE UW LINE ITEM
-            // ============================================================
-
-            lineItem.Status = "Approved";
-            lineItem.RejectionReason = null;
-            lineItem.ActionBy = userId;
-            lineItem.ActionDate = DateTime.Now;
-
-
-            await _context.SaveChangesAsync();
-
-
-            return (
-                true,
-                null
-            );
         }
+
         public async Task<(bool Success, string? ErrorMessage)> RejectUwLineItem(UwLineItemActionViewModel model, string? userId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();

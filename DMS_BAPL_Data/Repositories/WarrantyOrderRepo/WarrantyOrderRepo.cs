@@ -256,19 +256,73 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
         //    }
         //}
 
+        //public async Task<bool> DeleteWarrantyOrder(int id, string userId)
+        //{
+        //    var header = await _context.WarrantyOrders
+        //        .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
+
+        //    if (header == null)
+        //        return false;
+        //    header.IsActive = false;
+        //    header.UpdatedBy = userId;
+        //    header.UpdatedDate = DateTime.Now;
+
+        //    await _context.SaveChangesAsync();
+        //    return true;
+        //}
+
         public async Task<bool> DeleteWarrantyOrder(int id, string userId)
         {
-            var header = await _context.WarrantyOrders
-                .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var header = await _context.WarrantyOrders
+                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
 
-            if (header == null)
-                return false;
-            header.IsActive = false;
-            header.UpdatedBy = userId;
-            header.UpdatedDate = DateTime.Now;
+                if (header == null)
+                {
+                    await transaction.RollbackAsync();
+                    return false;
+                }
 
-            await _context.SaveChangesAsync();
-            return true;
+                // Invoice madhe already jodlela asel tar delete karu naye
+                var usedInInvoice = await _context.WarrantyInvoiceDetails
+                    .AnyAsync(d => d.WarrantyOrderHeaderId == id &&
+                        _context.WarrantyInvoices.Any(i => i.Id == d.WarrantyInvoiceHeaderId && i.IsActive));
+                if (usedInInvoice)
+                    throw new InvalidOperationException("This order is already used in a Warranty Invoice.");
+
+                // Packing slip madhe vaparlela grid rows kaadhu naye
+                var gridRows = await _context.WarrantyOrderGridDetails
+                    .Where(g => g.WarrantyOrderHeaderId == id)
+                    .ToListAsync();
+
+                var gridIds = gridRows.Select(g => g.Id).ToList();
+                var usedInPacking = await _context.WarrantyPackingSlipDetails
+                    .AnyAsync(p => gridIds.Contains(p.WarrantyOrderGridDetailId));
+                if (usedInPacking)
+                    throw new InvalidOperationException("This order is already used in a Packing Slip.");
+
+                // Links saaf kar, mhanje claim parat "available" hoto
+                var links = await _context.WarrantyOrderDetails
+                    .Where(d => d.WarrantyOrderHeaderId == id)
+                    .ToListAsync();
+                _context.WarrantyOrderDetails.RemoveRange(links);
+                _context.WarrantyOrderGridDetails.RemoveRange(gridRows);
+
+                header.IsActive = false;
+                header.UpdatedBy = userId;
+                header.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<WarrantyOrderViewModel?> GetWarrantyOrderById(int id)

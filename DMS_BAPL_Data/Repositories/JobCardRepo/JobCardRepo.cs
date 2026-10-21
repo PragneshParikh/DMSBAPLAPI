@@ -1534,182 +1534,182 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return maxId + 1;
         }
 
-//public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
-//{
-//    using var transaction = await _context.Database.BeginTransactionAsync();
+        //public async Task<int> InsertJobCardinfoDetails(JobCardDetailsViewModel jobCardDetails, string userId)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
 
-//    try
-//    {
-//        // Check vehicle sale details
-//        // 1. PDI not allowed after sale
-//        var vehicle = await _context.ChassisDetails
-//            .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
-//        if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
-//        {
-//            throw new Exception(StringConstants.aftervehiclesalestatus);
-//
-//        
-
-
-//        // 2. Existing open job card check
-
-//        var openJobCardExists = await _context.JobCardHeaders
-//        .Where(j =>
-//        j.Chassisno == jobCardDetails.JobCardHeader.Chassisno &&
-//        j.IsDelete != true)
-//        .AnyAsync(j =>
-//        !_context.RepairBillHeaders.Any(r =>
-//        r.JobId == j.Id &&
-//        r.IsDelete != true &&
-//        r.RepairbillStatus == "Billed"));
-//        if (openJobCardExists)
-//        {
-//            throw new Exception(StringConstants.jobCardException);
-//        }
+        //    try
+        //    {
+        //        // Check vehicle sale details
+        //        // 1. PDI not allowed after sale
+        //        var vehicle = await _context.ChassisDetails
+        //            .FirstOrDefaultAsync(x => x.ChassisNo == jobCardDetails.JobCardHeader.Chassisno);
+        //        if (vehicle?.SaleDate != null && jobCardDetails.JobCardHeader.Jobtype == 1)
+        //        {
+        //            throw new Exception(StringConstants.aftervehiclesalestatus);
+        //
+        //        
 
 
-//        // Insert Header
+        //        // 2. Existing open job card check
 
-//        var header = new JobCardHeader
-//        {
-//            Jobtype = jobCardDetails.JobCardHeader.Jobtype,
-//            DealerCode = jobCardDetails.JobCardHeader.DealerCode,
-//            InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
-//            Chassisno = jobCardDetails.JobCardHeader.Chassisno,
-//            Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
-//            Servicehead = jobCardDetails.JobCardHeader.Servicehead,
-//            Servicetype = jobCardDetails.JobCardHeader.Servicetype,
-//            Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
-//            Couponno = jobCardDetails.JobCardHeader.Couponno,
-//            InwardType = jobCardDetails.JobCardHeader.InwardType,
-//            Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
-//            JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
-//            JobinTime = jobCardDetails.JobCardHeader.JobinTime,
-//            JobNo = jobCardDetails.JobCardHeader.JobNo,
-//            EstNo = jobCardDetails.JobCardHeader.EstimateNo,
-//            ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
-//            EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
-//            EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
-//            JobSource = jobCardDetails.JobCardHeader.JobSource ?? 1,
-//            Supervisor = jobCardDetails.JobCardHeader.Supervisor,
-//            Technician = jobCardDetails.JobCardHeader.Technician,
-//            Jobestmate = jobCardDetails.JobCardHeader.Jobestmate,
-//            AirpressureRearTyre = jobCardDetails.JobCardHeader.AirpressureRearTyre,
-//            AirpressurefrontTyre = jobCardDetails.JobCardHeader.AirpressurefrontTyre,
-//            Observation = jobCardDetails.JobCardHeader.Observation,
-//            SupervisorComment = jobCardDetails.JobCardHeader.SupervisorComment,
-//            IsPdiSuccess = jobCardDetails.JobCardHeader.IsPdiSuccess,
-//            CreatedBy = userId,
-//            CreatedDate = DateTime.Now,
-//        };
+        //        var openJobCardExists = await _context.JobCardHeaders
+        //        .Where(j =>
+        //        j.Chassisno == jobCardDetails.JobCardHeader.Chassisno &&
+        //        j.IsDelete != true)
+        //        .AnyAsync(j =>
+        //        !_context.RepairBillHeaders.Any(r =>
+        //        r.JobId == j.Id &&
+        //        r.IsDelete != true &&
+        //        r.RepairbillStatus == "Billed"));
+        //        if (openJobCardExists)
+        //        {
+        //            throw new Exception(StringConstants.jobCardException);
+        //        }
 
-//        _context.JobCardHeaders.Add(header);
-//        await _context.SaveChangesAsync();
 
-//        int headerId = header.Id;
+        //        // Insert Header
 
-//        // Insert Battery
-//        if (jobCardDetails.JobCardBattery != null)
-//        {
-//            var battery = new JobCardBatteryDetail
-//            {
-//                JobCardHeaderId = headerId,
-//                DealerCode = jobCardDetails.JobCardBattery.DealerCode,
-//                BatteryMake = jobCardDetails.JobCardBattery.BatteryMake,
-//                BatterySerialNo = jobCardDetails.JobCardBattery.BatterySerialNo,
-//                BatteryOcv = jobCardDetails.JobCardBattery.BatteryOcv,
-//                BatteryCcv = jobCardDetails.JobCardBattery.BatteryCcv,
-//                BatteryDischarge = jobCardDetails.JobCardBattery.BatteryDischarge,
-//                BatteryCapacityAh = jobCardDetails.JobCardBattery.BatteryCapacityAh,
-//                BatteryVoltage = jobCardDetails.JobCardBattery.BatteryVoltage,
-//                MotorDrawing = jobCardDetails.JobCardBattery.MotorDrawing,
-//                ChargerMake = jobCardDetails.JobCardBattery.ChargerMake,
-//                ChargerNo = jobCardDetails.JobCardBattery.ChargerNo,
-//                ConverterNo = jobCardDetails.JobCardBattery.ConverterNo,
-//                ControllerNo = jobCardDetails.JobCardBattery.ControllerNo,
-//                BatteryChemical = jobCardDetails.JobCardBattery.BatteryChemical,
-//                BatteryCapacity = jobCardDetails.JobCardBattery.BatteryCapacity,
-//                CreatedBy = userId,
-//                CreatedDate = DateTime.Now,
-//            };
+        //        var header = new JobCardHeader
+        //        {
+        //            Jobtype = jobCardDetails.JobCardHeader.Jobtype,
+        //            DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+        //            InvoiceNo = jobCardDetails.JobCardHeader.InvoiceNo,
+        //            Chassisno = jobCardDetails.JobCardHeader.Chassisno,
+        //            Vehiclekms = jobCardDetails.JobCardHeader.Vehiclekms,
+        //            Servicehead = jobCardDetails.JobCardHeader.Servicehead,
+        //            Servicetype = jobCardDetails.JobCardHeader.Servicetype,
+        //            Serviceloc = jobCardDetails.JobCardHeader.Serviceloc,
+        //            Couponno = jobCardDetails.JobCardHeader.Couponno,
+        //            InwardType = jobCardDetails.JobCardHeader.InwardType,
+        //            Jobprefix = jobCardDetails.JobCardHeader.Jobprefix,
+        //            JobinDate = jobCardDetails.JobCardHeader.JobinDate ?? DateOnly.FromDateTime(DateTime.Now),
+        //            JobinTime = jobCardDetails.JobCardHeader.JobinTime,
+        //            JobNo = jobCardDetails.JobCardHeader.JobNo,
+        //            EstNo = jobCardDetails.JobCardHeader.EstimateNo,
+        //            ManualjobNo = jobCardDetails.JobCardHeader.ManualjobNo,
+        //            EstdelDate = jobCardDetails.JobCardHeader.EstdelDate ?? DateOnly.FromDateTime(DateTime.Now),
+        //            EstdelTime = jobCardDetails.JobCardHeader.EstdelTime,
+        //            JobSource = jobCardDetails.JobCardHeader.JobSource ?? 1,
+        //            Supervisor = jobCardDetails.JobCardHeader.Supervisor,
+        //            Technician = jobCardDetails.JobCardHeader.Technician,
+        //            Jobestmate = jobCardDetails.JobCardHeader.Jobestmate,
+        //            AirpressureRearTyre = jobCardDetails.JobCardHeader.AirpressureRearTyre,
+        //            AirpressurefrontTyre = jobCardDetails.JobCardHeader.AirpressurefrontTyre,
+        //            Observation = jobCardDetails.JobCardHeader.Observation,
+        //            SupervisorComment = jobCardDetails.JobCardHeader.SupervisorComment,
+        //            IsPdiSuccess = jobCardDetails.JobCardHeader.IsPdiSuccess,
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now,
+        //        };
 
-//            _context.JobCardBatteryDetails.Add(battery);
-//        }
+        //        _context.JobCardHeaders.Add(header);
+        //        await _context.SaveChangesAsync();
 
-//        // Insert Customer
-//        if (jobCardDetails.JobCardCustomer != null)
-//        {
-//            var customer = new JobCardCustomer
-//            {
-//                JobCardHeaderId = headerId,
-//                CustomerLedgerId = jobCardDetails.JobCardCustomer.CustomerLedgerId,
-//                CustomerName = jobCardDetails.JobCardCustomer.CustomerName,
-//                CustomerMobile = jobCardDetails.JobCardCustomer.CustomerMobile,
-//                CustomerAltMobile = jobCardDetails.JobCardCustomer.CustomerAltMobile,
-//                ModelName = jobCardDetails.JobCardCustomer.ModelName,
-//                ChassisNo = jobCardDetails.JobCardCustomer.ChassisNo,
-//                RegisterNo = jobCardDetails.JobCardCustomer.RegisterNo,
-//                MotorNo = jobCardDetails.JobCardCustomer.MotorNo,
-//                BatteryNo = jobCardDetails.JobCardCustomer.BatteryNo,
-//                SaleDate = jobCardDetails.JobCardCustomer.SaleDate,
-//                InsuranceExpDate = jobCardDetails.JobCardCustomer.InsuranceExpDate,
-//                NextserviceDueDate = jobCardDetails.JobCardCustomer.NextserviceDueDate,
-//                RsarenewalDate = jobCardDetails.JobCardCustomer.RsarenewalDate,
-//                Remarks = jobCardDetails.JobCardCustomer.Remarks,
-//                CreatedBy = userId,
-//                CreatedDate = DateTime.Now,
-//            };
+        //        int headerId = header.Id;
 
-//            _context.JobCardCustomers.Add(customer);
-//        }
+        //        // Insert Battery
+        //        if (jobCardDetails.JobCardBattery != null)
+        //        {
+        //            var battery = new JobCardBatteryDetail
+        //            {
+        //                JobCardHeaderId = headerId,
+        //                DealerCode = jobCardDetails.JobCardBattery.DealerCode,
+        //                BatteryMake = jobCardDetails.JobCardBattery.BatteryMake,
+        //                BatterySerialNo = jobCardDetails.JobCardBattery.BatterySerialNo,
+        //                BatteryOcv = jobCardDetails.JobCardBattery.BatteryOcv,
+        //                BatteryCcv = jobCardDetails.JobCardBattery.BatteryCcv,
+        //                BatteryDischarge = jobCardDetails.JobCardBattery.BatteryDischarge,
+        //                BatteryCapacityAh = jobCardDetails.JobCardBattery.BatteryCapacityAh,
+        //                BatteryVoltage = jobCardDetails.JobCardBattery.BatteryVoltage,
+        //                MotorDrawing = jobCardDetails.JobCardBattery.MotorDrawing,
+        //                ChargerMake = jobCardDetails.JobCardBattery.ChargerMake,
+        //                ChargerNo = jobCardDetails.JobCardBattery.ChargerNo,
+        //                ConverterNo = jobCardDetails.JobCardBattery.ConverterNo,
+        //                ControllerNo = jobCardDetails.JobCardBattery.ControllerNo,
+        //                BatteryChemical = jobCardDetails.JobCardBattery.BatteryChemical,
+        //                BatteryCapacity = jobCardDetails.JobCardBattery.BatteryCapacity,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            };
 
-//        // Multiple Complaints Insert()
-//        if (jobCardDetails.JobCardComplaint != null && jobCardDetails.JobCardComplaint.Any())
-//        {
-//            var complaints = jobCardDetails.JobCardComplaint.Select(c => new JobCardComplaint
-//            {
-//                DealerCode = jobCardDetails.JobCardHeader.DealerCode,
-//                JobCardHeaderId = headerId,
-//                CustomerVoice = c.CustomerVoice,
-//                ComplaintCode = c.ComplaintCode,
-//                Complaint = c.Complaint,
-//                CreatedBy = userId,
-//                CreatedDate = DateTime.Now,
-//            }).ToList();
+        //            _context.JobCardBatteryDetails.Add(battery);
+        //        }
 
-//            _context.JobCardComplaints.AddRange(complaints);
-//        }
+        //        // Insert Customer
+        //        if (jobCardDetails.JobCardCustomer != null)
+        //        {
+        //            var customer = new JobCardCustomer
+        //            {
+        //                JobCardHeaderId = headerId,
+        //                CustomerLedgerId = jobCardDetails.JobCardCustomer.CustomerLedgerId,
+        //                CustomerName = jobCardDetails.JobCardCustomer.CustomerName,
+        //                CustomerMobile = jobCardDetails.JobCardCustomer.CustomerMobile,
+        //                CustomerAltMobile = jobCardDetails.JobCardCustomer.CustomerAltMobile,
+        //                ModelName = jobCardDetails.JobCardCustomer.ModelName,
+        //                ChassisNo = jobCardDetails.JobCardCustomer.ChassisNo,
+        //                RegisterNo = jobCardDetails.JobCardCustomer.RegisterNo,
+        //                MotorNo = jobCardDetails.JobCardCustomer.MotorNo,
+        //                BatteryNo = jobCardDetails.JobCardCustomer.BatteryNo,
+        //                SaleDate = jobCardDetails.JobCardCustomer.SaleDate,
+        //                InsuranceExpDate = jobCardDetails.JobCardCustomer.InsuranceExpDate,
+        //                NextserviceDueDate = jobCardDetails.JobCardCustomer.NextserviceDueDate,
+        //                RsarenewalDate = jobCardDetails.JobCardCustomer.RsarenewalDate,
+        //                Remarks = jobCardDetails.JobCardCustomer.Remarks,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            };
 
-//        // multiple PDI Checklist Insert()
-//        if (jobCardDetails.PdiChecklistChassiWise != null && jobCardDetails.PdiChecklistChassiWise.Any())
-//        {
-//            var pdiList = jobCardDetails.PdiChecklistChassiWise.Select(p => new PdichecklistChassisWise
-//            {
-//                PdichecklistMasterId = p.PdichecklistMasterId,
-//                JobCardMasterId = headerId,
-//                OemmodelId = p.OemModelId,
-//                IsStatus = p.IsStatus,
-//                Remarks = p.Remarks,
-//                CreatedBy = userId,
-//                CreatedDate = DateTime.Now
-//            }).ToList();
+        //            _context.JobCardCustomers.Add(customer);
+        //        }
 
-//            _context.PdichecklistChassisWises.AddRange(pdiList);
-//        }
-//        // Save all
-//        await _context.SaveChangesAsync();
+        //        // Multiple Complaints Insert()
+        //        if (jobCardDetails.JobCardComplaint != null && jobCardDetails.JobCardComplaint.Any())
+        //        {
+        //            var complaints = jobCardDetails.JobCardComplaint.Select(c => new JobCardComplaint
+        //            {
+        //                DealerCode = jobCardDetails.JobCardHeader.DealerCode,
+        //                JobCardHeaderId = headerId,
+        //                CustomerVoice = c.CustomerVoice,
+        //                ComplaintCode = c.ComplaintCode,
+        //                Complaint = c.Complaint,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now,
+        //            }).ToList();
 
-//        await transaction.CommitAsync();
+        //            _context.JobCardComplaints.AddRange(complaints);
+        //        }
 
-//        return headerId;
-//    }
-//    catch (Exception ex)
-//    {
-//        await transaction.RollbackAsync();
-//        throw;
-//    }
-//}
-public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
+        //        // multiple PDI Checklist Insert()
+        //        if (jobCardDetails.PdiChecklistChassiWise != null && jobCardDetails.PdiChecklistChassiWise.Any())
+        //        {
+        //            var pdiList = jobCardDetails.PdiChecklistChassiWise.Select(p => new PdichecklistChassisWise
+        //            {
+        //                PdichecklistMasterId = p.PdichecklistMasterId,
+        //                JobCardMasterId = headerId,
+        //                OemmodelId = p.OemModelId,
+        //                IsStatus = p.IsStatus,
+        //                Remarks = p.Remarks,
+        //                CreatedBy = userId,
+        //                CreatedDate = DateTime.Now
+        //            }).ToList();
+
+        //            _context.PdichecklistChassisWises.AddRange(pdiList);
+        //        }
+        //        // Save all
+        //        await _context.SaveChangesAsync();
+
+        //        await transaction.CommitAsync();
+
+        //        return headerId;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+        public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDetails)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -2091,7 +2091,7 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
             try
             {
                 // Delete Repair Bill if exists
-     
+
                 var repairBills = await _context.RepairBillHeaders
                     .Where(x => x.JobId == jobId)
                     .ToListAsync();
@@ -2237,6 +2237,8 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                             .FirstOrDefault(),
 
             }).ToListAsync();
+
+
 
             return result;
         }
@@ -2516,8 +2518,17 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                 from m in _context.MaterialTransfers
                 join i in _context.ItemMasters
                     on m.ItemId equals i.Id
-                join hsn in _context.HsnwiseTaxCodes
-                    on i.Hsncode equals hsn.Hsncode
+                //join hsn in _context.HsnwiseTaxCodes
+                //    on i.Hsncode equals hsn.Hsncode
+
+
+                let hsn = _context.HsnwiseTaxCodes
+                 .Where(h => h.Hsncode == i.Hsncode
+                         && h.StateFlag == stateFlag
+                        && h.EffectiveDate <= DateTime.Now)
+                .OrderByDescending(h => h.EffectiveDate)
+                .FirstOrDefault()
+
                 where m.JobId == jobId
                       && hsn.StateFlag == stateFlag
                 select new MaterialedJobCardListVM
@@ -2583,6 +2594,61 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
             }
 
 
+            // ---- Part-wise labour attach kar ----
+            var jobModelName = await _context.JobCardCustomers
+                .Where(c => c.JobCardHeaderId == jobId)
+                .Select(c => c.ModelName)
+                .FirstOrDefaultAsync();
+
+            var oemModel = ((await _context.ItemMasters
+                .Where(i => i.Itemname == jobModelName)
+                .Select(i => i.Oemmodelname)
+                .FirstOrDefaultAsync()) ?? "").Trim();
+
+            var partCodes = data.Select(d => d.PartCode).Distinct().ToList();
+
+            //var labourRows = await _context.PartWiseLabourMasters
+            //    .Where(pl => partCodes.Contains(pl.PartCode)
+            //              && pl.IsActive == true
+            //              && (pl.CityTier == cityTier || pl.CityTier == 0))
+            //    .ToListAsync();
+
+                        var labourRows = await _context.PartWiseLabourMasters
+                .Where(pl => partCodes.Contains(pl.PartCode)
+                          && pl.IsActive == true
+                          && pl.LabourCode.StartsWith("WL")
+                          && (pl.CityTier == cityTier || pl.CityTier == 0))
+                .ToListAsync();
+
+            if (!string.IsNullOrWhiteSpace(oemModel))
+            {
+                labourRows = labourRows.Where(x =>
+                        string.IsNullOrWhiteSpace(x.ModelName) ||
+                        oemModel.Contains(x.ModelName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                        x.ModelName.Trim().Contains(oemModel, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            foreach (var item in data)
+            {
+                item.LabourCodeDetailslist = labourRows
+                    .Where(x => x.PartCode == item.PartCode)
+                    .Select(pl => new LabourCodeDetails
+                    {
+                        PartwiseLabourId = pl.Id,
+                        LabourCode = pl.LabourCode,
+                        LabourName = pl.LabourName,
+                        LabourRate = pl.LabourRate,
+                        LabourHsnCode = pl.Hsncode,
+                        CityTier = pl.CityTier,
+                        Igst = pl.Igst,
+                        Cgst = pl.Cgst,
+                        Sgst = pl.Sgst
+                    }).ToList();
+            }
+
+            return data;
+
             //var data = await (
             //    from m in _context.MaterialTransfers
 
@@ -2634,7 +2700,7 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
 
             //).ToListAsync();
 
-            return data;
+           // return data;
         }
         //public async Task<bool> UpdateMaterialTransferStatus(int jobId, bool status)
         //{
@@ -2995,10 +3061,13 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                 // IsDelete/RepairbillStatus, which DeleteRepairbill DOES set, so the
                 // job reappears here as soon as its repair bill is deleted
                 // (Condition 1 / Condition 2 — "Job Card Will be Opened").
+                //query = query.Where(x => !_context.RepairBillHeaders.Any(rbh =>
+                //    rbh.JobId == x.jh.Id &&
+                //    rbh.IsDelete != true &&
+                //    rbh.RepairbillStatus == "Billed"));
                 query = query.Where(x => !_context.RepairBillHeaders.Any(rbh =>
-                    rbh.JobId == x.jh.Id &&
-                    rbh.IsDelete != true &&
-                    rbh.RepairbillStatus == "Billed"));
+                  rbh.JobId == x.jh.Id &&
+                  rbh.IsDelete != true));
 
                 // Dealer Filter
                 if (!string.IsNullOrWhiteSpace(search.DealerCode))
@@ -3534,63 +3603,128 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
         {
             try
             {
+                //var query =
+                //    from rbh in _context.RepairBillHeaders
+                //    join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
+                //    join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                //    join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode
+                //    join lg in _context.LedgerMasters on jc.CustomerLedgerId equals lg.Id
+                //    join jt in _context.JobTypes on jh.Jobtype equals jt.Id
+                //    join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
+                //    join st in _context.ServiceTypes on jh.Servicetype equals st.Id
+                //    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo
+                //    join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo
+
+                //    join chb in _context.ChassisBatteryDetails on jh.Chassisno equals chb.ChassisNo into chbGroup
+                //    from chb in chbGroup.DefaultIfEmpty()
+
+                //    join ffir in _context.Ffirheaders on jh.Id equals ffir.JobCardHeaderId into ffirGroup
+                //    from ffir in ffirGroup.DefaultIfEmpty()
+
+                //    where jh.IsDelete != true
+                //          && rbh.IsDelete != true
+                //          && rbh.RepairbillStatus == "Billed"
+                //          && jh.Jobtype != 2
+                //          && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
+                //    select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
+
                 var query =
                     from rbh in _context.RepairBillHeaders
                     join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
-                    join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
-                    join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode
-                    join lg in _context.LedgerMasters on jc.CustomerLedgerId equals lg.Id
-                    join jt in _context.JobTypes on jh.Jobtype equals jt.Id
-                    join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
-                    join st in _context.ServiceTypes on jh.Servicetype equals st.Id
-                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo
-                    join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo
-
+                    join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId into jcJ
+                    from jc in jcJ.DefaultIfEmpty()
+                    join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode into locJ
+                    from loc in locJ.DefaultIfEmpty()
+                    join lg in _context.LedgerMasters on jc.CustomerLedgerId equals lg.Id into lgJ
+                    from lg in lgJ.DefaultIfEmpty()
+                    join jt in _context.JobTypes on jh.Jobtype equals jt.Id into jtJ
+                    from jt in jtJ.DefaultIfEmpty()
+                    join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id into shJ
+                    from sh in shJ.DefaultIfEmpty()
+                    join st in _context.ServiceTypes on jh.Servicetype equals st.Id into stJ
+                    from st in stJ.DefaultIfEmpty()
+                    join vs in _context.VehicleSaleBillDetails on jh.Chassisno equals vs.ChassisNo into vsJ
+                    from vs in vsJ.DefaultIfEmpty()
+                    join ch in _context.ChassisDetails on jh.Chassisno equals ch.ChassisNo into chJ
+                    from ch in chJ.DefaultIfEmpty()
                     join chb in _context.ChassisBatteryDetails on jh.Chassisno equals chb.ChassisNo into chbGroup
                     from chb in chbGroup.DefaultIfEmpty()
-
                     join ffir in _context.Ffirheaders on jh.Id equals ffir.JobCardHeaderId into ffirGroup
                     from ffir in ffirGroup.DefaultIfEmpty()
-
                     where jh.IsDelete != true
-                          && rbh.IsDelete != true
-                          && rbh.RepairbillStatus == "Billed"
-                          && jh.Jobtype != 2
-                          && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
-                    select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
+                              && rbh.IsDelete != true
+                              && rbh.RepairbillStatus == "Billed"
+                              && jh.Jobtype != 2
+                              && _context.RepairBillDetails.Any(d => d.RepairBillId == rbh.Id && d.IssutypeId == 2)
+                        select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
 
                 // Dynamic Filters
                 if (!string.IsNullOrWhiteSpace(dealerCode)) query = query.Where(x => x.rbh.DealerCode == dealerCode);
                 if (jobNo.HasValue && jobNo.Value > 0) query = query.Where(x => x.jh.JobNo == jobNo.Value);
                 if (!string.IsNullOrWhiteSpace(serviceloc) && serviceloc.Trim().ToLower() != "null") query = query.Where(x => x.jh.Serviceloc == serviceloc);
-                if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
-                if (toDate.HasValue) query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
+                //if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
+                //if (toDate.HasValue) query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
+                if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value.Date);
+                if (toDate.HasValue)
+                {
+                    var toEnd = toDate.Value.Date.AddDays(1);
+                    query = query.Where(x => x.rbh.CreatedDate < toEnd);
+                }
 
                 var result = await query
+                    //.Select(x => new IssueTypebasedJobDetails
+                    //{
+                    //    RepairBillHeaderId = x.rbh.Id,
+                    //    JobcardId = x.jh.Id,
+                    //    JobNo = x.jh.JobNo,
+                    //    JobType = x.jt.JobTypeName,
+                    //    JobInDate = x.jh.JobinDate,
+                    //    JobLocation = x.loc.Locname,
+                    //    JobLocationCode = x.loc.Loccode,
+                    //    serviceHead = x.sh.ServiceHeadName,
+                    //    serviceType = x.st.ServiceTypeName,
+                    //    CustomerLedgerId = x.lg.Id,
+                    //    CustomerName = x.lg.LedgerName,
+                    //    ChassisNo = x.jh.Chassisno,
+                    //    ModelName = x.jc.ModelName,
+                    //    MotorNo = x.chb != null ? x.chb.MotorNo : null,
+                    //    Vehiclekms = x.jh.Vehiclekms,
+                    //    RegistrationNo = x.vs.RegNo,
+                    //    SaleDate = x.ch.SaleDate,
+                    //    FailureDate = x.ffir != null ? x.ffir.FailureDate : null,
+                    //    RepairBillNo = x.rbh.BillNo,
+                    //    RepairBillDate = x.rbh.CreatedDate
+                    //})
                     .Select(x => new IssueTypebasedJobDetails
                     {
                         RepairBillHeaderId = x.rbh.Id,
                         JobcardId = x.jh.Id,
                         JobNo = x.jh.JobNo,
-                        JobType = x.jt.JobTypeName,
+                        JobType = x.jt != null ? x.jt.JobTypeName : null,
                         JobInDate = x.jh.JobinDate,
-                        JobLocation = x.loc.Locname,
-                        JobLocationCode = x.loc.Loccode,
-                        serviceHead = x.sh.ServiceHeadName,
-                        serviceType = x.st.ServiceTypeName,
-                        CustomerLedgerId = x.lg.Id,
-                        CustomerName = x.lg.LedgerName,
+                        JobLocation = x.loc != null ? x.loc.Locname : null,
+                        JobLocationCode = x.loc != null ? x.loc.Loccode : x.jh.Serviceloc,
+                        serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
+                        serviceType = x.st != null ? x.st.ServiceTypeName : null,
+                        CustomerLedgerId = x.lg != null ? x.lg.Id : 0,
+                        CustomerName = x.lg != null ? x.lg.LedgerName : null,
                         ChassisNo = x.jh.Chassisno,
-                        ModelName = x.jc.ModelName,
+                        ModelName = x.jc != null ? x.jc.ModelName : null,
                         MotorNo = x.chb != null ? x.chb.MotorNo : null,
                         Vehiclekms = x.jh.Vehiclekms,
-                        RegistrationNo = x.vs.RegNo,
-                        SaleDate = x.ch.SaleDate,
+                        RegistrationNo = x.vs != null ? x.vs.RegNo : null,
+                        SaleDate = x.ch != null ? x.ch.SaleDate : null,
                         FailureDate = x.ffir != null ? x.ffir.FailureDate : null,
                         RepairBillNo = x.rbh.BillNo,
                         RepairBillDate = x.rbh.CreatedDate
                     })
                     .ToListAsync();
+
+                            result = result
+                .GroupBy(r => r.RepairBillHeaderId)
+                .Select(g => g.First())
+                .ToList();
+
 
                 if (!result.Any()) return result;
 
@@ -3617,22 +3751,73 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                     }
                 ).ToListAsync();
 
+                //foreach (var item in result)
+                //{
+                //    item.RepairBillDetails = allDetails
+                //        .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
+                //        .Select(d =>
+                //        {
+                //            bool isLabour = d.rbd.ItemType == "Labour";
+                //            bool isPart = d.rbd.ItemType == "Part";
+
+                //            decimal rate = isLabour ? (d.lm?.LabourRate ?? 0) : (d.pwm?.LabourRate ?? 0);
+                //            decimal qty = isLabour ? (d.rbd.LabourQty ?? 0) : (d.rbd.PartQty ?? 0);
+
+                //            decimal partRate = isPart ? (d.mt?.ItemRate ?? 0) : 0;
+                //            decimal partQty = isPart ? (d.mt?.Quantity ?? 0) : 0;
+
+                //            decimal lineSubtotal = isLabour ? (qty * rate) : (partQty * partRate);
+                //            decimal taxAmount = (d.rbd.Igstamount ?? 0) > 0
+                //                ? d.rbd.Igstamount.Value
+                //                : ((d.rbd.Cgstamount ?? 0) + (d.rbd.Sgstamount ?? 0));
+
+                //            return new IssueTypebasedJobDetails
+                //            {
+                //                RepairBillDetailsId = d.rbd.Id,
+                //                ItemType = d.rbd.ItemType,
+                //                MaterialId = d.rbd.MaterialId,
+                //                LabourId = d.rbd.LabourMasterId,
+                //                PartWiseLabourId = d.rbd.PartWiseLabourId,
+                //                PartItemId = d.rbd.PartItemId,
+
+                //                LabourQty = isLabour ? qty : 0,
+                //                LabourName = isLabour ? d.lm?.LabourCode : null,
+                //                LabourDesc = isLabour ? d.lm?.LabourDescription : null,
+                //                LabourRate = isLabour ? rate : 0,
+
+                //                PartLabourQty = !isLabour ? qty : 0,
+                //                PartLabourName = !isLabour ? d.pwm?.PartCode : null,
+                //                PartLabourDesc = !isLabour ? d.pwm?.PartDescription : null,
+                //                PartLabourRate = !isLabour ? rate : 0,
+
+                //                PartitemName = isPart ? (d.im != null ? d.im.Itemcode : "") : "",
+                //                PartitemDesc = isPart ? (d.im != null ? d.im.Itemname : "") : "",
+                //                PartItemQty = partQty,
+                //                PartItemRate = partRate,
+
+                //                IgstAmount = taxAmount,
+                //                RowSubTotal = lineSubtotal,
+                //                TotalWithTax = lineSubtotal + taxAmount,
+                //                ClaimType = "Warranty"
+                //            };
+                //        }).ToList();
+                //}
                 foreach (var item in result)
                 {
                     item.RepairBillDetails = allDetails
-                        .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId)
+                        .Where(d => d.rbd.RepairBillId.GetValueOrDefault() == item.RepairBillHeaderId
+                                 && d.rbd.IssutypeId == 2)
                         .Select(d =>
                         {
                             bool isLabour = d.rbd.ItemType == "Labour";
                             bool isPart = d.rbd.ItemType == "Part";
 
-                            decimal rate = isLabour ? (d.lm?.LabourRate ?? 0) : (d.pwm?.LabourRate ?? 0);
-                            decimal qty = isLabour ? (d.rbd.LabourQty ?? 0) : (d.rbd.PartQty ?? 0);
+                            decimal labourQty = isLabour ? (d.rbd.LabourQty ?? 0) : 0;
+                            decimal labourRate = isLabour ? (d.rbd.LabourRate ?? 0) : 0;
+                            decimal partQty = isPart ? (d.rbd.PartQty ?? 0) : 0;
+                            decimal partRate = isPart ? (d.rbd.PartRate ?? d.mt?.ItemRate ?? 0) : 0;
 
-                            decimal partRate = isPart ? (d.mt?.ItemRate ?? 0) : 0;
-                            decimal partQty = isPart ? (d.mt?.Quantity ?? 0) : 0;
-
-                            decimal lineSubtotal = isLabour ? (qty * rate) : (partQty * partRate);
+                            decimal lineSubtotal = isLabour ? labourQty * labourRate : partQty * partRate;
                             decimal taxAmount = (d.rbd.Igstamount ?? 0) > 0
                                 ? d.rbd.Igstamount.Value
                                 : ((d.rbd.Cgstamount ?? 0) + (d.rbd.Sgstamount ?? 0));
@@ -3646,18 +3831,13 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                                 PartWiseLabourId = d.rbd.PartWiseLabourId,
                                 PartItemId = d.rbd.PartItemId,
 
-                                LabourQty = isLabour ? qty : 0,
-                                LabourName = isLabour ? d.lm?.LabourCode : null,
-                                LabourDesc = isLabour ? d.lm?.LabourDescription : null,
-                                LabourRate = isLabour ? rate : 0,
+                                LabourQty = labourQty,
+                                LabourName = isLabour ? (d.lm?.LabourCode ?? d.pwm?.LabourCode) : null,
+                                LabourDesc = isLabour ? (d.lm?.LabourDescription ?? d.pwm?.LabourName) : null,
+                                LabourRate = labourRate,
 
-                                PartLabourQty = !isLabour ? qty : 0,
-                                PartLabourName = !isLabour ? d.pwm?.PartCode : null,
-                                PartLabourDesc = !isLabour ? d.pwm?.PartDescription : null,
-                                PartLabourRate = !isLabour ? rate : 0,
-
-                                PartitemName = isPart ? (d.im != null ? d.im.Itemcode : "") : "",
-                                PartitemDesc = isPart ? (d.im != null ? d.im.Itemname : "") : "",
+                                PartitemName = isPart ? (d.im?.Itemcode ?? "") : "",
+                                PartitemDesc = isPart ? (d.im?.Itemdesc ?? "") : "",
                                 PartItemQty = partQty,
                                 PartItemRate = partRate,
 
@@ -3864,10 +4044,97 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
             }
         }
 
+        //    public async Task<List<LabourCodeDetails>> GetLabourCodesByPartAndJob(string partCode, int jobId)
+        //    {
+        //        // Same cityTier derivation GetMaterialedJobCardList already uses —
+        //        // PartWiseLabourMasters' rates are city-tier-specific.
+        //        var cityTier = await (
+        //            from c in _context.JobCardCustomers
+        //            join lg in _context.LedgerMasters
+        //                on c.CustomerLedgerId equals lg.Id into lgJoin
+        //            from lg in lgJoin.DefaultIfEmpty()
+        //            join ct in _context.Cities
+        //                on lg.City equals ct.CityId into ctJoin
+        //            from ct in ctJoin.DefaultIfEmpty()
+        //            where c.JobCardHeaderId == jobId
+        //            select ct.TierLevel
+        //        ).FirstOrDefaultAsync();
+
+        //        return await _context.PartWiseLabourMasters
+        //            .Where(pl => pl.PartCode == partCode && pl.CityTier == cityTier)
+        //            .Select(pl => new LabourCodeDetails
+        //            {
+        //                PartwiseLabourId = pl.Id,
+        //                LabourCode = pl.LabourCode,
+        //                LabourName = pl.LabourName,
+        //                LabourRate = pl.LabourRate,
+        //                LabourHsnCode = pl.Hsncode,
+        //                CityTier = pl.CityTier,
+        //                Igst = pl.Igst,
+        //                Cgst = pl.Cgst,
+        //                Sgst = pl.Sgst
+        //            })
+        //            .ToListAsync();
+        //    }
+
+        //public async Task<List<LabourCodeDetails>> GetLabourCodesByPartAndJob(string partCode, int jobId)
+        //{
+        //    var cityTier = await (
+        //        from c in _context.JobCardCustomers
+        //        join lg in _context.LedgerMasters
+        //            on c.CustomerLedgerId equals lg.Id into lgJoin
+        //        from lg in lgJoin.DefaultIfEmpty()
+        //        join ct in _context.Cities
+        //            on lg.City equals ct.CityId into ctJoin
+        //        from ct in ctJoin.DefaultIfEmpty()
+        //        where c.JobCardHeaderId == jobId
+        //        select ct.TierLevel
+        //    ).FirstOrDefaultAsync();
+
+        //    // Job cha vehicle model (OEM model) kaadh, model match sathi
+        //    var itemName = await _context.JobCardCustomers
+        //        .Where(c => c.JobCardHeaderId == jobId)
+        //        .Select(c => c.ModelName)
+        //        .FirstOrDefaultAsync();
+
+        //    var oemModel = ((await _context.ItemMasters
+        //        .Where(i => i.Itemname == itemName)
+        //        .Select(i => i.Oemmodelname)
+        //        .FirstOrDefaultAsync()) ?? "").Trim();
+
+        //    var list = await _context.PartWiseLabourMasters
+        //        .Where(pl => pl.PartCode == partCode
+        //                  && pl.IsActive == true
+        //                  && (pl.CityTier == cityTier || pl.CityTier == 0))
+        //        .Select(pl => new LabourCodeDetails
+        //        {
+        //            PartwiseLabourId = pl.Id,
+        //            LabourCode = pl.LabourCode,
+        //            LabourName = pl.LabourName,
+        //            LabourRate = pl.LabourRate,
+        //            LabourHsnCode = pl.Hsncode,
+        //            CityTier = pl.CityTier,
+        //            Igst = pl.Igst,
+        //            Cgst = pl.Cgst,
+        //            Sgst = pl.Sgst,
+        //            ModelName = pl.ModelName      
+        //        })
+        //        .ToListAsync();
+
+        //    // Model filter: rikama model = sarvansathi, nahitar match pahije
+        //    if (!string.IsNullOrWhiteSpace(oemModel))
+        //    {
+        //        list = list.Where(x =>
+        //            string.IsNullOrWhiteSpace(x.ModelName) ||
+        //            oemModel.Contains(x.ModelName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+        //            x.ModelName.Trim().Contains(oemModel, StringComparison.OrdinalIgnoreCase))
+        //            .ToList();
+        //    }
+
+        //    return list;
+        //}
         public async Task<List<LabourCodeDetails>> GetLabourCodesByPartAndJob(string partCode, int jobId)
         {
-            // Same cityTier derivation GetMaterialedJobCardList already uses —
-            // PartWiseLabourMasters' rates are city-tier-specific.
             var cityTier = await (
                 from c in _context.JobCardCustomers
                 join lg in _context.LedgerMasters
@@ -3880,21 +4147,44 @@ public async Task<int> UpdateJobCardinfoDetails(UpdateJobCardVM updateJobCardDet
                 select ct.TierLevel
             ).FirstOrDefaultAsync();
 
-            return await _context.PartWiseLabourMasters
-                .Where(pl => pl.PartCode == partCode && pl.CityTier == cityTier)
-                .Select(pl => new LabourCodeDetails
-                {
-                    PartwiseLabourId = pl.Id,
-                    LabourCode = pl.LabourCode,
-                    LabourName = pl.LabourName,
-                    LabourRate = pl.LabourRate,
-                    LabourHsnCode = pl.Hsncode,
-                    CityTier = pl.CityTier,
-                    Igst = pl.Igst,
-                    Cgst = pl.Cgst,
-                    Sgst = pl.Sgst
-                })
+            var itemName = await _context.JobCardCustomers
+                .Where(c => c.JobCardHeaderId == jobId)
+                .Select(c => c.ModelName)
+                .FirstOrDefaultAsync();
+
+            var oemModel = ((await _context.ItemMasters
+                .Where(i => i.Itemname == itemName)
+                .Select(i => i.Oemmodelname)
+                .FirstOrDefaultAsync()) ?? "").Trim();
+
+            
+            var rows = await _context.PartWiseLabourMasters
+                .Where(pl => pl.PartCode == partCode
+                          && pl.IsActive == true
+                          && (pl.CityTier == cityTier || pl.CityTier == 0))
                 .ToListAsync();
+
+            if (!string.IsNullOrWhiteSpace(oemModel))
+            {
+                rows = rows.Where(x =>
+                        string.IsNullOrWhiteSpace(x.ModelName) ||
+                        oemModel.Contains(x.ModelName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                        x.ModelName.Trim().Contains(oemModel, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            return rows.Select(pl => new LabourCodeDetails
+            {
+                PartwiseLabourId = pl.Id,
+                LabourCode = pl.LabourCode,
+                LabourName = pl.LabourName,
+                LabourRate = pl.LabourRate,
+                LabourHsnCode = pl.Hsncode,
+                CityTier = pl.CityTier,
+                Igst = pl.Igst,
+                Cgst = pl.Cgst,
+                Sgst = pl.Sgst
+            }).ToList();
         }
     }
 }
