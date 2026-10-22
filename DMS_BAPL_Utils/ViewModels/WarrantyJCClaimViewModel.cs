@@ -36,7 +36,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? ChassisNo { get; set; }
         public string? SupplierName { get; set; }
         public string? JobCardNo { get; set; }
+
         public decimal TotalAmount { get; set; }
+
+
     }
     // All filters optional.
     public class WarrantyJCClaimSearchViewModel

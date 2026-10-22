@@ -31,5 +31,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo
 
         Task<List<ErpWarrantyClaimLineViewModel>> BuildErpWarrantyClaimPayload(int invoiceId);
 
+
+        Task<List<WarrantyOrderSummaryViewModel>> GetPendingOrders(string dealerCode);
+
     }
 }

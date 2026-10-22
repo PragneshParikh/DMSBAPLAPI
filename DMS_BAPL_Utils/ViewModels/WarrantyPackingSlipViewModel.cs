@@ -102,22 +102,27 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class WarrantyPackingSlipBoxDetailsViewModel
     {
-        public string BoxNumber { get; set; } = null!;
+        public string? BoxNumber { get; set; }
         public string? BoxType { get; set; }
         public string? Length { get; set; }
+        public string? Width { get; set; }     
+        public string? Height { get; set; }   
+        public string? Weight { get; set; }
+        public string? Dimension { get; set; } 
         public List<WarrantyPackingSlipLineDetailsViewModel> Lines { get; set; } = new();
     }
 
     public class WarrantyPackingSlipLineDetailsViewModel
-    {
-        public int WarrantyOrderGridDetailId { get; set; }
-        public string? ItemType { get; set; }
-        public string? ClaimNo { get; set; }
-        public string? PartCode { get; set; }
-        public string? PartDescription { get; set; }
-        public decimal Qty { get; set; }
-    }
-
+{
+    public int WarrantyOrderGridDetailId { get; set; }
+    public string? ItemType { get; set; }
+    public string? ClaimNo { get; set; }
+    public string? JobNo { get; set; }       
+    public string? ChassisNo { get; set; }    
+    public string? PartCode { get; set; }
+    public string? PartDescription { get; set; }
+    public decimal Qty { get; set; }
+}
     public class WarrantyPackingSlipLineSearchViewModel
     {
         public string? DealerCode { get; set; }

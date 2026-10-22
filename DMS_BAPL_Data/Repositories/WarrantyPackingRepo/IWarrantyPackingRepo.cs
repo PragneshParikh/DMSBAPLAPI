@@ -15,5 +15,10 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
         Task<List<string>> SearchPackingSlipNos(string? dealerCode, string searchText);
         Task<List<string>> SearchPackingInvoiceNos(string? dealerCode, string searchText);
         Task<byte[]> GenerateWarrantyPackingSlipPdf(int packingSlipId);
+
+        Task<int> SaveWarrantyDispatch(WarrantyDispatchViewModel model, string userId);
+
+        Task<object> SearchWarrantyDispatch(WarrantyDispatchSearchViewModel filter);
+        Task<object> GetWarrantyDispatchById(int id);
     }
 }

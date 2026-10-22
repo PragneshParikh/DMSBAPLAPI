@@ -337,11 +337,12 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         IM.Dlrprice,
                         IM.Custprice,
                         IM.Hsncode,
+                    
 
                         TaxType = taxType,
                         AtaxCode = taxCode.AtaxCode,
 
-                        Amount = MT.ItemRate * MT.Quantity,
+                        //Amount = MT.ItemRate * MT.Quantity,
 
                         CGSTPercent = cgstRate,
                         SGSTPercent = sgstRate,
@@ -360,7 +361,13 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
 
                         GSTAmount = Math.Round(
                             (MT.ItemRate * MT.Quantity *
-                            (cgstRate + sgstRate + igstRate)) / 100, 2)
+                            (cgstRate + sgstRate + igstRate)) / 100, 2),
+
+                        Amount = Math.Round((MT.ItemRate * MT.Quantity) +
+                        ((MT.ItemRate * MT.Quantity * cgstRate) / 100) +
+                        ((MT.ItemRate * MT.Quantity * sgstRate) / 100) +
+                        ((MT.ItemRate * MT.Quantity * igstRate) / 100), 2)
+
                     };
 
                 return await result.ToListAsync();

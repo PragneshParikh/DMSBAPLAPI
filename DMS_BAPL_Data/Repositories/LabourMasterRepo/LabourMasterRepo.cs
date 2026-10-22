@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using System;
@@ -533,44 +534,149 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
 
         }
 
+        //public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId, string dealerCode)
+        //{
+        //    var itemName = oemmodelName;
+        //    var oemmodel = await _context.ItemMasters
+        //        .Where(x => x.Itemname == itemName)
+        //        .Select(x => x.Oemmodelname)
+        //        .FirstOrDefaultAsync();
+        //    var modelName = (oemmodel ?? "").Trim();
+
+        //    var CustomerStateId = await _context.LedgerMasters
+        //        .Where(cs => cs.Id == customerLedgerId)
+        //        .Select(cs => cs.State)
+        //        .FirstOrDefaultAsync();
+        //    var custState = await _context.States
+        //        .Where(custst => custst.StateId == CustomerStateId)
+        //        .Select(custst => custst.StateName)
+        //        .FirstOrDefaultAsync();
+        //    var DealerState = await _context.DealerMasters
+        //        .Where(ds => ds.Dealercode == dealerCode)
+        //        .Select(ds => ds.State)
+        //        .FirstOrDefaultAsync();
+
+
+        //    var city = await _context.LedgerMasters
+        //        .Where(y => y.Id == customerLedgerId)
+        //        .Select(y => y.City)
+        //        .FirstOrDefaultAsync();
+
+        //    var cityTier = await _context.Cities
+        //        .Where(ct => ct.CityId == city)
+        //        .Select(ct => ct.TierLevel)
+        //        .FirstOrDefaultAsync();
+
+        //    //Model Wise Labour
+        //    var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true && cityTier == x.CityTier)
+        //        .Select(x => new LabourRateDropDown
+        //        {
+        //            LabourId = x.Id,
+        //            Source = "MODEL",
+        //            LabourCode = x.LabourCode,
+        //            LabourDescription = x.LabourDescription,
+        //            LabourRate = x.LabourRate,
+        //            LabourHsnCode = x.Hsncode,
+        //            Cgst = x.Cgst,
+        //            Sgst = x.Sgst,
+        //            Igst = x.Igst,
+        //            OemModelName = x.Oemmodelname,
+        //            custState = custState,
+        //            DealerState = DealerState,
+
+
+        //        }).ToListAsync();
+
+        //    labourRateDropDowns = labourRateDropDowns
+        //    .Where(x => !string.IsNullOrWhiteSpace(x.OemModelName) &&
+        //        (
+        //             modelName?.Contains(x.OemModelName.Trim(), StringComparison.OrdinalIgnoreCase) == true
+        //             ||
+        //             x.OemModelName.Trim().Contains(modelName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+        //        )).ToList();
+
+        //    // Part Wise Labour
+        //    //    var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters.Where(x => x.IsActive == true && cityTier == x.CityTier)
+        //    //        .Select(x => new LabourRateDropDown
+        //    //        {
+        //    //            LabourCode = x.LabourCode,
+        //    //            LabourDescription = x.LabourName,
+        //    //            LabourRate = x.LabourRate,
+        //    //            LabourHsnCode = x.Hsncode,
+        //    //            Cgst = x.Cgst,
+        //    //            Sgst = x.Sgst,
+        //    //            Igst = x.Igst,
+        //    //            OemModelName = x.ModelName,
+        //    //            custState = custState,
+        //    //            DealerState = DealerState,
+        //    //        }).ToListAsync();
+
+        //    //    partWiseLabourRateDropDowns = partWiseLabourRateDropDowns
+        //    //.Where(x => !string.IsNullOrWhiteSpace(x.OemModelName) &&
+        //    //    (
+        //    //        modelName.Contains(x.OemModelName.Trim(), StringComparison.OrdinalIgnoreCase) == true
+        //    //        ||
+        //    //        x.OemModelName.Trim().Contains(modelName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+        //    //    )).ToList();
+        //    //    return labourRateDropDowns.Concat(partWiseLabourRateDropDowns).ToList();
+
+        //    // Part Wise Labour
+        //    //var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters
+        //    //    .Where(x => x.IsActive == true && cityTier == x.CityTier)
+        //    //    .Select(x => new LabourRateDropDown
+        //    //    {
+        //    //        PartWiseLabourId = x.Id,          // IMPORTANT
+        //    //        LabourCode = x.LabourCode,
+        //    //        LabourDescription = x.LabourName,
+        //    //        LabourRate = x.LabourRate,
+        //    //        LabourHsnCode = x.Hsncode,
+        //    //        Cgst = x.Cgst,
+        //    //        Sgst = x.Sgst,
+        //    //        Igst = x.Igst,
+        //    //        OemModelName = x.ModelName,
+        //    //        PartCode = x.PartCode,
+        //    //        Source = "PART",
+        //    //        custState = custState,
+        //    //        DealerState = DealerState,
+        //    //    }).ToListAsync();
+
+        //    //labourRateDropDowns = labourRateDropDowns
+        //    //    .Where(x =>
+        //    //        string.IsNullOrWhiteSpace(x.OemModelName)
+        //    //        ||
+        //    //        modelName.Contains(x.OemModelName.Trim(), StringComparison.OrdinalIgnoreCase)
+        //    //        ||
+        //    //        x.OemModelName.Trim().Contains(modelName, StringComparison.OrdinalIgnoreCase))
+        //    //    .ToList();
+
+        //    return labourRateDropDowns.Concat(labourRateDropDowns).ToList();
+        //}
+
         public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId, string dealerCode)
         {
-            var itemName = oemmodelName;
-            var oemmodel = await _context.ItemMasters
-                .Where(x => x.Itemname == itemName)
-                .Select(x => x.Oemmodelname)
-                .FirstOrDefaultAsync();
-            var modelName = (oemmodel ?? "").Trim();
-
             var CustomerStateId = await _context.LedgerMasters
                 .Where(cs => cs.Id == customerLedgerId)
                 .Select(cs => cs.State)
                 .FirstOrDefaultAsync();
+
             var custState = await _context.States
-                .Where(custst => custst.StateId == CustomerStateId)
-                .Select(custst => custst.StateName)
+                .Where(st => st.StateId == CustomerStateId)
+                .Select(st => st.StateName)
                 .FirstOrDefaultAsync();
+
             var DealerState = await _context.DealerMasters
                 .Where(ds => ds.Dealercode == dealerCode)
                 .Select(ds => ds.State)
                 .FirstOrDefaultAsync();
 
-
-            var city = await _context.LedgerMasters
-                .Where(y => y.Id == customerLedgerId)
-                .Select(y => y.City)
-                .FirstOrDefaultAsync();
-
-            var cityTier = await _context.Cities
-                .Where(ct => ct.CityId == city)
-                .Select(ct => ct.TierLevel)
-                .FirstOrDefaultAsync();
-
-            //Model Wise Labour
-            var labourRateDropDowns = await _context.LabourMasters.Where(x => x.IsLabourActive == true && cityTier == x.CityTier)
+            
+            return await _context.LabourMasters
+                .Where(x => x.IsLabourActive == true)
+                .OrderBy(x => x.LabourCode)
                 .Select(x => new LabourRateDropDown
                 {
                     LabourId = x.Id,
+                    Source = "MODEL",
                     LabourCode = x.LabourCode,
                     LabourDescription = x.LabourDescription,
                     LabourRate = x.LabourRate,
@@ -580,43 +686,9 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
                     Igst = x.Igst,
                     OemModelName = x.Oemmodelname,
                     custState = custState,
-                    DealerState = DealerState,
-
-
-                }).ToListAsync();
-
-            labourRateDropDowns = labourRateDropDowns
-            .Where(x => !string.IsNullOrWhiteSpace(x.OemModelName) &&
-                (
-                     modelName?.Contains(x.OemModelName.Trim(), StringComparison.OrdinalIgnoreCase) == true
-                     ||
-                     x.OemModelName.Trim().Contains(modelName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-                )).ToList();
-
-            // Part Wise Labour
-            var partWiseLabourRateDropDowns = await _context.PartWiseLabourMasters.Where(x => x.IsActive == true && cityTier == x.CityTier)
-                .Select(x => new LabourRateDropDown
-                {
-                    LabourCode = x.LabourCode,
-                    LabourDescription = x.LabourName,
-                    LabourRate = x.LabourRate,
-                    LabourHsnCode = x.Hsncode,
-                    Cgst = x.Cgst,
-                    Sgst = x.Sgst,
-                    Igst = x.Igst,
-                    OemModelName = x.ModelName,
-                    custState = custState,
-                    DealerState = DealerState,
-                }).ToListAsync();
-
-            partWiseLabourRateDropDowns = partWiseLabourRateDropDowns
-        .Where(x => !string.IsNullOrWhiteSpace(x.OemModelName) &&
-            (
-                modelName.Contains(x.OemModelName.Trim(), StringComparison.OrdinalIgnoreCase) == true
-                ||
-                x.OemModelName.Trim().Contains(modelName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-            )).ToList();
-            return labourRateDropDowns.Concat(partWiseLabourRateDropDowns).ToList();
+                    DealerState = DealerState
+                })
+                .ToListAsync();
         }
 
         public async Task<List<PartWiseLabourMasterRateViewModel>> GetLabourRateMasterExportDataAsync(

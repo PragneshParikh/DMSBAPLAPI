@@ -45,6 +45,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class PartWiseLabourMasterRateViewModel
     {
+
         public int Id { get; set; }
         public string? LabourCode { get; set; }
         public string? LabourName { get; set; }
@@ -88,6 +89,10 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string? custState { get; set; }
         public string? DealerState { get; set; }
+
+        public int? PartWiseLabourId { get; set; }
+        public string? PartCode { get; set; }
+        public string? Source { get; set; }
 
     }
 }

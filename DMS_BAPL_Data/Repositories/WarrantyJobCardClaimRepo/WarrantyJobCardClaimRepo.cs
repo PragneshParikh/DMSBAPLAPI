@@ -129,6 +129,33 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
             }
         }
 
+        //public async Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode)
+        //{
+        //    var claims = await _context.WarrantyJcclaims
+        // .Include(x => x.Supplier)
+        // .Include(x => x.JobCardHeader)
+        // .Include(x => x.WarrantyJcclaimDetails)
+        // .Where(x => x.DealerCode == dealerCode) 
+        // .OrderByDescending(x => x.CreatedDate)
+        // .ToListAsync();
+
+        //    return claims.Select(c => new WarrantyJCClaimListViewModel
+        //    {
+        //        Id = c.Id,
+        //        ClaimPrefix = c.ClaimPrefix,
+        //        ClaimNo = c.ClaimNo,
+        //        ClaimDate = c.ClaimDate,
+        //        ChassisNo = c.ChassisNo,
+        //        SupplierName = c.Supplier != null ? c.Supplier.LedgerName : null,
+        //        JobCardNo = c.JobCardHeader != null
+        //            ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
+        //            : null,
+        //        TotalAmount = c.WarrantyJcclaimDetails != null
+        //            ? c.WarrantyJcclaimDetails.Sum(d => d.TotalAmount ?? 0)
+        //            : 0
+        //    }).ToList();
+        //}
+
         public async Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode)
         {
             var claims = await _context.WarrantyJcclaims
@@ -170,8 +197,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
             if (filter.DateFrom.HasValue)
                 query = query.Where(x => x.ClaimDate >= filter.DateFrom.Value);
 
+            //if (filter.DateTo.HasValue)
+            //    query = query.Where(x => x.ClaimDate <= filter.DateTo.Value);
             if (filter.DateTo.HasValue)
-                query = query.Where(x => x.ClaimDate <= filter.DateTo.Value);
+            {
+                var toEnd = filter.DateTo.Value.Date.AddDays(1);
+                query = query.Where(x => x.ClaimDate < toEnd);
+            }
 
             if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                 query = query.Where(x => x.ChassisNo != null && x.ChassisNo.Contains(filter.ChassisNo));
@@ -199,6 +231,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 JobCardNo = c.JobCardHeader != null
                     ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
                     : null,
+
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails.Sum(d => d.TotalAmount ?? 0)
                     : 0
@@ -229,8 +262,14 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
             if (filter.DateFrom.HasValue)
                 query = query.Where(x => x.ClaimDate >= filter.DateFrom.Value);
 
+            //if (filter.DateTo.HasValue)
+            //    query = query.Where(x => x.ClaimDate <= filter.DateTo.Value);
+
             if (filter.DateTo.HasValue)
-                query = query.Where(x => x.ClaimDate <= filter.DateTo.Value);
+            {
+                var toEnd = filter.DateTo.Value.Date.AddDays(1);
+                query = query.Where(x => x.ClaimDate < toEnd);
+            }
 
             if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                 query = query.Where(x => x.ChassisNo != null && x.ChassisNo.Contains(filter.ChassisNo));
@@ -251,6 +290,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 JobCardNo = c.JobCardHeader != null
                     ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
                     : null,
+
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails.Sum(d => d.TotalAmount ?? 0)
                     : 0
@@ -342,6 +382,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 .Include(x => x.WarrantyJcclaimDetails)
                     .ThenInclude(d => d.RepairBillDetail)
                         .ThenInclude(rb => rb.LabourMaster)
+                        .Include(x => x.WarrantyJcclaimDetails)
+                    .ThenInclude(d => d.RepairBillDetail)
+                        .ThenInclude(rb => rb.PartWiseLabour)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (claim == null)
@@ -692,14 +735,24 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                             foreach (var d in labourLines)
                             {
                                 var rbd = d.RepairBillDetail;
-                                string code = rbd?.LabourMaster?.LabourCode ?? "";
-                                string desc = rbd?.LabourMaster?.LabourDescription ?? "";
+                                //string code = rbd?.LabourMaster?.LabourCode ?? "";
+                                //string desc = rbd?.LabourMaster?.LabourDescription ?? "";
 
-                                decimal cgstPercent = rbd?.LabourMaster?.Cgst ?? 0;
+                                //decimal cgstPercent = rbd?.LabourMaster?.Cgst ?? 0;
+                                //decimal cgstAmount = rbd?.Cgstamount ?? 0;
+                                //decimal sgstPercent = rbd?.LabourMaster?.Sgst ?? 0;
+                                //decimal sgstAmount = rbd?.Sgstamount ?? 0;
+                                //decimal igstPercent = rbd?.LabourMaster?.Igst ?? 0;
+                                //decimal igstAmount = rbd?.Igstamount ?? 0;
+
+                                string code = rbd?.LabourMaster?.LabourCode?? rbd?.PartWiseLabour?.LabourCode ?? "";
+                                string desc = rbd?.LabourMaster?.LabourDescription?? rbd?.PartWiseLabour?.LabourName ?? "";
+
+                                decimal cgstPercent = rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0;
                                 decimal cgstAmount = rbd?.Cgstamount ?? 0;
-                                decimal sgstPercent = rbd?.LabourMaster?.Sgst ?? 0;
+                                decimal sgstPercent = rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0;
                                 decimal sgstAmount = rbd?.Sgstamount ?? 0;
-                                decimal igstPercent = rbd?.LabourMaster?.Igst ?? 0;
+                                decimal igstPercent = rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0;
                                 decimal igstAmount = rbd?.Igstamount ?? 0;
 
                                 decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;

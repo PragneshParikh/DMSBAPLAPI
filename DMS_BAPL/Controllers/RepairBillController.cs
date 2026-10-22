@@ -78,11 +78,16 @@ namespace DMS_BAPL_Api.Controllers
                 }
 
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Success = false, Message = ex.Message, Details = ex.Message });
+            }
             catch (Exception ex)
             {
                 // Log the exception
                 _logger.LogError(ex, "An error occurred while inserting the repair bill.");
-                return StatusCode(500, new { Success = false, Message = "An error occurred while inserting the repair bill.", Details = ex.Message });
+                // return StatusCode(500, new { Success = false, Message = "An error occurred while inserting the repair bill.", Details = ex.Message });
+                return StatusCode(500, new { Success = false, Message = "An error occurred while inserting the repair bill.", Details = ex.InnerException?.Message ?? ex.Message });
             }
         }
 

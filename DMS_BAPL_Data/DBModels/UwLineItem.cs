@@ -13,6 +13,8 @@ namespace DMS_BAPL_Data.DBModels
         public string? CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }
 
+        public int? WarrantyJcclaimDetailId { get; set; }
+
         public virtual WarrantyJcclaim WarrantyJcclaim { get; set; } = null!;
     }
 }
