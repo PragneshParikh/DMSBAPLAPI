@@ -29,26 +29,47 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
         // Called from InsertWarrantyJCClaim, right after the claim itself
         // is saved - this is the "once JCClaim submitted it will reflect
         // in UW-Line Items window" behavior, per explicit request.
+        //public async Task InsertUwLineItem(int warrantyJcclaimId, string? userId)
+        //{
+        //    _context.UwLineItems.Add(new UwLineItem
+        //    {
+        //        WarrantyJcclaimId = warrantyJcclaimId,
+        //        Status = "Pending",
+        //        CreatedBy = userId,
+        //        CreatedDate = DateTime.Now
+        //    });
+
+        //    await _context.SaveChangesAsync();
+        //}
         public async Task InsertUwLineItem(int warrantyJcclaimId, string? userId)
         {
-            _context.UwLineItems.Add(new UwLineItem
+            var claimDetails = await _context.WarrantyJcclaimDetails
+                .Where(d => d.WarrantyJcclaimHeaderId == warrantyJcclaimId)
+                .ToListAsync();
+
+            foreach (var detail in claimDetails)
             {
-                WarrantyJcclaimId = warrantyJcclaimId,
-                Status = "Pending",
-                CreatedBy = userId,
-                CreatedDate = DateTime.Now
-            });
+                _context.UwLineItems.Add(new UwLineItem
+                {
+                    WarrantyJcclaimId = warrantyJcclaimId,
+                    WarrantyJcclaimDetailId = detail.Id, 
+                    Status = "Pending",
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now
+                });
+            }
 
             await _context.SaveChangesAsync();
         }
 
         public async Task<UwLineItemSearchResultViewModel> SearchUwLineItems(UwLineItemSearchViewModel filter)
         {
+
             var query = from d in _context.WarrantyJcclaimDetails
                         .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.LabourMaster)
                         .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.PartItem)
                         join c in _context.WarrantyJcclaims on d.WarrantyJcclaimHeaderId equals c.Id
-                        join u in _context.UwLineItems on c.Id equals u.WarrantyJcclaimId
+                        join u in _context.UwLineItems on d.Id equals u.WarrantyJcclaimDetailId
                         select new { d, c, u };
 
             if (!string.IsNullOrWhiteSpace(filter.DealerCode))
@@ -126,26 +147,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
                 var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
 
-                // ── Rate / tax calculation ──────────────────────────────────
-                // FIX: previously GstAmount/TotalAmount were read straight off
-                // WarrantyJcclaimDetail.TaxAmount/TotalAmount, which were
-                // computed ONCE at claim-submission time
-                // (WarrantyJobCardClaimRepo.InsertWarrantyJCClaim) from a
-                // single incoming "IgstAmount" DTO field. For an intrastate
-                // repair (real IGST = 0, CGST+SGST apply instead), if the
-                // claim form didn't apply the same IGST-absorbs-CGST+SGST
-                // fallback used elsewhere in this codebase
-                // (WarrantyOrderRepo.BuildClaimFullViewModel), that stored
-                // TaxAmount/TotalAmount silently drops the CGST+SGST tax
-                // entirely — showing an "Amount" that's too low with no way
-                // to recover the missing tax from that field.
-                //
-                // Fix: compute Total Gst / Total Amount from the SAME real
-                // RepairBillDetail.Cgstamount/Sgstamount/Igstamount already
-                // used for the Cgst/Sgst/Igst columns below, so the grid is
-                // always internally consistent — Total Gst always equals
-                // Cgst + Sgst + Igst, and Amount always equals the taxable
-                // value plus that real total.
                 decimal cgstAmount = rbd?.Cgstamount ?? 0;
                 decimal sgstAmount = rbd?.Sgstamount ?? 0;
                 decimal igstAmount = rbd?.Igstamount ?? 0;
@@ -153,7 +154,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
 
                 decimal baseAmount = d.Amount ?? 0;
                 decimal lineTotalAmount = baseAmount + totalGstAmount;
-                // ─────────────────────────────────────────────────────────────
 
                 items.Add(new UwLineItemListViewModel
                 {
@@ -184,8 +184,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     ActionBy = u.ActionBy,
                     ActionDate = u.ActionDate,
 
-                    // Pre-formatted server-side so the client displays these
-                    // as plain strings — see UwLineItemListViewModel for why.
                     ActionDateDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("dd-MM-yyyy") : null,
                     ActionTimeDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("HH:mm:ss") : null,
                     Hsn = isLabour ? rbd?.LabourMaster?.Hsncode : rbd?.PartItem?.Hsncode,
@@ -203,11 +201,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     CgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0),
                     SgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0),
                     IgstPercent = isLabour ? (rbd?.LabourMaster?.Igst ?? 0) : (rbd?.PartItem?.Igst ?? 0),
-
-                    DeviceInward = null,
-                    DeviceOutward = null,
-                    ServiceType = null,
-                    FailureDate = null,
 
                     ServiceHead = jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
                     MotorNo = chassisBattery?.MotorNo,
@@ -239,6 +232,204 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 PageSize = filter.PageSize
             };
         }
+
+        //public async Task<UwLineItemSearchResultViewModel> SearchUwLineItems(UwLineItemSearchViewModel filter)
+        //{
+        //    var query = from d in _context.WarrantyJcclaimDetails
+        //                .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.LabourMaster)
+        //                .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.PartItem)
+        //                join c in _context.WarrantyJcclaims on d.WarrantyJcclaimHeaderId equals c.Id
+        //                join u in _context.UwLineItems on c.Id equals u.WarrantyJcclaimId
+        //                select new { d, c, u };
+
+        //    if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+        //        query = query.Where(x => x.c.DealerCode == filter.DealerCode);
+
+        //    if (filter.DateFrom.HasValue)
+        //        query = query.Where(x => x.c.ClaimDate >= filter.DateFrom.Value);
+
+        //    if (filter.DateTo.HasValue)
+        //        query = query.Where(x => x.c.ClaimDate <= filter.DateTo.Value);
+
+        //    if (filter.ClaimNo.HasValue)
+        //        query = query.Where(x => x.c.ClaimNo == filter.ClaimNo.Value);
+
+        //    if (!string.IsNullOrWhiteSpace(filter.Status))
+        //        query = query.Where(x => x.u.Status == filter.Status);
+
+        //    query = query.OrderByDescending(x => x.u.CreatedDate).ThenBy(x => x.d.Id);
+
+        //    var totalCount = await query.CountAsync();
+
+        //    var rows = await query
+        //        .Skip((filter.PageNumber - 1) * filter.PageSize)
+        //        .Take(filter.PageSize)
+        //        .ToListAsync();
+
+        //    var items = new List<UwLineItemListViewModel>();
+
+        //    foreach (var row in rows)
+        //    {
+        //        var d = row.d;
+        //        var c = row.c;
+        //        var u = row.u;
+
+        //        bool isLabour = d.ItemType == "Labour";
+
+        //        var rbd = await _context.RepairBillDetails
+        //                 .Include(r => r.LabourMaster)
+        //                 .Include(r => r.PartItem)
+        //                 .FirstOrDefaultAsync(r => r.Id == d.RepairBillDetailId);
+
+        //        var jobCardHeader = c.JobCardHeaderId.HasValue
+        //            ? await _context.JobCardHeaders
+        //                .Include(j => j.ServiceheadNavigation)
+        //                .FirstOrDefaultAsync(j => j.Id == c.JobCardHeaderId.Value)
+        //            : null;
+
+        //        var supplier = c.SupplierId.HasValue
+        //            ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == c.SupplierId.Value)
+        //            : null;
+
+        //        var dealerCompanyName = !string.IsNullOrWhiteSpace(c.DealerCode)
+        //            ? await _context.DealerMasters
+        //                .Where(dm => dm.Dealercode == c.DealerCode)
+        //                .Select(dm => dm.Compname)
+        //                .FirstOrDefaultAsync()
+        //            : null;
+
+        //        var customerLedger = c.CustomerLedgerId.HasValue
+        //            ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == c.CustomerLedgerId.Value)
+        //            : null;
+
+        //        var repairBillHeader = c.RepairBillHeaderId.HasValue
+        //            ? await _context.RepairBillHeaders.FirstOrDefaultAsync(r => r.Id == c.RepairBillHeaderId.Value)
+        //            : null;
+
+        //        var chassisBattery = await _context.ChassisBatteryDetails
+        //            .Where(x => x.ChassisNo == c.ChassisNo)
+        //            .OrderByDescending(x => x.CreatedDate)
+        //            .FirstOrDefaultAsync();
+
+        //        var chassisDetail = await _context.ChassisDetails
+        //            .FirstOrDefaultAsync(x => x.ChassisNo == c.ChassisNo);
+
+        //        var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
+        //        var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
+
+        //        // ── Rate / tax calculation ──────────────────────────────────
+        //        // FIX: previously GstAmount/TotalAmount were read straight off
+        //        // WarrantyJcclaimDetail.TaxAmount/TotalAmount, which were
+        //        // computed ONCE at claim-submission time
+        //        // (WarrantyJobCardClaimRepo.InsertWarrantyJCClaim) from a
+        //        // single incoming "IgstAmount" DTO field. For an intrastate
+        //        // repair (real IGST = 0, CGST+SGST apply instead), if the
+        //        // claim form didn't apply the same IGST-absorbs-CGST+SGST
+        //        // fallback used elsewhere in this codebase
+        //        // (WarrantyOrderRepo.BuildClaimFullViewModel), that stored
+        //        // TaxAmount/TotalAmount silently drops the CGST+SGST tax
+        //        // entirely — showing an "Amount" that's too low with no way
+        //        // to recover the missing tax from that field.
+        //        //
+        //        // Fix: compute Total Gst / Total Amount from the SAME real
+        //        // RepairBillDetail.Cgstamount/Sgstamount/Igstamount already
+        //        // used for the Cgst/Sgst/Igst columns below, so the grid is
+        //        // always internally consistent — Total Gst always equals
+        //        // Cgst + Sgst + Igst, and Amount always equals the taxable
+        //        // value plus that real total.
+        //        decimal cgstAmount = rbd?.Cgstamount ?? 0;
+        //        decimal sgstAmount = rbd?.Sgstamount ?? 0;
+        //        decimal igstAmount = rbd?.Igstamount ?? 0;
+        //        decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;
+
+        //        decimal baseAmount = d.Amount ?? 0;
+        //        decimal lineTotalAmount = baseAmount + totalGstAmount;
+        //        // ─────────────────────────────────────────────────────────────
+
+        //        items.Add(new UwLineItemListViewModel
+        //        {
+        //            Id = u.Id,
+        //            WarrantyJcclaimId = c.Id,
+        //            WarrantyJcclaimDetailId = d.Id,
+
+        //            ClaimPrefix = c.ClaimPrefix,
+        //            ClaimNo = c.ClaimNo,
+        //            ClaimDate = c.ClaimDate,
+        //            ChassisNo = c.ChassisNo,
+        //            SupplierName = supplier?.LedgerName,
+        //            JobCardNo = jobCardNo,
+        //            JobCardDate = jobCardHeader?.CreatedDate,
+
+        //            DealerCompanyName = dealerCompanyName,
+        //            LocationCode = c.LocationCode,
+        //            LocationName = c.LocationName,
+
+        //            ItemType = d.ItemType,
+        //            ItemCode = isLabour ? rbd?.LabourMaster?.LabourCode : rbd?.PartItem?.Itemcode,
+        //            ItemDescription = isLabour ? rbd?.LabourMaster?.LabourDescription : rbd?.PartItem?.Itemdesc,
+
+        //            TotalAmount = lineTotalAmount,
+
+        //            Status = u.Status,
+        //            RejectionReason = u.RejectionReason,
+        //            ActionBy = u.ActionBy,
+        //            ActionDate = u.ActionDate,
+
+        //            // Pre-formatted server-side so the client displays these
+        //            // as plain strings — see UwLineItemListViewModel for why.
+        //            ActionDateDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("dd-MM-yyyy") : null,
+        //            ActionTimeDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("HH:mm:ss") : null,
+        //            Hsn = isLabour ? rbd?.LabourMaster?.Hsncode : rbd?.PartItem?.Hsncode,
+
+        //            Qty = d.Qty ?? 0,
+        //            Rate = d.Rate ?? 0,
+        //            GstAmount = totalGstAmount,
+        //            Amount = baseAmount,
+
+        //            Mrp = d.Mrp ?? 0,
+        //            Cgst = cgstAmount,
+        //            Sgst = sgstAmount,
+        //            Igst = igstAmount,
+
+        //            CgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0),
+        //            SgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0),
+        //            IgstPercent = isLabour ? (rbd?.LabourMaster?.Igst ?? 0) : (rbd?.PartItem?.Igst ?? 0),
+
+        //            DeviceInward = null,
+        //            DeviceOutward = null,
+        //            ServiceType = null,
+        //            FailureDate = null,
+
+        //            ServiceHead = jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
+        //            MotorNo = chassisBattery?.MotorNo,
+        //            InvoiceNo = invoiceNo,
+        //            InvoiceDate = repairBillHeader?.CreatedDate,
+        //            Kms = jobCardHeader?.Vehiclekms,
+
+        //            CustomerName = customerLedger?.LedgerName,
+        //            MobileNumber = customerLedger?.MobileNumber,
+
+        //            SaleDate = chassisDetail?.SaleDate,
+        //            ClaimAccount = c.ClaimAccount,
+
+        //            PartCode = !isLabour ? rbd?.PartItem?.Itemcode : null,
+        //            PartDescription = !isLabour ? rbd?.PartItem?.Itemdesc : null,
+        //            LabourCode = isLabour ? rbd?.LabourMaster?.LabourCode : null,
+        //            LabourDescription = isLabour ? rbd?.LabourMaster?.LabourDescription : null,
+        //            ClaimType = d.ClaimType,
+        //            DealerObservation = d.DealerObservation,
+        //            Rca = d.RootCauseAnalysis,
+        //        });
+        //    }
+
+        //    return new UwLineItemSearchResultViewModel
+        //    {
+        //        Items = items,
+        //        TotalCount = totalCount,
+        //        PageNumber = filter.PageNumber,
+        //        PageSize = filter.PageSize
+        //    };
+        //}
 
         //public async Task<(bool Success, string? ErrorMessage)> ApproveUwLineItem(UwLineItemActionViewModel model, string? userId)
         //{

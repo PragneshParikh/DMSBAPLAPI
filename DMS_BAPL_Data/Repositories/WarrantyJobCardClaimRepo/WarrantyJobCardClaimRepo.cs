@@ -158,17 +158,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
 
         public async Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode)
         {
-           
-            var linkedClaimIds = _context.WarrantyOrderGridDetails
-                .Select(d => d.WarrantyJcclaimId) 
-                .Distinct();                      
-
             var claims = await _context.WarrantyJcclaims
                 .Include(x => x.Supplier)
                 .Include(x => x.JobCardHeader)
                 .Include(x => x.WarrantyJcclaimDetails)
-                .Where(x => x.DealerCode == dealerCode
-                         && !linkedClaimIds.Contains(x.Id)) 
+                .Where(x => x.DealerCode == dealerCode)
                 .OrderByDescending(x => x.CreatedDate)
                 .ToListAsync();
 
@@ -237,6 +231,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 JobCardNo = c.JobCardHeader != null
                     ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
                     : null,
+
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails.Sum(d => d.TotalAmount ?? 0)
                     : 0
@@ -295,6 +290,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 JobCardNo = c.JobCardHeader != null
                     ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
                     : null,
+
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails.Sum(d => d.TotalAmount ?? 0)
                     : 0
