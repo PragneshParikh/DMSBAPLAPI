@@ -78,5 +78,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? TotalWithTax { get; set; }
         public string? DealerObservation { get; set; }
         public string? RootCauseAnalysis { get; set; }
+
+
     }
 }

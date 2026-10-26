@@ -60,9 +60,23 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
                     _context.WarrantyOrderDetails.AddRange(details);
                     await _context.SaveChangesAsync();
+
                     foreach (var claimId in model.WarrantyClaimIds)
                     {
-                        await SnapshotClaimGridRows(header.Id, claimId, userId);
+                        List<int>? approvedDetailIds = null;
+                        if (model.Claims != null)
+                        {
+                            var claimModel = model.Claims.FirstOrDefault(c => c.Id == claimId);
+                            if (claimModel?.Details != null)
+                            {
+                                approvedDetailIds = claimModel.Details
+                                    .Where(d => d.IsApproved)
+                                    .Select(d => d.Id)
+                                    .ToList();
+                            }
+                        }
+
+                        await SnapshotClaimGridRows(header.Id, claimId, approvedDetailIds, userId);
                     }
                     await _context.SaveChangesAsync();
                 }
@@ -174,9 +188,23 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
                         if (!claimAlreadyExists)
                         {
+                            List<int>? approvedDetailIds = null;
+                            if (model.Claims != null)
+                            {
+                                var claimModel = model.Claims.FirstOrDefault(c => c.Id == claimId);
+                                if (claimModel?.Details != null)
+                                {
+                                    approvedDetailIds = claimModel.Details
+                                        .Where(d => d.IsApproved)
+                                        .Select(d => d.Id)
+                                        .ToList();
+                                }
+                            }
+
                             await SnapshotClaimGridRows(
                                 header.Id,
                                 claimId,
+                                approvedDetailIds,
                                 userId);
                         }
                     }
@@ -325,6 +353,94 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             }
         }
 
+        //public async Task<WarrantyOrderViewModel?> GetWarrantyOrderById(int id)
+        //{
+        //    var header = await _context.WarrantyOrders
+        //        .Include(x => x.WarrantyOrderDetails)
+        //        .FirstOrDefaultAsync(x => x.Id == id);
+
+        //    if (header == null)
+        //        return null;
+        //    var gridRows = await _context.WarrantyOrderGridDetails
+        //        .Where(g => g.WarrantyOrderHeaderId == id)
+        //        .ToListAsync();
+        //    var approvalByClaimId = header.WarrantyOrderDetails
+        //        .ToDictionary(d => d.WarrantyJcclaimId, d => d.IsApproved);
+
+        //    var claims = gridRows
+        //        .GroupBy(g => g.WarrantyJcclaimId)
+        //        .Select(grp =>
+        //        {
+        //            var first = grp.First();
+        //            return new WarrantyJCClaimFullViewModel
+        //            {
+        //                Id = grp.Key,
+        //                ClaimPrefix = first.ClaimNo,
+        //                ClaimNo = null,
+        //                ClaimDate = first.ClaimDate,
+        //                JobCardNo = first.JobCardNo,
+        //                JobCardDate = first.JobCardDate,
+        //                InvoiceNo = first.InvoiceNo,
+        //                InvoiceDate = first.InvoiceDate,
+        //                ServiceHead = first.ServiceHead,
+        //                Kms = first.Kms,
+        //                LocationName = first.LocationName,
+        //                ChassisNo = first.ChassisNo,
+        //                MotorNo = first.MotorNo,
+        //                PartyName = first.PartyName,
+        //                IsApproved = approvalByClaimId.TryGetValue(grp.Key, out var approved) && approved,
+        //                Details = grp
+        //                    .Where(g => g.ItemType != null) 
+        //                    .Select(g => new WarrantyJCClaimDetailLineViewModel
+        //                    {
+        //                        ItemType = g.ItemType,
+        //                        PartCode = g.PartCode,
+        //                        PartName = g.PartName,
+        //                        PartDescription = g.PartDescription,
+        //                        LabourCode = g.LabourCode,
+        //                        LabourDescription = g.LabourDescription,
+        //                        Quantity = g.Quantity ?? 0,
+        //                        CgstPercent = g.CgstPercent ?? 0,
+        //                        CgstAmount = g.CgstAmount ?? 0,
+        //                        SgstPercent = g.SgstPercent ?? 0,
+        //                        SgstAmount = g.SgstAmount ?? 0,
+        //                        IgstPercent = g.IgstPercent ?? 0,
+        //                        IgstAmount = g.IgstAmount ?? 0,
+        //                        TotalAmount = g.TotalAmount ?? 0,
+        //                        Mrp = g.Mrp,
+        //                        Rate = g.Mrp
+        //                    }).ToList()
+        //            };
+        //        })
+        //        .ToList();
+
+        //    var headerLocationName = !string.IsNullOrWhiteSpace(header.Location)
+        //        ? await _context.LocationMasters
+        //            .Where(l => l.Loccode == header.Location)
+        //            .Select(l => l.Locname)
+        //            .FirstOrDefaultAsync()
+        //        : null;
+
+        //    return new WarrantyOrderViewModel
+        //    {
+        //        Id = header.Id,
+        //        DealerCode = header.DealerCode,
+        //        DateFrom = header.DateFrom,
+        //        DateTo = header.DateTo,
+        //        BatchNo = header.BatchNo,
+        //        BatchDate = header.BatchDate,
+        //        OrderNo = header.OrderNo,
+        //        OrderDate = header.OrderDate,
+        //        Location = header.Location,
+        //        LocationName = headerLocationName,
+        //        ClaimType = header.ClaimType,
+        //        SupplierId = header.SupplierId,
+        //        IsApproved = header.IsApproved,
+        //        IsActive = header.IsActive,
+        //        WarrantyClaimIds = header.WarrantyOrderDetails.Select(d => d.WarrantyJcclaimId).ToList(),
+        //        Claims = claims
+        //    };
+        //}
         public async Task<WarrantyOrderViewModel?> GetWarrantyOrderById(int id)
         {
             var header = await _context.WarrantyOrders
@@ -333,9 +449,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             if (header == null)
                 return null;
+
             var gridRows = await _context.WarrantyOrderGridDetails
                 .Where(g => g.WarrantyOrderHeaderId == id)
                 .ToListAsync();
+
+           
             var approvalByClaimId = header.WarrantyOrderDetails
                 .ToDictionary(d => d.WarrantyJcclaimId, d => d.IsApproved);
 
@@ -362,7 +481,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                         PartyName = first.PartyName,
                         IsApproved = approvalByClaimId.TryGetValue(grp.Key, out var approved) && approved,
                         Details = grp
-                            .Where(g => g.ItemType != null) 
+                            .Where(g => g.ItemType != null)
                             .Select(g => new WarrantyJCClaimDetailLineViewModel
                             {
                                 ItemType = g.ItemType,
@@ -380,7 +499,9 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                                 IgstAmount = g.IgstAmount ?? 0,
                                 TotalAmount = g.TotalAmount ?? 0,
                                 Mrp = g.Mrp,
-                                Rate = g.Mrp
+                                Rate = g.Mrp,
+                               
+                                IsApproved = true
                             }).ToList()
                     };
                 })
@@ -659,8 +780,81 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             };
         }
 
-    
-        private async Task SnapshotClaimGridRows(int orderHeaderId, int claimId, string userId)
+
+        //private async Task SnapshotClaimGridRows(int orderHeaderId, int claimId, string userId)
+        //{
+        //    var claim = await BuildClaimFullViewModel(claimId);
+        //    if (claim == null)
+        //        return;
+
+        //    var claimNoDisplay = $"{claim.ClaimPrefix}{claim.ClaimNo}";
+
+        //    if (claim.Details == null || !claim.Details.Any())
+        //    {
+        //        _context.WarrantyOrderGridDetails.Add(new WarrantyOrderGridDetail
+        //        {
+        //            WarrantyOrderHeaderId = orderHeaderId,
+        //            WarrantyJcclaimId = claimId,
+        //            ClaimNo = claimNoDisplay,
+        //            ClaimDate = claim.ClaimDate,
+        //            JobCardNo = claim.JobCardNo,
+        //            JobCardDate = claim.JobCardDate,
+        //            InvoiceNo = claim.InvoiceNo,
+        //            InvoiceDate = claim.InvoiceDate,
+        //            ServiceHead = claim.ServiceHead,
+        //            Kms = claim.Kms,
+        //            LocationName = claim.LocationName,
+        //            ChassisNo = claim.ChassisNo,
+        //            MotorNo = claim.MotorNo,
+        //            PartyName = claim.PartyName,
+        //            ItemType = null, 
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now
+        //        });
+        //        return;
+        //    }
+
+        //    foreach (var line in claim.Details)
+        //    {
+        //        _context.WarrantyOrderGridDetails.Add(new WarrantyOrderGridDetail
+        //        {
+        //            WarrantyOrderHeaderId = orderHeaderId,
+        //            WarrantyJcclaimId = claimId,
+        //            ClaimNo = claimNoDisplay,
+        //            ClaimDate = claim.ClaimDate,
+        //            JobCardNo = claim.JobCardNo,
+        //            JobCardDate = claim.JobCardDate,
+        //            InvoiceNo = claim.InvoiceNo,
+        //            InvoiceDate = claim.InvoiceDate,
+        //            ServiceHead = claim.ServiceHead,
+        //            Kms = claim.Kms,
+        //            LocationName = claim.LocationName,
+        //            ChassisNo = claim.ChassisNo,
+        //            MotorNo = claim.MotorNo,
+        //            PartyName = claim.PartyName,
+        //            ItemType = line.ItemType,
+        //            PartName = line.PartName,
+        //            PartDescription = line.PartDescription,
+        //            PartCode = line.PartCode,
+        //            LabourCode = line.LabourCode,
+        //            LabourDescription = line.LabourDescription,
+        //            Quantity = line.Quantity,
+        //            CgstPercent = line.CgstPercent,
+        //            CgstAmount = line.CgstAmount,
+        //            SgstPercent = line.SgstPercent,
+        //            SgstAmount = line.SgstAmount,
+        //            IgstPercent = line.IgstPercent,
+        //            IgstAmount = line.IgstAmount,
+        //            TotalAmount = line.TotalAmount,
+        //            Mrp = line.Mrp,
+        //            CreatedBy = userId,
+        //            CreatedDate = DateTime.Now
+        //        });
+        //    }
+        //}
+
+        // WarrantyOrderRepo.cs madhli SnapshotClaimGridRows methodashi update:
+        private async Task SnapshotClaimGridRows(int orderHeaderId, int claimId, List<int>? approvedDetailIds, string userId)
         {
             var claim = await BuildClaimFullViewModel(claimId);
             if (claim == null)
@@ -668,32 +862,17 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
 
             var claimNoDisplay = $"{claim.ClaimPrefix}{claim.ClaimNo}";
 
-            if (claim.Details == null || !claim.Details.Any())
+            // Fakt approved/selected details filter kara
+            var linesToSnapshot = (approvedDetailIds != null && approvedDetailIds.Any())
+                ? claim.Details.Where(d => approvedDetailIds.Contains(d.Id)).ToList()
+                : claim.Details;
+
+            if (linesToSnapshot == null || !linesToSnapshot.Any())
             {
-                _context.WarrantyOrderGridDetails.Add(new WarrantyOrderGridDetail
-                {
-                    WarrantyOrderHeaderId = orderHeaderId,
-                    WarrantyJcclaimId = claimId,
-                    ClaimNo = claimNoDisplay,
-                    ClaimDate = claim.ClaimDate,
-                    JobCardNo = claim.JobCardNo,
-                    JobCardDate = claim.JobCardDate,
-                    InvoiceNo = claim.InvoiceNo,
-                    InvoiceDate = claim.InvoiceDate,
-                    ServiceHead = claim.ServiceHead,
-                    Kms = claim.Kms,
-                    LocationName = claim.LocationName,
-                    ChassisNo = claim.ChassisNo,
-                    MotorNo = claim.MotorNo,
-                    PartyName = claim.PartyName,
-                    ItemType = null, 
-                    CreatedBy = userId,
-                    CreatedDate = DateTime.Now
-                });
                 return;
             }
 
-            foreach (var line in claim.Details)
+            foreach (var line in linesToSnapshot)
             {
                 _context.WarrantyOrderGridDetails.Add(new WarrantyOrderGridDetail
                 {

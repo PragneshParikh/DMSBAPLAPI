@@ -28,13 +28,13 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 {
                     DealerCode = model.DealerCode,
                     SlipPrefix = model.SlipPrefix,
-                    DocNo = model.DocNo,
+                    DispNo = model.DispNo,
                     DocDate = model.DocDate,
                     DispatchedThrough = model.DispatchedThrough,
                     ContactPerson = model.ContactPerson,
                     MobileNumber = model.MobileNumber,
                     CourierCharges = model.CourierCharges,
-                    GrNo = model.GrNo,
+                    DocNo = model.DocNo,
                     CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
@@ -67,6 +67,58 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
             }
         }
 
+        //public async Task<List<PackingSlipLineViewModel>> GetPackableLines(int warrantyInvoiceHeaderId)
+        //{
+        //    var orderIds = await _context.WarrantyInvoiceDetails
+        //        .Where(d => d.WarrantyInvoiceHeaderId == warrantyInvoiceHeaderId)
+        //        .Select(d => d.WarrantyOrderHeaderId)
+        //        .ToListAsync();
+
+        //    //var lines = await _context.WarrantyOrderGridDetails
+        //    //    .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) &&
+        //    //                (g.ItemType == "Part" || g.ItemType == "Labour"))
+        //    //    .ToListAsync();
+        //    var lines = await _context.WarrantyOrderGridDetails
+        //.Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType == "Part")
+        //.ToListAsync();
+
+        //    var lineIds = lines.Select(l => l.Id).ToList();
+
+        //    // Only counts quantity packed by slips that are still active -
+        //    // a deleted (soft-removed) slip must free up its quantity for
+        //    // repacking, not lock it forever.
+        //    var packedByLineId = await _context.WarrantyPackingSlipDetails
+        //        .Where(d => lineIds.Contains(d.WarrantyOrderGridDetailId) &&
+        //                    d.WarrantyPackingSlipBox.WarrantyPackingSlipHeader.IsActive)
+        //        .GroupBy(d => d.WarrantyOrderGridDetailId)
+        //        .Select(g => new { LineId = g.Key, PackedQty = g.Sum(x => x.Qty) })
+        //        .ToListAsync();
+
+        //    var packedMap = packedByLineId.ToDictionary(x => x.LineId, x => x.PackedQty);
+
+        //    return lines
+        //        .Select(l =>
+        //        {
+        //            var invoicedQty = l.Quantity ?? 0;
+        //            var packedQty = packedMap.TryGetValue(l.Id, out var p) ? p : 0;
+        //            var isLabour = l.ItemType == "Labour";
+
+        //            return new PackingSlipLineViewModel
+        //            {
+        //                WarrantyOrderGridDetailId = l.Id,
+        //                ClaimNo = l.ClaimNo,
+        //                ItemType = l.ItemType,
+        //                PartCode = isLabour ? l.LabourCode : l.PartCode,
+        //                PartDescription = isLabour ? l.LabourDescription : l.PartDescription,
+        //                InvoicedQty = invoicedQty,
+        //                AlreadyPackedQty = packedQty,
+        //                RemainingQty = invoicedQty - packedQty
+        //            };
+        //        })
+        //        .Where(x => x.RemainingQty > 0)
+        //        .ToList();
+        //}
+
         public async Task<List<PackingSlipLineViewModel>> GetPackableLines(int warrantyInvoiceHeaderId)
         {
             var orderIds = await _context.WarrantyInvoiceDetails
@@ -74,19 +126,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 .Select(d => d.WarrantyOrderHeaderId)
                 .ToListAsync();
 
-            //var lines = await _context.WarrantyOrderGridDetails
-            //    .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) &&
-            //                (g.ItemType == "Part" || g.ItemType == "Labour"))
-            //    .ToListAsync();
             var lines = await _context.WarrantyOrderGridDetails
-        .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType == "Part")
-        .ToListAsync();
+                .Where(g => orderIds.Contains(g.WarrantyOrderHeaderId) && g.ItemType == "Part")
+                .ToListAsync();
 
             var lineIds = lines.Select(l => l.Id).ToList();
 
-            // Only counts quantity packed by slips that are still active -
-            // a deleted (soft-removed) slip must free up its quantity for
-            // repacking, not lock it forever.
             var packedByLineId = await _context.WarrantyPackingSlipDetails
                 .Where(d => lineIds.Contains(d.WarrantyOrderGridDetailId) &&
                             d.WarrantyPackingSlipBox.WarrantyPackingSlipHeader.IsActive)
@@ -681,7 +726,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 query = query.Where(x => x.DocDate <= filter.DateTo.Value);
 
             if (!string.IsNullOrWhiteSpace(filter.SlipNo))
-                query = query.Where(x => (x.SlipPrefix + x.DocNo).Contains(filter.SlipNo));
+                query = query.Where(x => (x.SlipPrefix + x.DispNo).Contains(filter.SlipNo));
 
             var totalCount = await query.CountAsync();
 
@@ -694,12 +739,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
                 {
                     id = x.Id,
                     slipPrefix = x.SlipPrefix,
-                    docNo = x.DocNo,
+                    dispNo = x.DispNo,
                     docDate = x.DocDate,
                     dispatchedThrough = x.DispatchedThrough,
                     contactPerson = x.ContactPerson,
                     mobileNumber = x.MobileNumber,
-                    grNo = x.GrNo
+                    docNo = x.DocNo
                 })
                 .ToListAsync();
 
@@ -723,6 +768,25 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
             {
                 data = dispatch
             };
+        }
+
+        public async Task<bool> DeleteWarrantyDispatchAsync(int id)
+        {
+            var header = await _context.WarrantyDispatchHeaders
+                .Include(x => x.WarrantyDispatchDetails)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (header == null)
+                return false;
+
+            if (header.WarrantyDispatchDetails != null && header.WarrantyDispatchDetails.Any())
+            {
+                _context.WarrantyDispatchDetails.RemoveRange(header.WarrantyDispatchDetails);
+            }
+
+            _context.WarrantyDispatchHeaders.Remove(header);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
 
