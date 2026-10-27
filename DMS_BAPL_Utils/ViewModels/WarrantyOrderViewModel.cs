@@ -146,6 +146,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal Mrp { get; set; }
         public string? DealerObservation { get; set; }
         public string? RootCauseAnalysis { get; set; }
+
+        public bool IsApproved { get; set; }
     }
 
     public class WarrantyJCClaimUpdateViewModel

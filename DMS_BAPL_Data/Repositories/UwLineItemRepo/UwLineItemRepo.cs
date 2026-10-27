@@ -64,10 +64,10 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
 
         public async Task<UwLineItemSearchResultViewModel> SearchUwLineItems(UwLineItemSearchViewModel filter)
         {
-
             var query = from d in _context.WarrantyJcclaimDetails
                         .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.LabourMaster)
                         .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.PartItem)
+                        .Include(x => x.RepairBillDetail).ThenInclude(rb => rb.PartWiseLabour) // <-- HE ADD KELA AHE
                         join c in _context.WarrantyJcclaims on d.WarrantyJcclaimHeaderId equals c.Id
                         join u in _context.UwLineItems on d.Id equals u.WarrantyJcclaimDetailId
                         select new { d, c, u };
@@ -104,12 +104,80 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 var c = row.c;
                 var u = row.u;
 
-                bool isLabour = d.ItemType == "Labour";
+                // Robust check for Labour (handles 'Labour' or 'Labor')
+                bool isLabour = d.ItemType?.Trim().Equals("Labour", StringComparison.OrdinalIgnoreCase) == true ||
+                                d.ItemType?.Trim().Equals("Labor", StringComparison.OrdinalIgnoreCase) == true;
 
-                var rbd = await _context.RepairBillDetails
-                         .Include(r => r.LabourMaster)
-                         .Include(r => r.PartItem)
-                         .FirstOrDefaultAsync(r => r.Id == d.RepairBillDetailId);
+                var rbd = (d.RepairBillDetailId > 0)
+                    ? await _context.RepairBillDetails
+                        .Include(r => r.LabourMaster)
+                        .Include(r => r.PartItem)
+                        .Include(r => r.PartWiseLabour) // <-- HE SUDDHA INCLUDE KELA AHE
+                        .FirstOrDefaultAsync(r => r.Id == d.RepairBillDetailId)
+                    : null;
+
+                string? itemCode = null;
+                string? itemDesc = null;
+                string? hsnCode = null;
+                decimal cgstPct = 0;
+                decimal sgstPct = 0;
+                decimal igstPct = 0;
+
+                if (isLabour)
+                {
+                    // LabourMaster nsel tar PartWiseLabour madhun data ghene (WarrantyOrderRepo sarkhe)
+                    string? lCode = rbd?.LabourMaster?.LabourCode ?? rbd?.PartWiseLabour?.LabourCode;
+                    string? lDesc = rbd?.LabourMaster?.LabourDescription ?? rbd?.PartWiseLabour?.LabourName;
+                    string? lHsn = rbd?.LabourMaster?.Hsncode ?? rbd?.PartWiseLabour?.Hsncode;
+                    decimal lCgst = rbd?.LabourMaster?.Cgst ?? rbd?.PartWiseLabour?.Cgst ?? 0;
+                    decimal lSgst = rbd?.LabourMaster?.Sgst ?? rbd?.PartWiseLabour?.Sgst ?? 0;
+                    decimal lIgst = rbd?.LabourMaster?.Igst ?? rbd?.PartWiseLabour?.Igst ?? 0;
+
+                    int? targetLabourId = null;
+                    if (rbd != null && rbd.PartWiseLabourId.HasValue && rbd.PartWiseLabourId.Value > 0)
+                    {
+                        targetLabourId = rbd.PartWiseLabourId.Value;
+                    }
+                    else if (d.PartWiseLabourId.HasValue && d.PartWiseLabourId.Value > 0)
+                    {
+                        targetLabourId = d.PartWiseLabourId.Value;
+                    }
+                    else if (d.LabourMasterId.HasValue && d.LabourMasterId.Value > 0)
+                    {
+                        targetLabourId = d.LabourMasterId.Value;
+                    }
+
+                    if (string.IsNullOrEmpty(lCode) && targetLabourId.HasValue && targetLabourId.Value > 0)
+                    {
+                        var lm = await _context.LabourMasters.FirstOrDefaultAsync(l => l.Id == targetLabourId.Value);
+                        lCode = lm?.LabourCode;
+                        lDesc = lm?.LabourDescription;
+                        lHsn = lm?.Hsncode;
+                        lCgst = lm?.Cgst ?? 0;
+                        lSgst = lm?.Sgst ?? 0;
+                        lIgst = lm?.Igst ?? 0;
+                    }
+
+                    itemCode = lCode;
+                    itemDesc = lDesc;
+                    hsnCode = lHsn;
+                    cgstPct = lCgst;
+                    sgstPct = lSgst;
+                    igstPct = lIgst;
+                }
+                else
+                {
+                    itemCode = rbd?.PartItem?.Itemcode;
+                    itemDesc = rbd?.PartItem?.Itemdesc;
+                    hsnCode = rbd?.PartItem?.Hsncode;
+                    cgstPct = rbd?.PartItem?.Cgst ?? 0;
+                    sgstPct = rbd?.PartItem?.Sgst ?? 0;
+                    igstPct = rbd?.PartItem?.Igst ?? 0;
+                }
+
+                decimal cgstAmt = rbd?.Cgstamount ?? 0;
+                decimal sgstAmt = rbd?.Sgstamount ?? 0;
+                decimal igstAmt = rbd?.Igstamount ?? 0;
 
                 var jobCardHeader = c.JobCardHeaderId.HasValue
                     ? await _context.JobCardHeaders
@@ -147,11 +215,7 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
                 var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
 
-                decimal cgstAmount = rbd?.Cgstamount ?? 0;
-                decimal sgstAmount = rbd?.Sgstamount ?? 0;
-                decimal igstAmount = rbd?.Igstamount ?? 0;
-                decimal totalGstAmount = cgstAmount + sgstAmount + igstAmount;
-
+                decimal totalGstAmount = cgstAmt + sgstAmt + igstAmt;
                 decimal baseAmount = d.Amount ?? 0;
                 decimal lineTotalAmount = baseAmount + totalGstAmount;
 
@@ -174,8 +238,8 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     LocationName = c.LocationName,
 
                     ItemType = d.ItemType,
-                    ItemCode = isLabour ? rbd?.LabourMaster?.LabourCode : rbd?.PartItem?.Itemcode,
-                    ItemDescription = isLabour ? rbd?.LabourMaster?.LabourDescription : rbd?.PartItem?.Itemdesc,
+                    ItemCode = itemCode,
+                    ItemDescription = itemDesc,
 
                     TotalAmount = lineTotalAmount,
 
@@ -186,7 +250,7 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
 
                     ActionDateDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("dd-MM-yyyy") : null,
                     ActionTimeDisplay = u.ActionDate.HasValue ? u.ActionDate.Value.ToString("HH:mm:ss") : null,
-                    Hsn = isLabour ? rbd?.LabourMaster?.Hsncode : rbd?.PartItem?.Hsncode,
+                    Hsn = hsnCode,
 
                     Qty = d.Qty ?? 0,
                     Rate = d.Rate ?? 0,
@@ -194,13 +258,13 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     Amount = baseAmount,
 
                     Mrp = d.Mrp ?? 0,
-                    Cgst = cgstAmount,
-                    Sgst = sgstAmount,
-                    Igst = igstAmount,
+                    Cgst = cgstAmt,
+                    Sgst = sgstAmt,
+                    Igst = igstAmt,
 
-                    CgstPercent = isLabour ? (rbd?.LabourMaster?.Cgst ?? 0) : (rbd?.PartItem?.Cgst ?? 0),
-                    SgstPercent = isLabour ? (rbd?.LabourMaster?.Sgst ?? 0) : (rbd?.PartItem?.Sgst ?? 0),
-                    IgstPercent = isLabour ? (rbd?.LabourMaster?.Igst ?? 0) : (rbd?.PartItem?.Igst ?? 0),
+                    CgstPercent = cgstPct,
+                    SgstPercent = sgstPct,
+                    IgstPercent = igstPct,
 
                     ServiceHead = jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
                     MotorNo = chassisBattery?.MotorNo,
@@ -214,10 +278,11 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     SaleDate = chassisDetail?.SaleDate,
                     ClaimAccount = c.ClaimAccount,
 
-                    PartCode = !isLabour ? rbd?.PartItem?.Itemcode : null,
-                    PartDescription = !isLabour ? rbd?.PartItem?.Itemdesc : null,
-                    LabourCode = isLabour ? rbd?.LabourMaster?.LabourCode : null,
-                    LabourDescription = isLabour ? rbd?.LabourMaster?.LabourDescription : null,
+                    PartCode = !isLabour ? itemCode : null,
+                    PartDescription = !isLabour ? itemDesc : null,
+                    LabourCode = isLabour ? itemCode : null,
+                    LabourDescription = isLabour ? itemDesc : null,
+
                     ClaimType = d.ClaimType,
                     DealerObservation = d.DealerObservation,
                     Rca = d.RootCauseAnalysis,

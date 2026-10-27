@@ -20,5 +20,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyPackingRepo
 
         Task<object> SearchWarrantyDispatch(WarrantyDispatchSearchViewModel filter);
         Task<object> GetWarrantyDispatchById(int id);
+
+        Task<bool> DeleteWarrantyDispatchAsync(int id);
     }
 }

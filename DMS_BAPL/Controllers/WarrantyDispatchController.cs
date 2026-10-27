@@ -59,6 +59,20 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpDelete("DeleteWarrantyDispatch/{id}")]
+        public async Task<IActionResult> DeleteWarrantyDispatch(int id)
+        {
+            try
+            {
+                var success = await _warrantyPackingRepo.DeleteWarrantyDispatchAsync(id);
+                return Ok(new { success = true, message = "Warranty Dispatch deleted successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
     }  
     
 }
