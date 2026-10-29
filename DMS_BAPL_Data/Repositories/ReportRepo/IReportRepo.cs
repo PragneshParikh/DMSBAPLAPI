@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -11,9 +12,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         // ── STOCK REPORT ──────────────────────────────────────────────
         Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode = null, DateTime? fromDate = null, DateTime? toDate = null);
         Task<List<StockReportViewModel>> GetColourWiseStockReportAsync();
-
-
-
+        Task DeleteStockAdjustmentAsync(int id);
+        Task<StockAdjustmentEditViewModel> GetStockAdjustmentByIdAsync(int id);
+        Task<ItemMaster?> GetByPartNoAsync(string partNo);
         // ── JOB REPORT ────────────────────────────────────────────────
         Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportAsync(JobReportFilterModel filter);
         Task<List<DealerWiseJobReportSummary>> GetDealerWiseJobReportAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
@@ -85,7 +86,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
         Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode);
-
+        Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(string dealerCode, string? locationCode);
+        Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync(string dealerCode,string? search,string? locationCode);
+        Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(string dealerCode,string locationCode, string partNo);
+        Task<List<StockAdjustmentLocationViewModel>> GetStockAdjustmentLocationsAsync(string dealerCode, bool includeAllLocations);
+        Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync(StockAdjustmentCreateViewModel request,string createdBy);
+        Task<List<StockAdjustmentListViewModel>> GetStockAdjustmentListAsync( DateTime fromDate,DateTime toDate, string? locationCode);
         Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter);
         Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter);
     }

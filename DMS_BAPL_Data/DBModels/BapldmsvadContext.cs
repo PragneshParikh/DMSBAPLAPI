@@ -5094,6 +5094,9 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<MaterialTransfer> MaterialTransfers { get; set; }
 
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
+    public virtual DbSet<WarrantyDispatchHeader> WarrantyDispatchHeaders { get; set; }
+
+    public virtual DbSet<WarrantyDispatchDetails> WarrantyDispatchDetails { get; set; }
 
     public virtual DbSet<ModelwiseServiceSchedule> ModelwiseServiceSchedules { get; set; }
 
@@ -5112,6 +5115,10 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<PartsInventory> PartsInventories { get; set; }
 
     public virtual DbSet<PartsInward> PartsInwards { get; set; }
+
+    public virtual DbSet<PartStockAdjustment> PartStockAdjustments { get; set; }
+
+    public virtual DbSet<PartStockAdjustmentDetail> PartStockAdjustmentDetails { get; set; }
 
     public virtual DbSet<PdichecklistChassisWise> PdichecklistChassisWises { get; set; }
 
@@ -5187,8 +5194,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<DispatchMaster> DispatchMasters { get; set; }
     public virtual DbSet<ImpersonationLog> ImpersonationLogs { get; set; }
 
-    public virtual DbSet<WarrantyDispatchHeader> WarrantyDispatchHeaders { get; set; }
-    public virtual DbSet<WarrantyDispatchDetails> WarrantyDispatchDetails { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -5221,20 +5227,6 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
-        });
-
-        modelBuilder.Entity<WarrantyDispatchHeader>(entity =>
-        {
-            entity.ToTable("WarrantyDispatchHeader");
-            entity.Property(e => e.CourierCharges).HasColumnType("decimal(18, 2)");
-        });
-
-        modelBuilder.Entity<WarrantyDispatchDetails>(entity =>
-        {
-            entity.ToTable("WarrantyDispatchDetails");
-            entity.HasOne(d => d.WarrantyDispatchHeader)
-                .WithMany(p => p.WarrantyDispatchDetails)
-                .HasForeignKey(d => d.WarrantyDispatchHeaderId);
         });
 
         modelBuilder.Entity<Apikey>(entity =>
@@ -7927,6 +7919,9 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Format)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            //entity.Property(e => e.Separator)
+            //    .HasMaxLength(10)
+            //    .IsUnicode(false);
             entity.Property(e => e.SequenceCode)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -8219,6 +8214,61 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<PartStockAdjustment>(entity =>
+        {
+            entity.ToTable("PartStockAdjustment");
+
+            entity.Property(e => e.AdjustmentDate).HasColumnType("date");
+            entity.Property(e => e.PrefixNo)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.SrNo).HasColumnName("SrNo");
+            entity.Property(e => e.DealerCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LocationCode)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("Draft");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasIndex(e => new { e.DealerCode, e.AdjustmentDate });
+            entity.HasIndex(e => new { e.DealerCode, e.PrefixNo })
+                .IsUnique()
+                .HasFilter("[PrefixNo] IS NOT NULL");
+
+            entity.HasMany(e => e.Details)
+                .WithOne(e => e.Adjustment)
+                .HasForeignKey(e => e.AdjustmentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PartStockAdjustmentDetail_PartStockAdjustment_AdjustmentId");
+        });
+
+        modelBuilder.Entity<PartStockAdjustmentDetail>(entity =>
+        {
+            entity.ToTable("PartStockAdjustmentDetail");
+
+            entity.Property(e => e.PartNo)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Description)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+
+            entity.HasIndex(e => new { e.AdjustmentId, e.PartNo }).IsUnique();
         });
 
         modelBuilder.Entity<PdichecklistChassisWise>(entity =>

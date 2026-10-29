@@ -22,5 +22,7 @@ namespace DMS_BAPL_Data.Services.PrefixService
         //Task<bool> CheckDuplicate(string dealerCode, string moduleName, string year, string prefix, int? excludeId);
         Task<NumberSequence?> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType);
         Task<int> UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType);
+        Task<NumberSequence?> GetActiveSequenceByDealerAndModule(string dealerCode, string moduleName);
+
     }
 }

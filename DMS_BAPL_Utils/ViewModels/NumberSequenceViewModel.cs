@@ -20,6 +20,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string Year { get; set; } = null!;
 
+        //public string? Separator { get; set; }
+
         public bool IsActive { get; set; }
         public int? BillingType { get; set; }
 
