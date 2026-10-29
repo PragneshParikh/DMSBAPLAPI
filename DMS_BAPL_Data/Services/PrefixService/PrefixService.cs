@@ -42,6 +42,9 @@ namespace DMS_BAPL_Data.Services.PrefixService
 
         Task<int> IPrefixService.UpdateNextNumberByDealerByModuleBillingType(string dealerCode, string moduleName, int? billingType)
             => _prefixRepo.UpdateNextNumberByDealerByModuleBillingType(dealerCode, moduleName, billingType);
+
+        Task<NumberSequence?> IPrefixService.GetActiveSequenceByDealerAndModule(string dealerCode, string moduleName)
+            => _prefixRepo.GetActiveSequenceByDealerAndModule(dealerCode, moduleName);
         public async Task<byte[]> DownloadExcel()
         {
             try

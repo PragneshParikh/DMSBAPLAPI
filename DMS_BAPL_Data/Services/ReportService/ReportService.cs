@@ -1,6 +1,9 @@
-﻿using DMS_BAPL_Data.CustomModel;
+﻿using ClosedXML.Excel;
+using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.ReportRepo;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -13,10 +16,14 @@ namespace DMS_BAPL_Data.Services.ReportService
         private readonly IReportRepo _reportRepo;
         private readonly ILogger<ReportService> _logger;
 
+        private readonly BapldmsvadContext _context;
+
         public ReportService(
+             BapldmsvadContext context,
             IReportRepo reportRepo,
             ILogger<ReportService> logger)
         {
+            _context = context;
             _reportRepo = reportRepo;
             _logger = logger;
         }
@@ -28,6 +35,15 @@ namespace DMS_BAPL_Data.Services.ReportService
         public async Task<List<StockReportViewModel>> GetDealerWiseStockReportAsync(string? dealerCode)
         {
             return await _reportRepo.GetDealerWiseStockReportAsync(dealerCode);
+        }
+
+        public async Task<StockAdjustmentEditViewModel> GetStockAdjustmentByIdAsync(int id)
+        {
+            return await _reportRepo.GetStockAdjustmentByIdAsync(id);
+        }
+        public async Task DeleteStockAdjustmentAsync(int id)
+        {
+            await _reportRepo.DeleteStockAdjustmentAsync(id);
         }
 
         // =================================================================
@@ -48,7 +64,6 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
-
         public async Task<List<DealerWiseJobReportSummary>> GetDealerWiseJobReportAsync(
             string? dealerCode,
             DateTime? fromDate,
@@ -64,7 +79,6 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
-
         public async Task<JobReportPagedResponse<JobReportViewModel>> GetJobReportByDealerAsync(
             string dealerCode,
             int pageIndex,
@@ -529,6 +543,54 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
+        public async Task<byte[]> ExportStockAdjustmentExcelAsync(DateTime fromDate,DateTime toDate, string? locationCode)
+        {
+            var data = await GetStockAdjustmentListAsync(fromDate,toDate, locationCode);
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.Worksheets.Add("StockAdjustment_List");
+
+            ws.Cell(1, 1).Value = "Sr.No";
+        
+            ws.Cell(1, 2).Value = "Prifix No";
+            ws.Cell(1, 3).Value = "Date";
+            ws.Cell(1, 4).Value = "Location";
+            ws.Cell(1, 5).Value = "Part No";
+            ws.Cell(1, 6).Value = "Description";
+            ws.Cell(1, 7).Value = "Rate";
+            ws.Cell(1, 8).Value = "Current Stock";
+            ws.Cell(1, 9).Value = "Update Stock";
+            ws.Cell(1, 10).Value = "Final Qty";
+
+            int row = 2;
+            int srNo = 1;
+
+            foreach (var item in data)
+            {
+                ws.Cell(row, 1).Value = srNo++;
+                ws.Cell(row, 2).Value = item.PrefixNo;
+                ws.Cell(row, 3).Value = item.AdjustmentDate;
+                ws.Cell(row, 4).Value = item.LocationCode;
+                ws.Cell(row, 5).Value = item.PartNo;
+                ws.Cell(row, 6).Value = item.Description;
+                ws.Cell(row, 7).Value = item.Rate;
+                ws.Cell(row, 8).Value = item.CurrentStock;
+                ws.Cell(row, 9).Value = item.UpdateStock;
+                ws.Cell(row, 10).Value = item.FinalQty;
+
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return stream.ToArray();
+        }
+
         // =================================================================
         // COMPARISON REPORT
         // =================================================================
@@ -559,6 +621,120 @@ namespace DMS_BAPL_Data.Services.ReportService
         }
 
         Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
+     
+        public Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(string dealerCode, string? locationCode) =>
+            _reportRepo.GetPartBalanceStockForAdjustmentAsync(dealerCode, locationCode);
+        public Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync(
+            string dealerCode,
+            string? search,
+            string? locationCode) =>
+            _reportRepo.SearchStockAdjustmentPartsAsync(dealerCode, search, locationCode);
+        public Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(
+            string dealerCode,
+            string locationCode,
+            string partNo) =>
+            _reportRepo.GetStockAdjustmentPartDetailsAsync(dealerCode, locationCode, partNo);
+
+        public Task<List<StockAdjustmentLocationViewModel>> GetStockAdjustmentLocationsAsync(
+            string dealerCode,
+            bool includeAllLocations) =>
+            _reportRepo.GetStockAdjustmentLocationsAsync(dealerCode, includeAllLocations);
+
+        public Task<List<StockAdjustmentListViewModel>> GetStockAdjustmentListAsync(
+          DateTime fromDate,
+          DateTime toDate,
+          string? locationCode)
+        {
+            return _reportRepo.GetStockAdjustmentListAsync(
+                fromDate,
+                toDate,
+                locationCode);
+        }
+
+        public async Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync(
+            StockAdjustmentCreateViewModel request,
+            string createdBy)
+        {
+            try
+            {
+                return await _reportRepo.SaveStockAdjustmentAsync(request, createdBy);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving stock adjustment draft");
+                throw;
+            }
+        }
+
+
+        public async Task<List<StockAdjustmentItemResponseViewModel>>
+        ImportStockAdjustmentExcelAsync(IFormFile file)
+        {
+            var result = new List<StockAdjustmentItemResponseViewModel>();
+
+            using var stream = new MemoryStream();
+
+            await file.CopyToAsync(stream);
+
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+
+            var worksheet = workbook.Worksheet(1);
+
+            int row = 2;
+
+            while (!worksheet.Cell(row, 2).IsEmpty())
+            {
+                var partNo = worksheet.Cell(row, 2).GetString().Trim();
+             
+
+                var item = await _reportRepo
+                      .GetByPartNoAsync(partNo);
+
+                //var item = await _context.ItemMasters
+                //    .FirstOrDefaultAsync(x => x.Itemcode == partNo);
+                 var ratestock =
+                     worksheet.Cell(row, 3).TryGetValue<int>(out var rs)
+                        ? rs
+                        : 0;
+
+                var currentStock =
+                    worksheet.Cell(row, 4).TryGetValue<int>(out var cs)
+                        ? cs
+                        : 0;
+
+                var updateStock =
+                    worksheet.Cell(row, 5).TryGetValue<int>(out var us)
+                        ? us
+                        : 0;
+
+                var diff = updateStock - currentStock;
+
+                result.Add(
+                    new StockAdjustmentItemResponseViewModel
+                    {
+                        PartNo = partNo,
+
+                        Description = item?.Itemdesc ?? "",
+                        RateStock = ratestock,
+
+
+                        CurrentStock = currentStock,
+                       
+
+                        UpdateStock = updateStock,
+
+                        UpQuantityStg = diff,
+
+                        FinalQty = updateStock
+                    });
+
+                row++;
+            }
+
+            return result;
+        }
 
         public async Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter)
         {

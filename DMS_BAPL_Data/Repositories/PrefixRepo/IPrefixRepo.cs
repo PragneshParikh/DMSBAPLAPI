@@ -10,6 +10,8 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
         Task<PagedResponse<NumberSequence>> GetPrefixByPagedAsync(string? searchTerm, int pageIndex, int pageSize);
         Task<IEnumerable<NumberSequence>> GetPrefixByDealerCode(string dealerCode);
         Task<NumberSequence> GetPrefixByDealerCodeModuleName(string dealerCode, string moduleName);
+        Task<NumberSequence?> GetActiveSequenceByDealerAndModule(string dealerCode, string moduleName);
+        Task<List<NumberSequence>> GetActiveSequencesByDealerAndModuleForUpdate(string dealerCode, string moduleName);
         Task<NumberSequence?> GetPrefixByDealerCodeModuleNameBillingType(string dealerCode, string moduleName, int? billingType);   // ADDED
         Task<NumberSequence?> GetById(int id);
         Task<int> InsertPrefix(NumberSequenceViewModel numberSequence);

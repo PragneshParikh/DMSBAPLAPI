@@ -74,6 +74,35 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<NumberSequence?> GetActiveSequenceByDealerAndModule(string dealerCode, string moduleName)
+        {
+            return await _context.NumberSequences
+                .AsNoTracking()
+                .Where(sequence => sequence.DealerCode == dealerCode
+                    && sequence.SequenceName == moduleName
+                    && sequence.BillingType == null
+                    && sequence.IsActive)
+                .OrderByDescending(sequence => sequence.CreatedDate)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<NumberSequence>> GetActiveSequencesByDealerAndModuleForUpdate(
+            string dealerCode,
+            string moduleName)
+        {
+            return await _context.NumberSequences
+                .FromSqlInterpolated($"""
+                    SELECT *
+                    FROM [NumberSequence] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [DealerCode] = {dealerCode}
+                      AND [SequenceName] = {moduleName}
+                      AND [BillingType] IS NULL
+                      AND [IsActive] = 1
+                    """)
+                .AsTracking()
+                .ToListAsync();
+        }
+
         // ADDED
         public async Task<NumberSequence?> GetById(int id)
         {
@@ -113,6 +142,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                         SequenceCode = numberSequenceViewModel.SequenceCode.Replace("DealerCode", dealer.Dealercode.Length >= 3 ? dealer.Dealercode[^3..] : dealer.Dealercode),
                         SequenceName = numberSequenceViewModel.SequenceName,
                         Format = numberSequenceViewModel.Format,
+                        //Separator = numberSequenceViewModel.Separator,
                         NextNo = numberSequenceViewModel.NextNo,
                         Increment = numberSequenceViewModel.Increment,
                         DealerCode = dealer.Dealercode,
@@ -152,6 +182,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                     SequenceCode = numberSequenceViewModel.SequenceCode.Replace("DealerCode", numberSequenceViewModel.DealerCode.Length >= 3 ? numberSequenceViewModel.DealerCode[^3..] : numberSequenceViewModel.DealerCode),
                     SequenceName = numberSequenceViewModel.SequenceName,
                     Format = numberSequenceViewModel.Format,
+                    //Separator = numberSequenceViewModel.Separator,
                     Year = numberSequenceViewModel.Year,
                     DealerCode = numberSequenceViewModel.DealerCode,
                     NextNo = numberSequenceViewModel.NextNo,
@@ -185,6 +216,7 @@ namespace DMS_BAPL_Data.Repositories.PrefixRepo
                 );
                 existing.SequenceName = numberSequenceViewModel.SequenceName;
                 existing.Format = numberSequenceViewModel.Format;
+                //existing.Separator = numberSequenceViewModel.Separator;
                 existing.Year = numberSequenceViewModel.Year;
                 existing.DealerCode = numberSequenceViewModel.DealerCode;
                 existing.NextNo = numberSequenceViewModel.NextNo;

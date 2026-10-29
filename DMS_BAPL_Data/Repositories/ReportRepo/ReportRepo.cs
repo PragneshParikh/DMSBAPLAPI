@@ -1,20 +1,31 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Repositories.PrefixRepo;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using System.Data;
+using DMS_BAPL_Utils.Constants;
+using Microsoft.Extensions.Logging;
 
 namespace DMS_BAPL_Data.Repositories.ReportRepo
 {
     public class ReportRepo : IReportRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly IPrefixRepo _prefixRepo;
 
-        public ReportRepo(BapldmsvadContext context)
+        private readonly ILogger<ReportRepo> _logger;
+        public ReportRepo(
+         BapldmsvadContext context,
+         IPrefixRepo prefixRepo,
+         ILogger<ReportRepo> logger)
         {
             _context = context;
+            _prefixRepo = prefixRepo;
+            _logger = logger;
         }
         private async Task<Dictionary<int, string>> GetFinancierNameLookupAsync()
         {
@@ -464,11 +475,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var complaintLookup = complaintRows
                     .GroupBy(c => c.JobCardHeaderId)
                     .ToDictionary(g => g.Key, g => g.ToList());
-                
+
                 var repairBillRows = await _context.RepairBillHeaders
                     .Where(r => headerIds.Contains(r.JobId) && r.IsDelete != true)   // added IsDelete filter
                     .ToListAsync();
-                
+
                 var repairBillLookup = repairBillRows
                     .GroupBy(r => r.JobId)
                     .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
@@ -4148,7 +4159,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
         //        where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
         //              && pi.FinalStockFlag == "Y"
-        //              && im.Grpidno == groupId
         //              && pi.TransDate >= DateOnly.FromDateTime(fromDate)
         //              && pi.TransDate <= DateOnly.FromDateTime(toDate.Date)
         //        select new
@@ -4162,37 +4172,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         //            im.Custprice,
         //            im.Igst,
         //            im.Grpidno,
-
-        //            GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
-
-        //            pi.BatchClosingQty,
-        //            pi.VendorCode,
-        //            pi.DealerLocation,
-
-        //            lm.Locname,
-
-        //            GST = (decimal?)at.TotalTaxRate ?? 0
-        //        }
-        //    ).ToListAsync();
-
-        //    return data.Select((x, index) => new
-        //    {
-        //        SrNo = index + 1,
-        //        x.Itemtype,
-        //        x.Itemname,
-        //        x.Itemcode,
-        //        x.Itemdesc,
-        //        x.Hsncode,
-        //        x.Dlrprice,
-        //        x.Custprice,
-        //        x.GST,
-        //        x.Grpidno,
-        //        x.BatchClosingQty,
-        //        x.VendorCode,
-        //        x.DealerLocation,
-        //        x.Locname,
-        //        x.GroupType
-        //    });
 
         //}
 
@@ -4278,7 +4257,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             // ASSUMPTION — flag if "Stock Adjustment" actually means something else
             // in your process (e.g. a manual correction from a different table not
             // shown here); the TransType filter below is the one line to change.
-            var stockAdjustmentCounts = _context.PartsInventories
+                 var stockAdjustmentCounts = _context.PartsInventories
                 .Where(x =>
                     x.TransDate >= DateOnly.FromDateTime(fromDate) &&
                     x.TransDate <= DateOnly.FromDateTime(toDate) &&
@@ -4390,10 +4369,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into adjustmentGroup
                         from sa in adjustmentGroup.DefaultIfEmpty()
 
+                            //where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+                            //      && pi.FinalStockFlag == "Y"
+                            //      && im.Grpidno == groupId
                         where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
-                              && pi.FinalStockFlag == "Y"
-                              && im.Grpidno == groupId
-
+                        && pi.FinalStockFlag == "Y"
+                        && im.Grpidno == groupId
+                        && pi.BatchClosingQty > 0
                         select new
                         {
                             im.Itemtype,
@@ -4430,13 +4412,15 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             // StockAdjustmentQty into this formula, since doing so
                             // wasn't asked for and would silently change the existing,
                             // already-verified Bal.Qty column's meaning.
-                            BatchClosingQty = (((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0))
-                                               - ((int?)sc.SaleQty ?? 0)
+                         
+
+                            //BatchClosingQty = (((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0))
+                            //                   - ((int?)sc.SaleQty ?? 0)
+
+                            BatchClosingQty = pi.BatchClosingQty
                         })
                         .ToListAsync();
-
-
-                return data.Select((x, index) => new
+            return data.Select((x, index) => new
                 {
                     SrNo = index + 1,
                     x.Itemtype,
@@ -4463,6 +4447,792 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             {
                 throw;
             }
+        }
+
+        public async Task<List<StockAdjustmentListViewModel>>
+    GetStockAdjustmentListAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        string? locationCode)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(locationCode))
+                {
+                    return new List<StockAdjustmentListViewModel>();
+                }
+
+                return await (
+                    from pd in _context.PartStockAdjustmentDetails
+                    join pa in _context.PartStockAdjustments
+                        on pd.AdjustmentId equals pa.Id
+                    where pa.AdjustmentDate >= fromDate.Date
+                       && pa.AdjustmentDate < toDate.Date.AddDays(1)
+                       && pa.LocationCode == locationCode
+                    select new StockAdjustmentListViewModel
+                    {
+                        Id = pa.Id,
+                        AdjustmentId = pd.AdjustmentId,
+                        PrefixNo = pa.PrefixNo,
+                        SrNo = pa.SrNo,
+                        AdjustmentDate = pa.AdjustmentDate,
+                        DealerCode = pa.DealerCode,
+                        LocationCode = pa.LocationCode,
+                        Remarks = pa.Remarks,
+                        Status = pa.Status,
+                        PartNo = pd.PartNo,
+                        Description = pd.Description,
+                        Rate = (int?)pd.RateStock,
+                        CurrentStock = pd.CurrentStock,
+                        UpdateStock = pd.UpdateStock,
+                        UpQuantityStg = pd.UpQuantityStg,
+                        FinalQty = pd.FinalQty,
+                        CreatedDate = pa.CreatedDate
+                    }
+                )
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.ToString());
+            }
+        }
+        public async Task<StockAdjustmentEditViewModel?> GetStockAdjustmentByIdAsync(int id)
+        {
+            var header = await _context.PartStockAdjustments
+                .Where(x => x.Id == id)
+                .Select(x => new StockAdjustmentEditViewModel
+                {
+                    Id = x.Id,
+                    PrefixNo = x.PrefixNo,
+                    AdjustmentDate = x.AdjustmentDate,
+                    LocationCode = x.LocationCode,
+                    Remarks = x.Remarks,
+
+                    Items = (
+                            from d in _context.PartStockAdjustmentDetails
+                            join im in _context.ItemMasters
+                                on d.PartNo equals im.Itemcode into imj
+                            from im in imj.DefaultIfEmpty()
+
+                            where d.AdjustmentId == x.Id
+
+                            select new StockAdjustmentItemViewModel
+                            {
+                                PartNo = d.PartNo,
+                                Description = d.Description,
+
+                                RateStock = d.RateStock,
+
+                                CurrentStock = d.CurrentStock,
+                                UpdateStock = d.UpdateStock,
+
+                                UpQuantityStg = d.UpQuantityStg,
+
+                                FinalQty = d.FinalQty
+                            }
+                        ).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return header;
+        }
+         public async Task DeleteStockAdjustmentAsync(int id)
+        {
+            var header = await _context.PartStockAdjustments
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (header == null)
+                return;
+
+            var details = await _context.PartStockAdjustmentDetails
+                .Where(x => x.AdjustmentId == id)
+                .ToListAsync();
+
+            foreach (var detail in details)
+            {
+                var inventory = await _context.PartsInventories
+                    .FirstOrDefaultAsync(x =>
+                        x.ItemCode == detail.PartNo &&
+                        x.DealerLocation == header.LocationCode &&
+                        x.VendorCode == header.DealerCode &&
+                        x.FinalStockFlag == "Y");
+
+                if (inventory != null)
+                {
+                  
+                        _context.PartsInventories.Remove(inventory);
+                    
+                }
+            }
+
+            _context.PartStockAdjustmentDetails.RemoveRange(details);
+            _context.PartStockAdjustments.Remove(header);
+
+            await _context.SaveChangesAsync();
+        }
+
+        private IQueryable<PartsInventory> GetStockAdjustmentInventoryQuery(
+            string dealerCode,
+            string? locationCode)
+        {
+            return _context.PartsInventories
+                .AsNoTracking()
+                .Where(inventory =>
+                    inventory.VendorCode == dealerCode &&
+                    inventory.FinalStockFlag == "Y" &&
+                    (locationCode == null || inventory.DealerLocation == locationCode));
+        }
+
+        public async Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(
+            string dealerCode,
+            string? locationCode)
+        {
+            dealerCode = dealerCode.Trim();
+            locationCode = string.IsNullOrWhiteSpace(locationCode) ? null : locationCode.Trim();
+
+
+            var stockRows = await GetStockAdjustmentInventoryQuery(dealerCode, locationCode)
+          .Select(inventory => new
+          {
+            PartNo = inventory.ItemCode,
+            LocationCode = inventory.DealerLocation,
+            BalanceStock = (long)inventory.BatchClosingQty
+          })
+        .ToListAsync();
+
+            //if (stockRows.Count == 0)
+            //    return new List<PartBalanceStockViewModel>();
+
+            var partNos = stockRows.Select(row => row.PartNo).Distinct().ToList();
+            var itemRows = await _context.ItemMasters
+                .AsNoTracking()
+               //.Where(item => partNos.Contains(item.Itemcode) && item.Grpidno == 1)
+               .Where(item => item.Grpidno == 1)
+
+                .OrderByDescending(item => item.DealerCode == dealerCode)
+                //.Select(item => new { item.Itemcode, item.Itemdesc })
+                .Select(item => new
+                {
+                    item.Itemcode,
+                    item.Itemdesc,
+                    item.Custprice
+                })
+                .ToListAsync();
+            var descriptionsByPartNo = itemRows
+                .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First().Itemdesc, StringComparer.OrdinalIgnoreCase);
+
+            var locationCodes = stockRows.Select(row => row.LocationCode).Distinct().ToList();
+            var locationRows = await _context.LocationMasters
+                .AsNoTracking()
+                .Where(location =>
+                    location.Dealercode == dealerCode &&
+                    locationCodes.Contains(location.Loccode))
+                .OrderBy(location => location.Id)
+                .Select(location => new { location.Loccode, location.Locname })
+                .ToListAsync();
+            var locationNamesByCode = locationRows
+                .GroupBy(location => location.Loccode)
+                .ToDictionary(group => group.Key, group => group.First().Locname);
+
+
+            var result = itemRows
+ .         Select(item => new PartBalanceStockViewModel
+        {  
+           PartNo = item.Itemcode,
+           Description = item.Itemdesc,
+           RateStock = item.Custprice,
+
+             BalanceStock = stockRows
+            .Where(x => x.PartNo == item.Itemcode)
+            .Select(x => (int?)x.BalanceStock)
+            .FirstOrDefault() ?? 0,
+           LocationCode = locationCode,
+           LocationName = null})
+          .ToList();
+           return result
+          .OrderBy(part => part.PartNo)
+          .ToList();
+        }
+         public async Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync
+            (string dealerCode,string? search,string? locationCode)
+         {dealerCode = dealerCode.Trim();
+            search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+            locationCode = string.IsNullOrWhiteSpace(locationCode) ? null : locationCode.Trim();
+            var itemQuery = _context.ItemMasters
+                .AsNoTracking()
+                .Where(item =>
+                    item.Grpidno == 1 &&
+                    item.Status &&
+                    (item.DealerCode == null || item.DealerCode == dealerCode));
+
+            if (search != null)
+            {
+                itemQuery = itemQuery.Where(item =>
+                    item.Itemcode.Contains(search) ||
+                    item.Itemdesc.Contains(search));
+            }
+
+            var activeItems = await itemQuery
+                .OrderBy(item => item.Itemcode)
+                .ToListAsync();
+
+            if (activeItems.Count == 0)
+                return new List<StockAdjustmentPartViewModel>();
+
+            var partNos = activeItems.Select(x => x.Itemcode).ToList();
+
+            var stockRows = await _context.PartsInventories
+                .AsNoTracking()
+                .Where(x =>
+                    x.VendorCode == dealerCode &&
+                    x.FinalStockFlag == "Y" &&
+                    partNos.Contains(x.ItemCode))
+                .Select(x => new
+                {
+                    PartNo = x.ItemCode,
+                    Stock = (long)x.BatchClosingQty
+                })
+                .ToListAsync();
+
+            var stockByPart = stockRows
+                .GroupBy(x => x.PartNo)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.First().Stock,
+                    StringComparer.OrdinalIgnoreCase);
+
+            var result = new List<StockAdjustmentPartViewModel>();
+
+            foreach (var item in activeItems)
+            {
+                var stock = stockByPart.TryGetValue(item.Itemcode, out var balance)
+                    ? balance
+                    : 0;
+
+                result.Add(new StockAdjustmentPartViewModel
+                {
+                    PartNo = item.Itemcode,
+                    Description = item.Itemdesc,
+                    StockQty = (int)stock,
+                    ItemRate = item.Custprice
+                });
+            }
+
+            return result;
+        }
+        public async Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(
+            string dealerCode,
+            string locationCode,
+            string partNo)
+        {
+            dealerCode = dealerCode.Trim();
+            locationCode = string.IsNullOrWhiteSpace(locationCode)
+                ? throw new StockAdjustmentValidationException("Location code is required.")
+                : locationCode.Trim();
+            partNo = partNo.Trim();
+
+            var locationExists = await _context.LocationMasters
+                .AsNoTracking()
+                .AnyAsync(location =>
+                    location.Dealercode == dealerCode &&
+                    location.Loccode == locationCode &&
+                    location.Active == "Y");
+            if (!locationExists)
+                throw new StockAdjustmentValidationException("Location does not belong to the selected dealer.");
+
+            var item = await _context.ItemMasters
+                .AsNoTracking()
+                .Where(candidate =>
+                    candidate.Itemcode == partNo &&
+                    candidate.Grpidno == 1 &&
+                    candidate.Status &&
+                    (candidate.DealerCode == null || candidate.DealerCode == dealerCode))
+                .Select(candidate => new
+                {
+                    candidate.Itemcode,
+                    candidate.Itemdesc,
+                    ItemRate = candidate.Ipurrate
+                })
+                .FirstOrDefaultAsync();
+            if (item == null)
+                return null;
+
+            var currentStock = await GetStockAdjustmentInventoryQuery(dealerCode, locationCode)
+                .Where(inventory => inventory.ItemCode == item.Itemcode)
+                .SumAsync(inventory => (long?)inventory.BatchClosingQty) ?? 0;
+
+            if (currentStock < 0 || currentStock > int.MaxValue)
+                throw new StockAdjustmentValidationException(
+                    $"Current stock for part '{item.Itemcode}' is outside the supported range.");
+
+            return new StockAdjustmentPartDetailsViewModel
+            {
+                PartNo = item.Itemcode,
+                Description = item.Itemdesc,
+                CurrentStock = (int)currentStock,
+                Rate = item.ItemRate
+            };
+        }
+
+        public async Task<List<StockAdjustmentLocationViewModel>> GetStockAdjustmentLocationsAsync(
+            string dealerCode,
+            bool includeAllLocations)
+        {
+            dealerCode = dealerCode.Trim();
+
+            var locations = await _context.LocationMasters
+                .AsNoTracking()
+                .Where(location =>
+                    location.Dealercode == dealerCode &&
+                    (location.Active == "Y" || location.Active == null))
+                .OrderBy(location => location.Locname)
+                .ThenBy(location => location.Id)
+                .Select(location => new StockAdjustmentLocationViewModel
+                {
+                    LocationId = location.Id,
+                    LocationCode = location.Loccode,
+                    LocationName = location.Locname
+                })
+                .ToListAsync();
+
+            locations = locations
+                .DistinctBy(location => (
+                    Code: location.LocationCode?.Trim().ToUpperInvariant(),
+                    Name: location.LocationName.Trim().ToUpperInvariant()))
+                .ToList();
+
+            if (includeAllLocations)
+            {
+                locations.Insert(0, new StockAdjustmentLocationViewModel
+                {
+                    LocationId = 0,
+                    LocationCode = null,
+                    LocationName = "All Locations"
+                });
+            }
+
+            return locations;
+        }
+
+
+        public async Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync(
+            StockAdjustmentCreateViewModel request,
+            string createdBy)
+        {
+            if (request.AdjustmentDate == null)
+                throw new StockAdjustmentValidationException("Adjustment date is required.");
+
+
+            var dealerCode = request.DealerCode?.Trim();
+            var locationCode = request.LocationCode?.Trim();
+            if (string.IsNullOrWhiteSpace(dealerCode))
+                throw new StockAdjustmentValidationException("Dealer code is required.");
+            if (string.IsNullOrWhiteSpace(locationCode))
+                throw new StockAdjustmentValidationException("Location code is required.");
+            if (string.IsNullOrWhiteSpace(createdBy) || createdBy.Length > 100)
+                throw new StockAdjustmentValidationException("Authenticated user information is invalid.");
+            if (request.Items == null || request.Items.Count == 0)
+                throw new StockAdjustmentValidationException("At least one adjustment item is required.");
+
+
+            var items = request.Items;
+            var partNos = new List<string>(items.Count);
+            var uniquePartNos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+
+            foreach (var item in items)
+            {
+                if (item == null)
+                    throw new StockAdjustmentValidationException("Adjustment items cannot be null.");
+
+
+                var partNo = item.PartNo?.Trim();
+                if (string.IsNullOrWhiteSpace(partNo))
+                    throw new StockAdjustmentValidationException("Part number is required for every item.");
+                if (item.CurrentStock == null || item.CurrentStock < 0)
+                    throw new StockAdjustmentValidationException($"Current stock is invalid for part '{partNo}'.");
+                if (item.UpdateStock == null || item.UpdateStock < 0)
+                    throw new StockAdjustmentValidationException($"Update stock is invalid for part '{partNo}'.");
+                if (item.UpQuantityStg == null || item.FinalQty == null || item.FinalQty < 0)
+                    throw new StockAdjustmentValidationException($"Adjustment quantities are invalid for part '{partNo}'.");
+                if (!uniquePartNos.Add(partNo))
+                    throw new StockAdjustmentValidationException($"Part '{partNo}' appears more than once in this adjustment.");
+
+
+                item.PartNo = partNo;
+                partNos.Add(partNo);
+            }
+
+
+            if (request.Remarks?.Length > 1000)
+                throw new StockAdjustmentValidationException("Remarks cannot exceed 1000 characters.");
+
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+
+            var activeSequences = await _prefixRepo.GetActiveSequencesByDealerAndModuleForUpdate(
+                dealerCode,
+                NumberSequenceModules.StockAdjustment);
+            if (activeSequences.Count == 0)
+                throw new StockAdjustmentValidationException(
+                    "Stock Adjustment Number Sequence Configuration is not configured for the selected dealer.");
+            if (activeSequences.Count > 1)
+                throw new StockAdjustmentValidationException("More than one active Stock Adjustment Number Sequence Configuration exists.");
+
+
+
+
+            var sequence = activeSequences[0];
+            if (string.IsNullOrWhiteSpace(sequence.SequenceCode) ||
+                sequence.NextNo < 0 ||
+                sequence.Increment <= 0)
+            {
+                throw new StockAdjustmentValidationException("Stock Adjustment Number Sequence Configuration is incomplete.");
+            }
+            if (sequence.NextNo > int.MaxValue - sequence.Increment)
+                throw new StockAdjustmentValidationException("Stock Adjustment number sequence has reached its maximum value.");
+
+
+            string prefixNo;
+            try
+            {
+                prefixNo = NumberSequenceNumberFormatter.Format(sequence.SequenceCode, sequence.NextNo);
+            }
+            catch (ArgumentException)
+            {
+                throw new StockAdjustmentValidationException(
+                    "Stock Adjustment Number Sequence Configuration has an invalid prefix format.");
+            }
+
+
+            var sequenceSuffix = Regex.Match(prefixNo, @"(\d+)$");
+            if (!sequenceSuffix.Success || !int.TryParse(sequenceSuffix.Value, out var srNo))
+                throw new StockAdjustmentValidationException(
+                    "Stock Adjustment Number Sequence Configuration must end with a numeric sequence.");
+
+
+            var dealerExists = await _context.DealerMasters
+                .AsNoTracking()
+                .AnyAsync(dealer => dealer.Dealercode == dealerCode);
+            if (!dealerExists)
+                throw new StockAdjustmentValidationException("Dealer code was not found.");
+
+
+            var locationExists = await _context.LocationMasters
+                .AsNoTracking()
+                .AnyAsync(location =>
+                    location.Loccode == locationCode &&
+                    location.Dealercode == dealerCode &&
+                    location.Active == "Y");
+
+
+            //if (!locationExists)
+            //    throw new StockAdjustmentValidationException(
+            //        "Location does not belong to the selected dealer.");
+
+
+            var catalogItems = await _context.ItemMasters
+                .AsNoTracking()
+                .Where(item => partNos.Contains(item.Itemcode) && item.Grpidno == 1)
+                //.Where(item => item.Grpidno == 1)
+                .Select(item => new { item.Itemcode, item.Itemdesc, item.Custprice })
+                .ToListAsync();
+            var catalogByPartNo = catalogItems.ToDictionary(
+                item => item.Itemcode,
+                StringComparer.OrdinalIgnoreCase);
+
+
+            var missingPart = partNos.FirstOrDefault(partNo => !catalogByPartNo.ContainsKey(partNo));
+            if (missingPart != null)
+                throw new StockAdjustmentValidationException($"Part '{missingPart}' was not found in the parts catalog.");
+
+
+            var currentStockTotals = await GetStockAdjustmentInventoryQuery(dealerCode, locationCode)
+                .Where(inventory => partNos.Contains(inventory.ItemCode))
+                .GroupBy(inventory => inventory.ItemCode)
+                .Select(group => new
+                {
+                    PartNo = group.Key,
+                    CurrentStock = group.Sum(inventory => (long)inventory.BatchClosingQty)
+                })
+                .ToListAsync();
+
+
+            var currentStocks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var stockRow in currentStockTotals)
+            {
+                if (stockRow.CurrentStock < 0 || stockRow.CurrentStock > int.MaxValue)
+                    throw new StockAdjustmentValidationException($"Current stock for part '{stockRow.PartNo}' is outside the supported range.");
+
+
+                currentStocks.Add(stockRow.PartNo, (int)stockRow.CurrentStock);
+            }
+
+
+            PartStockAdjustment adjustment;
+            var createdDate = DateTime.Now;
+
+            if (request.Id.HasValue && request.Id.Value > 0)
+            {
+                // UPDATE
+
+                adjustment = await _context.PartStockAdjustments
+                    .Include(x => x.Details)
+                    .FirstOrDefaultAsync(x => x.Id == request.Id.Value);
+
+                if (adjustment == null)
+                {
+                    throw new StockAdjustmentValidationException(
+                        "Stock Adjustment record not found.");
+                }
+
+                adjustment.AdjustmentDate = request.AdjustmentDate.Value.Date;
+                adjustment.LocationCode = locationCode;
+                adjustment.Remarks = request.Remarks?.Trim();
+
+                _context.PartStockAdjustmentDetails.RemoveRange(adjustment.Details);
+
+                adjustment.Details.Clear();
+                _context.PartStockAdjustments.Update(adjustment);
+
+            }
+            else
+            {
+                // CREATE
+
+                adjustment = new PartStockAdjustment
+                {
+                    AdjustmentDate = request.AdjustmentDate.Value.Date,
+                    PrefixNo = prefixNo,
+                    SrNo = srNo,
+                    DealerCode = dealerCode,
+                    LocationCode = locationCode,
+                    Remarks = request.Remarks?.Trim(),
+                    Status = "Draft",
+                    CreatedBy = createdBy,
+                    CreatedDate = createdDate
+                };
+
+                _context.PartStockAdjustments.Add(adjustment);
+                await _context.SaveChangesAsync();
+            }
+            foreach (var item in items)
+            {
+              var partNo = item.PartNo!;
+
+                if (!catalogByPartNo.TryGetValue(partNo, out var catalogItem) || catalogItem == null)
+                {
+                    throw new StockAdjustmentValidationException(
+                        $"Item Master record not found for Part No '{partNo}'.");
+                }
+                var currentStock = currentStocks.TryGetValue(partNo, out var stock) ? stock : 0;
+                if (item.CurrentStock!.Value != currentStock)
+                {
+                   item.CurrentStock = currentStock;
+                    int recalculatedAdj;
+                    int recalculatedFinal;
+                    try
+                    {
+                        recalculatedAdj = checked(item.UpdateStock!.Value - currentStock);
+                        recalculatedFinal = checked(currentStock + recalculatedAdj);
+                    }
+                    catch (OverflowException)
+                    {
+                        throw new StockAdjustmentValidationException(
+                        $"Adjustment quantities for part '{partNo}' exceed the supported range.");
+                    }
+                    item.UpQuantityStg = recalculatedAdj;
+                    item.FinalQty = recalculatedFinal;
+
+                }
+
+                int adjustmentQuantity;
+                int finalQuantity;
+                try
+                {
+                    adjustmentQuantity = checked(item.UpdateStock!.Value - currentStock);
+                    finalQuantity = checked(currentStock + adjustmentQuantity);
+                }
+                catch (OverflowException)
+                {
+                    throw new StockAdjustmentValidationException(
+                        $"Adjustment quantities for part '{partNo}' exceed the supported range.");
+                }
+
+
+                if (item.UpQuantityStg!.Value != adjustmentQuantity || item.FinalQty!.Value != finalQuantity)
+                {
+                    throw new StockAdjustmentValidationException(
+                        $"Submitted adjustment quantities do not match the calculation for part '{partNo}'.");
+                }
+
+
+                if (catalogItem == null)
+                {
+                    throw new Exception(
+                        $"Item Master record not found for Part No '{item.PartNo}'.");
+                }
+
+
+                var detail = new PartStockAdjustmentDetail
+                {
+                    AdjustmentId = adjustment.Id,
+                    PartNo = catalogItem.Itemcode,
+                    Description = catalogItem.Itemdesc,
+                    RateStock = catalogItem.Custprice,
+                    CurrentStock = currentStock,
+                    UpdateStock = item.UpdateStock.Value,
+                    UpQuantityStg = adjustmentQuantity,
+                    FinalQty = finalQuantity,
+                    CreatedBy = createdBy,
+                    CreatedDate = createdDate
+                };
+
+                _context.PartStockAdjustmentDetails.Add(detail);
+            }
+            await _context.SaveChangesAsync();
+
+            var inventoryRows = await _context.PartsInventories
+               .Where(x =>
+                x.VendorCode == dealerCode &&
+                x.FinalStockFlag == "Y" &&
+                x.DealerLocation == locationCode &&
+               partNos.Contains(x.ItemCode))
+              .ToListAsync();
+
+             var adjustmentDetails = await _context.PartStockAdjustmentDetails
+             .AsNoTracking()
+             .Where(x => x.AdjustmentId == adjustment.Id)
+             .ToListAsync();
+
+            foreach (var detail in adjustmentDetails)
+
+            {
+                var inventory = inventoryRows
+                    .FirstOrDefault(x => x.ItemCode == detail.PartNo);
+
+
+                //if (inventory != null)
+                //{
+                //    inventory.BatchClosingQty = detail.FinalQty;
+                //}
+
+
+                if (inventory != null)
+                {
+                    inventory.BatchClosingQty = detail.FinalQty;
+                }
+                else
+                {
+                    var newInventory = new PartsInventory
+                    {
+                        TransId = Guid.NewGuid().ToString(),
+
+                        ItemCode = detail.PartNo,
+
+                        VoucherNo = prefixNo,
+
+                        TransType = "TI",
+
+                        BatchNo = null,
+
+                        BatchOpeningQty = 0,
+                        BatchTransQty = detail.FinalQty,
+                        BatchClosingQty = detail.FinalQty,
+
+                        TransDate = DateOnly.FromDateTime(DateTime.Now),
+
+                        DealerLocation = locationCode,
+                        VendorCode = dealerCode,
+
+                        FinalStockFlag = "Y",
+
+                        TotalRate = 0,
+                        PurchaseRate = 0,
+
+                        Potype = "B2C",
+
+                        PostTransaction = null,
+
+                        CreatedBy = createdBy,
+                        CreatedDate = DateTime.Now
+                    };
+
+                    _context.PartsInventories.Add(newInventory);
+                }
+            }
+            _context.PartsInventories.UpdateRange(
+              inventoryRows.Where(x => x.Id > 0));
+
+
+            _context.PartsInventories.AddRange(
+                inventoryRows.Where(x => x.Id == 0));
+
+
+            // _context.PartStockAdjustments.Add(adjustment);
+
+
+            await _context.SaveChangesAsync();
+
+
+            try
+            {
+                sequence.NextNo = checked(sequence.NextNo + sequence.Increment);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(
+                    "SaveStockAdjustment: error updating sequence. Message: {Message}; Inner: {Inner}; Stack: {Stack}",
+                    ex.Message,
+                    ex.InnerException?.Message,
+                    ex.StackTrace);
+
+
+                throw;
+            }
+
+
+            await transaction.CommitAsync();
+
+
+            return new StockAdjustmentSaveResponseViewModel
+            {
+                AdjustmentId = adjustment.Id,
+                PrefixNo = adjustment.PrefixNo!,
+                SrNo = adjustment.SrNo!.Value,
+                Status = adjustment.Status,
+                AdjustmentDate = adjustment.AdjustmentDate,
+                DealerCode = adjustment.DealerCode,
+                LocationCode = adjustment.LocationCode,
+                Remarks = adjustment.Remarks,
+                Items = await _context.PartStockAdjustmentDetails
+    .Where(x => x.AdjustmentId == adjustment.Id)
+    .Select(detail => new StockAdjustmentItemResponseViewModel
+    {
+        Id = detail.Id,
+        PartNo = detail.PartNo,
+        Description = detail.Description,
+        RateStock = detail.RateStock,
+        CurrentStock = detail.CurrentStock,
+        UpdateStock = detail.UpdateStock,
+        UpQuantityStg = detail.UpQuantityStg,
+        FinalQty = detail.FinalQty
+    })
+    .ToListAsync()
+            };
+        }
+
+
+        public async Task<ItemMaster?> GetByPartNoAsync(string partNo)
+        {
+            return await _context.ItemMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Itemcode == partNo);
         }
 
         // ═════════════════════════════════════════════════════════════════════
@@ -4755,7 +5525,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 string claimStatus = uw?.Status ?? "Pending";
                 string orderStatus = order == null ? "" : (order.IsApproved ? "Approved" : "Pending");
                 string invoiceStatus = invoice == null ? "" : (invoice.IsApproved ? "Approved" : "Pending");
-                
+
 
                 string? approverName = null;
                 if (uw != null && !string.IsNullOrWhiteSpace(uw.ActionBy))
@@ -4885,8 +5655,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         LocationName = c.LocationName,
 
                         PartyName = c.Supplier?.LedgerName,
-                        CustomerName = customerName,       
-                        CustomerMobile = customerMobile,   
+                        CustomerName = customerName,
+                        CustomerMobile = customerMobile,
 
                         WarrantyClaimStatus = claimStatus,
                         ApproverEngineerName = approverName,
@@ -4962,4 +5732,3 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         }
     }
 }
-

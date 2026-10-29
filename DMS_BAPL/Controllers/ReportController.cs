@@ -5,6 +5,7 @@ using DMS_BAPL_Data.Services.ReportService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Office2021.DocumentTasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
@@ -108,7 +109,7 @@ namespace DMS_BAPL_Api.Controllers
         // JOB CARD
         // ─────────────────────────────────────────────────────────────────────
 
-     
+
         [HttpPost("job-card")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -408,7 +409,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
- 
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {
@@ -1023,7 +1024,7 @@ namespace DMS_BAPL_Api.Controllers
                     if (!string.IsNullOrEmpty(tokenDealerCode))
                         filter.DealerCode = tokenDealerCode;
 
-  
+
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
                     if (!string.IsNullOrEmpty(liveLocationCode))
@@ -1326,6 +1327,184 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [Authorize]
+        [HttpGet("GetPartBalanceStockForAdjustment")]
+        [ProducesResponseType(typeof(List<PartBalanceStockViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetPartBalanceStockForAdjustment(
+        [FromQuery] string? dealerCode = null,
+        [FromQuery] string? locationCode = null)
+        {
+            try
+            {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Unauthorized("Dealer code not found");
+                }
+
+                if (string.IsNullOrWhiteSpace(dealerCode))
+                    return BadRequest("Dealer code is required.");
+
+                var result = await _reportService.GetPartBalanceStockForAdjustmentAsync(dealerCode,locationCode);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching part balance stock for dealer {DealerCode}", dealerCode);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch stock details.");
+            }
+        }
+
+        [Authorize]
+        [HttpPost("SaveStockAdjustment")]
+        [ProducesResponseType(typeof(StockAdjustmentSaveResponseViewModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SaveStockAdjustment(
+            [FromBody] StockAdjustmentCreateViewModel request)
+        {
+            var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(createdBy))
+                return Unauthorized("User not authorized");
+
+            bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+            if (!isAdmin)
+            {
+                var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                    return Unauthorized("Dealer code not found");
+
+                request.DealerCode = tokenDealerCode;
+            }
+
+            try
+            {
+                var result = await _reportService.SaveStockAdjustmentAsync(request, createdBy);
+                return Ok(result);
+            }
+            catch (StockAdjustmentValidationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (StockAdjustmentConflictException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving stock adjustment draft");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Unable to save stock adjustment.");
+            }
+        }
+
+        [HttpPost("ImportStockAdjustmentExcel")]
+        public async Task<IActionResult> ImportStockAdjustmentExcel(IFormFile file)
+        {
+              try
+              {
+                var result =
+                    await _reportService
+                        .ImportStockAdjustmentExcelAsync(file);
+
+                return Ok(result);
+              }
+              catch (Exception ex)
+              {
+                _logger.LogError(ex,
+                    "Error importing stock adjustment excel");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Unable to import excel.");
+              }
+       
+        }
+
+        [HttpGet("ExportStockAdjustmentExcel")]
+        public async Task<IActionResult> ExportStockAdjustmentExcel(DateTime fromDate,DateTime toDate,string? locationCode)
+        {
+            var fileBytes =
+                await _reportService.ExportStockAdjustmentExcelAsync(
+                    fromDate,
+                    toDate,
+                    locationCode);
+
+            return File(
+                fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"StockAdjustment_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+        }
+
+
+
+        [Authorize]
+        [HttpGet("GetStockAdjustmentList")]
+        public async Task<IActionResult> GetStockAdjustmentList(DateTime fromDate,DateTime toDate,string? locationCode)
+        {
+            try
+            {
+                var result = await _reportService.GetStockAdjustmentListAsync(
+                    fromDate,
+                    toDate,
+                    locationCode);
+
+            
+
+                foreach (var item in result)
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(item);
+                }
+
+                return Ok(result);
+
+
+            }
+   
+
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching stock adjustment list");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        Message = ex.Message,
+                        InnerException = ex.InnerException?.Message
+                    });
+            }
+        }
+
+        [HttpGet("GetStockAdjustmentById/{id}")]
+        public async Task<IActionResult> GetStockAdjustmentById(int id)
+        {
+            var result = await _reportService.GetStockAdjustmentByIdAsync(id);
+
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
+        }
+
+        [HttpDelete("DeleteStockAdjustment/{id}")]
+        public async Task<IActionResult> DeleteStockAdjustment(int id)
+        {
+            await _reportService.DeleteStockAdjustmentAsync(id);
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Deleted Successfully"
+            });
+        }
+
         [HttpGet("GetPartsStockDetailsByDealer")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1344,7 +1523,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-     
+
                 bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
                 if (!isAdmin)
                 {

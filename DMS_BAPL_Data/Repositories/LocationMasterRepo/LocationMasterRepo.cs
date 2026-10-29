@@ -21,7 +21,11 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
         }
         public async Task<List<LocationMasterViewModel>> GetAllLocationMaster()
         {
-            var data = await _context.LocationMasters.ToListAsync();
+            var data = await _context.LocationMasters
+    .Where(x => x.Active == "Y")
+    .GroupBy(x => x.Locname)
+    .Select(g => g.OrderBy(x => x.Id).First())
+    .ToListAsync();
 
             List<LocationMasterViewModel> list = new List<LocationMasterViewModel>();
 
@@ -271,8 +275,8 @@ namespace DMS_BAPL_Data.Repositories.LocationMasterRepo
             try
             {
                 var data = await _context.LocationMasters
-                            .Where(x => x.Dealercode == dealerCode && x.Locareaidno == 1)
-                            .ToListAsync();
+                             .Where(x => x.Dealercode == dealerCode && x.Locareaidno == 2)
+                             .ToListAsync();
 
                 List<LocationNameViewModel> list = new List<LocationNameViewModel>();
 
