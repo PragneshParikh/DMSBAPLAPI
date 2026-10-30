@@ -36,6 +36,16 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                // GetUserIdFromToken() falls back to a hard-coded "CUS0345A" when the
+                // JWT is missing/expired/invalid. That dummy user has no roles, so the
+                // sidebar silently showed only the "MENU" title. Fail loudly instead.
+                if (User?.Identity?.IsAuthenticated != true)
+                {
+                    _logger.LogWarning("GET api/menu: request has no valid JWT (missing, expired or failed validation). AuthHeaderPresent={HasHeader}",
+                        Request.Headers.ContainsKey("Authorization"));
+                    return Unauthorized(new { success = false, message = "Session expired or invalid token. Please log in again." });
+                }
+
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
@@ -44,7 +54,7 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error occurred while fetching menu items");
+                _logger.LogError(ex, "Error occurred while fetching menu items");
                 throw;
             }
         }

@@ -13,6 +13,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int MenuId { get; set; }
         public string MenuName { get; set; } = null!;
         public string? ModuleName { get; set; }
+        public int? SerialNo { get; set; }
         public List<SubMenuRightViewModel> SubMenus { get; set; } = new();
     }
 
@@ -21,7 +22,16 @@ namespace DMS_BAPL_Utils.ViewModels
         public int SubMenuId { get; set; }
         public string MenuName { get; set; } = null!;
         public string? PathName { get; set; }
+        public string? ModuleName { get; set; }   // child's own module (ShowRoom/WorkShop/Account)
+        public int? SerialNo { get; set; }
         public int Permission { get; set; }   // bitmask — 0 if not granted
+    }
+
+    // Role-wise Menu Rights screen (Angular: /role-menu-rights)
+    public class SaveRoleMenuRightsRequest
+    {
+        public string RoleId { get; set; } = null!;
+        public List<MenuRightItem> Rights { get; set; } = new();
     }
 
     

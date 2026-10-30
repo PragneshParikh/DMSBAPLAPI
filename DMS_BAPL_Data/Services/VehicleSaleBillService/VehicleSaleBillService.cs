@@ -1808,6 +1808,19 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
                 throw;
             }
         }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // COGXIM SALE REGISTER IMPORT (logic lives in VehicleSaleBillRepo)
+        // ═════════════════════════════════════════════════════════════════════
+        public List<ImportFieldViewModel> GetCogximImportFields() => _repo.GetCogximImportFields();
+
+        public VehicleSaleImportPreviewResponse PreviewCogximImport(System.IO.Stream excel, string fileName, string? sheetName, int headerRow)
+            => _repo.PreviewCogximImport(excel, fileName, sheetName, headerRow);
+
+        public async Task<VehicleSaleImportResult> ImportCogximSalesAsync(System.IO.Stream excel, string fileName, VehicleSaleImportOptions options)
+        {
+            var userId = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+            return await _repo.ImportCogximSalesAsync(excel, fileName, options, userId);
+        }
     }
 }
-

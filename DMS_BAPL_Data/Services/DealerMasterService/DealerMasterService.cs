@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
@@ -91,35 +92,64 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
                 await _dealerMasterRepo.SaveAsync();
 
-                var existingUser = await _userManager.FindByNameAsync(dealer.Email);
-
-                if (existingUser == null)
-                {
-                    var newUser = new ApplicationUser
-                    {
-                        UserName = result.Email,
-                        Email = result.Email,
-                        EmailConfirmed = true,
-                        DealerCode = result.Dealercode
-                    };
-
-                    var userResult = await _userManager.CreateAsync(
-                        newUser,
-                        StringConstants.DealerDefaultPassword
-                    );
-
-                    if (!userResult.Succeeded)
-                        throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
-
-                    var roleResult = await _userManager.AddToRoleAsync(newUser, StringConstants.DealerText);
-
-                    if (!roleResult.Succeeded)
-                        throw new Exception("Role assignment failed");
-                }
+                await EnsureDealerLoginAsync(dealer.Email, result.Email, result.Dealercode);
 
                 await _dealerMasterRepo.CommitTransactionAsync();
 
                 return result;
+            }
+            catch
+            {
+                await _dealerMasterRepo.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        // Creates the dealer's login (Dealer role, default password) when no user exists yet.
+        private async Task EnsureDealerLoginAsync(string? lookupEmail, string? email, string? dealerCode)
+        {
+            var existingUser = await _userManager.FindByNameAsync(lookupEmail);
+
+            if (existingUser == null)
+            {
+                var newUser = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    EmailConfirmed = true,
+                    DealerCode = dealerCode
+                };
+
+                var userResult = await _userManager.CreateAsync(
+                    newUser,
+                    StringConstants.DealerDefaultPassword
+                );
+
+                if (!userResult.Succeeded)
+                    throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
+
+                var roleResult = await _userManager.AddToRoleAsync(newUser, StringConstants.DealerText);
+
+                if (!roleResult.Succeeded)
+                    throw new Exception("Role assignment failed");
+            }
+        }
+
+        // A dealer row without a ledger was left behind by a failed import row (older build).
+        // Re-importing it creates the missing ledger (and City if needed) and the login.
+        private async Task<bool> RepairDealerWithoutLedgerAsync(DealerMasterViewModel dealer, string userId)
+        {
+            if (await _dealerMasterRepo.DealerLedgerExistsAsync(dealer.Dealercode))
+                return false;
+
+            await _dealerMasterRepo.BeginTransactionAsync();
+            try
+            {
+                await _dealerMasterRepo.AddDealerToLedgerAsync(dealer, userId);
+                await _dealerMasterRepo.SaveAsync();
+                await EnsureDealerLoginAsync(dealer.Email, dealer.Email, dealer.Dealercode);
+                await _dealerMasterRepo.CommitTransactionAsync();
+                return true;
             }
             catch
             {
@@ -426,6 +456,18 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
 
                     var existing = await GetDealerByCode(dealerVm.Dealercode);
 
+                    // Reg Date is mandatory in DealerMaster. When the sheet leaves it blank:
+                    // existing dealer -> keep its current Reg Date; new dealer -> use the import date
+                    // and report it in Notes so it can be corrected later.
+                    string? regDateNote = null;
+                    if (string.IsNullOrWhiteSpace(dealerVm.RegDate))
+                    {
+                        var regDate = existing != null ? existing.RegDate : DateTime.Now;
+                        dealerVm.RegDate = regDate.ToString("dd/MM/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+                        if (existing == null)
+                            regDateNote = $"Row {rowNumber} ({dealerVm.Dealercode}): Reg Date blank in file - set to import date {regDate:dd.MM.yyyy}. Correct it in Dealer Master.";
+                    }
+
                     if (existing != null)
                     {
                         var updated = await UpdateByDealerCode(userId, dealerVm);
@@ -441,12 +483,14 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
                             continue;
                         }
 
+                        await RepairDealerWithoutLedgerAsync(dealerVm, userId);
                         result.UpdatedCount++;
                     }
                     else
                     {
                         await AddDealerAsync(dealerVm, userId);
                         result.InsertedCount++;
+                        if (regDateNote != null) result.Notes.Add(regDateNote);
                     }
                 }
                 catch (Exception ex)

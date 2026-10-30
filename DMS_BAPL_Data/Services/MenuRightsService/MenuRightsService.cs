@@ -32,5 +32,13 @@ namespace DMS_BAPL_Data.Services.MenuRightsService
             await _repo.SaveMenuRightsAsync(roleId, request.Rights, updatedBy);
             return roleId;
         }
+
+        // Role-wise Menu Rights screen - same tree/save logic as the dealer
+        // screen, but keyed directly by RoleId (no dealer lookup).
+        public Task<List<MenuGroupViewModel>> GetMenuRightsForRole(string roleId)
+            => _repo.GetMenuTreeWithRightsAsync(roleId);
+
+        public Task SaveRoleMenuRights(SaveRoleMenuRightsRequest request, string updatedBy)
+            => _repo.SaveMenuRightsAsync(request.RoleId, request.Rights, updatedBy);
     }
 }

@@ -39,6 +39,23 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .ToDictionary(g => g.Key, g => g.First().LedgerName);
         }
 
+        /// <summary>Reads "Tag: value" written into VehicleSaleBillDetails.Narration by the Cogxim import
+        /// (Motor / HSN / Financier / City / State / Occupation that have no column of their own).</summary>
+        private static string? SaleNarrTag(string? narration, string tag)
+        {
+            if (string.IsNullOrWhiteSpace(narration)) return null;
+            foreach (var part in narration.Split('|'))
+            {
+                var p = part.Trim();
+                if (p.Length > tag.Length + 1 && p.StartsWith(tag + ":", StringComparison.OrdinalIgnoreCase))
+                {
+                    var v = p[(tag.Length + 1)..].Trim();
+                    return v.Length == 0 ? null : v;
+                }
+            }
+            return null;
+        }
+
         private static bool HasDealerFilter(string? dealerCode) =>
                 !string.IsNullOrWhiteSpace(dealerCode)
                 && !dealerCode.Equals("undefined", StringComparison.OrdinalIgnoreCase)
@@ -835,8 +852,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             var rows = rawRows.Select(x =>
             {
                 var vi = x.d.ChassisNo != null && inwardLookup.TryGetValue(x.d.ChassisNo, out var vinw) ? vinw : null;
-                var clr = vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null;
-                var locM = vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null;
+                var clr = (vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null)
+                        ?? (x.d.Colour != null && colorLookup.TryGetValue(x.d.Colour, out var c2) ? c2 : null);   // imported bills: colour code on the bill
+                var locM = (vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null)
+                        ?? (x.h.Location != null && locationLookup.TryGetValue(x.h.Location, out var l2) ? l2 : null);   // no inward (imported bills): bill's Loccode
 
                 return new VehicleSaleReportViewModel
                 {
@@ -846,11 +865,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     OemModelName = x.im?.Oemmodelname,
                     VehicleGroup = x.im?.Itemdesc,
                     ColorCode = clr?.Colorcode,
-                    Colour = clr?.Colorname,
+                    Colour = clr?.Colorname ?? x.d.Colour,
                     ChasisNo = x.d.ChassisNo,
                     RegNo = x.d.RegNo,
                     BillingName = x.h.BillingName,
-                    Hsn = x.im?.Hsncode,
+                    Hsn = x.im?.Hsncode ?? SaleNarrTag(x.d.Narration, "HSN"),
                     MfgYear = x.d.MfgYear ?? vi?.MfgYear,
                     SaleType = x.h.SaleType,
                     Status = x.h.Status,
@@ -859,13 +878,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     DealerCity = x.dm?.City,
                     DealerState = x.dm?.State,
                     Location = locM != null ? locM.Locname : x.h.Location,
-                    LocCode = vi?.LocCode,
+                    LocCode = vi?.LocCode ?? locM?.Loccode,
                     LocCity = locM != null ? locM.City : x.dm?.City,
                     Name = x.h.CustomerName,
                     Address1 = x.lm?.Address,
-                    Address2 = "",
-                    CustomerState = x.state?.StateName,
-                    CustomerCity = x.city?.CityName,
+                    Address2 = x.lm?.Address2 ?? "",
+                    CustomerState = x.state?.StateName ?? SaleNarrTag(x.d.Narration, "State"),
+                    CustomerCity = x.city?.CityName ?? SaleNarrTag(x.d.Narration, "City"),
                     Pin = x.lm?.Pin,
                     Email = x.lm?.EMail,
                     MobileNo = x.lm?.MobileNumber,
@@ -875,27 +894,27 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         ? vi.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue)
                         : null,
                     SaleDate = x.h.SaleDate,
-                    InvoiceNo = x.h.SaleBillNo,
+                    InvoiceNo = x.h.InvoiceNo ?? x.h.SaleBillNo,   // Cogxim imports keep the old DMS invoice no
                     SaleBillNo = x.h.SaleBillNo,
                     BillType = x.h.BillType,
                     FinancierId = x.h.Financier,
                     FinanceBy = x.h.Financier.HasValue && financierLookup.TryGetValue(x.h.Financier.Value, out var finName)
-                        ? finName : null,
+                        ? finName : SaleNarrTag(x.d.Narration, "Financier"),
                     FinancerCode = "",
                     FinancerCategory = "",
                     ExecutiveName = x.h.SalesExecutive,
                     ProspectName = x.h.RefName,
                     ProspectMobNo = "",
-                    MotorNumber = vi?.MotorNo,
-                    BatteryNo = vi?.BatteryNo,
-                    ChargerNo = vi?.ChargerNo,
-                    ControllerNo = vi?.ControllerNo,
+                    MotorNumber = vi?.MotorNo ?? SaleNarrTag(x.d.Narration, "Motor"),
+                    BatteryNo = vi?.BatteryNo ?? x.d.Battery,
+                    ChargerNo = vi?.ChargerNo ?? x.d.ChargerNo,
+                    ControllerNo = vi?.ControllerNo ?? x.d.ControllerNo,
                     BatteryNo2 = vi?.BatteryNo2,
                     BatteryNo3 = vi?.BatteryNo3,
                     BatteryNo4 = vi?.BatteryNo4,
                     BatteryNo5 = vi?.BatteryNo5,
                     BatteryNo6 = vi?.BatteryNo6,
-                    BatteryCapacity = vi?.BatteryCapacity,
+                    BatteryCapacity = vi?.BatteryCapacity ?? x.d.BatteryCapacity,
                     SubsidyAmount = x.im?.Fame2amount,
                     FameIIRequired = x.im?.Fame2amount > 0,
                     TotalAmount = x.h.TotalAmount,
@@ -923,11 +942,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         : null,
                     AccountType = x.lm?.LedgerType,
                     PartyEmail = x.lm?.EMail,
-                    Occupation = x.om != null ? x.om.OccupationName : null,
+                    Occupation = x.om != null ? x.om.OccupationName : SaleNarrTag(x.d.Narration, "Occupation"),
                     ItemCode = x.d.ItemCode,
                     Battery = x.d.Battery,
-                    BatteryMake = vi?.BatteryMake,
-                    BatteryType = vi?.BatteryChemistry
+                    BatteryMake = vi?.BatteryMake ?? x.d.BatteryMake,
+                    BatteryType = vi?.BatteryChemistry ?? x.d.BatteryChemical
                 };
             })
             .OrderByDescending(x => x.BillDate)
@@ -2108,7 +2127,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     baseQuery = baseQuery.Where(x => x.vh.Status == filter.Status);
 
                 if (!string.IsNullOrWhiteSpace(filter.SaleBillNo))
-                    baseQuery = baseQuery.Where(x => x.vh.SaleBillNo != null && x.vh.SaleBillNo.Contains(filter.SaleBillNo));
+                    baseQuery = baseQuery.Where(x => (x.vh.SaleBillNo != null && x.vh.SaleBillNo.Contains(filter.SaleBillNo))
+                                                  || (x.vh.InvoiceNo != null && x.vh.InvoiceNo.Contains(filter.SaleBillNo)));
 
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
@@ -2130,14 +2150,17 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var rows = rawRows.Select(x =>
                 {
                     var vi = x.vd.ChassisNo != null && inwardLookup.TryGetValue(x.vd.ChassisNo, out var vinw) ? vinw : null;
-                    var clr = vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null;
-                    var locM = vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null;
+                    var clr = (vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null)
+                        ?? (x.vd.Colour != null && colorLookup.TryGetValue(x.vd.Colour, out var c2) ? c2 : null);   // imported bills: colour code on the bill
+                    var locM = (vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null)
+                        ?? (x.vh.Location != null && locationLookup.TryGetValue(x.vh.Location, out var l2) ? l2 : null);   // no inward (imported bills): bill's Loccode
 
 
                     return new VehicleSaleBillReportViewModel
                     {
                         SaleBillId = x.vh.Id,
                         SaleBillNo = x.vh.SaleBillNo,
+                        InvoiceNo = x.vh.InvoiceNo,
                         SaleDate = x.vh.SaleDate,
                         Status = x.vh.Status,
                         Location = locM != null ? locM.Locname : x.vh.Location,
@@ -2149,20 +2172,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         SaleType = x.vh.SaleType,
                         BillType = x.vh.BillType,
                         Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
-                            ? finName : null,
+                            ? finName : SaleNarrTag(x.vd.Narration, "Financier"),
                         FinancierId = x.vh.Financier,
                         SalesExecutive = x.vh.SalesExecutive,
                         CustomerMobile = x.cust?.MobileNumber,
-                        CustomerCity = x.city?.CityName,
-                        CustomerState = x.state?.StateName,
+                        CustomerCity = x.city?.CityName ?? SaleNarrTag(x.vd.Narration, "City"),
+                        CustomerState = x.state?.StateName ?? SaleNarrTag(x.vd.Narration, "State"),
 
                         ChassisNo = x.vd.ChassisNo,
-                        MotorNo = vi?.MotorNo,
+                        MotorNo = vi?.MotorNo ?? SaleNarrTag(x.vd.Narration, "Motor"),
                         ItemCode = x.vd.ItemCode,
                         ModelName = x.im?.Itemname ?? x.vd.ModelName,
                         OemModelName = x.im?.Oemmodelname,
                         Colour = clr?.Colorname ?? x.vd.Colour,
-                        Hsn = x.im?.Hsncode,
+                        Hsn = x.im?.Hsncode ?? SaleNarrTag(x.vd.Narration, "HSN"),
                         MfgYear = x.vd.MfgYear ?? vi?.MfgYear,
                         RegNo = x.vd.RegNo,
                         InsNo = x.vd.InsNo,
@@ -2189,12 +2212,12 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Dob = x.cust != null && x.cust.DateOfBirth.HasValue
                             ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null,
                         AccountType = x.cust?.LedgerType,
-                        Occupation = x.occ != null ? x.occ.OccupationName : null,
-                        BatteryMake = vi?.BatteryMake,
-                        BatteryType = vi?.BatteryChemistry,
+                        Occupation = x.occ != null ? x.occ.OccupationName : SaleNarrTag(x.vd.Narration, "Occupation"),
+                        BatteryMake = vi?.BatteryMake ?? x.vd.BatteryMake,
+                        BatteryType = vi?.BatteryChemistry ?? x.vd.BatteryChemical,
                         DealerCity = x.dm?.City,
                         DealerState = x.dm?.State,
-                        LocCode = vi?.LocCode,
+                        LocCode = vi?.LocCode ?? locM?.Loccode,
                         LocCity = locM != null ? locM.City : x.dm?.City,
                         Pin = x.cust?.Pin,
                         PartyAddress = x.cust?.Address,
@@ -2215,6 +2238,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     var s = filter.Search.Trim().ToLower();
                     rows = rows.Where(x =>
                         (x.SaleBillNo ?? "").ToLower().Contains(s) ||
+                        (x.InvoiceNo ?? "").ToLower().Contains(s) ||
                         (x.CustomerName ?? "").ToLower().Contains(s) ||
                         (x.BillingName ?? "").ToLower().Contains(s) ||
                         (x.ChassisNo ?? "").ToLower().Contains(s) ||
@@ -2483,7 +2507,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     baseQuery = baseQuery.Where(x => x.vh.Status == filter.Status);
 
                 if (!string.IsNullOrWhiteSpace(filter.SaleBillNo))
-                    baseQuery = baseQuery.Where(x => x.vh.SaleBillNo != null && x.vh.SaleBillNo.Contains(filter.SaleBillNo));
+                    baseQuery = baseQuery.Where(x => (x.vh.SaleBillNo != null && x.vh.SaleBillNo.Contains(filter.SaleBillNo))
+                                                  || (x.vh.InvoiceNo != null && x.vh.InvoiceNo.Contains(filter.SaleBillNo)));
 
                 if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
@@ -2500,14 +2525,17 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var rows = rawRows.Select(x =>
                 {
                     var vi = x.vd.ChassisNo != null && inwardLookup.TryGetValue(x.vd.ChassisNo, out var vinw) ? vinw : null;
-                    var clr = vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null;
-                    var locM = vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null;
+                    var clr = (vi?.ColrCode != null && colorLookup.TryGetValue(vi.ColrCode, out var c) ? c : null)
+                        ?? (x.vd.Colour != null && colorLookup.TryGetValue(x.vd.Colour, out var c2) ? c2 : null);   // imported bills: colour code on the bill
+                    var locM = (vi?.LocCode != null && locationLookup.TryGetValue(vi.LocCode, out var l) ? l : null)
+                        ?? (x.vh.Location != null && locationLookup.TryGetValue(x.vh.Location, out var l2) ? l2 : null);   // no inward (imported bills): bill's Loccode
 
 
                     return new VehicleSaleBillReportViewModel
                     {
                         SaleBillId = x.vh.Id,
                         SaleBillNo = x.vh.SaleBillNo,
+                        InvoiceNo = x.vh.InvoiceNo,
                         SaleDate = x.vh.SaleDate,
                         Status = x.vh.Status,
                         Location = locM != null ? locM.Locname : x.vh.Location,
@@ -2519,20 +2547,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         SaleType = x.vh.SaleType,
                         BillType = x.vh.BillType,
                         Financier = x.vh.Financier.HasValue && financierLookup.TryGetValue(x.vh.Financier.Value, out var finName)
-                            ? finName : null,
+                            ? finName : SaleNarrTag(x.vd.Narration, "Financier"),
                         FinancierId = x.vh.Financier,
                         SalesExecutive = x.vh.SalesExecutive,
                         CustomerMobile = x.cust?.MobileNumber,
-                        CustomerCity = x.city?.CityName,
-                        CustomerState = x.state?.StateName,
+                        CustomerCity = x.city?.CityName ?? SaleNarrTag(x.vd.Narration, "City"),
+                        CustomerState = x.state?.StateName ?? SaleNarrTag(x.vd.Narration, "State"),
 
                         ChassisNo = x.vd.ChassisNo,
-                        MotorNo = vi?.MotorNo,
+                        MotorNo = vi?.MotorNo ?? SaleNarrTag(x.vd.Narration, "Motor"),
                         ItemCode = x.vd.ItemCode,
                         ModelName = x.im?.Itemname ?? x.vd.ModelName,
                         OemModelName = x.im?.Oemmodelname,
                         Colour = clr?.Colorname ?? x.vd.Colour,
-                        Hsn = x.im?.Hsncode,
+                        Hsn = x.im?.Hsncode ?? SaleNarrTag(x.vd.Narration, "HSN"),
                         MfgYear = x.vd.MfgYear ?? vi?.MfgYear,
                         RegNo = x.vd.RegNo,
                         InsNo = x.vd.InsNo,
@@ -2559,9 +2587,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         Dob = x.cust != null && x.cust.DateOfBirth.HasValue
                             ? x.cust.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null,
                         AccountType = x.cust?.LedgerType,
-                        Occupation = x.occ != null ? x.occ.OccupationName : null,
-                        BatteryMake = vi?.BatteryMake,
-                        BatteryType = vi?.BatteryChemistry
+                        Occupation = x.occ != null ? x.occ.OccupationName : SaleNarrTag(x.vd.Narration, "Occupation"),
+                        BatteryMake = vi?.BatteryMake ?? x.vd.BatteryMake,
+                        BatteryType = vi?.BatteryChemistry ?? x.vd.BatteryChemical
                     };
                 }).ToList();
 
@@ -2570,6 +2598,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     var s = filter.Search.Trim().ToLower();
                     rows = rows.Where(x =>
                         (x.SaleBillNo ?? "").ToLower().Contains(s) ||
+                        (x.InvoiceNo ?? "").ToLower().Contains(s) ||
                         (x.CustomerName ?? "").ToLower().Contains(s) ||
                         (x.BillingName ?? "").ToLower().Contains(s) ||
                         (x.ChassisNo ?? "").ToLower().Contains(s) ||

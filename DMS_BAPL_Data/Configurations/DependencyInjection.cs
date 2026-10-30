@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
+using DMS_BAPL_Data.Services.VehicleDispatchService;
 using DMS_BAPL_Data.Repositories.APITracking;
 using DMS_BAPL_Data.Repositories.BatteryCapacityMasterRepo;
 using DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo;
@@ -266,6 +267,7 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IHSNWiseTaxcodeservice, HSNWiseTaxCodeService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IVehicleInwardService, VehicleInwardService>();
+            services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();   // Vehicle Dispatch import + report (SuperAdmin)
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();

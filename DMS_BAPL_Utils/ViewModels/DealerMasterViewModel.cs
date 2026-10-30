@@ -83,6 +83,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public int UpdatedCount { get; set; }
         public int FailedCount { get; set; }
         public List<DealerImportRowError> Errors { get; set; } = new List<DealerImportRowError>();
+
+        // Informational notes (e.g. blank Reg Date set to the import date).
+        public List<string> Notes { get; set; } = new List<string>();
     }
 
     /// <summary>

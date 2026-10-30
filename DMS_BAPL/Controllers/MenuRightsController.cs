@@ -30,6 +30,50 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        /// <summary>Role-wise Menu Rights: full MenuMaster tree with this role's permissions.</summary>
+        [HttpGet("role/{roleId}")]
+        public async Task<IActionResult> GetRoleMenuRights(string roleId)
+        {
+            try
+            {
+                if (User?.Identity?.IsAuthenticated != true)
+                    return Unauthorized(new { success = false, message = "Session expired. Please log in again." });
+
+                if (string.IsNullOrWhiteSpace(roleId))
+                    return BadRequest(new { success = false, message = "RoleId is required." });
+
+                var result = await _service.GetMenuRightsForRole(roleId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Role-wise Menu Rights: save permissions for a role (0 = no access).</summary>
+        [HttpPost("role/save")]
+        public async Task<IActionResult> SaveRoleMenuRights([FromBody] SaveRoleMenuRightsRequest request)
+        {
+            try
+            {
+                if (User?.Identity?.IsAuthenticated != true)
+                    return Unauthorized(new { success = false, message = "Session expired. Please log in again." });
+
+                if (request == null || string.IsNullOrWhiteSpace(request.RoleId))
+                    return BadRequest(new { success = false, message = "RoleId is required." });
+
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                await _service.SaveRoleMenuRights(request, userId);
+
+                return Ok(new { success = true, message = "Menu rights saved successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpGet("{dealerCode}")]
         public async Task<IActionResult> GetMenuRights(string dealerCode)
         {

@@ -13,6 +13,10 @@ public partial class VehicleSaleBillHeader
 
     public string SaleBillNo { get; set; } = null!;
 
+    /// <summary>Original invoice no of bills imported from Cogxim (old DMS). Column added by
+    /// docs/cogxim/Add_InvoiceNo_VehicleSaleBillHeader.sql</summary>
+    public string? InvoiceNo { get; set; }
+
     public bool IsD2d { get; set; }
 
     public string? CustomerType { get; set; }

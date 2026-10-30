@@ -2,6 +2,7 @@
 using DMS_BAPL_Data.Services.InventoryService;
 using DMS_BAPL_Data.Services.VehicleSaleBillService;
 using DMS_BAPL_Utils.Constants;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -410,5 +411,88 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        // ═════════════════════════════════════════════════════════════════════
+        // COGXIM SALE REGISTER IMPORT  (Admin / SuperAdmin only)
+        //   GET  api/VehicleSaleBill/import/fields    target fields + aliases
+        //   POST api/VehicleSaleBill/import/preview   form: file, sheetName?, headerRow?
+        //   POST api/VehicleSaleBill/import           form: file, options (JSON; dryRun true = validate only)
+        // ═════════════════════════════════════════════════════════════════════
+        private const long CogximMaxUpload = 200L * 1024 * 1024;   // 200 MB per file
+        private static readonly System.Text.Json.JsonSerializerOptions CogximJson = new() { PropertyNameCaseInsensitive = true };
+
+        private IActionResult? CogximGuard(IFormFile? file = null, bool needFile = false)
+        {
+            if (User?.Identity?.IsAuthenticated != true) return Unauthorized();
+            if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only Admin / SuperAdmin can import sale data." });
+            if (needFile)
+            {
+                if (file == null || file.Length == 0) return BadRequest(new { success = false, message = "Choose an Excel file." });
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (ext != ".xlsx" && ext != ".xlsm")
+                    return BadRequest(new { success = false, message = "Only .xlsx / .xlsm files are supported. Open .xls / .csv in Excel and Save As .xlsx." });
+            }
+            return null;
+        }
+
+        [HttpGet("import/fields")]
+        public IActionResult GetCogximImportFields()
+        {
+            var denied = CogximGuard();
+            if (denied != null) return denied;
+            return Ok(_vehicleSaleBillService.GetCogximImportFields());
+        }
+
+        [HttpPost("import/preview")]
+        [RequestSizeLimit(CogximMaxUpload)]
+        [RequestFormLimits(MultipartBodyLengthLimit = CogximMaxUpload)]
+        public IActionResult PreviewCogximImport(IFormFile file, [FromForm] string? sheetName, [FromForm] int headerRow = 1)
+        {
+            var denied = CogximGuard(file, needFile: true);
+            if (denied != null) return denied;
+            try
+            {
+                using var stream = file.OpenReadStream();
+                return Ok(_vehicleSaleBillService.PreviewCogximImport(stream, file.FileName, sheetName, headerRow));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Could not read the Excel file: " + ex.GetBaseException().Message });
+            }
+        }
+
+        [HttpPost("import")]
+        [RequestSizeLimit(CogximMaxUpload)]
+        [RequestFormLimits(MultipartBodyLengthLimit = CogximMaxUpload)]
+        public async Task<IActionResult> ImportCogximSales(IFormFile file, [FromForm] string? options)
+        {
+            var denied = CogximGuard(file, needFile: true);
+            if (denied != null) return denied;
+            try
+            {
+                var opts = string.IsNullOrWhiteSpace(options)
+                    ? new VehicleSaleImportOptions()
+                    : System.Text.Json.JsonSerializer.Deserialize<VehicleSaleImportOptions>(options, CogximJson) ?? new VehicleSaleImportOptions();
+
+                using var stream = file.OpenReadStream();
+                return Ok(await _vehicleSaleBillService.ImportCogximSalesAsync(stream, file.FileName, opts));
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return BadRequest(new { success = false, message = "Import options are not valid JSON." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Import failed: " + ex.GetBaseException().Message });
+            }
+        }
     }
 }

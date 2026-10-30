@@ -140,6 +140,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
+
+    // Diagnostics: log WHY a bearer token is rejected (expired, bad signature,
+    // wrong issuer/audience...). Without this the request silently continues
+    // as anonymous. Logs the reason only - never the token itself.
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = ctx =>
+        {
+            var log = ctx.HttpContext.RequestServices
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("JwtAuth");
+            log.LogWarning("JWT rejected for {Path}: {Error} - {Message}",
+                ctx.Request.Path, ctx.Exception.GetType().Name, ctx.Exception.Message);
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddHttpClient("TsmApi", client =>
