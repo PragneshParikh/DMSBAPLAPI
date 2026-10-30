@@ -91,9 +91,13 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                     .Where(r => r.RoleId == roleId)
                     .ToListAsync();
 
+            // Keyed by SubMenuId only (not MenuId+SubMenuId): some legacy rows were
+            // saved under the wrong MenuId, which made them invisible here while
+            // /api/menu (which matches on SubMenuId) still honoured them.
+            // Duplicate rows for the same SubMenuId are merged with bitwise OR.
             var rightsLookup = existingRights
-                .GroupBy(r => (r.MenuId, r.SubMenuId))
-                .ToDictionary(g => g.Key, g => g.First().Permission);
+                .GroupBy(r => r.SubMenuId)
+                .ToDictionary(g => g.Key, g => g.Aggregate(0, (acc, r) => acc | r.Permission));
 
             var parents = allMenus.Where(m => m.ParentMenuId == null).ToList();
 
@@ -107,33 +111,38 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                 {
                     MenuId = parent.Id,
                     MenuName = parent.MenuName,
-                    ModuleName = parent.ModuleName
+                    ModuleName = parent.ModuleName,
+                    SerialNo = parent.SerialNo
                 };
 
                 if (children.Any())
                 {
                     foreach (var child in children)
                     {
-                        rightsLookup.TryGetValue((parent.Id, child.Id), out var permission);
+                        rightsLookup.TryGetValue(child.Id, out var permission);
 
                         group.SubMenus.Add(new SubMenuRightViewModel
                         {
                             SubMenuId = child.Id,
                             MenuName = child.MenuName,
                             PathName = child.PathName,
+                            ModuleName = child.ModuleName,
+                            SerialNo = child.SerialNo,
                             Permission = permission
                         });
                     }
                 }
                 else
                 {
-                    rightsLookup.TryGetValue((parent.Id, parent.Id), out var permission);
+                    rightsLookup.TryGetValue(parent.Id, out var permission);
 
                     group.SubMenus.Add(new SubMenuRightViewModel
                     {
                         SubMenuId = parent.Id,
                         MenuName = parent.MenuName,
                         PathName = parent.PathName,
+                        ModuleName = parent.ModuleName,
+                        SerialNo = parent.SerialNo,
                         Permission = permission
                     });
                 }
@@ -155,26 +164,50 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                     .Where(r => r.RoleId == roleId)
                     .ToListAsync();
 
-                var existingLookup = existing
-                    .GroupBy(r => (r.MenuId, r.SubMenuId))
-                    .ToDictionary(g => g.Key, g => g.First());
+                // Correct parent for every menu, straight from MenuMaster - the
+                // client-sent MenuId is not trusted (legacy rows had wrong MenuIds).
+                var parentLookup = await _context.MenuMasters
+                    .Select(m => new { m.Id, m.ParentMenuId })
+                    .ToDictionaryAsync(m => m.Id, m => m.ParentMenuId ?? m.Id);
 
-                foreach (var item in rights)
+                var existingBySub = existing
+                    .GroupBy(r => r.SubMenuId)
+                    .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Id).ToList());
+
+                // Last value wins if the client sends the same SubMenuId twice.
+                var requested = rights
+                    .Where(r => parentLookup.ContainsKey(r.SubMenuId))   // ignore unknown menus
+                    .GroupBy(r => r.SubMenuId)
+                    .Select(g => g.Last());
+
+                foreach (var item in requested)
                 {
-                    if (existingLookup.TryGetValue((item.MenuId, item.SubMenuId), out var existingRow))
+                    var correctMenuId = parentLookup[item.SubMenuId];
+                    var permission = item.Permission & 31;   // View|Create|Edit|Delete|Print
+
+                    if (existingBySub.TryGetValue(item.SubMenuId, out var rows))
                     {
-                        existingRow.Permission = item.Permission;
-                        existingRow.UpdatedBy = updatedBy;
-                        existingRow.UpdatedDate = DateTime.Now;
+                        var keep = rows[0];
+                        if (keep.Permission != permission || keep.MenuId != correctMenuId)
+                        {
+                            keep.Permission = permission;
+                            keep.MenuId = correctMenuId;
+                            keep.UpdatedBy = updatedBy;
+                            keep.UpdatedDate = DateTime.Now;
+                        }
+
+                        // Remove duplicate rows for the same Role + SubMenu.
+                        if (rows.Count > 1)
+                            _context.RoleWiseMenuRights.RemoveRange(rows.Skip(1));
                     }
-                    else
+                    else if (permission > 0)
                     {
                         _context.RoleWiseMenuRights.Add(new RoleWiseMenuRight
                         {
                             RoleId = roleId,
-                            MenuId = item.MenuId,
+                            MenuId = correctMenuId,
                             SubMenuId = item.SubMenuId,
-                            Permission = item.Permission,
+                            Permission = permission,
                             CreatedBy = updatedBy,
                             CreatedDate = DateTime.Now
                         });

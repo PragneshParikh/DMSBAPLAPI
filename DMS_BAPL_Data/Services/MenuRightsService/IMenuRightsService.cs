@@ -10,5 +10,9 @@ namespace DMS_BAPL_Data.Services.MenuRightsService
         Task<List<DealerDropdownViewModel>> GetDealers();
         Task<List<MenuGroupViewModel>> GetMenuRightsForDealer(string dealerCode);
         Task<string?> SaveMenuRights(SaveMenuRightsRequest request, string updatedBy);
+
+        // Role-wise Menu Rights screen
+        Task<List<MenuGroupViewModel>> GetMenuRightsForRole(string roleId);
+        Task SaveRoleMenuRights(SaveRoleMenuRightsRequest request, string updatedBy);
     }
 }

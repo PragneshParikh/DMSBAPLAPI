@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,9 +26,11 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
         private readonly BAPLdbIdentityContext _context;
         private readonly IRoleWiseMenuRightRepo _roleWiseMenuRightRepo;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<MenuService> _logger;
 
-        public MenuService(IMenuRepo menuRepo, IRoleRepo roleRepo, IHttpContextAccessor httpContextAccessor, IRoleWiseMenuRightRepo roleWiseMenuRightRepo, BAPLdbIdentityContext context)
+        public MenuService(IMenuRepo menuRepo, IRoleRepo roleRepo, IHttpContextAccessor httpContextAccessor, IRoleWiseMenuRightRepo roleWiseMenuRightRepo, BAPLdbIdentityContext context, ILogger<MenuService> logger)
         {
+            _logger = logger;
             _menuRepo = menuRepo;
             _roleRepo = roleRepo;
             _roleWiseMenuRightRepo = roleWiseMenuRightRepo;
@@ -162,6 +165,34 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     .Where(x => x.Permission > 0)
                     .Select(x => x.SubMenuId)
                     .ToHashSet();
+
+                // SuperAdmin / Admin see every menu regardless of RoleWiseMenuRights.
+                // Checked from the validated JWT role claims AND from AspNetRoles
+                // (by role id) so it works whichever the login flow populated.
+                var adminRoleNames = new[] { "SUPERADMIN", "ADMIN" };
+                var tokenRoles = _httpContextAccessor.HttpContext?.User?
+                    .FindAll(System.Security.Claims.ClaimTypes.Role)
+                    .Select(c => (c.Value ?? string.Empty).ToUpperInvariant())
+                    .ToList() ?? new List<string>();
+                var dbRoleNames = roleIds.Count == 0
+                    ? new List<string>()
+                    : await _context.Roles
+                        .Where(r => roleIds.Contains(r.Id))
+                        .Select(r => r.NormalizedName ?? r.Name ?? string.Empty)
+                        .ToListAsync();
+                var isAdmin = tokenRoles.Any(r => adminRoleNames.Contains(r))
+                           || dbRoleNames.Any(r => adminRoleNames.Contains(r.ToUpperInvariant()));
+
+                if (isAdmin)
+                {
+                    allowedSubMenuIds = menus.Select(m => m.Id).ToHashSet();
+                }
+
+                if (allowedSubMenuIds.Count == 0)
+                {
+                    _logger.LogWarning("GetMenuItems: no menu rights for UserId={UserId}. RolesFound={RoleCount} [{RoleIds}], RightsRows={RightsCount}",
+                        userId, roleIds.Count, string.Join(",", roleIds), roleRights.Count);
+                }
 
                 var parentMenus = menus
                     .Where(x => x.ParentMenuId == null)

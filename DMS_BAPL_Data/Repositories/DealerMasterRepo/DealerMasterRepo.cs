@@ -90,11 +90,28 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             if (state == null)
                 throw new InvalidOperationException($"State '{dealer.State}' was not found in master data.");
 
-            var city = await _context.Cities
-                .FirstOrDefaultAsync(c => c.CityName.ToLower() == (dealer.City ?? "").ToLower() && c.StateId == state.StateId);
+            var cityName = (dealer.City ?? "").Trim();
+            if (cityName.Length == 0)
+                throw new InvalidOperationException("City is required.");
 
+            var city = await _context.Cities
+                .FirstOrDefaultAsync(c => c.CityName.ToLower() == cityName.ToLower() && c.StateId == state.StateId);
+
+            // City not in City Master yet: create it under the dealer's state
+            // (same approach as the Cogxim import auto-masters).
             if (city == null)
-                throw new InvalidOperationException($"City '{dealer.City}' was not found under state '{dealer.State}'.");
+            {
+                city = new City
+                {
+                    CityName = cityName.ToUpper(),
+                    StateId = state.StateId,
+                    IsActive = true,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now
+                };
+                await _context.Cities.AddAsync(city);
+                await _context.SaveChangesAsync();   // inside the caller's transaction; gives CityId
+            }
 
             var ledger = new LedgerMaster
             {
@@ -286,6 +303,17 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         {
             if (_transaction != null)
                 await _transaction.RollbackAsync();
+
+            // Drop entities of the failed operation from the change tracker. Without this a
+            // dealer that failed (e.g. on City) stays "Added" and is inserted by the NEXT
+            // row's SaveChanges during Excel import - without its ledger and login.
+            _context.ChangeTracker.Clear();
+        }
+
+        // True when a ledger already exists for this dealer code.
+        public async Task<bool> DealerLedgerExistsAsync(string dealerCode)
+        {
+            return await _context.LedgerMasters.AnyAsync(l => l.LedgerCode == dealerCode);
         }
 
         public async Task SaveAsync()
@@ -365,12 +393,14 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                query = query.Where(c => c.Compname.Contains(searchTerm) ||
-                                         c.City.Contains(searchTerm) ||
-                                         c.Mobile.Contains(searchTerm) ||
-                                         c.Email.Contains(searchTerm) ||
-                                         c.Contactperson.Contains(searchTerm) ||
-                                         c.Compname.Contains(searchTerm));
+                var term = searchTerm.Trim();
+                query = query.Where(c => c.Dealercode.Contains(term) ||
+                                         c.Compname.Contains(term) ||
+                                         c.City.Contains(term) ||
+                                         c.State.Contains(term) ||
+                                         c.Mobile.Contains(term) ||
+                                         c.Email.Contains(term) ||
+                                         c.Contactperson.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(dealerCode))

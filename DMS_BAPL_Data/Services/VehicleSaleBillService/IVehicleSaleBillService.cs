@@ -39,7 +39,9 @@ namespace DMS_BAPL_Data.Services.VehicleSaleBillService
         Task<byte[]> DownloadMultipleInvoices(List<int> ids);
         Task<byte[]> DownloadMultipleCombined(List<int> form22Ids, List<int> invoiceIds);
 
-
-
+        // Cogxim (old DMS) sale register Excel import
+        List<ImportFieldViewModel> GetCogximImportFields();
+        VehicleSaleImportPreviewResponse PreviewCogximImport(System.IO.Stream excel, string fileName, string? sheetName, int headerRow);
+        Task<VehicleSaleImportResult> ImportCogximSalesAsync(System.IO.Stream excel, string fileName, VehicleSaleImportOptions options);
     }
 }
