@@ -2760,21 +2760,38 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
 
             // ---------- 5b. DMS Sale Bill No from Prefix Master ("sale_bill") ----------
             var sequenceUpdates = new Dictionary<int, int>();   // NumberSequence.Id -> NextNo after this import
+            var renumberedOld = new Dictionary<int, string>();  // already-imported bill Id -> its Sale Bill No before this run
             if (options.GenerateSaleBillNo && ready.Count > 0)
             {
-                // new bills, and earlier imports that still carry the Cogxim invoice no as Sale Bill No
-                var toNumber = ready.Where(x => x.ExistingId == null
-                                                || string.Equals(x.Header.SaleBillNo, x.Header.InvoiceNo, StringComparison.OrdinalIgnoreCase))
-                                    .OrderBy(x => x.Header.SaleDate).ThenBy(x => x.Rows[0].RowNo).ToList();
+                // every bill is numbered in the series of its OWN financial year (Apr-Mar of the sale date):
+                //  * new bills, and earlier imports that still carry the Cogxim invoice no as Sale Bill No
+                //  * earlier imports whose Sale Bill No is in another year's series -> renumbered
+                //  * earlier imports already in the right year's series keep their number
+                var toNumber = ready.OrderBy(x => x.Header.SaleDate).ThenBy(x => x.Rows[0].RowNo).ToList();
+                var keepIfFits = new HashSet<VehicleSaleBillHeader>(toNumber
+                    .Where(x => x.ExistingId != null && !string.Equals(x.Header.SaleBillNo, x.Header.InvoiceNo, StringComparison.OrdinalIgnoreCase))
+                    .Select(x => x.Header));
+                var oldNos = toNumber.ToDictionary(x => x.Header, x => x.Header.SaleBillNo);
                 var noSeqWarned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var numbered = await CxAssignSaleBillNos(toNumber.Select(x => x.Header).ToList(), sequenceUpdates,
                     (dealer, pattern) =>
                     {
-                        if (noSeqWarned.Add(dealer))
-                            Issue(null, "Warning", $"Dealer {dealer}: no 'sale_bill' prefix in Prefix Master for this year - Sale Bill No uses {pattern} (run docs/cogxim/Create_Cogxim_Sale_Bill_Prefixes.sql to add them).");
-                    });
-                foreach (var x in toNumber.Where(x => !numbered.Contains(x.Header)))
+                        if (noSeqWarned.Add(dealer + "|" + pattern))
+                            Issue(null, "Warning", $"Dealer {dealer}: no 'sale_bill' prefix in Prefix Master for this financial year - Sale Bill No uses {pattern} (add the year's prefix in Prefix Master, or run docs/cogxim/Create_Cogxim_Sale_Bill_Prefixes.sql).");
+                    }, keepIfFits);
+                foreach (var x in toNumber.Where(x => x.ExistingId != null && !string.Equals(oldNos[x.Header], x.Header.SaleBillNo, StringComparison.OrdinalIgnoreCase)))
+                    renumberedOld[x.ExistingId!.Value] = oldNos[x.Header];
+                foreach (var x in toNumber.Where(x => !numbered.Contains(x.Header) && !keepIfFits.Contains(x.Header)))
                     foreach (var r in x.Rows) Issue(r, "Error", "Sale Bill No could not be generated.");
+                // one line per dealer + year for bills moved into their own year's series
+                foreach (var g in toNumber.Where(x => keepIfFits.Contains(x.Header)
+                                                      && !string.Equals(oldNos[x.Header], x.Header.SaleBillNo, StringComparison.OrdinalIgnoreCase))
+                                          .GroupBy(x => (x.Header.DealerCode, Fy: CxFyText(x.Header.SaleDate))))
+                {
+                    var ex1 = g.First();
+                    Issue(null, "Info", $"Dealer {g.Key.DealerCode}: {g.Count()} already-imported bill(s) of FY {g.Key.Fy} renumbered into that year's series " +
+                                        $"(e.g. {oldNos[ex1.Header]} -> {ex1.Header.SaleBillNo}).");
+                }
             }
 
             var inserts = ready.Where(x => x.ExistingId == null).ToList();
@@ -2811,6 +2828,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         _context.ChangeTracker.Clear();
                     }
                     foreach (var x in ready.Where(x => x.NewLedger != null)) x.Header.LedgerId = x.NewLedger!.Id;
+
+                    // 6a-2. renumbered bills give up their old Sale Bill No first (it is unique and may be reused
+                    //       by another bill of this run); 6c writes their new number
+                    foreach (var chunk in renumberedOld.Keys.Chunk(1000))
+                        await _context.VehicleSaleBillHeaders.Where(h => chunk.Contains(h.Id))
+                            .ExecuteUpdateAsync(sp => sp.SetProperty(h => h.SaleBillNo, h => "CXRN-" + h.Id.ToString()));
 
                     // 6b. new bills in chunks; a failing chunk is retried bill-by-bill to isolate the bad one
                     foreach (var chunk in inserts.Chunk(CogximSaveChunk))
@@ -2855,7 +2878,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         {
                             var db = await _context.VehicleSaleBillHeaders.Include(h => h.VehicleSaleBillDetails)
                                 .FirstAsync(h => h.Id == u.ExistingId!.Value);
+                            var oldNo = renumberedOld.TryGetValue(db.Id, out var before) ? before : db.SaleBillNo;
                             var vehicles = CxApplyUpdate(db, u.Header, u.ExplicitTotal, userId);
+                            if (!string.Equals(oldNo, db.SaleBillNo, StringComparison.Ordinal))
+                            {
+                                // Sale Bill No renumbered -> invoice linked to this bill follows it
+                                var invs = await _context.InvoiceHeaders.Where(i => i.DocumentNo == oldNo && i.ReferenceId == db.Id).ToListAsync();
+                                foreach (var inv in invs)
+                                {
+                                    inv.DocumentNo = db.SaleBillNo;
+                                    if (inv.InvoiceNo == "IN-" + oldNo) inv.InvoiceNo = "IN-" + db.SaleBillNo;
+                                    else if (inv.InvoiceNo == "IN" + oldNo) inv.InvoiceNo = "IN" + db.SaleBillNo;
+                                }
+                            }
                             await _context.SaveChangesAsync();
                             result.BillsUpdated++;
                             result.VehiclesUpdated += vehicles;
@@ -2864,6 +2899,21 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                         {
                             var msg = exU.GetBaseException().Message;
                             foreach (var r in u.Rows) Issue(r, "Error", "Update failed: " + msg);
+                            _context.ChangeTracker.Clear();
+                            // put the old Sale Bill No back if it is still free
+                            if (renumberedOld.TryGetValue(u.ExistingId!.Value, out var back))
+                            {
+                                try
+                                {
+                                    var id = u.ExistingId!.Value;
+                                    if (!await _context.VehicleSaleBillHeaders.AnyAsync(h => h.SaleBillNo == back))
+                                        await _context.VehicleSaleBillHeaders.Where(h => h.Id == id)
+                                            .ExecuteUpdateAsync(sp => sp.SetProperty(h => h.SaleBillNo, back));
+                                    else
+                                        Issue(u.Rows[0], "Error", $"Bill Id {id} keeps the temporary Sale Bill No CXRN-{id} - re-run the import to number it.");
+                                }
+                                catch { /* reported above */ }
+                            }
                             result.RowsWithErrors += u.Rows.Count;
                         }
                         finally { _context.ChangeTracker.Clear(); }
@@ -2984,21 +3034,60 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             }, 1);
         }
 
-        /// <summary>Gives every header a Sale Bill No in the dealer's "sale_bill" Prefix Master format for the bill's
-        /// own financial year, continuing after the highest number already used with that prefix. For the year of
-        /// the active sequence the counter also continues from NextNo, and the new NextNo is returned in
-        /// sequenceUpdates. Bills are numbered in the order given (sale date).</summary>
-        private async Task<HashSet<VehicleSaleBillHeader>> CxAssignSaleBillNos(List<VehicleSaleBillHeader> headers,
-            Dictionary<int, int> sequenceUpdates, Action<string, string> noSequence)
+        /// <summary>Financial year (Apr-Mar) of a date as "25-26".</summary>
+        private static string CxFyText(DateTime d)
         {
+            var fy = d.Month >= 4 ? d.Year : d.Year - 1;
+            return $"{fy % 100:00}-{(fy + 1) % 100:00}";
+        }
+
+        /// <summary>Start year of a financial year written as "25-26", "2025-26", "2025-2026", "FY 25-26" or "2025"; null if none.</summary>
+        private static int? CxFyStartOf(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var m = CxFyToken.Match(text);
+            string? first = m.Success ? m.Groups[1].Value : null;
+            if (first == null)
+            {
+                var y = System.Text.RegularExpressions.Regex.Match(text, @"(?<!\d)(20\d{2})(?!\d)");
+                if (!y.Success) return null;
+                first = y.Groups[1].Value;
+            }
+            var v = int.Parse(first);
+            return first.Length == 2 ? 2000 + v : v;
+        }
+
+        /// <summary>true when the number is head + digits only + tail.</summary>
+        private static bool CxFits(string? no, string head, string tail)
+        {
+            if (no == null || no.Length <= head.Length + tail.Length) return false;
+            if (!no.StartsWith(head, StringComparison.OrdinalIgnoreCase) || !no.EndsWith(tail, StringComparison.OrdinalIgnoreCase)) return false;
+            return no.Substring(head.Length, no.Length - head.Length - tail.Length).All(char.IsDigit);
+        }
+
+        private sealed record CxSeries(NumberSequence? Seq, string Pattern, string Head, string Tail, int Digits, bool IsActiveYear);
+
+        /// <summary>Gives every header a Sale Bill No in the dealer's "sale_bill" Prefix Master format for the bill's
+        /// OWN financial year (Apr-Mar of the sale date):
+        ///  1) the dealer's prefix whose Year (25-26 / 2025-26 / 2025-2026) or code is that year, active or not;
+        ///  2) else the active prefix with the year in its code changed to the bill's year;
+        ///  3) else (no prefix, or an active code without a year that belongs to another year) VSB/&lt;last 3&gt;/&lt;FY&gt;/###.
+        /// Numbers continue after the highest one already used in that series. Headers in keepIfFits (bills imported
+        /// earlier) keep their number when it is already in the right year's series; the others are renumbered, and a
+        /// series that held wrong-year bills is renumbered from its start so it has no gap.
+        /// Bills are numbered in the order given (sale date).</summary>
+        private async Task<HashSet<VehicleSaleBillHeader>> CxAssignSaleBillNos(List<VehicleSaleBillHeader> headers,
+            Dictionary<int, int> sequenceUpdates, Action<string, string> noSequence, HashSet<VehicleSaleBillHeader>? keepIfFits = null)
+        {
+            keepIfFits ??= new HashSet<VehicleSaleBillHeader>();
             var done = new HashSet<VehicleSaleBillHeader>();
             var dealersInRun = headers.Select(h => h.DealerCode!).Distinct().ToList();
             var sequences = await _context.NumberSequences.AsNoTracking()
                 .Where(n => n.SequenceName == "sale_bill" && n.DealerCode != null && dealersInRun.Contains(n.DealerCode))
                 .ToListAsync();
+            var todayFy = DateTime.Today.Month >= 4 ? DateTime.Today.Year : DateTime.Today.Year - 1;
 
-            var next = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);   // pattern -> next number
-            foreach (var h in headers)
+            CxSeries? SeriesFor(VehicleSaleBillHeader h)
             {
                 var dealer = h.DealerCode!;
                 var mine = sequences.Where(n => string.Equals(n.DealerCode, dealer, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -3006,55 +3095,97 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     list.Where(n => n.BillingType == h.BillType).OrderByDescending(n => n.IsActive).ThenByDescending(n => n.CreatedDate).FirstOrDefault()
                     ?? list.Where(n => n.BillingType == null).OrderByDescending(n => n.IsActive).ThenByDescending(n => n.CreatedDate).FirstOrDefault()
                     ?? list.OrderByDescending(n => n.IsActive).ThenByDescending(n => n.CreatedDate).FirstOrDefault();
-                // 1) a Prefix Master row created for the bill's own year (active or not), e.g. Year = "20-21"
                 var fyStart = h.SaleDate.Month >= 4 ? h.SaleDate.Year : h.SaleDate.Year - 1;
-                var fyText = $"{fyStart % 100:00}-{(fyStart + 1) % 100:00}";
-                var seq = Pick(mine.Where(n => string.Equals(n.Year?.Trim(), fyText, StringComparison.OrdinalIgnoreCase)
-                                               || (n.SequenceCode != null && n.SequenceCode.Contains("/" + fyText + "/"))))
-                // 2) else the active sequence, with the bill's year put into its code
-                          ?? Pick(mine.Where(n => n.IsActive));
+                // year of a prefix row: from its code if the code holds one, else from its Year column, else today's year
+                int YearOf(NumberSequence n) => CxFyStartOf(n.SequenceCode) ?? CxFyStartOf(n.Year) ?? todayFy;
 
-                var code = seq?.SequenceCode;
-                if (string.IsNullOrWhiteSpace(code))
+                // 1) a prefix created for the bill's own year
+                var seq = Pick(mine.Where(n => YearOf(n) == fyStart));
+                string? code = seq?.SequenceCode;
+                if (seq == null)
                 {
-                    code = $"VSB/{(dealer.Length >= 3 ? dealer[^3..] : dealer)}/25-26/###";
-                    noSequence(dealer, CxCodeForYear(code, h.SaleDate));
+                    // 2) the active prefix, if its code carries a year that can be switched to the bill's year
+                    var active = Pick(mine.Where(n => n.IsActive));
+                    if (active != null && !string.IsNullOrWhiteSpace(active.SequenceCode) && CxFyToken.IsMatch(active.SequenceCode))
+                    {
+                        seq = active;
+                        code = active.SequenceCode;
+                    }
                 }
-                var digits = code.Count(c => c == '#');
-                if (digits == 0) { code += "###"; digits = 3; }
-                var pattern = CxCodeForYear(code, h.SaleDate);
-                // the active sequence's own year: continue from NextNo and move NextNo on
-                var isActiveYear = seq != null && string.Equals(pattern, code, StringComparison.OrdinalIgnoreCase);
+                var isActiveYear = false;
+                string pattern;
+                if (seq == null || string.IsNullOrWhiteSpace(code))
+                {
+                    // 3) default series for that year
+                    seq = null;
+                    pattern = CxCodeForYear($"VSB/{(dealer.Length >= 3 ? dealer[^3..] : dealer)}/25-26/###", h.SaleDate);
+                    noSequence(dealer, pattern);
+                }
+                else
+                {
+                    pattern = CxCodeForYear(code, h.SaleDate);
+                    // the prefix row's own year: continue from its NextNo and move NextNo on
+                    isActiveYear = YearOf(seq) == fyStart;
+                }
+                var digits = pattern.Count(c => c == '#');
+                if (digits == 0) { pattern += "###"; digits = 3; }
                 var hashes = new string('#', digits);
                 var at = pattern.IndexOf(hashes, StringComparison.Ordinal);
-                if (at < 0) continue;
-                var head = pattern[..at];
-                var tail = pattern[(at + digits)..];
+                if (at < 0) return null;
+                return new CxSeries(seq, pattern, pattern[..at], pattern[(at + digits)..], digits, isActiveYear);
+            }
 
-                if (!next.TryGetValue(pattern, out var n))
+            // pass 1: target series of every bill; earlier imports already in the right series keep their number
+            var target = new Dictionary<VehicleSaleBillHeader, CxSeries?>();
+            foreach (var h in headers) target[h] = SeriesFor(h);
+            var allSeries = target.Values.Where(t => t != null).Select(t => t!)
+                .GroupBy(t => t.Pattern, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
+            var wrong = headers.Where(h => keepIfFits.Contains(h) && target[h] != null && !CxFits(h.SaleBillNo, target[h]!.Head, target[h]!.Tail)).ToList();
+            // series that hold wrong-year bills -> renumber the whole series (imported bills of this run) from the start
+            var dirty = new HashSet<string>(allSeries.Where(t => wrong.Any(h => CxFits(h.SaleBillNo, t.Head, t.Tail))).Select(t => t.Pattern),
+                StringComparer.OrdinalIgnoreCase);
+            var vacating = new HashSet<string>(wrong.Select(h => h.SaleBillNo), StringComparer.OrdinalIgnoreCase);
+            foreach (var h in headers.Where(h => keepIfFits.Contains(h) && target[h] != null && dirty.Contains(target[h]!.Pattern)))
+                vacating.Add(h.SaleBillNo);
+
+            // pass 2: numbers
+            var next = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);   // pattern -> next number
+            foreach (var h in headers)
+            {
+                var t = target[h];
+                if (t == null) continue;
+                if (keepIfFits.Contains(h) && !vacating.Contains(h.SaleBillNo) && CxFits(h.SaleBillNo, t.Head, t.Tail))
                 {
-                    // highest number already used with this prefix (any dealer - Sale Bill No is unique)
+                    done.Add(h);   // already right
+                    continue;
+                }
+
+                if (!next.TryGetValue(t.Pattern, out var n))
+                {
+                    // highest number already used in this series (any dealer - Sale Bill No is unique),
+                    // leaving out the numbers this run moves away
                     var used = await _context.VehicleSaleBillHeaders.AsNoTracking()
-                        .Where(x => x.SaleBillNo.StartsWith(head)).Select(x => x.SaleBillNo).ToListAsync();
+                        .Where(x => x.SaleBillNo.StartsWith(t.Head)).Select(x => x.SaleBillNo).ToListAsync();
                     var max = 0;
                     foreach (var u in used)
                     {
-                        if (u.Length <= head.Length + tail.Length || !u.EndsWith(tail, StringComparison.OrdinalIgnoreCase)) continue;
-                        var mid = u.Substring(head.Length, u.Length - head.Length - tail.Length);
-                        if (mid.All(char.IsDigit) && int.TryParse(mid, out var v) && v > max) max = v;
+                        if (vacating.Contains(u) || !CxFits(u, t.Head, t.Tail)) continue;
+                        if (int.TryParse(u.Substring(t.Head.Length, u.Length - t.Head.Length - t.Tail.Length), out var v) && v > max) max = v;
                     }
                     n = max + 1;
-                    if (isActiveYear && seq!.NextNo > n) n = seq.NextNo;
+                    // NextNo of the prefix is respected unless this run rebuilds the series
+                    if (t.IsActiveYear && !dirty.Contains(t.Pattern) && t.Seq!.NextNo > n) n = t.Seq.NextNo;
                 }
 
-                var no = head + n.ToString().PadLeft(digits, '0') + tail;
+                var no = t.Head + n.ToString().PadLeft(t.Digits, '0') + t.Tail;
                 if (no.Length > 50) continue;
                 h.SaleBillNo = no;
                 done.Add(h);
-                n += Math.Max(1, seq?.Increment ?? 1);
-                next[pattern] = n;
-                if (isActiveYear)
-                    foreach (var s in mine.Where(x => string.Equals(x.SequenceCode, seq!.SequenceCode, StringComparison.OrdinalIgnoreCase)))
+                n += Math.Max(1, t.Seq?.Increment ?? 1);
+                next[t.Pattern] = n;
+                if (t.IsActiveYear)
+                    foreach (var s in sequences.Where(x => string.Equals(x.SequenceCode, t.Seq!.SequenceCode, StringComparison.OrdinalIgnoreCase)
+                                                           && string.Equals(x.DealerCode, h.DealerCode, StringComparison.OrdinalIgnoreCase)))
                         sequenceUpdates[s.Id] = Math.Max(sequenceUpdates.TryGetValue(s.Id, out var cur) ? cur : 0, n);
             }
             return done;
