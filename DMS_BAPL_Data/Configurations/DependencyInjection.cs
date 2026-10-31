@@ -268,6 +268,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IVehicleInwardService, VehicleInwardService>();
             services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();   // Vehicle Dispatch import + report (SuperAdmin)
+            services.AddScoped<DMS_BAPL_Data.Services.MenuMasterAdminService.IMenuMasterAdminService,
+                               DMS_BAPL_Data.Services.MenuMasterAdminService.MenuMasterAdminService>();   // Menu Master screen (create menus / pages, give roles)
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();
