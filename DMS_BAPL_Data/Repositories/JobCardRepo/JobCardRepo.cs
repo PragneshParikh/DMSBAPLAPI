@@ -4186,5 +4186,69 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 Sgst = pl.Sgst
             }).ToList();
         }
+
+        public async Task<List<LabourCodeDetails>> GetFreeServiceLabour(int jobId, string? dealerCode)
+        {
+            var info = await (
+                from jh in _context.JobCardHeaders
+                join sh in _context.ServiceHeads on jh.Servicehead equals sh.Id
+                join st in _context.ServiceTypes on jh.Servicetype equals st.Id
+                where jh.Id == jobId
+                select new { sh.ServiceHeadName, st.ServiceTypeName }
+            ).FirstOrDefaultAsync();
+
+            if (info == null ||
+                !(info.ServiceHeadName ?? "").Equals("Free Service", StringComparison.OrdinalIgnoreCase))
+                return new List<LabourCodeDetails>();
+
+            var t = (info.ServiceTypeName ?? "").ToLower();
+            string? labourCode = t.Contains("1st") ? "SF0M001"
+                               : t.Contains("4th") ? "SF0M004"
+                               : null;
+            if (labourCode == null) return new List<LabourCodeDetails>();
+
+            var cityTier = await (
+                from c in _context.JobCardCustomers
+                join lg in _context.LedgerMasters on c.CustomerLedgerId equals lg.Id into lgJoin
+                from lg in lgJoin.DefaultIfEmpty()
+                join ct in _context.Cities on lg.City equals ct.CityId into ctJoin
+                from ct in ctJoin.DefaultIfEmpty()
+                where c.JobCardHeaderId == jobId
+                select ct.TierLevel
+            ).FirstOrDefaultAsync();
+
+            var jobModelName = await _context.JobCardCustomers
+                .Where(c => c.JobCardHeaderId == jobId)
+                .Select(c => c.ModelName)
+                .FirstOrDefaultAsync();
+
+            var oemModel = ((await _context.ItemMasters
+                .Where(i => i.Itemname == jobModelName)
+                .Select(i => i.Oemmodelname)
+                .FirstOrDefaultAsync()) ?? "").Trim();
+
+            var rows = await _context.LabourMasters
+                .Where(lm => lm.LabourCode == labourCode
+                          && lm.IsLabourActive == true
+                          && (lm.CityTier == cityTier || lm.CityTier == 0))
+                .ToListAsync();
+
+            if (!string.IsNullOrWhiteSpace(oemModel))
+                rows = rows.Where(x => (x.Oemmodelname ?? "").Trim()
+                            .Equals(oemModel, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return rows.Select(lm => new LabourCodeDetails
+            {
+                PartwiseLabourId = lm.Id,
+                LabourCode = lm.LabourCode,
+                LabourName = lm.LabourDescription,
+                LabourRate = lm.LabourRate,
+                LabourHsnCode = lm.Hsncode,
+                CityTier = lm.CityTier,
+                Igst = lm.Igst,
+                Cgst = lm.Cgst,
+                Sgst = lm.Sgst
+            }).ToList();
+        }
     }
 }

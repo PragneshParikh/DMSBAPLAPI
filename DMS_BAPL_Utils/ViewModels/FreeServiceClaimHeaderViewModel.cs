@@ -37,5 +37,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? UpdatedBy { get; set; }
 
         public string? UpdatedDate { get; set; }
+
+        public int TotalCount { get; set; }
+        public int ApprovedCount { get; set; }
+        public int RejectedCount { get; set; }
+        public int PendingCount { get; set; }
+        public string? Status { get; set; }
     }
 }

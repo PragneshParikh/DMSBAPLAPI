@@ -105,5 +105,16 @@ namespace DMS_BAPL_Data.Services.FreeServiceClaimService
             }
         }
 
+        public async Task<IEnumerable<object>> GetPendingApprovalClaims(string? dealerCode)
+        {
+
+            return await _freeServiceClaimRepo.GetPendingApprovalClaims(dealerCode);
+        }
+
+        public async Task<bool> ApproveRejectClaimDetails(List<ApproveRejectDetailViewModel> items, string userId)
+        {
+            return await _freeServiceClaimRepo.ApproveRejectClaimDetails(items, userId);
+        }
+
     }
 }

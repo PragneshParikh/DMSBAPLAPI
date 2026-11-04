@@ -74,7 +74,7 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> GetWarrantyClaimByDealerCode(
-            [FromQuery] string dealerCode,
+            [FromQuery] string? dealerCode,
             [FromQuery] int pageSize = 10,
             [FromQuery] int pageIndex = 1)
         {
@@ -88,6 +88,54 @@ namespace DMS_BAPL_Api.Controllers
                 var claims = await _freeServiceClaimService.GetWarrantyClaimByDealerCode(dealerCode, pageSize, pageIndex);
 
                 return Ok(claims);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("GetPendingApprovalClaims")]
+        public async Task<ActionResult> GetPendingApprovalClaims([FromQuery] string? dealerCode)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var claims = await _freeServiceClaimService.GetPendingApprovalClaims(dealerCode);
+
+                return Ok(claims);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        [HttpPut("ApproveRejectClaimDetails")]
+        public async Task<ActionResult> ApproveRejectClaimDetails([FromBody] List<ApproveRejectDetailViewModel> items)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                items = items?.Where(x => x.IsApproved != null).ToList() ?? new List<ApproveRejectDetailViewModel>();
+
+                if (items.Count == 0)
+                    return BadRequest("No rows selected.");
+
+                if (items.Any(x => x.IsApproved == false && string.IsNullOrWhiteSpace(x.RejectReason)))
+                    return BadRequest("Reject reason cannot be left blank.");
+
+                var result = await _freeServiceClaimService.ApproveRejectClaimDetails(items, userId);
+
+                return Ok(result);
             }
             catch (Exception)
             {
@@ -168,5 +216,7 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+
     }
 }

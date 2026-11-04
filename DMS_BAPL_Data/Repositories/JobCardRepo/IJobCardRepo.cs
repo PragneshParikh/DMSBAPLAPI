@@ -44,6 +44,8 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
 
         Task<List<LabourCodeDetails>> GetLabourCodesByPartAndJob(string partCode, int jobId);
 
+        Task<List<LabourCodeDetails>> GetFreeServiceLabour(int jobId, string? dealerCode);
+
         Task MarkJobCardAsDeleted(int jobId, string updatedBy);
     }
 }

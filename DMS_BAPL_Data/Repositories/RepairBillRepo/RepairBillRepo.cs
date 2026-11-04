@@ -151,6 +151,11 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                 await _context.SaveChangesAsync();
 
+                if (string.Equals(RepairBillheader.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase) && RepairBillheader.JobId > 0)
+                {
+                    await AutoCreateFreeServiceClaimAsync(RepairBillheader.JobId, RepairBillheader.DealerCode, RepairBillheader.LocationCode, userId);
+                }
+
                 await transaction.CommitAsync();
 
                 return RepairBillheader.Id;
@@ -635,6 +640,11 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     }
                 }
                 await _context.SaveChangesAsync();
+
+                if (string.Equals(header.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase) && header.JobId > 0)
+                {
+                    await AutoCreateFreeServiceClaimAsync(header.JobId, header.DealerCode, header.LocationCode, userId);
+                }
                 return true;
 
 
@@ -1094,7 +1104,60 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             return result;
         }
 
+        private async Task AutoCreateFreeServiceClaimAsync(int jobId, string dealerCode, string locationCode, string userId)
+        {
+            if (jobId <= 0) return;
 
+            // 1. Check if JobCard is Free Service (Servicehead == 3 && (Servicetype == 3 || Servicetype == 6))
+            var job = await _context.JobCardHeaders
+                .FirstOrDefaultAsync(j => j.Id == jobId && j.Servicehead == 3 && (j.Servicetype == 3 || j.Servicetype == 6));
+
+            if (job == null) return; // Not a free service job
+
+            // 2. Check if FreeServiceClaimDetail already exists for this JobId
+            bool alreadyClaimed = await _context.FreeServiceClaimDetails
+                .AnyAsync(d => d.JobId == jobId);
+
+            if (alreadyClaimed) return;
+
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+
+            var header = await _context.FreeServiceClaimHeaders.FirstOrDefaultAsync(h => h.DealerCode == dealerCode && h.LocationCode == locationCode && h.ClaimDate >= today && h.ClaimDate < tomorrow);
+
+            int headerId;
+            if (header == null)
+            {
+                int nextId = (_context.FreeServiceClaimHeaders.Max(h => (int?)h.Id) ?? 0) + 1;
+
+                header = new FreeServiceClaimHeader
+                {
+                    DealerCode = dealerCode,
+                    LocationCode = locationCode,
+                    ClaimPrefix = "FSC/" + DateTime.Now.Year + "/",
+                    ClaimNo = nextId.ToString("D3"),
+                    ClaimDate = DateTime.Today,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now
+                };
+                _context.FreeServiceClaimHeaders.Add(header);
+                await _context.SaveChangesAsync();
+            }
+            headerId = header.Id;
+
+            // 4. Insert FreeServiceClaimDetail as Pending (IsApproved = null)
+            var detail = new FreeServiceClaimDetail
+            {
+                HeaderClaimId = headerId,
+                JobId = jobId,
+                IsApproved = null,
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+
+            _context.FreeServiceClaimDetails.Add(detail);
+            await _context.SaveChangesAsync();
+        }
     }
 
 

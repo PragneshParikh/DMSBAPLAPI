@@ -630,6 +630,18 @@ namespace DMS_BAPL_Api.Controllers
             }
         }
 
+        [HttpGet("GetFreeServiceLabour")]
+        public async Task<ActionResult> GetFreeServiceLabour([FromQuery] int jobId, [FromQuery] string? dealerCode)
+        {
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User not authorized");
+
+            var result = await _jobCardRepo.GetFreeServiceLabour(jobId, dealerCode);
+            return Ok(result);
+        }
+
 
     }
 }
