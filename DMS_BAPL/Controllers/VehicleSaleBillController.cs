@@ -472,11 +472,13 @@ namespace DMS_BAPL_Api.Controllers
         {
             var denied = CogximGuard(file, needFile: true);
             if (denied != null) return denied;
+            string? progressId = null;
             try
             {
                 var opts = string.IsNullOrWhiteSpace(options)
                     ? new VehicleSaleImportOptions()
                     : System.Text.Json.JsonSerializer.Deserialize<VehicleSaleImportOptions>(options, CogximJson) ?? new VehicleSaleImportOptions();
+                progressId = opts.ProgressId;
 
                 using var stream = file.OpenReadStream();
                 return Ok(await _vehicleSaleBillService.ImportCogximSalesAsync(stream, file.FileName, opts));
@@ -487,10 +489,12 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (ArgumentException ex)
             {
+                DMS_BAPL_Utils.Helpers.ImportProgress.Fail(progressId, "Stopped: " + ex.Message);
                 return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
+                DMS_BAPL_Utils.Helpers.ImportProgress.Fail(progressId, "Failed: " + ex.GetBaseException().Message);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Import failed: " + ex.GetBaseException().Message });
             }
         }

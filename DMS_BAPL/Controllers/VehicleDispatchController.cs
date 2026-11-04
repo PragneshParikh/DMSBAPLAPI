@@ -74,11 +74,13 @@ namespace DMS_BAPL_Api.Controllers
         {
             var denied = Guard(file, needFile: true);
             if (denied != null) return denied;
+            string? progressId = null;
             try
             {
                 var opts = string.IsNullOrWhiteSpace(options)
                     ? new VehicleDispatchImportOptions()
                     : JsonSerializer.Deserialize<VehicleDispatchImportOptions>(options, Json) ?? new VehicleDispatchImportOptions();
+                progressId = opts.ProgressId;
                 var userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 using var stream = file.OpenReadStream();
                 return Ok(await _service.ImportAsync(stream, file.FileName, opts, userId));
@@ -89,10 +91,12 @@ namespace DMS_BAPL_Api.Controllers
             }
             catch (ArgumentException ex)
             {
+                ImportProgress.Fail(progressId, "Stopped: " + ex.Message);
                 return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
+                ImportProgress.Fail(progressId, "Failed - nothing saved: " + ex.GetBaseException().Message);
                 _logger.LogError(ex, "Vehicle dispatch import failed for {File}", file.FileName);
                 return StatusCode(500, new { success = false, message = "Import failed (nothing saved): " + ex.GetBaseException().Message });
             }

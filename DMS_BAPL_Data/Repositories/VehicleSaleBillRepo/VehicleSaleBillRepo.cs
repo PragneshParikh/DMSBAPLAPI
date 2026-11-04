@@ -2327,8 +2327,31 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
         // ═════════════════════════════════════════════════════════════════════
         public async Task<VehicleSaleImportResult> ImportCogximSalesAsync(System.IO.Stream excel, string fileName, VehicleSaleImportOptions options, string userId)
         {
+            // Large files: the existing-bill / chassis / customer look-ups and the batch saves can run longer than
+            // SqlClient's 30 s default ("The wait operation timed out"). Allow up to 10 minutes per command for this
+            // import request only, then restore the previous value.
+            var previousTimeout = _context.Database.GetCommandTimeout();
+            _context.Database.SetCommandTimeout(TimeSpan.FromSeconds(CogximCommandTimeoutSeconds));
+            try
+            {
+                return await ImportCogximSalesCoreAsync(excel, fileName, options, userId);
+            }
+            finally
+            {
+                _context.Database.SetCommandTimeout(previousTimeout);
+            }
+        }
+
+        private const int CogximCommandTimeoutSeconds = 600;
+
+        private async Task<VehicleSaleImportResult> ImportCogximSalesCoreAsync(System.IO.Stream excel, string fileName, VehicleSaleImportOptions options, string userId)
+        {
             options ??= new VehicleSaleImportOptions();
             var headerRow = options.HeaderRow < 1 ? 1 : options.HeaderRow;
+            // live status for the page (GET api/import-progress/{id}); null when the page sent no ProgressId
+            var prog = ImportProgress.Start(options.ProgressId, "Vehicle Sale Import", options.DryRun);
+            var progSteps = options.DryRun ? 4 : 5;
+            prog?.SetPhase("Reading Excel file…", 1, progSteps);
 
             using var wb = CxOpen(excel);
             var ws = CxPickSheet(wb, options.SheetName);
@@ -2353,8 +2376,10 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             // ---------- 1. read + type-convert every row ----------
             var rows = new List<CxImportRow>();
             var lastRow = ws.LastRowUsed()?.RowNumber() ?? headerRow;
+            prog?.SetRows(0, Math.Max(0, lastRow - headerRow));
             for (var r = headerRow + 1; r <= lastRow; r++)
             {
+                if (prog != null && (r - headerRow) % 500 == 0) prog.SetRows(r - headerRow, lastRow - headerRow);
                 var xr = ws.Row(r);
                 if (xr.IsEmpty()) continue;
                 var row = CxParseRow(xr, r, colOf, options.DefaultDealerCode);
@@ -2362,6 +2387,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 rows.Add(row);
             }
             result.TotalRows = rows.Count;
+            prog?.SetRows(Math.Max(0, lastRow - headerRow), Math.Max(0, lastRow - headerRow));
+            prog?.SetPhase("Loading masters and existing bills / chassis…", 2, progSteps);
 
             // ---------- 2. reference data (only what the file needs) ----------
             var dealerCodesInFile = rows.Select(x => x.DealerCode).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.ToUpperInvariant()).Distinct().ToList();
@@ -2395,6 +2422,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 .GroupBy(o => CxNorm(o.OccupationName)).ToDictionary(g => g.Key, g => g.First().Id);
 
             var canonicalDealers = dealerCodesInFile.Where(dealers.ContainsKey).Select(d => dealers[d]).ToList();
+            prog?.SetPhase($"Loading customers of {canonicalDealers.Count:N0} dealer(s)…", 2, progSteps);
             var customers = await _context.LedgerMasters.AsNoTracking()
                 .Where(l => l.DealerCode != null && canonicalDealers.Contains(l.DealerCode)
                             && (l.LedgerType == "Party" || l.LedgerType == "Institutional"))
@@ -2468,19 +2496,25 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             {
                 // earlier Cogxim imports: matched on dealer + invoice no + bill date
                 // (bills imported before InvoiceNo existed carry the invoice no in SaleBillNo)
-                var invNos = rows.Where(r => r.FinalBillNo != null).Select(r => r.SaleBillNo!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                foreach (var chunk in invNos.Chunk(1000))
+                // One read of this dealers' earlier Cogxim bills, matched in memory. (Was: one query per 1,000 invoice
+                // numbers with "IN (list) OR IN (list)" - without an index each of them scanned the table and large files
+                // hit "The wait operation timed out".) Same matching rules: case-insensitive, trailing spaces ignored.
+                var invNos = new HashSet<string>(rows.Where(r => r.FinalBillNo != null).Select(r => r.SaleBillNo!.TrimEnd()), StringComparer.OrdinalIgnoreCase);
+                prog?.SetPhase($"Checking earlier Cogxim bills of {canonicalDealers.Count:N0} dealer(s)…", 2, progSteps);
+                var found = new List<(int Id, string SaleBillNo, string? InvoiceNo, string? DealerCode, bool IsDeleted, string? BillFrom, int? LedgerId, DateTime SaleDate)>();
+                await foreach (var h in _context.VehicleSaleBillHeaders.AsNoTracking()
+                                   .Where(h => h.BillFrom == CogximBillFromTag && h.DealerCode != null && canonicalDealers.Contains(h.DealerCode))
+                                   .Select(h => new { h.Id, h.SaleBillNo, h.InvoiceNo, h.DealerCode, h.IsDeleted, h.BillFrom, h.LedgerId, h.SaleDate })
+                                   .AsAsyncEnumerable())
                 {
-                    var found = await _context.VehicleSaleBillHeaders.AsNoTracking()
-                        .Where(h => h.BillFrom == CogximBillFromTag && h.DealerCode != null && canonicalDealers.Contains(h.DealerCode)
-                                    && ((h.InvoiceNo != null && chunk.Contains(h.InvoiceNo)) || (h.InvoiceNo == null && chunk.Contains(h.SaleBillNo))))
-                        .Select(h => new { h.Id, h.SaleBillNo, h.InvoiceNo, h.DealerCode, h.IsDeleted, h.BillFrom, h.LedgerId, h.SaleDate }).ToListAsync();
-                    foreach (var f in found.OrderBy(f => f.Id))
-                    {
-                        var key = CxBillKey(f.DealerCode!, f.InvoiceNo ?? f.SaleBillNo, f.SaleDate);
-                        if (!existingByInvoice.TryGetValue(key, out var q)) existingByInvoice[key] = q = new Queue<CxExistingBill>();
-                        q.Enqueue(new CxExistingBill(f.Id, f.DealerCode, f.IsDeleted, f.BillFrom, f.LedgerId, f.SaleBillNo, f.InvoiceNo));
-                    }
+                    if (h.InvoiceNo != null ? invNos.Contains(h.InvoiceNo.TrimEnd()) : invNos.Contains(h.SaleBillNo.TrimEnd()))
+                        found.Add((h.Id, h.SaleBillNo, h.InvoiceNo, h.DealerCode, h.IsDeleted, h.BillFrom, h.LedgerId, h.SaleDate));
+                }
+                foreach (var f in found.OrderBy(f => f.Id))
+                {
+                    var key = CxBillKey(f.DealerCode!, f.InvoiceNo ?? f.SaleBillNo, f.SaleDate);
+                    if (!existingByInvoice.TryGetValue(key, out var q)) existingByInvoice[key] = q = new Queue<CxExistingBill>();
+                    q.Enqueue(new CxExistingBill(f.Id, f.DealerCode, f.IsDeleted, f.BillFrom, f.LedgerId, f.SaleBillNo, f.InvoiceNo));
                 }
             }
             else
@@ -2495,15 +2529,19 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 }
             }
 
-            var chassisList = seenChassis.Keys.ToList();
+            // Chassis already on a (not deleted) sale bill: ONE streamed pass over the billed chassis, matched in memory.
+            // (Was: one "ChassisNo IN (1,000 values)" join per chunk - VehicleSaleBillDetails has no ChassisNo index, so
+            // every chunk could scan the table repeatedly → "The wait operation timed out".) Same rule: case-insensitive.
+            var chassisSet = new HashSet<string>(seenChassis.Keys.Select(c => c.TrimEnd()), StringComparer.OrdinalIgnoreCase);
             var billedChassis = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var chunk in chassisList.Chunk(1000))
+            prog?.SetPhase($"Checking {chassisSet.Count:N0} chassis against existing sale bills…", 2, progSteps);
+            await foreach (var f in (from d in _context.VehicleSaleBillDetails.AsNoTracking()
+                                     join h in _context.VehicleSaleBillHeaders.AsNoTracking() on d.VehicleSaleBillId equals h.Id
+                                     where d.ChassisNo != null && !h.IsDeleted
+                                     select new { d.ChassisNo, h.SaleBillNo }).AsAsyncEnumerable())
             {
-                var found = await (from d in _context.VehicleSaleBillDetails.AsNoTracking()
-                                   join h in _context.VehicleSaleBillHeaders.AsNoTracking() on d.VehicleSaleBillId equals h.Id
-                                   where chunk.Contains(d.ChassisNo) && !h.IsDeleted
-                                   select new { d.ChassisNo, h.SaleBillNo }).ToListAsync();
-                foreach (var f in found) billedChassis.TryAdd(f.ChassisNo, f.SaleBillNo);
+                var c = f.ChassisNo.TrimEnd();
+                if (chassisSet.Contains(c)) billedChassis.TryAdd(c, f.SaleBillNo);
             }
 
             // financier: dealer's own ledger, else any financier ledger, else one unique partial match
@@ -2548,8 +2586,11 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             var ledgerPatches = new Dictionary<int, CxCustomerInfo>();       // existing ledger -> values to fill where blank
             var ready = new List<CxReadyBill>();
 
+            prog?.SetPhase("Validating bills…", 3, progSteps);
+            var progBill = 0;
             foreach (var g in bills)
             {
+                if (prog != null && ++progBill % 100 == 0) prog.SetWork("bills", progBill, bills.Count);
                 var billRows = g.OrderBy(r => r.RowNo).ToList();
                 var first = billRows[0];
 
@@ -2773,6 +2814,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     .Select(x => x.Header));
                 var oldNos = toNumber.ToDictionary(x => x.Header, x => x.Header.SaleBillNo);
                 var noSeqWarned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                prog?.SetPhase($"Assigning Sale Bill Nos from Prefix Master ({toNumber.Count:N0} bills)…", 3, progSteps);
                 var numbered = await CxAssignSaleBillNos(toNumber.Select(x => x.Header).ToList(), sequenceUpdates,
                     (dealer, pattern) =>
                     {
@@ -2807,9 +2849,13 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                 result.ToDate = ready.Max(x => x.Header.SaleDate);
             }
 
+            prog?.SetWork("bills", bills.Count, bills.Count);
+
             // ---------- 6. write ----------
             if (!options.DryRun && ready.Count > 0)
             {
+                prog?.SetPhase(newLedgers.Count > 0 ? $"Creating {newLedgers.Count:N0} new customer(s)…" : "Saving new bills…", 4, progSteps);
+                prog?.SetWork("bills", 0, inserts.Count, 0, (inserts.Count + CogximSaveChunk - 1) / CogximSaveChunk);
                 var prevDetect = _context.ChangeTracker.AutoDetectChangesEnabled;
                 try
                 {
@@ -2836,8 +2882,14 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             .ExecuteUpdateAsync(sp => sp.SetProperty(h => h.SaleBillNo, h => "CXRN-" + h.Id.ToString()));
 
                     // 6b. new bills in chunks; a failing chunk is retried bill-by-bill to isolate the bad one
+                    var progBatches = (inserts.Count + CogximSaveChunk - 1) / CogximSaveChunk;
+                    var progBatch = 0;
+                    var progDone = 0;
+                    prog?.SetPhase("Saving new bills…", 4, progSteps);
                     foreach (var chunk in inserts.Chunk(CogximSaveChunk))
                     {
+                        progBatch++;
+                        prog?.SetWork("bills", progDone, inserts.Count, progBatch, progBatches);
                         try
                         {
                             _context.VehicleSaleBillHeaders.AddRange(chunk.Select(c => c.Header));
@@ -2868,12 +2920,22 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                             }
                         }
                         _context.ChangeTracker.Clear();
+                        progDone += chunk.Length;
+                        prog?.SetWork("bills", progDone, inserts.Count, progBatch, progBatches);
+                        prog?.SetCounts(result.BillsImported, result.BillsUpdated, result.RowsWithErrors);
                     }
 
                     // 6c. bills already imported from Cogxim -> update in place (tracked, change detection on)
                     _context.ChangeTracker.AutoDetectChangesEnabled = true;
+                    if (updates.Count > 0) prog?.SetPhase("Updating bills already imported…", 4, progSteps);
+                    var progUpd = 0;
                     foreach (var u in updates)
                     {
+                        if (prog != null && ++progUpd % 20 == 0)
+                        {
+                            prog.SetWork("bills", progUpd, updates.Count);
+                            prog.SetCounts(result.BillsImported, result.BillsUpdated, result.RowsWithErrors);
+                        }
                         try
                         {
                             var db = await _context.VehicleSaleBillHeaders.Include(h => h.VehicleSaleBillDetails)
@@ -2936,6 +2998,12 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
                     }
 
                     // 6d. existing customer ledgers: fill City / State / Gender / DOB / Occupation / Pin / Address / Email where blank
+                    prog?.SetCounts(result.BillsImported, result.BillsUpdated, result.RowsWithErrors);
+                    if (ledgerPatches.Count > 0)
+                    {
+                        prog?.SetPhase("Completing customer details…", 5, progSteps);
+                        prog?.SetWork("customers", 0, ledgerPatches.Count);
+                    }
                     foreach (var chunk in ledgerPatches.Keys.Chunk(500))
                     {
                         var ledgers = await _context.LedgerMasters.Where(l => chunk.Contains(l.Id)).ToListAsync();
@@ -2981,6 +3049,8 @@ namespace DMS_BAPL_Data.Repositories.VehicleSaleBillRepo
             result.Issues = issues
                 .OrderBy(i => i.Level == "Error" ? 0 : i.Level == "Skipped" ? 1 : i.Level == "Warning" ? 2 : 3).ThenBy(i => i.RowNo)
                 .Take(CogximMaxIssues).ToList();
+            prog?.SetCounts(result.BillsImported, result.BillsUpdated, result.RowsWithErrors);
+            prog?.Finish(true, options.DryRun ? "Validation complete" : "Import complete");
             return result;
         }
 
