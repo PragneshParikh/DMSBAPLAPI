@@ -94,5 +94,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         Task<List<StockAdjustmentListViewModel>> GetStockAdjustmentListAsync( DateTime fromDate,DateTime toDate, string? locationCode);
         Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter);
         Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter);
+
+        Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate, DateTime toDate,string? dealerCode);
     }
+
 }

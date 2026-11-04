@@ -21,7 +21,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<JobReportSummaryStats> GetReportSummaryStatsAsync(string dealerCode, DateTime? fromDate, DateTime? toDate);
         Task<StockAdjustmentEditViewModel?> GetStockAdjustmentByIdAsync(int id);
         Task DeleteStockAdjustmentAsync(int id);
-        Task<byte[]> ExportStockAdjustmentExcelAsync( DateTime fromDate, DateTime toDate, string? locationCode);
+        Task<byte[]> ExportStockAdjustmentExcelAsync(DateTime fromDate, DateTime toDate, string? locationCode);
 
         // ── VEHICLE SALE REPORT ───────────────────────────────────────
         Task<List<VehicleSaleReportViewModel>> GetVehicleSaleReportAsync(DateTime? fromDate, DateTime? toDate, string? dealerCode);
@@ -80,7 +80,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<MaterialTransferReportPagedResponse> GetMaterialTransferReportAsync(MaterialTransferReportFilterModel filter);
         Task<List<MaterialTransferReportRowViewModel>> GetMaterialTransferReportForExportAsync(MaterialTransferReportFilterModel filter);
 
-       // ── REPAIR BILL REPORT ────────────────────────────────────────
+        // ── REPAIR BILL REPORT ────────────────────────────────────────
         Task<RepairBillReportPagedResponse> GetRepairBillReportAsync(RepairBillReportFilterModel filter);
         Task<List<RepairBillReportRowViewModel>> GetRepairBillReportForExportAsync(RepairBillReportFilterModel filter);
 
@@ -90,22 +90,18 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode);
         Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(string dealerCode, string? locationCode);
         Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync(string dealerCode, string? search, string? locationCode);
-        Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(
-            string dealerCode,
-            string locationCode,
-            string partNo);
-        Task<List<StockAdjustmentLocationViewModel>> GetStockAdjustmentLocationsAsync(
-            string dealerCode,
-            bool includeAllLocations);
-        Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync(
-            StockAdjustmentCreateViewModel request,
-            string createdBy);
-        Task<List<StockAdjustmentListViewModel>> GetStockAdjustmentListAsync(DateTime fromDate,DateTime toDate,string? locationCode);
+        Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(string dealerCode, string locationCode, string partNo);
+        Task<List<StockAdjustmentLocationViewModel>> GetStockAdjustmentLocationsAsync( string dealerCode,bool includeAllLocations);
+        Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync( StockAdjustmentCreateViewModel request,string createdBy);
+        Task<List<StockAdjustmentListViewModel>> GetStockAdjustmentListAsync(DateTime fromDate, DateTime toDate, string? locationCode);
 
         Task<List<StockAdjustmentItemResponseViewModel>> ImportStockAdjustmentExcelAsync(IFormFile file);
         Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter);
         Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter);
+
+        Task<List<StockAdjustmentReportViewModel>> GetStockAdjustmentReportAsync(DateTime fromDate, DateTime toDate, string? dealerCode);
     }
+
     public class JobReportSummaryStats
     {
         public int TotalJobs { get; set; }

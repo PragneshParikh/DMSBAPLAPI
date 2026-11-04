@@ -14,6 +14,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public string City { get; set; }
 
+        public int? Locareaidno { get; set; }
+
 
     }
 }

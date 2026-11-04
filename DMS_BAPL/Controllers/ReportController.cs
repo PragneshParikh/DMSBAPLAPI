@@ -1407,28 +1407,28 @@ namespace DMS_BAPL_Api.Controllers
         [HttpPost("ImportStockAdjustmentExcel")]
         public async Task<IActionResult> ImportStockAdjustmentExcel(IFormFile file)
         {
-              try
-              {
+            try
+            {
                 var result =
                     await _reportService
                         .ImportStockAdjustmentExcelAsync(file);
 
                 return Ok(result);
-              }
-              catch (Exception ex)
-              {
+            }
+            catch (Exception ex)
+            {
                 _logger.LogError(ex,
                     "Error importing stock adjustment excel");
 
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
                     "Unable to import excel.");
-              }
-       
+            }
+
         }
 
         [HttpGet("ExportStockAdjustmentExcel")]
-        public async Task<IActionResult> ExportStockAdjustmentExcel(DateTime fromDate,DateTime toDate,string? locationCode)
+        public async Task<IActionResult> ExportStockAdjustmentExcel(DateTime fromDate, DateTime toDate, string? locationCode)
         {
             var fileBytes =
                 await _reportService.ExportStockAdjustmentExcelAsync(
@@ -1446,7 +1446,7 @@ namespace DMS_BAPL_Api.Controllers
 
         [Authorize]
         [HttpGet("GetStockAdjustmentList")]
-        public async Task<IActionResult> GetStockAdjustmentList(DateTime fromDate,DateTime toDate,string? locationCode)
+        public async Task<IActionResult> GetStockAdjustmentList(DateTime fromDate, DateTime toDate, string? locationCode)
         {
             try
             {
@@ -1455,7 +1455,7 @@ namespace DMS_BAPL_Api.Controllers
                     toDate,
                     locationCode);
 
-            
+
 
                 foreach (var item in result)
                 {
@@ -1466,7 +1466,7 @@ namespace DMS_BAPL_Api.Controllers
 
 
             }
-   
+
 
             catch (Exception ex)
             {
@@ -1634,5 +1634,48 @@ namespace DMS_BAPL_Api.Controllers
         }
 
 
+
+
+
+        [Authorize]
+        [HttpGet("GetStockAdjustmentReport")]
+        [ProducesResponseType(typeof(List<StockAdjustmentReportViewModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetStockAdjustmentReport(
+          [FromQuery] DateTime fromDate,
+          [FromQuery] DateTime toDate,
+          [FromQuery] string? dealerCode = null)
+        {
+            try
+            {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Unauthorized("Dealer code not found");
+                }
+
+                var result = await _reportService
+                    .GetStockAdjustmentReportAsync(
+                        fromDate,
+                        toDate,
+                        dealerCode);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error fetching Stock Adjustment Report");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Unable to fetch stock adjustment report.");
+            }
+        }
     }
 }

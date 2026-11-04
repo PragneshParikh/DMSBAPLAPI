@@ -4292,13 +4292,13 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     x.TransDate <= DateOnly.FromDateTime(toDate) &&
                     (x.TransType == "TI" || x.TransType == "TO"))
                 .GroupBy(x => new
-                {
+      {
                     VendorCode = x.VendorCode ?? "",
                     DealerLocation = x.DealerLocation ?? "",
                     ItemCode = x.ItemCode ?? ""
                 })
                 .Select(g => new
-                {
+      {
                     g.Key.VendorCode,
                     g.Key.DealerLocation,
                     g.Key.ItemCode,
@@ -4441,7 +4441,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             // StockAdjustmentQty into this formula, since doing so
                             // wasn't asked for and would silently change the existing,
                             // already-verified Bal.Qty column's meaning.
-                         
+
 
                             //BatchClosingQty = (((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0))
                             //                   - ((int?)sc.SaleQty ?? 0)
@@ -4449,7 +4449,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             BatchClosingQty = pi.BatchClosingQty
                         })
                         .ToListAsync();
-            return data.Select((x, index) => new
+                return data.Select((x, index) => new
                 {
                     SrNo = index + 1,
                     x.Itemtype,
@@ -4567,7 +4567,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             return header;
         }
-         public async Task DeleteStockAdjustmentAsync(int id)
+        public async Task DeleteStockAdjustmentAsync(int id)
         {
             var header = await _context.PartStockAdjustments
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -4590,9 +4590,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 if (inventory != null)
                 {
-                  
-                        _context.PartsInventories.Remove(inventory);
-                    
+
+                    _context.PartsInventories.Remove(inventory);
+
                 }
             }
 
@@ -4625,9 +4625,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             var stockRows = await GetStockAdjustmentInventoryQuery(dealerCode, locationCode)
           .Select(inventory => new
           {
-            PartNo = inventory.ItemCode,
-            LocationCode = inventory.DealerLocation,
-            BalanceStock = (long)inventory.BatchClosingQty
+              PartNo = inventory.ItemCode,
+              LocationCode = inventory.DealerLocation,
+              BalanceStock = (long)inventory.BatchClosingQty
           })
         .ToListAsync();
 
@@ -4668,26 +4668,28 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
 
             var result = itemRows
- .         Select(item => new PartBalanceStockViewModel
-        {  
-           PartNo = item.Itemcode,
-           Description = item.Itemdesc,
-           RateStock = item.Custprice,
+ .Select(item => new PartBalanceStockViewModel
+ {
+     PartNo = item.Itemcode,
+     Description = item.Itemdesc,
+     RateStock = item.Custprice,
 
-             BalanceStock = stockRows
+     BalanceStock = stockRows
             .Where(x => x.PartNo == item.Itemcode)
             .Select(x => (int?)x.BalanceStock)
             .FirstOrDefault() ?? 0,
-           LocationCode = locationCode,
-           LocationName = null})
+     LocationCode = locationCode,
+     LocationName = null
+ })
           .ToList();
-           return result
-          .OrderBy(part => part.PartNo)
-          .ToList();
+            return result
+           .OrderBy(part => part.PartNo)
+           .ToList();
         }
-         public async Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync
-            (string dealerCode,string? search,string? locationCode)
-         {dealerCode = dealerCode.Trim();
+        public async Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync
+           (string dealerCode, string? search, string? locationCode)
+        {
+            dealerCode = dealerCode.Trim();
             search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
             locationCode = string.IsNullOrWhiteSpace(locationCode) ? null : locationCode.Trim();
             var itemQuery = _context.ItemMasters
@@ -4848,8 +4850,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
 
         public async Task<StockAdjustmentSaveResponseViewModel> SaveStockAdjustmentAsync(
-            StockAdjustmentCreateViewModel request,
-            string createdBy)
+             StockAdjustmentCreateViewModel request,
+             string createdBy)
         {
             if (request.AdjustmentDate == null)
                 throw new StockAdjustmentValidationException("Adjustment date is required.");
@@ -5051,7 +5053,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             }
             foreach (var item in items)
             {
-              var partNo = item.PartNo!;
+                var partNo = item.PartNo!;
 
                 if (!catalogByPartNo.TryGetValue(partNo, out var catalogItem) || catalogItem == null)
                 {
@@ -5061,7 +5063,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 var currentStock = currentStocks.TryGetValue(partNo, out var stock) ? stock : 0;
                 if (item.CurrentStock!.Value != currentStock)
                 {
-                   item.CurrentStock = currentStock;
+                    item.CurrentStock = currentStock;
                     int recalculatedAdj;
                     int recalculatedFinal;
                     try
@@ -5133,10 +5135,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                partNos.Contains(x.ItemCode))
               .ToListAsync();
 
-             var adjustmentDetails = await _context.PartStockAdjustmentDetails
-             .AsNoTracking()
-             .Where(x => x.AdjustmentId == adjustment.Id)
-             .ToListAsync();
+            var adjustmentDetails = await _context.PartStockAdjustmentDetails
+            .AsNoTracking()
+            .Where(x => x.AdjustmentId == adjustment.Id)
+            .ToListAsync();
 
             foreach (var detail in adjustmentDetails)
 
@@ -5758,6 +5760,45 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .OrderByDescending(r => r.WarrantyClaimDate)
                 .ThenByDescending(r => r.WarrantyClaimNo)
                 .ToList();
+        }
+
+
+        public async Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate,DateTime toDate,string? dealerCode)
+        {
+            return await (
+                from pa in _context.PartStockAdjustments
+                join pd in _context.PartStockAdjustmentDetails
+                    on pa.Id equals pd.AdjustmentId
+                join lm in _context.LocationMasters
+           on pa.DealerCode equals lm.Dealercode
+
+                where pa.AdjustmentDate >= fromDate.Date
+                   && pa.AdjustmentDate < toDate.Date.AddDays(1)
+                   && (string.IsNullOrEmpty(dealerCode)
+                       || pa.DealerCode == dealerCode)
+
+                select new StockAdjustmentReportViewModel
+                {
+                    PrefixNo = pa.PrefixNo,
+                    AdjustmentDate = pa.AdjustmentDate,
+                    DealerCode = pa.DealerCode,
+                    LocationCode = pa.LocationCode,
+                    LocAreaIdNo = lm.Locareaidno,
+
+                    PartNo = pd.PartNo,
+                    Description = pd.Description,
+
+                    RateStock = pd.RateStock,
+                    CurrentStock = pd.CurrentStock,
+                    UpdateStock = pd.UpdateStock,
+                    UpQuantityStg = pd.UpQuantityStg,
+                    FinalQty = pd.FinalQty,
+
+                    Remarks = pa.Remarks
+                }
+            )
+            .OrderByDescending(x => x.AdjustmentDate)
+            .ToListAsync();
         }
     }
 }

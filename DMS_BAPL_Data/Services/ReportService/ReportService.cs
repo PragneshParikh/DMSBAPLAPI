@@ -766,5 +766,12 @@ namespace DMS_BAPL_Data.Services.ReportService
                 throw;
             }
         }
+
+
+        public async Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate,DateTime toDate,string? dealerCode)
+        {
+            return await _reportRepo .GetStockAdjustmentReportAsync(fromDate, toDate, dealerCode);
+        }
     }
+
 }
