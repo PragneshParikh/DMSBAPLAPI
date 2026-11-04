@@ -31,5 +31,9 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal? Rate { get; set; }
         public decimal? GstAmount { get; set; }
         public bool? IsApproved { get; set; }
+
+        public bool IsClaimed { get; set; }
+        public string? RejectReason { get; set; }
+        public string? LocationCode { get; set; }
     }
 }

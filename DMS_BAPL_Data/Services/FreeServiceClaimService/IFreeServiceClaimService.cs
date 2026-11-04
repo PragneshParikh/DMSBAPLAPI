@@ -17,5 +17,8 @@ namespace DMS_BAPL_Data.Services.FreeServiceClaimService
         Task<PagedResponse<FreeServiceClaimHeaderViewModel>> GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex);
         Task<object?> GetClaimById(int Id);
         Task<bool> Update(FreeServiceClaimViewModel freeServiceClaimViewModel);
+
+        Task<IEnumerable<object>> GetPendingApprovalClaims(string? dealerCode);
+        Task<bool> ApproveRejectClaimDetails(List<ApproveRejectDetailViewModel> items, string userId);
     }
 }

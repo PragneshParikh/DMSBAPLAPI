@@ -46,4 +46,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? UpdatedDate { get; set; }
     }
 
+    public class ApproveRejectDetailViewModel
+    {
+        public int Id { get; set; }
+        public bool? IsApproved { get; set; }
+        public string? RejectReason { get; set; }
+    }
+
 }

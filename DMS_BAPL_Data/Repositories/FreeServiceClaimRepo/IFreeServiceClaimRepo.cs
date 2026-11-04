@@ -17,5 +17,7 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
         Task<IEnumerable<PendingApprovalJobCardViewModel>> GetPendingApprovalJobCard(string? dealerCode);
         Task<PagedResponse<FreeServiceClaimHeaderViewModel>> GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex);
         Task<object?> GetClaimById(int Id);
+        Task<IEnumerable<object>> GetPendingApprovalClaims(string? dealerCode);
+        Task<bool> ApproveRejectClaimDetails(List<ApproveRejectDetailViewModel> items, string userId);
     }
 }
