@@ -66,11 +66,13 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 await _service.SaveRoleMenuRights(request, userId);
 
-                return Ok(new { success = true, message = "Menu rights saved successfully." });
+                var granted = request.Rights?.Count(r => r.Permission > 0) ?? 0;
+                return Ok(new { success = true, message = $"Menu rights saved successfully ({granted} page(s) assigned)." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                // EF wraps the SQL error - return the real reason, not "see the inner exception".
+                return StatusCode(500, new { success = false, message = "Menu rights not saved: " + ex.GetBaseException().Message });
             }
         }
 

@@ -14,6 +14,8 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         /// <summary>Chassis No or Registration No (start of the number is enough; min 3 characters)</summary>
         public string? Search { get; set; }
+        /// <summary>true when Search is a value picked from the type-ahead: exact match on ChassisNo / RegNo</summary>
+        public bool Exact { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 50;
     }
@@ -33,6 +35,21 @@ namespace DMS_BAPL_Utils.ViewModels
         public string DealerCode { get; set; } = null!;
         public string? DealerName { get; set; }
         public int Jobs { get; set; }
+    }
+
+    /// <summary>One type-ahead suggestion for the Service History search box</summary>
+    public class JcshSuggestion
+    {
+        /// <summary>the matched value (chassis no or reg no) - put into the search box when picked</summary>
+        public string Value { get; set; } = null!;
+        /// <summary>"Chassis No" or "Reg No"</summary>
+        public string Kind { get; set; } = null!;
+        public string? ChassisNo { get; set; }
+        public string? RegNo { get; set; }
+        public string? Model { get; set; }
+        public string? DealerCode { get; set; }
+        public int Jobs { get; set; }
+        public DateTime? LastJobDate { get; set; }
     }
 
     public class JcshJobDataDealerRow

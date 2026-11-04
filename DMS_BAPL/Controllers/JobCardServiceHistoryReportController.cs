@@ -54,6 +54,11 @@ namespace DMS_BAPL_Api.Controllers
         public Task<IActionResult> ServiceHistory([FromQuery] JcshServiceHistoryQuery q, CancellationToken ct) =>
             Run(async () => Ok(await _report.ServiceHistoryAsync(q, ct)), "Service History search");
 
+        /// <summary>type-ahead: GET service-history/suggest?term=p6 → up to 10 chassis + 10 reg numbers starting with it</summary>
+        [HttpGet("service-history/suggest")]
+        public Task<IActionResult> Suggest([FromQuery] string? term, CancellationToken ct) =>
+            Run(async () => Ok(await _report.SuggestAsync(term, ct)), "Suggestions");
+
         [HttpGet("job-data")]
         public Task<IActionResult> JobData([FromQuery] JcshJobDataQuery q, CancellationToken ct) =>
             Run(async () => Ok(await _report.JobDataAsync(q, ct)), "Job Data");
@@ -65,7 +70,14 @@ namespace DMS_BAPL_Api.Controllers
         [HttpGet("service-history/export")]
         public Task<IActionResult> ExportServiceHistory([FromQuery] JcshServiceHistoryQuery q, CancellationToken ct) =>
             Run(() => Export(s => _report.ExportServiceHistoryAsync(q, s, ct),
-                $"Service_History_{JobCardServiceHistoryReportService.NormalizeSearch(q.Search)}_{DateTime.Now:yyyyMMdd}.xlsx"), "Service History export");
+                $"Service_History_{SafeName(q.Search)}_{DateTime.Now:yyyyMMdd}.xlsx"), "Service History export");
+
+        /// <summary>letters / digits only for the download file name</summary>
+        private static string SafeName(string? s)
+        {
+            var t = new string((s ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+            return t.Length == 0 ? "Search" : t.Length > 30 ? t[..30] : t;
+        }
 
         [HttpGet("job-data/export")]
         public Task<IActionResult> ExportJobData([FromQuery] JcshJobDataQuery q, CancellationToken ct) =>

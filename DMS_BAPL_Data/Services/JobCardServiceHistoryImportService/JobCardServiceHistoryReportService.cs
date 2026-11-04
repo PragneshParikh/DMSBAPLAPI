@@ -20,6 +20,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         Task<JcshReportPage> ServiceHistoryAsync(JcshServiceHistoryQuery q, CancellationToken ct);
         Task<JcshReportPage> JobDataAsync(JcshJobDataQuery q, CancellationToken ct);
         Task<List<JcshDealerOption>> DealersAsync(CancellationToken ct);
+        /// <summary>Type-ahead for the Service History box: chassis / reg numbers starting with what was typed.</summary>
+        Task<List<JcshSuggestion>> SuggestAsync(string? term, CancellationToken ct);
         /// <summary>Writes all matching rows (all 63 source columns) to an .xlsx in <paramref name="output"/>; returns the row count.</summary>
         Task<int> ExportServiceHistoryAsync(JcshServiceHistoryQuery q, Stream output, CancellationToken ct);
         Task<int> ExportJobDataAsync(JcshJobDataQuery q, Stream output, CancellationToken ct);
@@ -70,6 +72,15 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 
         private static (string Where, List<SqlParameter> Ps) ServiceHistoryFilter(JcshServiceHistoryQuery q)
         {
+            if (q.Exact)
+            {
+                // a value picked from the type-ahead: match the stored value exactly (it may contain characters the
+                // free-text search strips, e.g. "P6DEC,12CPEC020049"); equality also uses the ChassisNo / RegNo indexes
+                var v = (q.Search ?? "").Trim();
+                if (v.Length == 0 || v.Length > 30) throw new ArgumentException("Choose a Chassis No or Registration No.");
+                return ("WHERE (ChassisNo = @v OR RegNo = @v)",
+                        new List<SqlParameter> { new("@v", SqlDbType.NVarChar, 30) { Value = v } });
+            }
             var s = NormalizeSearch(q.Search);
             // prefix match: uses IX_..._ChassisNo / IX_..._RegNo (index seek), only letters/digits so no LIKE wildcards
             return ("WHERE (ChassisNo LIKE @s + '%' OR RegNo LIKE @s + '%')",
@@ -184,6 +195,65 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 
             lock (DealerCacheLock) _dealerCache = (DateTime.UtcNow, list);
             return list;
+        }
+
+        // ─────────────────────────────────────────────────────────────── type-ahead
+        private const int SuggestPerKind = 15;
+
+        /// <summary>
+        /// Up to 10 chassis + 10 registration numbers that START with the typed text (letters / digits only, min 2).
+        /// Two steps per kind so a short prefix like "P6" (matches most rows) stays fast:
+        ///   1. TOP 10 distinct values from the index alone (stream aggregate, stops after 10)
+        ///   2. details (reg / chassis, model, dealer, jobs, last job date) for just those 10 values.
+        /// </summary>
+        public async Task<List<JcshSuggestion>> SuggestAsync(string? term, CancellationToken ct)
+        {
+            var s = new string((term ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+            if (s.Length < 2) return new List<JcshSuggestion>();
+            if (s.Length > 30) s = s[..30];
+
+            var result = new List<JcshSuggestion>();
+            await using var con = NewConnection();
+            await con.OpenAsync(ct);
+            foreach (var (col, other, kind) in new[] { ("ChassisNo", "RegNo", "Chassis No"), ("RegNo", "ChassisNo", "Reg No") })
+            {
+                var values = new List<string>();
+                await using (var cmd = new SqlCommand(
+                    $"SELECT TOP (@n) {col} FROM {Table} WHERE {col} LIKE @s + '%' GROUP BY {col} ORDER BY {col};", con) { CommandTimeout = 30 })
+                {
+                    cmd.Parameters.Add("@n", SqlDbType.Int).Value = SuggestPerKind;
+                    cmd.Parameters.Add("@s", SqlDbType.NVarChar, 30).Value = s;
+                    await using var rd = await cmd.ExecuteReaderAsync(ct);
+                    while (await rd.ReadAsync(ct)) values.Add(rd.GetString(0));
+                }
+                if (values.Count == 0) continue;
+
+                var names = values.Select((_, i) => "@v" + i).ToList();
+                await using (var cmd = new SqlCommand(
+                    $"SELECT {col}, MAX({other}), MAX(Model), MAX(DealerCode), COUNT(*), MAX(JobDate) FROM {Table} " +
+                    $"WHERE {col} IN ({string.Join(", ", names)}) GROUP BY {col} ORDER BY {col};", con) { CommandTimeout = 30 })
+                {
+                    for (var i = 0; i < values.Count; i++) cmd.Parameters.Add(names[i], SqlDbType.NVarChar, 30).Value = values[i];
+                    await using var rd = await cmd.ExecuteReaderAsync(ct);
+                    while (await rd.ReadAsync(ct))
+                    {
+                        var v = rd.GetString(0);
+                        var o = rd.IsDBNull(1) ? null : rd.GetString(1);
+                        result.Add(new JcshSuggestion
+                        {
+                            Value = v,
+                            Kind = kind,
+                            ChassisNo = col == "ChassisNo" ? v : o,
+                            RegNo = col == "RegNo" ? v : o,
+                            Model = rd.IsDBNull(2) ? null : rd.GetString(2),
+                            DealerCode = rd.IsDBNull(3) ? null : rd.GetString(3),
+                            Jobs = rd.GetInt32(4),
+                            LastJobDate = rd.IsDBNull(5) ? null : rd.GetDateTime(5)
+                        });
+                    }
+                }
+            }
+            return result;
         }
 
         // ─────────────────────────────────────────────────────────────── Excel export

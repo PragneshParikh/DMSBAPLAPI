@@ -170,24 +170,47 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                     .Select(m => new { m.Id, m.ParentMenuId })
                     .ToDictionaryAsync(m => m.Id, m => m.ParentMenuId ?? m.Id);
 
-                var existingBySub = existing
-                    .GroupBy(r => r.SubMenuId)
-                    .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Id).ToList());
-
                 // Last value wins if the client sends the same SubMenuId twice.
-                var requested = rights
+                var requested = (rights ?? new List<MenuRightItem>())
                     .Where(r => parentLookup.ContainsKey(r.SubMenuId))   // ignore unknown menus
                     .GroupBy(r => r.SubMenuId)
-                    .Select(g => g.Last());
+                    .Select(g => g.Last())
+                    .ToList();
+
+                // One row per Role + SubMenu. Legacy data has duplicates where the older row
+                // carries a wrong MenuId and the newer one the correct MenuId. The table has a
+                // unique index on (RoleId, MenuId, SubMenuId) that EF does not know about, so
+                // "fix the old row's MenuId, then delete the new row" in one SaveChanges hit
+                // that index and every save for the role failed. Keep the row that already has
+                // the correct MenuId, and delete the duplicates in their own SaveChanges first.
+                var existingBySub = new Dictionary<int, RoleWiseMenuRight>();
+                var duplicates = new List<RoleWiseMenuRight>();
+                foreach (var g in existing.GroupBy(r => r.SubMenuId))
+                {
+                    var correct = parentLookup.TryGetValue(g.Key, out var p) ? p : (int?)null;
+                    var ordered = g.OrderByDescending(r => r.MenuId == correct)   // correct parent first
+                                   .ThenBy(r => r.Id)
+                                   .ToList();
+                    var keep = ordered[0];
+                    // Rights granted on any duplicate are not lost (same OR the screen shows on load).
+                    keep.Permission = ordered.Aggregate(0, (acc, r) => acc | r.Permission);
+                    existingBySub[g.Key] = keep;
+                    duplicates.AddRange(ordered.Skip(1));
+                }
+
+                if (duplicates.Count > 0)
+                {
+                    _context.RoleWiseMenuRights.RemoveRange(duplicates);
+                    await _context.SaveChangesAsync();
+                }
 
                 foreach (var item in requested)
                 {
                     var correctMenuId = parentLookup[item.SubMenuId];
                     var permission = item.Permission & 31;   // View|Create|Edit|Delete|Print
 
-                    if (existingBySub.TryGetValue(item.SubMenuId, out var rows))
+                    if (existingBySub.TryGetValue(item.SubMenuId, out var keep))
                     {
-                        var keep = rows[0];
                         if (keep.Permission != permission || keep.MenuId != correctMenuId)
                         {
                             keep.Permission = permission;
@@ -195,10 +218,6 @@ namespace DMS_BAPL_Data.Repositories.MenuRightsRepo
                             keep.UpdatedBy = updatedBy;
                             keep.UpdatedDate = DateTime.Now;
                         }
-
-                        // Remove duplicate rows for the same Role + SubMenu.
-                        if (rows.Count > 1)
-                            _context.RoleWiseMenuRights.RemoveRange(rows.Skip(1));
                     }
                     else if (permission > 0)
                     {
