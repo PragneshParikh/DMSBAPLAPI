@@ -97,4 +97,49 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("finalQty")]
         public int FinalQty { get; set; }
     }
+
+
+    public class StockAdjustmentReportViewModel
+    {
+        [JsonPropertyName("prefixNo")]
+        public string? PrefixNo { get; set; }
+
+        [JsonPropertyName("adjustmentDate")]
+        public DateTime AdjustmentDate { get; set; }
+
+        [JsonPropertyName("dealerCode")]
+        public string? DealerCode { get; set; }
+
+        [JsonPropertyName("locationCode")]
+        public string? LocationCode { get; set; }
+
+        [JsonPropertyName("partNo")]
+        public string PartNo { get; set; } = string.Empty;
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; } = string.Empty;
+
+        [JsonPropertyName("rateStock")]
+        public decimal? RateStock { get; set; }
+
+        [JsonPropertyName("currentStock")]
+        public int CurrentStock { get; set; }
+
+        [JsonPropertyName("updateStock")]
+        public int UpdateStock { get; set; }
+
+        [JsonPropertyName("upQuantityStg")]
+        public int UpQuantityStg { get; set; }
+
+        [JsonPropertyName("finalQty")]
+        public int FinalQty { get; set; }
+
+        [JsonPropertyName("remarks")]
+        public string? Remarks { get; set; }
+
+        [JsonPropertyName("locareaidno")]
+        public int? LocAreaIdNo { get; set; }
+    }
+
+
 }

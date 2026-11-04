@@ -9,7 +9,7 @@ public partial class PartStockAdjustmentDetail
     public decimal? RateStock { get; set; }
     public int CurrentStock { get; set; }
     public int UpdateStock { get; set; }
-    public int UpQuantityStg { get; set; }
+    public int UpQuantityStg { get; set; } 
     public int FinalQty { get; set; }
     public string CreatedBy { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
