@@ -20,7 +20,15 @@ namespace DMS_BAPL_Data.Middleware
             var request = context.Request;
             string payload = string.Empty;
 
-            if (request.Method == HttpMethods.Post || request.Method == HttpMethods.Put)
+            // Large Excel upload (Jobcard Servicehistory, up to 200 MB): do NOT read the body here.
+            // Reading it before MVC bypasses the action's [RequestSizeLimit] (Kestrel's 30 MB default applies →
+            // "Request body too large") and would store the binary file as text in Apitracking. Log a short note instead.
+            if (request.Method == HttpMethods.Post
+                && request.Path.StartsWithSegments("/api/jobcard-servicehistory-import/upload", StringComparison.OrdinalIgnoreCase))
+            {
+                payload = $"[file upload - body not logged; Content-Type: {request.ContentType?.Split(';')[0]}; {request.ContentLength ?? 0} bytes]";
+            }
+            else if (request.Method == HttpMethods.Post || request.Method == HttpMethods.Put)
             {
                 request.EnableBuffering();
                 if (request.ContentLength > 0)

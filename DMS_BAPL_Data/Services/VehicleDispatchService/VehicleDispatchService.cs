@@ -117,6 +117,10 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
         public async Task<VehicleDispatchImportResult> ImportAsync(Stream excel, string fileName, VehicleDispatchImportOptions options, string userId)
         {
             options ??= new VehicleDispatchImportOptions();
+            // live status for the page (GET api/import-progress/{id}); null when the page sent no ProgressId
+            var prog = DMS_BAPL_Utils.Helpers.ImportProgress.Start(options.ProgressId, "Vehicle Dispatch Import", options.DryRun);
+            var progSteps = options.DryRun ? 4 : 5;
+            prog?.SetPhase("Reading Excel file…", 1, progSteps);
             using var wb = OpenWorkbook(excel);
             var ws = PickSheet(wb, options.SheetName);
             var col = ResolveColumns(ws);
@@ -136,13 +140,17 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             // ---------- 1. read every row ----------
             var rows = new List<Row>();
             var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+            prog?.SetRows(0, Math.Max(0, lastRow - 1));
             for (var n = 2; n <= lastRow; n++)
             {
+                if (prog != null && (n - 1) % 500 == 0) prog.SetRows(n - 1, lastRow - 1);
                 var xr = ws.Row(n);
                 if (xr.IsEmpty()) continue;
                 rows.Add(ParseRow(xr, n, col));
             }
             result.TotalRows = rows.Count;
+            prog?.SetRows(Math.Max(0, lastRow - 1), Math.Max(0, lastRow - 1));
+            prog?.SetPhase("Loading dealers, locations and models…", 2, progSteps);
 
             // ---------- 2. reference data (only what the sheet needs) ----------
             var dealerCodes = rows.Select(r => r.DealerCode).Where(c => c != null).Select(c => c!.ToUpperInvariant()).Distinct().ToList();
@@ -170,8 +178,11 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             var itemByName = items.GroupBy(i => Norm(i.Itemname)).ToDictionary(g => g.Key, g => g.First().Itemcode.Trim());
 
             // ---------- 3. validate rows ----------
+            prog?.SetPhase("Validating rows and checking existing chassis…", 3, progSteps);
+            var progRow = 0;
             foreach (var r in rows)
             {
+                if (prog != null && ++progRow % 500 == 0) prog.SetWork("rows", progRow, rows.Count);
                 if (r.ChassisNo == null) r.Errors.Add("Chasis No is blank.");
                 if (r.InvoiceNo == null) r.Errors.Add("Invoice No is blank.");
                 if (r.InvoiceDate == null) r.Errors.Add(r.InvoiceDateRaw == null ? "Invoice Date is blank." : $"Invoice Date \"{r.InvoiceDateRaw}\" is not a valid date.");
@@ -292,8 +303,17 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
                 await using var tx = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    // one transaction: rows below are written but only committed when every batch has succeeded
+                    var progTotal = toInsert.Count + toUpdate.Count;
+                    var progBatches = (toInsert.Count + SaveChunk - 1) / SaveChunk + (toUpdate.Count + SaveChunk - 1) / SaveChunk;
+                    var progBatch = 0;
+                    var progIns = 0;
+                    var progUpd = 0;
+                    prog?.SetPhase("Saving chassis (committed at the end)…", 4, progSteps);
+                    prog?.SetWork("chassis", 0, progTotal, 0, progBatches);
                     foreach (var chunk in toInsert.Chunk(SaveChunk))
                     {
+                        progBatch++;
                         foreach (var r in chunk)
                         {
                             var v = new VehicleInward { CreatedBy = ImportTag, CreatedDate = now, UpdatedBy = Cut(userId, 50), UpdatedDate = now, IsD2d = false };
@@ -303,9 +323,13 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
                         }
                         await _context.SaveChangesAsync();
                         _context.ChangeTracker.Clear();
+                        progIns += chunk.Length;
+                        prog?.SetWork("chassis", progIns + progUpd, progTotal, progBatch, progBatches);
+                        prog?.SetCounts(progIns, progUpd, 0);
                     }
                     foreach (var chunk in toUpdate.Chunk(SaveChunk))
                     {
+                        progBatch++;
                         var ids = chunk.Select(r => r.ExistingId!.Value).ToList();
                         var tracked = await _context.VehicleInwards.Where(v => ids.Contains(v.Id)).ToDictionaryAsync(v => v.Id);
                         foreach (var r in chunk)
@@ -318,7 +342,11 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
                         }
                         await _context.SaveChangesAsync();
                         _context.ChangeTracker.Clear();
+                        progUpd += chunk.Length;
+                        prog?.SetWork("chassis", progIns + progUpd, progTotal, progBatch, progBatches);
+                        prog?.SetCounts(progIns, progUpd, 0);
                     }
+                    prog?.SetPhase("Committing transaction…", 5, progSteps);
                     await tx.CommitAsync();
                 }
                 catch
@@ -338,6 +366,8 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
             var sorted = issues.OrderBy(i => order.TryGetValue(i.Level, out var o) ? o : 9).ThenBy(i => i.RowNo).ToList();
             result.IssuesTruncated = sorted.Count > MaxIssues;
             result.Issues = sorted.Take(MaxIssues).ToList();
+            prog?.SetCounts(result.VehiclesImported, result.VehiclesUpdated, result.RowsWithErrors);
+            prog?.Finish(true, options.DryRun ? "Validation complete" : "Import complete");
             return result;
         }
 

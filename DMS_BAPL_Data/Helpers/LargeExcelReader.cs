@@ -189,6 +189,27 @@ namespace DMS_BAPL_Data.Helpers
             return LargeExcelRow.Empty;
         }
 
+        /// <summary>
+        /// Forward-only stream of the non-blank rows from <paramref name="fromRow"/> on, without keeping them in
+        /// memory (Row()/LastRowUsed() load the whole sheet - too much for 4-5 lakh rows x 60+ columns).
+        /// Added for the Jobcard Servicehistory import; existing callers are not affected.
+        /// </summary>
+        public IEnumerable<LargeExcelRow> StreamRows(int fromRow = 1)
+        {
+            var shared = _wb.SharedStrings;
+            var nextRow = 1;
+            using var reader = OpenXmlReader.Create(_part);
+            while (reader.Read())
+            {
+                if (reader.ElementType != typeof(Row) || !reader.IsStartElement) continue;
+                var row = (Row)reader.LoadCurrentElement()!;
+                var rowNo = row.RowIndex?.Value is uint ri ? (int)ri : nextRow;
+                nextRow = rowNo + 1;
+                if (rowNo < fromRow) continue;
+                if (ParseRow(row, rowNo, shared) is { } parsed) yield return parsed;
+            }
+        }
+
         private void Load()
         {
             if (_rows != null) return;

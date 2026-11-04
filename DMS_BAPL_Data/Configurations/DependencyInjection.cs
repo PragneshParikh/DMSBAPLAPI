@@ -268,6 +268,15 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IVehicleInwardService, VehicleInwardService>();
             services.AddScoped<IVehicleDispatchService, VehicleDispatchService>();   // Vehicle Dispatch import + report (SuperAdmin)
+            // Jobcard Servicehistory Excel -> BAPLDMSvad.dbo.JobCardServiceHistory. Singleton: it owns the background
+            // import jobs + temp uploads. Uses the existing DefaultConnection (BAPLDMSvad).
+            services.AddSingleton<DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.IJobCardServiceHistoryImportService,
+                                  DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.JobCardServiceHistoryImportService>();
+            services.AddScoped<DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.IJobCardServiceHistoryReadService,
+                               DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.JobCardServiceHistoryReadService>();
+            // Reports menu: Service History + Job Data (read-only on dbo.JobCardServiceHistory)
+            services.AddScoped<DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.IJobCardServiceHistoryReportService,
+                               DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.JobCardServiceHistoryReportService>();
             services.AddScoped<DMS_BAPL_Data.Services.MenuMasterAdminService.IMenuMasterAdminService,
                                DMS_BAPL_Data.Services.MenuMasterAdminService.MenuMasterAdminService>();   // Menu Master screen (create menus / pages, give roles)
             services.AddScoped<ILotInspectionService, LotInspectionService>();
