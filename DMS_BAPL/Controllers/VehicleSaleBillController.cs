@@ -389,7 +389,7 @@ namespace DMS_BAPL_Api.Controllers
                 return File(zipBytes, "application/zip", "ExShowroom_Invoices.zip");
             }
             catch (Exception ex)
-            {
+            {  
                 return StatusCode(500, ex.Message);
             }
         }

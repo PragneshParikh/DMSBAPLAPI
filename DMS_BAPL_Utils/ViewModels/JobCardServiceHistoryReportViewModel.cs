@@ -63,6 +63,32 @@ namespace DMS_BAPL_Utils.ViewModels
         public DateTime? LastJobDate { get; set; }
     }
 
+    /// <summary>Vehicle History Card print (JC-Print format): one block per vehicle, its jobs newest first.</summary>
+    public class JcshHistoryCard
+    {
+        public List<JcshCardVehicle> Vehicles { get; set; } = new();
+        public int TotalJobs { get; set; }
+        /// <summary>true when more jobs matched than the print limit</summary>
+        public bool Truncated { get; set; }
+        public int Limit { get; set; }
+    }
+
+    public class JcshCardVehicle
+    {
+        public string? ChassisNo { get; set; }
+        public string? RegNo { get; set; }
+        public string? Model { get; set; }
+        /// <summary>"DMS" = from the DMS vehicle sale bill; "Import" = sale date from the imported service history only</summary>
+        public string? SaleSource { get; set; }
+        public string? SoldThrough { get; set; }
+        public string? SaleInvoiceNo { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public string? Colour { get; set; }
+        public string? BookingId { get; set; }
+        /// <summary>job rows (selected source columns), newest first</summary>
+        public List<Dictionary<string, object?>> Jobs { get; set; } = new();
+    }
+
     public class JcshReportPage
     {
         public long Total { get; set; }

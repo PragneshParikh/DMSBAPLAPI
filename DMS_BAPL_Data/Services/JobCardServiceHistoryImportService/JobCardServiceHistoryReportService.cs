@@ -22,6 +22,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         Task<List<JcshDealerOption>> DealersAsync(CancellationToken ct);
         /// <summary>Type-ahead for the Service History box: chassis / reg numbers starting with what was typed.</summary>
         Task<List<JcshSuggestion>> SuggestAsync(string? term, CancellationToken ct);
+        /// <summary>Vehicle History Card (JC-Print format) for the Service History search.</summary>
+        Task<JcshHistoryCard> HistoryCardAsync(JcshServiceHistoryQuery q, CancellationToken ct);
         /// <summary>Writes all matching rows (all 63 source columns) to an .xlsx in <paramref name="output"/>; returns the row count.</summary>
         Task<int> ExportServiceHistoryAsync(JcshServiceHistoryQuery q, Stream output, CancellationToken ct);
         Task<int> ExportJobDataAsync(JcshJobDataQuery q, Stream output, CancellationToken ct);
@@ -70,6 +72,33 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             return t;
         }
 
+        // ─────────────────────────────────────────────────────────────── Reg No clean-up (display only)
+        // The source data has Reg No values that are not registration numbers: the chassis number typed into
+        // Reg No ("P6DEC12LPBF003845"), part of it ("P6DEC12CPB"), or junk ("na", "MH", "0", "A2").
+        // Indian format: state (2 letters) + RTO (1-2 digits) + series (0-3 letters) + number (1-4 digits),
+        // or Bharat series 22BH1234AA. Stored data is not changed.
+        private static readonly System.Text.RegularExpressions.Regex RegNoPattern =
+            new(@"^(?:[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}|\d{2}BH\d{4}[A-Z]{1,2})$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static string Norm(string? s) => new string((s ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
+        /// <summary>true when <paramref name="reg"/> looks like a real registration number and is not (part of) the chassis no</summary>
+        public static bool IsValidRegNo(string? reg, string? chassis)
+        {
+            var r = Norm(reg);
+            if (r.Length < 5 || !RegNoPattern.IsMatch(r)) return false;
+            var c = Norm(chassis);
+            return c.Length == 0 || !(c.StartsWith(r) || r.StartsWith(c));
+        }
+
+        /// <summary>the vehicle's registration no: the valid value used on most jobs (ties → most recent job)</summary>
+        private static string? BestRegNo(IEnumerable<(string? Reg, string? Chassis, DateTime? JobDate, int Jobs)> rows) =>
+            rows.Where(x => IsValidRegNo(x.Reg, x.Chassis))
+                .GroupBy(x => x.Reg!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => (Reg: g.First().Reg!.Trim(), Jobs: g.Sum(x => x.Jobs), Last: g.Max(x => x.JobDate ?? DateTime.MinValue)))
+                .OrderByDescending(x => x.Jobs).ThenByDescending(x => x.Last)
+                .Select(x => x.Reg).FirstOrDefault();
+
         private static (string Where, List<SqlParameter> Ps) ServiceHistoryFilter(JcshServiceHistoryQuery q)
         {
             if (q.Exact)
@@ -113,6 +142,105 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         {
             var (where, ps) = ServiceHistoryFilter(q);
             return await PageAsync(where, ps, "JobDate DESC, Id DESC", q.Page, q.PageSize, withDealers: false, ct);
+        }
+
+        /// <summary>jobs per History Card print - a picked vehicle rarely has more than a few dozen</summary>
+        public const int MaxCardJobs = 300;
+
+        /// <summary>columns the Vehicle History Card (JC-Print format) needs</summary>
+        private static readonly string[] CardColumns =
+        {
+            "Id", "ChassisNo", "RegNo", "Model", "DealerCode", "CompName", "Location", "JobNo", "JobDate", "JobType", "ServiceHead",
+            "JobCategory", "RepairType", "PartyName", "MobileNumber", "KMS", "DocType", "DocNo", "InvoiceDate", "Technician", "Supervisor",
+            "JobStatus", "SaleDate",
+            "BatterySerialNo1", "BatterySerialNo2", "BatterySerialNo3", "BatterySerialNo4", "BatterySerialNo5", "BatterySerialNo6",
+            "IndividualAHBattery1", "IndividualAHBattery2", "IndividualAHBattery3", "IndividualAHBattery4", "IndividualAHBattery5", "IndividualAHBattery6",
+            "Parts", "Accessory", "Oil", "Labour", "OutsideWork", "TotalWOTax", "GSTAmount", "IGSTAmount", "NetTotal"
+        };
+
+        public async Task<JcshHistoryCard> HistoryCardAsync(JcshServiceHistoryQuery q, CancellationToken ct)
+        {
+            var (where, ps) = ServiceHistoryFilter(q);
+            var card = new JcshHistoryCard { Limit = MaxCardJobs };
+
+            await using var con = NewConnection();
+            await con.OpenAsync(ct);
+
+            await using (var cnt = new SqlCommand($"SELECT COUNT(*) FROM {Table} {where};", con) { CommandTimeout = 120 })
+            {
+                cnt.Parameters.AddRange(Clone(ps));
+                card.TotalJobs = Convert.ToInt32(await cnt.ExecuteScalarAsync(ct));
+            }
+            card.Truncated = card.TotalJobs > MaxCardJobs;
+
+            var cols = string.Join(", ", CardColumns.Select(c => $"[{c}]"));
+            var rows = new List<Dictionary<string, object?>>();
+            await using (var cmd = new SqlCommand($"SELECT TOP (@n) {cols} FROM {Table} {where} ORDER BY ChassisNo, JobDate DESC, JobNo DESC, Id DESC;", con) { CommandTimeout = 120 })
+            {
+                cmd.Parameters.AddRange(Clone(ps));
+                cmd.Parameters.Add("@n", SqlDbType.Int).Value = MaxCardJobs;
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                while (await rd.ReadAsync(ct))
+                {
+                    var row = new Dictionary<string, object?>(rd.FieldCount);
+                    for (var i = 0; i < rd.FieldCount; i++) row[rd.GetName(i)] = rd.IsDBNull(i) ? null : rd.GetValue(i);
+                    rows.Add(row);
+                }
+            }
+
+            string? S(Dictionary<string, object?> r, string k) => r.TryGetValue(k, out var v) && v != null ? Convert.ToString(v)?.Trim() : null;
+
+            foreach (var g in rows.GroupBy(r => S(r, "ChassisNo") ?? ""))
+            {
+                var jobs = g.ToList();
+                var bestReg = BestRegNo(jobs.Select(r => (S(r, "RegNo"), S(r, "ChassisNo"), r["JobDate"] as DateTime?, 1)));
+                // per job: keep the job's own Reg No when it is a real one; otherwise (chassis no / junk typed into
+                // Reg No) show the vehicle's registration no from its other jobs; the raw value stays in RegNoAsEntered
+                foreach (var r in jobs)
+                {
+                    var raw = S(r, "RegNo");
+                    r["RegNoAsEntered"] = raw;
+                    r["RegNo"] = IsValidRegNo(raw, S(r, "ChassisNo")) ? raw : bestReg;
+                }
+                card.Vehicles.Add(new JcshCardVehicle
+                {
+                    ChassisNo = g.Key.Length == 0 ? null : g.Key,
+                    RegNo = bestReg,
+                    Model = jobs.Select(r => S(r, "Model")).FirstOrDefault(v => !string.IsNullOrEmpty(v)),
+                    SaleDate = jobs.Select(r => r["SaleDate"] as DateTime?).FirstOrDefault(v => v != null),
+                    SaleSource = jobs.Any(r => r["SaleDate"] != null) ? "Import" : null,
+                    Jobs = jobs
+                });
+            }
+
+            // Vehicle Info from the DMS vehicle sale bill (latest non-deleted bill per chassis), when the vehicle was billed in DMS
+            var chassis = card.Vehicles.Where(v => v.ChassisNo != null).Select(v => v.ChassisNo!).Take(100).ToList();
+            if (chassis.Count > 0)
+            {
+                var names = chassis.Select((_, i) => "@c" + i).ToList();
+                var sql = "SELECT d.ChassisNo, h.InvoiceNo, h.SaleBillNo, h.SaleDate, h.BookingId, d.Colour, h.DealerCode, dm.Compname " +
+                          "FROM dbo.VehicleSaleBillDetails d JOIN dbo.VehicleSaleBillHeader h ON h.Id = d.VehicleSaleBillId " +
+                          "LEFT JOIN dbo.DealerMaster dm ON dm.Dealercode = h.DealerCode " +
+                          $"WHERE h.IsDeleted = 0 AND d.ChassisNo IN ({string.Join(", ", names)}) ORDER BY h.SaleDate DESC, h.Id DESC;";
+                await using var cmd = new SqlCommand(sql, con) { CommandTimeout = 60 };
+                for (var i = 0; i < chassis.Count; i++) cmd.Parameters.Add(new SqlParameter(names[i], SqlDbType.NVarChar, 50) { Value = chassis[i] });
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                while (await rd.ReadAsync(ct))
+                {
+                    var c = rd.GetString(0).Trim();
+                    if (!seen.Add(c)) continue;   // latest bill only
+                    var v = card.Vehicles.FirstOrDefault(x => string.Equals(x.ChassisNo, c, StringComparison.OrdinalIgnoreCase));
+                    if (v == null) continue;
+                    v.SaleSource = "DMS";
+                    v.SaleInvoiceNo = rd.IsDBNull(1) || string.IsNullOrWhiteSpace(rd.GetString(1)) ? (rd.IsDBNull(2) ? null : rd.GetString(2)) : rd.GetString(1);
+                    v.SaleDate = rd.GetDateTime(3);
+                    v.BookingId = rd.IsDBNull(4) ? null : rd.GetString(4);
+                    v.Colour = rd.IsDBNull(5) ? null : rd.GetString(5);
+                    v.SoldThrough = rd.IsDBNull(7) ? (rd.IsDBNull(6) ? null : rd.GetString(6)) : rd.GetString(7);
+                }
+            }
+            return card;
         }
 
         public async Task<JcshReportPage> JobDataAsync(JcshJobDataQuery q, CancellationToken ct)
@@ -217,40 +345,56 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             await con.OpenAsync(ct);
             foreach (var (col, other, kind) in new[] { ("ChassisNo", "RegNo", "Chassis No"), ("RegNo", "ChassisNo", "Reg No") })
             {
+                var isReg = col == "RegNo";
                 var values = new List<string>();
                 await using (var cmd = new SqlCommand(
                     $"SELECT TOP (@n) {col} FROM {Table} WHERE {col} LIKE @s + '%' GROUP BY {col} ORDER BY {col};", con) { CommandTimeout = 30 })
                 {
-                    cmd.Parameters.Add("@n", SqlDbType.Int).Value = SuggestPerKind;
+                    // Reg No: read extra, then drop values that are not registration numbers (chassis no / junk typed in)
+                    cmd.Parameters.Add("@n", SqlDbType.Int).Value = isReg ? SuggestPerKind * 4 : SuggestPerKind;
                     cmd.Parameters.Add("@s", SqlDbType.NVarChar, 30).Value = s;
-                    await using var rd = await cmd.ExecuteReaderAsync(ct);
-                    while (await rd.ReadAsync(ct)) values.Add(rd.GetString(0));
-                }
-                if (values.Count == 0) continue;
-
-                var names = values.Select((_, i) => "@v" + i).ToList();
-                await using (var cmd = new SqlCommand(
-                    $"SELECT {col}, MAX({other}), MAX(Model), MAX(DealerCode), COUNT(*), MAX(JobDate) FROM {Table} " +
-                    $"WHERE {col} IN ({string.Join(", ", names)}) GROUP BY {col} ORDER BY {col};", con) { CommandTimeout = 30 })
-                {
-                    for (var i = 0; i < values.Count; i++) cmd.Parameters.Add(names[i], SqlDbType.NVarChar, 30).Value = values[i];
                     await using var rd = await cmd.ExecuteReaderAsync(ct);
                     while (await rd.ReadAsync(ct))
                     {
                         var v = rd.GetString(0);
-                        var o = rd.IsDBNull(1) ? null : rd.GetString(1);
-                        result.Add(new JcshSuggestion
-                        {
-                            Value = v,
-                            Kind = kind,
-                            ChassisNo = col == "ChassisNo" ? v : o,
-                            RegNo = col == "RegNo" ? v : o,
-                            Model = rd.IsDBNull(2) ? null : rd.GetString(2),
-                            DealerCode = rd.IsDBNull(3) ? null : rd.GetString(3),
-                            Jobs = rd.GetInt32(4),
-                            LastJobDate = rd.IsDBNull(5) ? null : rd.GetDateTime(5)
-                        });
+                        if (!isReg || IsValidRegNo(v, null)) values.Add(v);
                     }
+                }
+                values = values.Take(SuggestPerKind).ToList();
+                if (values.Count == 0) continue;
+
+                // details per (value, other number) so the other number can be cleaned up as well
+                var rows = new List<(string Val, string? Other, string? Model, string? Dealer, int Jobs, DateTime? Last)>();
+                var names = values.Select((_, i) => "@v" + i).ToList();
+                await using (var cmd = new SqlCommand(
+                    $"SELECT {col}, {other}, MAX(Model), MAX(DealerCode), COUNT(*), MAX(JobDate) FROM {Table} " +
+                    $"WHERE {col} IN ({string.Join(", ", names)}) GROUP BY {col}, {other};", con) { CommandTimeout = 30 })
+                {
+                    for (var i = 0; i < values.Count; i++) cmd.Parameters.Add(names[i], SqlDbType.NVarChar, 30).Value = values[i];
+                    await using var rd = await cmd.ExecuteReaderAsync(ct);
+                    while (await rd.ReadAsync(ct))
+                        rows.Add((rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetString(2),
+                                  rd.IsDBNull(3) ? null : rd.GetString(3), rd.GetInt32(4), rd.IsDBNull(5) ? null : rd.GetDateTime(5)));
+                }
+
+                foreach (var g in rows.GroupBy(r => r.Val).OrderBy(g => g.Key, StringComparer.Ordinal))
+                {
+                    var latest = g.OrderByDescending(r => r.Last ?? DateTime.MinValue).First();
+                    // chassis suggestion → the vehicle's real Reg No; reg suggestion → its (most used) chassis no
+                    var o = isReg
+                        ? g.Where(r => !string.IsNullOrWhiteSpace(r.Other)).OrderByDescending(r => r.Jobs).Select(r => r.Other).FirstOrDefault()
+                        : BestRegNo(g.Select(r => (r.Other, (string?)r.Val, r.Last, r.Jobs)));
+                    result.Add(new JcshSuggestion
+                    {
+                        Value = g.Key,
+                        Kind = kind,
+                        ChassisNo = isReg ? o : g.Key,
+                        RegNo = isReg ? g.Key : o,
+                        Model = latest.Model ?? g.Select(r => r.Model).FirstOrDefault(m => m != null),
+                        DealerCode = latest.Dealer,
+                        Jobs = g.Sum(r => r.Jobs),
+                        LastJobDate = latest.Last
+                    });
                 }
             }
             return result;

@@ -59,6 +59,11 @@ namespace DMS_BAPL_Api.Controllers
         public Task<IActionResult> Suggest([FromQuery] string? term, CancellationToken ct) =>
             Run(async () => Ok(await _report.SuggestAsync(term, ct)), "Suggestions");
 
+        /// <summary>Vehicle History Card (JC-Print format): GET service-history/card?search=&amp;exact=</summary>
+        [HttpGet("service-history/card")]
+        public Task<IActionResult> HistoryCard([FromQuery] JcshServiceHistoryQuery q, CancellationToken ct) =>
+            Run(async () => Ok(await _report.HistoryCardAsync(q, ct)), "History Card");
+
         [HttpGet("job-data")]
         public Task<IActionResult> JobData([FromQuery] JcshJobDataQuery q, CancellationToken ct) =>
             Run(async () => Ok(await _report.JobDataAsync(q, ct)), "Job Data");
