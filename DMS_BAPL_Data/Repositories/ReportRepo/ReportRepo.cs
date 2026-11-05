@@ -4286,26 +4286,27 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             // ASSUMPTION — flag if "Stock Adjustment" actually means something else
             // in your process (e.g. a manual correction from a different table not
             // shown here); the TransType filter below is the one line to change.
-                 var stockAdjustmentCounts = _context.PartsInventories
-                .Where(x =>
-                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
-                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
-                    (x.TransType == "TI" || x.TransType == "TO"))
-                .GroupBy(x => new
-      {
-                    VendorCode = x.VendorCode ?? "",
-                    DealerLocation = x.DealerLocation ?? "",
-                    ItemCode = x.ItemCode ?? ""
-                })
-                .Select(g => new
-      {
-                    g.Key.VendorCode,
-                    g.Key.DealerLocation,
-                    g.Key.ItemCode,
-                    // Net adjustment: TI (inward) adds, TO (outward) subtracts —
-                    // one signed quantity per item/location/dealer.
-                    AdjustmentQty = g.Sum(x => x.TransType == "TI" ? x.BatchTransQty : -x.BatchTransQty)
-                });
+            var stockAdjustmentCounts =
+           from pa in _context.PartStockAdjustments
+           join pd in _context.PartStockAdjustmentDetails
+           on pa.Id equals pd.AdjustmentId
+           where pa.AdjustmentDate >= fromDate
+           && pa.AdjustmentDate <= toDate group pd by new
+        {
+          VendorCode = pa.DealerCode,
+          DealerLocation = pa.LocationCode,
+          ItemCode = pd.PartNo
+        }
+          into g
+           select new
+           {
+              g.Key.VendorCode,
+              g.Key.DealerLocation,
+              g.Key.ItemCode,
+              AdjustmentQty = g.OrderByDescending(x => x.Id)
+                 .Select(x => x.UpQuantityStg)
+                 .FirstOrDefault()
+           };
 
             try
             {
@@ -4424,7 +4425,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             Locname = lm != null ? lm.Locname : "Unknown",
 
-                            GST = at != null ? at.TotalTaxRate : 0,
+                            GST = im.Igst,
 
                             MRP = im.Dlrprice +
                             ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
