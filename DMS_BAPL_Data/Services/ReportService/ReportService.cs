@@ -620,7 +620,7 @@ namespace DMS_BAPL_Data.Services.ReportService
             }
         }
 
-        Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
+        Task<IEnumerable<Object>> IReportService.GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode, string? locationCode, string? locationDealerCode) => _reportRepo.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode, locationCode, locationDealerCode);
      
         public Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(string dealerCode, string? locationCode) =>
             _reportRepo.GetPartBalanceStockForAdjustmentAsync(dealerCode, locationCode);
@@ -768,9 +768,9 @@ namespace DMS_BAPL_Data.Services.ReportService
         }
 
 
-        public async Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate,DateTime toDate,string? dealerCode)
+        public async Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate,DateTime toDate,string? dealerCode, string? locationCode, string? locationDealerCode)
         {
-            return await _reportRepo .GetStockAdjustmentReportAsync(fromDate, toDate, dealerCode);
+            return await _reportRepo.GetStockAdjustmentReportAsync(fromDate, toDate, dealerCode, locationCode, locationDealerCode);
         }
     }
 

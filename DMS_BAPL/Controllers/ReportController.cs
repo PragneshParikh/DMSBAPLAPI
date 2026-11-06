@@ -1513,7 +1513,9 @@ namespace DMS_BAPL_Api.Controllers
             [FromQuery] int groupId,
             [FromQuery] DateTime fromDate,
             [FromQuery] DateTime toDate,
-            [FromQuery] string? dealerCode = null
+            [FromQuery] string? dealerCode = null,
+            [FromQuery] string? locationCode = null,
+            [FromQuery] string? locationDealerCode = null
             )
         {
             try
@@ -1533,7 +1535,7 @@ namespace DMS_BAPL_Api.Controllers
                 }
                 // ─────────────────────────────────────────────────────────────────
 
-                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode);
+                var result = await _reportService.GetPartsStockDetailsByDealer(groupId, fromDate, toDate, dealerCode, locationCode, locationDealerCode);
 
                 return Ok(result);
             }
@@ -1646,7 +1648,9 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> GetStockAdjustmentReport(
           [FromQuery] DateTime fromDate,
           [FromQuery] DateTime toDate,
-          [FromQuery] string? dealerCode = null)
+          [FromQuery] string? dealerCode = null,
+          [FromQuery] string? locationCode = null,
+          [FromQuery] string? locationDealerCode = null)
         {
             try
             {
@@ -1662,7 +1666,9 @@ namespace DMS_BAPL_Api.Controllers
                     .GetStockAdjustmentReportAsync(
                         fromDate,
                         toDate,
-                        dealerCode);
+                        dealerCode,
+                        locationCode,
+                        locationDealerCode);
 
                 return Ok(result);
             }
