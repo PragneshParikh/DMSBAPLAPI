@@ -87,7 +87,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         // ── COMPARISON REPORT (Performa vs Sale Bill creation tracking) ──
         Task<ComparisonReportPagedResponse> GetComparisonReportAsync(ComparisonReportFilterModel filter);
         Task<List<ComparisonReportRowViewModel>> GetComparisonReportForExportAsync(ComparisonReportFilterModel filter);
-        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode);
+        Task<IEnumerable<Object>> GetPartsStockDetailsByDealer(int groupId, DateTime fromDate, DateTime toDate, string? dealerCode, string? locationCode, string? locationDealerCode);
         Task<List<PartBalanceStockViewModel>> GetPartBalanceStockForAdjustmentAsync(string dealerCode, string? locationCode);
         Task<List<StockAdjustmentPartViewModel>> SearchStockAdjustmentPartsAsync(string dealerCode, string? search, string? locationCode);
         Task<StockAdjustmentPartDetailsViewModel?> GetStockAdjustmentPartDetailsAsync(string dealerCode, string locationCode, string partNo);
@@ -99,7 +99,7 @@ namespace DMS_BAPL_Data.Services.ReportService
         Task<WarrantyRegisterPagedResponse> GetWarrantyRegisterReportAsync(WarrantyRegisterFilterModel filter);
         Task<List<WarrantyRegisterViewModel>> GetWarrantyRegisterReportForExportAsync(WarrantyRegisterFilterModel filter);
 
-        Task<List<StockAdjustmentReportViewModel>> GetStockAdjustmentReportAsync(DateTime fromDate, DateTime toDate, string? dealerCode);
+        Task<List<StockAdjustmentReportViewModel>> GetStockAdjustmentReportAsync(DateTime fromDate, DateTime toDate, string? dealerCode, string? locationCode, string? locationDealerCode);
     }
 
     public class JobReportSummaryStats

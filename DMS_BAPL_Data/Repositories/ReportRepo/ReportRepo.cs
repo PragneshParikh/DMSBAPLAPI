@@ -4208,14 +4208,16 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             int groupId,
             DateTime fromDate,
             DateTime toDate,
-            string? dealerCode)
+            string? dealerCode,
+            string? locationCode,
+            string? locationDealerCode)
         {
             var aggregatedTaxes = _context.AggregateTaxCodes
                 .GroupBy(at => at.AtaxCode)
                 .Select(g => new
                 {
                     AtaxCode = g.Key,
-                    TotalTaxRate = g.Sum(x => x.TaxRate)
+                    TotalTaxRate = (decimal?)g.Sum(x => x.TaxRate)
                 });
 
             var saleCounts = _context.PartsInventories
@@ -4234,7 +4236,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     VendorCode = g.Key.VendorCode,
                     DealerLocation = g.Key.DealerLocation,
                     ItemCode = g.Key.ItemCode,
-                    SaleQty = g.Sum(x => x.BatchTransQty)
+                    SaleQty = (int?)g.Sum(x => x.BatchTransQty)
                 });
 
             var partsInwardCounts = _context.PartsInwards
@@ -4252,7 +4254,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     g.Key.DealerCode,
                     g.Key.LocCode,
                     g.Key.PartNo,
-                    InwardQty = g.Sum(x => x.ItemQty)
+                    InwardQty = (int?)g.Sum(x => x.ItemQty)
                 });
 
             var reversedCounts = _context.PartsInventories
@@ -4271,7 +4273,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     g.Key.VendorCode,
                     g.Key.DealerLocation,
                     g.Key.ItemCode,
-                    ReversedQty = g.Sum(x => x.BatchTransQty)
+                    ReversedQty = (int?)g.Sum(x => x.BatchTransQty)
                 });
 
             // NEW — Stock Adjustment, sourced from PartsInventory per request. No
@@ -4291,19 +4293,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
            join pd in _context.PartStockAdjustmentDetails
            on pa.Id equals pd.AdjustmentId
            where pa.AdjustmentDate >= fromDate
-           && pa.AdjustmentDate <= toDate group pd by new
-        {
-          VendorCode = pa.DealerCode,
-          DealerLocation = pa.LocationCode,
-          ItemCode = pd.PartNo
-        }
+           && pa.AdjustmentDate <= toDate
+           group pd by new
+           {
+               VendorCode = pa.DealerCode,
+               DealerLocation = pa.LocationCode,
+               ItemCode = pd.PartNo
+           }
           into g
            select new
            {
-              g.Key.VendorCode,
-              g.Key.DealerLocation,
-              g.Key.ItemCode,
-              AdjustmentQty = g.OrderByDescending(x => x.Id)
+               g.Key.VendorCode,
+               g.Key.DealerLocation,
+               g.Key.ItemCode,
+               AdjustmentQty = (int?)g.OrderByDescending(x => x.Id)
                  .Select(x => x.UpQuantityStg)
                  .FirstOrDefault()
            };
@@ -4315,10 +4318,6 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                         join im in _context.ItemMasters
                             on pi.ItemCode equals im.Itemcode
-
-                        join lm in _context.LocationMasters
-                            on pi.DealerLocation equals lm.Loccode into locJoin
-                        from lm in locJoin.DefaultIfEmpty()
 
                         join h in _context.HsnwiseTaxCodes
                             on im.Hsncode equals h.Hsncode into hsnTaxGroup
@@ -4403,6 +4402,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             //      && pi.FinalStockFlag == "Y"
                             //      && im.Grpidno == groupId
                         where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+                        && (string.IsNullOrEmpty(locationCode) || pi.DealerLocation == locationCode)
+                        && (string.IsNullOrEmpty(locationDealerCode) || pi.VendorCode == locationDealerCode)
                         && pi.FinalStockFlag == "Y"
                         && im.Grpidno == groupId
                         && pi.BatchClosingQty > 0
@@ -4423,19 +4424,30 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             pi.VendorCode,
                             pi.DealerLocation,
 
-                            Locname = lm != null ? lm.Locname : "Unknown",
+                            DealerName = _context.DealerMasters
+                                .Where(dm => dm.Dealercode == pi.VendorCode)
+                                .OrderBy(dm => dm.Id)
+                                .Select(dm => dm.Compname)
+                                .FirstOrDefault(),
+
+                            Locname = _context.LocationMasters
+                                .Where(location => location.Dealercode == pi.VendorCode
+                                    && location.Loccode == pi.DealerLocation)
+                                .OrderBy(location => location.Id)
+                                .Select(location => location.Locname)
+                                .FirstOrDefault() ?? "Unknown",
 
                             GST = im.Igst,
 
                             MRP = im.Dlrprice +
-                            ((im.Dlrprice * (at != null ? at.TotalTaxRate : 0)) / 100),
+                            ((im.Dlrprice * (at != null ? at.TotalTaxRate ?? 0m : 0m)) / 100),
 
-                            SaleCount = (int?)sc.SaleQty ?? 0,
+                            SaleCount = sc.SaleQty ?? 0,
 
-                            PurchaseCount = ((int?)pic.InwardQty ?? 0) + ((int?)rc.ReversedQty ?? 0),
+                            PurchaseCount = (pic.InwardQty ?? 0) + (rc.ReversedQty ?? 0),
 
                             // NEW — net TI/TO quantity in the selected date range.
-                            StockAdjustmentQty = (int?)sa.AdjustmentQty ?? 0,
+                            StockAdjustmentQty = sa.AdjustmentQty ?? 0,
 
                             // Balance stays exactly as before — Purchase + reversed
                             // sale-deletions minus Sale. Intentionally NOT folding
@@ -4465,6 +4477,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     x.BatchClosingQty,
                     x.VendorCode,
                     x.DealerLocation,
+                    x.DealerName,
                     x.Locname,
                     x.GroupType,
                     x.SaleCount,
@@ -5764,19 +5777,20 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
         }
 
 
-        public async Task<List<StockAdjustmentReportViewModel>>GetStockAdjustmentReportAsync(DateTime fromDate,DateTime toDate,string? dealerCode)
+        public async Task<List<StockAdjustmentReportViewModel>> GetStockAdjustmentReportAsync(DateTime fromDate, DateTime toDate, string? dealerCode, string? locationCode, string? locationDealerCode)
         {
             return await (
                 from pa in _context.PartStockAdjustments
                 join pd in _context.PartStockAdjustmentDetails
                     on pa.Id equals pd.AdjustmentId
-                join lm in _context.LocationMasters
-           on pa.DealerCode equals lm.Dealercode
-
                 where pa.AdjustmentDate >= fromDate.Date
                    && pa.AdjustmentDate < toDate.Date.AddDays(1)
                    && (string.IsNullOrEmpty(dealerCode)
                        || pa.DealerCode == dealerCode)
+                   && (string.IsNullOrEmpty(locationCode)
+                       || pa.LocationCode == locationCode)
+                   && (string.IsNullOrEmpty(locationDealerCode)
+                       || pa.DealerCode == locationDealerCode)
 
                 select new StockAdjustmentReportViewModel
                 {
@@ -5784,7 +5798,23 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     AdjustmentDate = pa.AdjustmentDate,
                     DealerCode = pa.DealerCode,
                     LocationCode = pa.LocationCode,
-                    LocAreaIdNo = lm.Locareaidno,
+                    DealerName = _context.DealerMasters
+                        .Where(dm => dm.Dealercode == pa.DealerCode)
+                        .OrderBy(dm => dm.Id)
+                        .Select(dm => dm.Compname)
+                        .FirstOrDefault(),
+                    LocationName = _context.LocationMasters
+                        .Where(location => location.Dealercode == pa.DealerCode
+                            && location.Loccode == pa.LocationCode)
+                        .OrderBy(location => location.Id)
+                        .Select(location => location.Locname)
+                        .FirstOrDefault(),
+                    LocAreaIdNo = _context.LocationMasters
+                        .Where(location => location.Dealercode == pa.DealerCode
+                            && location.Loccode == pa.LocationCode)
+                        .OrderBy(location => location.Id)
+                        .Select(location => (int?)location.Locareaidno)
+                        .FirstOrDefault(),
 
                     PartNo = pd.PartNo,
                     Description = pd.Description,

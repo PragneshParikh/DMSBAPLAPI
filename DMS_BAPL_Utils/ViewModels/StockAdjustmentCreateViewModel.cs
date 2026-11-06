@@ -110,8 +110,14 @@ namespace DMS_BAPL_Utils.ViewModels
         [JsonPropertyName("dealerCode")]
         public string? DealerCode { get; set; }
 
+        [JsonPropertyName("dealerName")]
+        public string? DealerName { get; set; }
+
         [JsonPropertyName("locationCode")]
         public string? LocationCode { get; set; }
+
+        [JsonPropertyName("locationName")]
+        public string? LocationName { get; set; }
 
         [JsonPropertyName("partNo")]
         public string PartNo { get; set; } = string.Empty;
