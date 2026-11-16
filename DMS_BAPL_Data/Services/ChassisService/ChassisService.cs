@@ -23,5 +23,10 @@ namespace DMS_BAPL_Data.Services.ChassisService
         {
             return await _chassisRepo.ImportChassisExcelAsync(file);
         }
+
+        public Task<object> SearchGlobalChassisListAsync(string term)
+        {
+            return _chassisRepo.SearchGlobalChassisListAsync(term);   
+        }
     }
 }

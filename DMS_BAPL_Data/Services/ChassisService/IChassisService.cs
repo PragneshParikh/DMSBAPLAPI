@@ -14,5 +14,6 @@ namespace DMS_BAPL_Data.Services.ChassisService
         Task<object> GetGlobalChassisDataAsync(string chassisNumber);
 
         Task<string> ImportChassisExcelAsync(IFormFile file);
+        Task<object> SearchGlobalChassisListAsync(string term);
     }
 }

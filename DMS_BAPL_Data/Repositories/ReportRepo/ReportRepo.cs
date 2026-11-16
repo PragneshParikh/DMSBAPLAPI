@@ -2657,9 +2657,14 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     join clr in _context.ColorMasters.AsNoTracking()
                         on vi.ColrCode equals clr.Colorcode into clrJoin
                     from clr in clrJoin.DefaultIfEmpty()
-                    join lih in _context.LotinspectionHeaders.AsNoTracking()
-                        on vi.InvoiceNo equals lih.InvoiceNo into lihJoin
-                    from lih in lihJoin.DefaultIfEmpty()
+                        //join lih in _context.LotinspectionHeaders.AsNoTracking()
+                        //    on vi.InvoiceNo equals lih.InvoiceNo into lihJoin
+                        //from lih in lihJoin.DefaultIfEmpty()
+                        //select new { vi, dm, loc, im, clr, lih };
+                    let lih = _context.LotinspectionHeaders.AsNoTracking()
+                    .Where(h => h.InvoiceNo == vi.InvoiceNo)
+                    .OrderBy(h => h.Id)
+                    .FirstOrDefault()
                     select new { vi, dm, loc, im, clr, lih };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
@@ -2759,6 +2764,50 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .Skip((filter.PageIndex - 1) * filter.PageSize)
                     .Take(filter.PageSize)
                     .ToList();
+
+               
+                var pagedChassis = paged
+                    .Where(r => !string.IsNullOrEmpty(r.ChassisNo))
+                    .Select(r => r.ChassisNo)
+                    .Distinct()
+                    .ToList();
+
+               
+                var cdSales = await _context.ChassisDetails.AsNoTracking()
+                    .Where(c => pagedChassis.Contains(c.ChassisNo) && c.SaleDate != null)
+                    .Select(c => new { c.ChassisNo, c.SaleDate })
+                    .ToListAsync();
+
+
+                                var billSales = await (
+                     from d in _context.VehicleSaleBillDetails.AsNoTracking()
+                     join h in _context.VehicleSaleBillHeaders.AsNoTracking()
+                         on d.VehicleSaleBillId equals h.Id
+                     where pagedChassis.Contains(d.ChassisNo)
+                           && !h.IsDeleted
+                           && h.Status == "Invoiced"          
+                     select new { d.ChassisNo, h.SaleDate, h.Id }
+                 ).ToListAsync();
+
+                var cdByChassis = cdSales
+                    .GroupBy(c => c.ChassisNo)
+                    .ToDictionary(g => g.Key, g => g.First().SaleDate);
+
+                var billByChassis = billSales
+                    .GroupBy(b => b.ChassisNo)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(b => b.Id).First().SaleDate);
+
+                foreach (var r in paged)
+                {
+                    DateTime? sd = null;
+                    if (r.ChassisNo != null)
+                    {
+                        if (cdByChassis.TryGetValue(r.ChassisNo, out var d1)) sd = d1;
+                        else if (billByChassis.TryGetValue(r.ChassisNo, out var d2)) sd = d2;
+                    }
+                    r.SaleStatus = sd.HasValue ? "Sold" : "";
+                    r.SaleDate = sd;
+                }
 
                 int srNo = (filter.PageIndex - 1) * filter.PageSize + 1;
                 foreach (var row in paged)
