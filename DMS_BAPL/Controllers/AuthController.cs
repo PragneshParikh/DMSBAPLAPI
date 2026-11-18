@@ -808,6 +808,8 @@ namespace DMS_BAPL_Api.Controllers
                     ? await _dealerMasterService.GetDealerByCode(dealerCode)
                     : null;
 
+                var previousLoginDate = user.LastLoginDate;
+
                 user.LastLoginDate = DateTime.UtcNow;
                 await _userManager.UpdateAsync(user);
 
@@ -821,7 +823,7 @@ namespace DMS_BAPL_Api.Controllers
                     dealerCode = dealerCode,
                     employeeCode = employeeCode,
                     mappedZones = mappedZones,
-                    lastLoginDate = user.LastLoginDate,
+                    lastLoginDate = previousLoginDate,
                     token = token,
                     role = role,
                     roles = functionalRoles,

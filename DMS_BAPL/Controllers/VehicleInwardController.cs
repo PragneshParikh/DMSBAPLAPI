@@ -8,6 +8,7 @@ using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Drawing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -216,5 +217,75 @@ namespace DMS_BAPL_Api.Controllers
                 throw;
             }
         }
+
+        private bool IsSuperAdmin() => User?.Claims.Any(c => c.Type == ClaimTypes.Role && c.Value.Equals("superadmin", StringComparison.OrdinalIgnoreCase)) == true;
+
+        [HttpPost("DeleteInvoice")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> DeleteInvoice([FromQuery] string invoiceNo)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (!IsSuperAdmin())
+                    return StatusCode(StatusCodes.Status403Forbidden, new ApiResponse
+                    {
+                        Valid = false,
+                        Description = "Only SuperAdmin can delete a dispatch invoice.",
+                        Value = new List<ApiResponseValue>()
+                    });
+
+                var result = await _vehicleInwardService.DeleteInvoice(invoiceNo, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting invoice {InvoiceNo}", invoiceNo);
+                throw;
+            }
+        }
+
+
+        [HttpPost("DeleteVehicles")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> DeleteVehicles([FromBody] DeleteVehiclesRequest request)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                if (!IsSuperAdmin())
+                    return StatusCode(StatusCodes.Status403Forbidden, new ApiResponse
+                    {
+                        Valid = false,
+                        Description = "Only SuperAdmin can delete vehicles.",
+                        Value = new List<ApiResponseValue>()
+                    });
+
+                var result = await _vehicleInwardService.DeleteVehicles(request?.ChassisNos, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting vehicles");
+                throw;
+            }
+        }
+    }
+
+    public class DeleteVehiclesRequest
+    {
+        public List<string> ChassisNos { get; set; } = new List<string>();
     }
 }

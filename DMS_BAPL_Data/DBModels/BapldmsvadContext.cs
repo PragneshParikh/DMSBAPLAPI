@@ -5068,6 +5068,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<JobCardCustomer> JobCardCustomers { get; set; }
 
     public virtual DbSet<JobCardHeader> JobCardHeaders { get; set; }
+    public virtual DbSet<JobCardServiceHistory> JobCardServiceHistories { get; set; }
 
     public virtual DbSet<JobSource> JobSources { get; set; }
 
@@ -9942,6 +9943,13 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.EndedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<JobCardServiceHistory>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToTable("JobCardServiceHistory");
+        });
+
+       
 
         modelBuilder.Entity<DmsLineOrderReport>(entity =>
         {

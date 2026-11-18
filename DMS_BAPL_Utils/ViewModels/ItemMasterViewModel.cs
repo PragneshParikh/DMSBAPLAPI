@@ -97,6 +97,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? UOM { get; set; }
         public int? MinBillQty { get; set; }
         public int? MinOrderQty { get; set; }
+        public int? WarrantyPeriod { get; set; }
         public int? SupplierId { get; set; }
     }
 

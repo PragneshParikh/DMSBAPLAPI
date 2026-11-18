@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.VehicleDispatchRepo;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Packaging;
@@ -34,6 +35,13 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
         }
 
         Task<object> IVehicleInwardService.InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel) => _vehicleDispatchRepo.InsertVehicleDispatchDetail(vehicleInwardViewModel);
-
+        Task<ApiResponse> IVehicleInwardService.DeleteInvoice(string invoiceNo, string userId)
+        {
+            return _vehicleDispatchRepo.DeleteInvoiceAsync(invoiceNo, userId);
+        }
+        Task<ApiResponse> IVehicleInwardService.DeleteVehicles(List<string> chassisNos, string userId)
+        {
+            return _vehicleDispatchRepo.DeleteVehiclesAsync(chassisNos, userId);
+        }
     }
 }

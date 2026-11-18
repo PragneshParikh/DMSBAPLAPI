@@ -446,6 +446,259 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
             }
         }
 
+        private static ApiResponse Fail(string msg) => new ApiResponse
+        {
+            Valid = false,
+            Description = msg,
+            Value = new List<ApiResponseValue>()
+        };
+
+        public async Task<ApiResponse> DeleteInvoiceAsync(string invoiceNo, string userId)
+        {
+            invoiceNo = (invoiceNo ?? "").Trim();
+            if (invoiceNo == "")
+                return Fail("Invoice No is required.");
+
+            var chassisList = await _context.VehicleInwards
+                .Where(x => x.InvoiceNo == invoiceNo && x.ChasisNo != null)
+                .Select(x => x.ChasisNo)
+                .Distinct()
+                .ToListAsync();
+
+            if (chassisList.Count == 0)
+                return Fail("Invoice not found.");
+
+           
+            var soldByChassis = await _context.ChassisDetails
+                .Where(c => chassisList.Contains(c.ChassisNo) && c.SaleDate != null)
+                .Select(c => c.ChassisNo)
+                .ToListAsync();
+
+            
+            var bills = await (
+                from d in _context.VehicleSaleBillDetails
+                join h in _context.VehicleSaleBillHeaders on d.VehicleSaleBillId equals h.Id
+                where chassisList.Contains(d.ChassisNo)
+                      && !h.IsDeleted
+                      && h.Status != "Deleted"
+                select new { d.ChassisNo, h.Status }
+            ).ToListAsync();
+
+            var soldByBill = bills
+                .Where(b => b.Status == "Invoiced")
+                .Select(b => b.ChassisNo)
+                .Distinct()
+                .ToList();
+
+            var proformaOnly = bills
+                .Where(b => b.Status != "Invoiced")
+                .Select(b => b.ChassisNo)
+                .Distinct()
+                .ToList();
+
+            var sold = soldByChassis.Union(soldByBill).ToList();
+            if (sold.Count > 0)
+                return Fail($"Vehicle already sold ({sold.Count} of {chassisList.Count} vehicles). Invoice cannot be deleted.");
+
+            if (proformaOnly.Count > 0)
+                return Fail($"Proforma bill exists for {proformaOnly.Count} vehicle(s) of this invoice. Delete the proforma first.");
+
+            var hasJobCard = await _context.JobCardCustomers
+                .AnyAsync(j => chassisList.Contains(j.ChassisNo));
+            if (hasJobCard)
+                return Fail("Job card already created for a vehicle of this invoice. Invoice cannot be deleted.");
+
+            var hasHsrp = await _context.Hsrporders
+                .AnyAsync(h => chassisList.Contains(h.ChassisNo));
+            if (hasHsrp)
+                return Fail("HSRP order already created for a vehicle of this invoice. Invoice cannot be deleted.");
+
+            var hasTransfer = await _context.VehicleStockTransferDetails
+                .AnyAsync(t => chassisList.Contains(t.ChassisNo));
+            if (hasTransfer)
+                return Fail("Vehicle stock transfer already done for a vehicle of this invoice. Invoice cannot be deleted.");
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var lotHeaderIds = await _context.LotinspectionHeaders
+                    .Where(h => h.InvoiceNo == invoiceNo)
+                    .Select(h => h.Id)
+                    .ToListAsync();
+
+                await _context.LotinspectionDetails
+                    .Where(d => lotHeaderIds.Contains(d.LotHeaderId))
+                    .ExecuteDeleteAsync();
+
+                await _context.LotinspectionHeaders
+                    .Where(h => lotHeaderIds.Contains(h.Id))
+                    .ExecuteDeleteAsync();
+
+                await _context.ChassisBatteryDetails
+                    .Where(x => chassisList.Contains(x.ChassisNo))
+                    .ExecuteDeleteAsync();
+
+                await _context.ChassisDetails
+                    .Where(x => chassisList.Contains(x.ChassisNo))
+                    .ExecuteDeleteAsync();
+
+                var removed = await _context.VehicleInwards
+                    .Where(x => x.InvoiceNo == invoiceNo)
+                    .ExecuteDeleteAsync();
+
+                await tx.CommitAsync();
+
+                return new ApiResponse
+                {
+                    Valid = true,
+                    Description = $"Invoice {invoiceNo} deleted ({removed} vehicle record(s) removed).",
+                    Value = new List<ApiResponseValue>()
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<ApiResponse> DeleteVehiclesAsync(List<string> chassisNos, string userId)
+        {
+            var selected = (chassisNos ?? new List<string>())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim())
+                .Distinct()
+                .ToList();
+
+            if (selected.Count == 0)
+                return Fail("Select at least one vehicle.");
+
+            var inwardRows = await _context.VehicleInwards
+                .Where(x => selected.Contains(x.ChasisNo))
+                .Select(x => new { x.ChasisNo, x.InvoiceNo })
+                .ToListAsync();
+
+            if (inwardRows.Count == 0)
+                return Fail("Selected vehicle(s) not found in Vehicle Inward.");
+
+            var invoiceNos = inwardRows
+                .Select(r => r.InvoiceNo)
+                .Where(i => i != null)
+                .Distinct()
+                .ToList();
+
+            var invoiceChassis = await _context.VehicleInwards
+                .Where(x => invoiceNos.Contains(x.InvoiceNo) && x.ChasisNo != null)
+                .Select(x => new { x.ChasisNo, x.InvoiceNo })
+                .ToListAsync();
+
+            var allChassis = invoiceChassis.Select(x => x.ChasisNo).Distinct().ToList();
+
+            var soldByChassis = await _context.ChassisDetails
+                .Where(c => allChassis.Contains(c.ChassisNo) && c.SaleDate != null)
+                .Select(c => c.ChassisNo)
+                .ToListAsync();
+
+            var bills = await (
+                from d in _context.VehicleSaleBillDetails
+                join h in _context.VehicleSaleBillHeaders on d.VehicleSaleBillId equals h.Id
+                where allChassis.Contains(d.ChassisNo)
+                      && !h.IsDeleted
+                      && h.Status != "Deleted"
+                select new { d.ChassisNo, h.Status }
+            ).ToListAsync();
+
+            var soldByBill = bills
+                .Where(b => b.Status == "Invoiced")
+                .Select(b => b.ChassisNo)
+                .Distinct()
+                .ToList();
+
+            var sold = soldByChassis.Union(soldByBill).ToList();
+            if (sold.Count > 0)
+            {
+                var soldInvoices = invoiceChassis
+                    .Where(x => sold.Contains(x.ChasisNo))
+                    .Select(x => x.InvoiceNo)
+                    .Distinct();
+                return Fail($"Vehicle already sold in invoice {string.Join(", ", soldInvoices)} ({sold.Count} vehicle(s)). Cannot delete.");
+            }
+
+            var proformaOnly = bills
+                .Where(b => selected.Contains(b.ChassisNo) && b.Status != "Invoiced")
+                .Select(b => b.ChassisNo)
+                .Distinct()
+                .ToList();
+            if (proformaOnly.Count > 0)
+                return Fail($"Proforma bill exists for {proformaOnly.Count} selected vehicle(s). Delete the proforma first.");
+
+            if (await _context.JobCardCustomers.AnyAsync(j => selected.Contains(j.ChassisNo)))
+                return Fail("Job card already created for a selected vehicle. Cannot delete.");
+
+            if (await _context.Hsrporders.AnyAsync(h => selected.Contains(h.ChassisNo)))
+                return Fail("HSRP order already created for a selected vehicle. Cannot delete.");
+
+            if (await _context.VehicleStockTransferDetails.AnyAsync(t => selected.Contains(t.ChassisNo)))
+                return Fail("Vehicle stock transfer already done for a selected vehicle. Cannot delete.");
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.LotinspectionDetails
+                    .Where(d => selected.Contains(d.ChassisNo))
+                    .ExecuteDeleteAsync();
+
+                await _context.ChassisBatteryDetails
+                    .Where(x => selected.Contains(x.ChassisNo))
+                    .ExecuteDeleteAsync();
+
+                await _context.ChassisDetails
+                    .Where(x => selected.Contains(x.ChassisNo))
+                    .ExecuteDeleteAsync();
+
+                var removed = await _context.VehicleInwards
+                    .Where(x => selected.Contains(x.ChasisNo))
+                    .ExecuteDeleteAsync();
+
+                var remainingInvoices = await _context.VehicleInwards
+                    .Where(x => invoiceNos.Contains(x.InvoiceNo))
+                    .Select(x => x.InvoiceNo)
+                    .Distinct()
+                    .ToListAsync();
+
+                var emptyInvoices = invoiceNos.Except(remainingInvoices).ToList();
+
+                if (emptyInvoices.Count > 0)
+                {
+                    var lotHeaderIds = await _context.LotinspectionHeaders
+                        .Where(h => emptyInvoices.Contains(h.InvoiceNo))
+                        .Select(h => h.Id)
+                        .ToListAsync();
+
+                    await _context.LotinspectionDetails
+                        .Where(d => lotHeaderIds.Contains(d.LotHeaderId))
+                        .ExecuteDeleteAsync();
+
+                    await _context.LotinspectionHeaders
+                        .Where(h => lotHeaderIds.Contains(h.Id))
+                        .ExecuteDeleteAsync();
+                }
+
+                await tx.CommitAsync();
+
+                return new ApiResponse
+                {
+                    Valid = true,
+                    Description = $"{removed} vehicle(s) deleted from {invoiceNos.Count} invoice(s).",
+                    Value = new List<ApiResponseValue>()
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
 
     }
 }

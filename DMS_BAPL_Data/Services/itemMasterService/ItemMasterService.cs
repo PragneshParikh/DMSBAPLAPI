@@ -31,9 +31,13 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         // add  itemserice to the database
 
-        public async Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId)
+        public async Task<insertItemMasterViewModel> InsertItemAsync(
+            insertItemMasterViewModel item,
+            string userId,
+            bool canEditRestrictedFields,
+            bool isDealer)
         {
-            return await _itemMasterRepo.InsertItemAsync(item, userId);
+            return await _itemMasterRepo.InsertItemAsync(item, userId, canEditRestrictedFields, isDealer);
         }
         // get all itemservice from the database
         public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search)
@@ -43,9 +47,13 @@ namespace DMS_BAPL_Data.Services.itemMasterService
 
         // update itemservice to the database
 
-        public async Task<ItemMaster> UpdateItemAsync(ItemMaster item)
+        public async Task<ItemMaster> UpdateItemAsync(
+            ItemMaster item,
+            bool canEditRestrictedFields,
+            string userId,
+            bool isDealer)
         {
-            return await _itemMasterRepo.UpdateItemAsync(item);
+            return await _itemMasterRepo.UpdateItemAsync(item, canEditRestrictedFields, userId, isDealer);
         }
 
         public async Task<byte[]> DownloadItemMasterExcel()
@@ -112,7 +120,12 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         public Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType) => _itemMasterRepo.GetItemByItemType(itemType);
         public Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id) => _itemMasterRepo.GetItemsByOEMModel(id);
 
-        public Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel) => _itemMasterRepo.UpdateByItemCode(userId, insertItemMasterViewModel);
+        public Task<object> UpdateByItemCode(
+            string userId,
+            insertItemMasterViewModel insertItemMasterViewModel,
+            bool canEditRestrictedFields,
+            bool isDealer) =>
+            _itemMasterRepo.UpdateByItemCode(userId, insertItemMasterViewModel, canEditRestrictedFields, isDealer);
         public Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode) => _itemMasterRepo.GetItemsWithHSNTaxGroupId(groupId, dealerCode);
 
         public async Task<List<ItemPartsByLocationViewModel>> GetItemsByLocation(string dealerLocation, string customerLocation)
@@ -144,7 +157,11 @@ namespace DMS_BAPL_Data.Services.itemMasterService
         // EXCEL IMPORT (Spares / Parts)
         // ============================================================
 
-        public async Task<ItemImportResultViewModel> ImportItemExcelAsync(IFormFile file, string userId)
+        public async Task<ItemImportResultViewModel> ImportItemExcelAsync(
+            IFormFile file,
+            string userId,
+            bool canEditRestrictedFields,
+            bool isDealer)
         {
             var result = new ItemImportResultViewModel();
 
@@ -229,14 +246,7 @@ namespace DMS_BAPL_Data.Services.itemMasterService
                     var existing = await _itemMasterRepo.GetItemByCodeAsync(itemVm.Itemcode);
                     var isNew = existing == null;
 
-                    // UpdateByItemCode's insert branch stamps CreatedBy from the view
-                    // model itself (not from the userId parameter it receives), so it
-                    // must be set explicitly here or every newly-inserted row would
-                    // get a null CreatedBy.
-                    if (isNew)
-                        itemVm.CreatedBy = userId;
-
-                    await _itemMasterRepo.UpdateByItemCode(userId, itemVm);
+                    await _itemMasterRepo.UpdateByItemCode(userId, itemVm, canEditRestrictedFields, isDealer);
 
                     if (isNew) result.InsertedCount++;
                     else result.UpdatedCount++;

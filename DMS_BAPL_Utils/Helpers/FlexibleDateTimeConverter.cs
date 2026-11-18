@@ -29,12 +29,33 @@ namespace DMS_BAPL_Utils.Helpers
             throw new JsonException($"Unable to parse date: {value}");
         }
 
+        //public override void Write(Utf8JsonWriter writer, DateTime? value, JsonSerializerOptions options)
+        //{
+        //    if (value.HasValue)
+        //        writer.WriteStringValue(value.Value.ToString("yyyy-MM-dd"));
+        //    else
+        //        writer.WriteNullValue();
+        //}
         public override void Write(Utf8JsonWriter writer, DateTime? value, JsonSerializerOptions options)
         {
-            if (value.HasValue)
-                writer.WriteStringValue(value.Value.ToString("yyyy-MM-dd"));
-            else
+            if (!value.HasValue)
+            {
                 writer.WriteNullValue();
+                return;
+            }
+
+            // Normalize all DateTime values to UTC before serializing them in the API response.
+            var utcValue = value.Value.Kind switch
+            {
+                DateTimeKind.Utc => value.Value,
+                DateTimeKind.Local => value.Value.ToUniversalTime(),
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(
+                    value.Value,
+                    DateTimeKind.Utc),
+                _ => value.Value
+            };
+
+            writer.WriteStringValue(utcValue.ToString("O", CultureInfo.InvariantCulture));
         }
     }
 }

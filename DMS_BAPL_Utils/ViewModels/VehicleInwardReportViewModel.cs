@@ -56,6 +56,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal Cgst { get; set; }
         public decimal Igst { get; set; }
         public decimal Hst { get; set; }
+        public string? SaleStatus { get; set; }
+        public DateTime? SaleDate { get; set; }
     }
 
     public class VehicleInwardReportResponse

@@ -88,11 +88,36 @@ namespace DMS_BAPL_Api.Controllers
 
                 var chassisData = await _chassisService.GetGlobalChassisDataAsync(chassisNumber);
 
+                if (chassisData == null)
+                    return NotFound("No sale record found for this chassis.");
+
                 return Ok(chassisData);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"An error occurred while getting global chassis data : ${ex.Message}");
+                throw;
+            }
+        }
+
+        [HttpGet("global-list")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SearchGlobalChassisList([FromQuery] string term)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
+                var list = await _chassisService.SearchGlobalChassisListAsync(term);
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An error occurred while searching global chassis list : {ex.Message}");
                 throw;
             }
         }
