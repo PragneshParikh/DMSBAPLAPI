@@ -24,8 +24,21 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             _taxService = taxService;
         }
 
+        private static void EnsureDealerOwnsItem(ItemMaster item, string userId, bool isDealer)
+        {
+            if (isDealer &&
+                !string.Equals(item.CreatedBy?.Trim(), userId.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Dealers may edit only items they created.");
+            }
+        }
+
         // add new item to the database
-        async Task<insertItemMasterViewModel> IitemMasterRepo.InsertItemAsync(insertItemMasterViewModel item, string userId)
+        async Task<insertItemMasterViewModel> IitemMasterRepo.InsertItemAsync(
+            insertItemMasterViewModel item,
+            string userId,
+            bool canEditRestrictedFields,
+            bool isDealer)
         {
             try
             {
@@ -34,19 +47,26 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                 if (existingItem != null)
                 {
+                    EnsureDealerOwnsItem(existingItem, userId, isDealer);
+                    var mayEditRestrictedFields = canEditRestrictedFields || isDealer;
                     existingItem.Itemtype = item.Itemtype;
                     existingItem.Itemname = item.Itemname;
-                    existingItem.Itemdesc = item.Itemdesc;
+                    if (mayEditRestrictedFields)
+                    {
+                        existingItem.Itemdesc = item.Itemdesc;
+                        existingItem.Sgst = item.Sgst;
+                        existingItem.Cgst = item.Cgst;
+                        existingItem.Igst = item.Igst;
+                        existingItem.Ugst = item.Ugst;
+                        existingItem.Itemcc = item.Itemcc;
+                        existingItem.WarrantyPeriod = item.WarrantyPeriod;
+                    }
                     existingItem.Status = item.Status;
                     existingItem.Hsncode = item.Hsncode;
                     existingItem.Dlrprice = item.Dlrprice;
                     existingItem.Custprice = item.Custprice;
                     existingItem.Moq = item.Moq;
                     existingItem.Boq = item.Boq;
-                    existingItem.Sgst = item.Sgst;
-                    existingItem.Cgst = item.Cgst;
-                    existingItem.Igst = item.Igst;
-                    existingItem.Ugst = item.Ugst;
                     existingItem.Grpidno = item.Grpidno;
                     existingItem.Ipurrate = item.Ipurrate;
                     existingItem.Iselectric = item.Iselectric;
@@ -54,7 +74,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Noofbatteries = item.Noofbatteries;
                     existingItem.Colorcode = item.Colorcode;
                     existingItem.Rrgitemidno = item.Rrgitemidno;
-                    existingItem.Itemcc = item.Itemcc;
                     existingItem.Batterytypeidno = item.Batterytypeidno;
                     existingItem.Fame2amount = item.Fame2amount;
                     existingItem.Compcode = item.Compcode;
@@ -83,6 +102,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         Uom = item.UOM,
                         MinBillQty = item.MinBillQty,
                         MinOrderQty = item.MinOrderQty,
+                        WarrantyPeriod = item.WarrantyPeriod,
                         Moq = item.Moq,
                         Boq = item.Boq,
                         Sgst = item.Sgst,
@@ -113,6 +133,10 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
                 await _context.SaveChangesAsync();
                 return item;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -246,19 +270,36 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
         }
 
         //update data particular on Item ID
-        public async Task<ItemMaster> UpdateItemAsync(ItemMaster item)
+        public async Task<ItemMaster> UpdateItemAsync(
+            ItemMaster item,
+            bool canEditRestrictedFields,
+            string userId,
+            bool isDealer)
         {
             var existingItem = await _context.ItemMasters.FirstOrDefaultAsync(x => x.Id == item.Id);
 
             if (existingItem == null)
                 return null;
 
+            EnsureDealerOwnsItem(existingItem, userId, isDealer);
+            var mayEditRestrictedFields = canEditRestrictedFields || isDealer;
+
             if (existingItem != null)
             {
                 existingItem.Itemtype = item.Itemtype;
                 existingItem.Itemname = item.Itemname;
                 existingItem.Itemcode = item.Itemcode;
-                existingItem.Itemdesc = item.Itemdesc;
+                if (mayEditRestrictedFields)
+                {
+                    existingItem.Itemdesc = item.Itemdesc;
+                    existingItem.Sgst = item.Sgst;
+                    existingItem.Cgst = item.Cgst;
+                    existingItem.Igst = item.Igst;
+                    existingItem.Ugst = item.Ugst;
+                    existingItem.Itemcc = item.Itemcc;
+                    existingItem.WarrantyPeriod = item.WarrantyPeriod;
+                }
+                existingItem.WarrantyDurationType = item.WarrantyDurationType;
                 existingItem.Status = item.Status;
                 existingItem.Status = item.Status;
                 existingItem.Hsncode = item.Hsncode;
@@ -266,10 +307,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.Custprice = item.Custprice;
                 existingItem.Moq = item.Moq;
                 existingItem.Boq = item.Boq;
-                existingItem.Sgst = item.Sgst;
-                existingItem.Cgst = item.Cgst;
-                existingItem.Igst = item.Igst;
-                existingItem.Ugst = item.Ugst;
                 existingItem.Grpidno = item.Grpidno;
                 existingItem.Ipurrate = item.Ipurrate;
                 existingItem.Iselectric = item.Iselectric;
@@ -277,15 +314,12 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.Noofbatteries = item.Noofbatteries;
                 existingItem.Colorcode = item.Colorcode;
                 existingItem.Rrgitemidno = item.Rrgitemidno;
-                existingItem.Itemcc = item.Itemcc;
                 existingItem.Batterytypeidno = item.Batterytypeidno;
                 existingItem.Fame2amount = item.Fame2amount;
                 existingItem.Compcode = item.Compcode;
                 existingItem.Displayname = item.Displayname;
                 existingItem.MinBillQty = item.MinBillQty;
                 existingItem.MinOrderQty = item.MinOrderQty;
-                existingItem.WarrantyPeriod = item.WarrantyPeriod;
-                existingItem.WarrantyDurationType = item.WarrantyDurationType;
                 existingItem.WarrantyKms = item.WarrantyKms;
                 existingItem.IsWarrantyApproval = item.IsWarrantyApproval;
                 existingItem.Vorrate = item.Vorrate;
@@ -302,8 +336,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.Uom = item.Uom;
                 existingItem.SupplierId = item.SupplierId;
                 existingItem.Status = item.Status;
-                existingItem.CreatedBy = item.CreatedBy;
-                existingItem.CreatedDate = item.CreatedDate;
                 existingItem.UpdatedBy = item.UpdatedBy;
                 existingItem.UpdatedDate = item.UpdatedDate;
 
@@ -459,7 +491,11 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
 
-        public async Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel)
+        public async Task<object> UpdateByItemCode(
+            string userId,
+            insertItemMasterViewModel insertItemMasterViewModel,
+            bool canEditRestrictedFields,
+            bool isDealer)
         {
             var existingItem = await _context.ItemMasters
                     .FirstOrDefaultAsync(x => x.Itemcode == insertItemMasterViewModel.Itemcode);
@@ -472,6 +508,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     Itemname = insertItemMasterViewModel.Itemname,
                     Itemcode = insertItemMasterViewModel.Itemcode,
                     Itemdesc = insertItemMasterViewModel.Itemdesc,
+                    WarrantyPeriod = insertItemMasterViewModel.WarrantyPeriod,
                     Status = insertItemMasterViewModel.Status,
                     Hsncode = insertItemMasterViewModel.Hsncode,
                     Dlrprice = insertItemMasterViewModel.Dlrprice,
@@ -513,7 +550,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     //IsInventory = insertItemMasterViewModel.IsInventory;
                     //IsInEligibleInput = insertItemMasterViewModel.IsInEligibleInput;
                     Oemmodelname = insertItemMasterViewModel.Oemmodelname,
-                    CreatedBy = insertItemMasterViewModel.CreatedBy,
+                    CreatedBy = userId,
                     CreatedDate = DateTime.Now
                 };
 
@@ -521,21 +558,29 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
             else
             {
+                EnsureDealerOwnsItem(existingItem, userId, isDealer);
+                var mayEditRestrictedFields = canEditRestrictedFields || isDealer;
+
                 if (existingItem != null)
                 {
                     existingItem.Itemtype = insertItemMasterViewModel.Itemtype;
                     existingItem.Itemname = insertItemMasterViewModel.Itemname;
-                    existingItem.Itemdesc = insertItemMasterViewModel.Itemdesc;
+                    if (mayEditRestrictedFields)
+                    {
+                        existingItem.Itemdesc = insertItemMasterViewModel.Itemdesc;
+                        existingItem.Sgst = insertItemMasterViewModel.Sgst;
+                        existingItem.Cgst = insertItemMasterViewModel.Cgst;
+                        existingItem.Igst = insertItemMasterViewModel.Igst;
+                        existingItem.Ugst = insertItemMasterViewModel.Ugst;
+                        existingItem.Itemcc = insertItemMasterViewModel.Itemcc;
+                        existingItem.WarrantyPeriod = insertItemMasterViewModel.WarrantyPeriod;
+                    }
                     existingItem.Status = insertItemMasterViewModel.Status;
                     existingItem.Hsncode = insertItemMasterViewModel.Hsncode;
                     existingItem.Dlrprice = insertItemMasterViewModel.Dlrprice;
                     existingItem.Custprice = insertItemMasterViewModel.Custprice;
                     existingItem.Moq = insertItemMasterViewModel.Moq;
                     existingItem.Boq = insertItemMasterViewModel.Boq;
-                    existingItem.Sgst = insertItemMasterViewModel.Sgst;
-                    existingItem.Cgst = insertItemMasterViewModel.Cgst;
-                    existingItem.Igst = insertItemMasterViewModel.Igst;
-                    existingItem.Ugst = insertItemMasterViewModel.Ugst;
                     existingItem.Grpidno = insertItemMasterViewModel.Grpidno;
                     existingItem.Ipurrate = insertItemMasterViewModel.Ipurrate;
                     existingItem.Iselectric = insertItemMasterViewModel.Iselectric;
@@ -543,7 +588,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Noofbatteries = insertItemMasterViewModel.Noofbatteries;
                     existingItem.Colorcode = insertItemMasterViewModel.Colorcode;
                     existingItem.Rrgitemidno = insertItemMasterViewModel.Rrgitemidno;
-                    existingItem.Itemcc = insertItemMasterViewModel.Itemcc;
                     existingItem.Batterytypeidno = insertItemMasterViewModel.Batterytypeidno;
                     existingItem.Fame2amount = insertItemMasterViewModel.Fame2amount;
                     existingItem.Compcode = insertItemMasterViewModel.Compcode;

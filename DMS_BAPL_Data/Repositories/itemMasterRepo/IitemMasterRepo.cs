@@ -11,15 +11,15 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 {
     public interface IitemMasterRepo
     {
-        Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId);
+        Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId, bool canEditRestrictedFields, bool isDealer);
         Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search);
         Task<List<ItemMaster>> GetAllExcelItemsAsync();
-        Task<ItemMaster> UpdateItemAsync(ItemMaster item);
+        Task<ItemMaster> UpdateItemAsync(ItemMaster item, bool canEditRestrictedFields, string userId, bool isDealer);
         Task<ItemMaster> GetItemByCodeAsync(string itemCode);
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);
         Task<ItemMasterViewModel> GetPurchaseDetailsWithHsnTaxByModelNo(string modelNo);
         Task<IEnumerable<ItemMaster>> GetItemByItemType(int itemType);
-        Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel);
+        Task<object> UpdateByItemCode(string userId, insertItemMasterViewModel insertItemMasterViewModel, bool canEditRestrictedFields, bool isDealer);
         Task<IEnumerable<ItemMaster>> GetItemsByOEMModel(int id);
         Task<List<ItemMaster>> GetByItemCodesAsync(List<string> itemCodes);
         Task<IEnumerable<object>> GetItemsWithHSNTaxGroupId(int? groupId, string? dealerCode);
