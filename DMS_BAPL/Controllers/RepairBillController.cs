@@ -37,6 +37,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
                 search ??= new RepairBillSearchVM();
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    search.DealerCode = tokenDealerCode;
+                }
                 var result = await _repairBillRepo.GetAllRepairBillList(search);
                 return Ok(result);
 
@@ -62,7 +69,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    model.RepairBillheader.DealerCode = tokenDealerCode;
+                }
 
                 var result = await _repairBillRepo.InsertRepairBill(model, userId);
                 if (result > 0)
@@ -108,7 +121,6 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     return NotFound($"Repair bill with ID {id} not found.");
                 }
-
                 return Ok(result);
             }
             catch (Exception ex)

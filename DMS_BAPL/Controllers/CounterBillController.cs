@@ -22,6 +22,13 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<IActionResult> Save([FromBody] CounterBillViewModel model)
         {
             var userName = GetUserInfoFromToken.GetUserIdFromToken(_contextAccessor.HttpContext);
+            if (!GetUserInfoFromToken.GetUserGroup(_contextAccessor.HttpContext))
+            {
+                var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(_contextAccessor.HttpContext);
+                if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                    return Forbid();
+                model.Header.DealerCode = tokenDealerCode;
+            }
             var id = await _counterBillService.SaveCounterBillAsync(model, userName);
 
             return Ok(new
@@ -72,6 +79,12 @@ namespace DMS_BAPL_Api.Controllers
                         Message = "Counter Bill not found"
                     });
                 }
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.Equals(result.Header.DealerCode, tokenDealerCode, StringComparison.OrdinalIgnoreCase))
+                        return Forbid();
+                }
 
                 return Ok(result);
             }
@@ -89,7 +102,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var result = await _counterBillService.GetAllCounterBills(dealerCode, fromDate, toDate, search,dealerFilter);
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Forbid();
+                    dealerFilter = null;
+                }
+                var result = await _counterBillService.GetAllCounterBills(dealerCode, fromDate, toDate, search, dealerFilter);
                 return Ok(result);
             }
             catch (Exception ex)

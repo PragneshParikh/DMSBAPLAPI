@@ -675,7 +675,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         public async Task<List<PdichecklistMaster>> GetPdichecklist(int oemModelId)
         {
             return await _context.PdichecklistMasters
-                .Where(x => x.OemModelId == oemModelId && x.Isactive == true)
+                .Where(x => x.OemModelId == oemModelId && x.Isactive == true && !x.IsTestData)
                 .OrderBy(x => x.Isactive == true)
                 .ToListAsync();
         }

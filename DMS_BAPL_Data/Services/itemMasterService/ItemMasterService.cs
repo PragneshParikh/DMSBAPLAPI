@@ -40,9 +40,9 @@ namespace DMS_BAPL_Data.Services.itemMasterService
             return await _itemMasterRepo.InsertItemAsync(item, userId, canEditRestrictedFields, isDealer);
         }
         // get all itemservice from the database
-        public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search)
+        public async Task<List<ItemMasterViewModel>> GetAllItemMastersAsync(int? grpidno, string? search, string? dealerCode = null)
         {
-            return await _itemMasterRepo.GetAllItemsAsync(grpidno, search);
+            return await _itemMasterRepo.GetAllItemsAsync(grpidno, search, dealerCode);
         }
 
         // update itemservice to the database
@@ -56,11 +56,11 @@ namespace DMS_BAPL_Data.Services.itemMasterService
             return await _itemMasterRepo.UpdateItemAsync(item, canEditRestrictedFields, userId, isDealer);
         }
 
-        public async Task<byte[]> DownloadItemMasterExcel()
+        public async Task<byte[]> DownloadItemMasterExcel(string? dealerCode = null)
         {
             try
             {
-                var data = await _itemMasterRepo.GetAllExcelItemsAsync();
+                var data = await _itemMasterRepo.GetAllExcelItemsAsync(dealerCode);
 
                 // Get all DTO properties for columns
                 var properties = typeof(ItemMaster)
@@ -161,7 +161,8 @@ namespace DMS_BAPL_Data.Services.itemMasterService
             IFormFile file,
             string userId,
             bool canEditRestrictedFields,
-            bool isDealer)
+            bool isDealer,
+            string? dealerCode = null)
         {
             var result = new ItemImportResultViewModel();
 
@@ -235,7 +236,9 @@ namespace DMS_BAPL_Data.Services.itemMasterService
                     // Empty string means "not specified" here, not "explicitly no dealer" —
                     // normalize to null so it matches the "available to all dealers" check
                     // used by GetItemsWithHSNTaxGroupId (IM.DealerCode == null).
-                    if (string.IsNullOrWhiteSpace(itemVm.Dealercode))
+                    if (!string.IsNullOrWhiteSpace(dealerCode))
+                        itemVm.Dealercode = dealerCode;
+                    else if (string.IsNullOrWhiteSpace(itemVm.Dealercode))
                         itemVm.Dealercode = null;
 
                     // Resolve Supplier Code -> SupplierId (Excel sheets carry a

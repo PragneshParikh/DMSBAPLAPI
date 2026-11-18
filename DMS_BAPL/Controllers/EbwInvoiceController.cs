@@ -19,6 +19,14 @@ namespace DMS_BAPL_Api.Controllers
             {
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    model.DealerCode = tokenDealerCode;
+                    model.SoldByDealerCode = tokenDealerCode;
+                }
 
                 var id = await _service.SaveAsync(model, userId);
                 return Ok(new { success = true, id });
@@ -51,6 +59,12 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Forbid();
+                }
                 var result = await _service.GetAllAsync(dealerCode, fromDate, toDate);
                 return Ok(new { data = result });
             }

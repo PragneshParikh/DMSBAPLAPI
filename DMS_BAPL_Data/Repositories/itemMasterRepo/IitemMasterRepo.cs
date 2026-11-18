@@ -12,8 +12,8 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
     public interface IitemMasterRepo
     {
         Task<insertItemMasterViewModel> InsertItemAsync(insertItemMasterViewModel item, string userId, bool canEditRestrictedFields, bool isDealer);
-        Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search);
-        Task<List<ItemMaster>> GetAllExcelItemsAsync();
+        Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search, string? dealerCode = null);
+        Task<List<ItemMaster>> GetAllExcelItemsAsync(string? dealerCode = null);
         Task<ItemMaster> UpdateItemAsync(ItemMaster item, bool canEditRestrictedFields, string userId, bool isDealer);
         Task<ItemMaster> GetItemByCodeAsync(string itemCode);
         Task<ItemMasterViewModel> GetPurchaseDetailsByModelNo(string modelNo);

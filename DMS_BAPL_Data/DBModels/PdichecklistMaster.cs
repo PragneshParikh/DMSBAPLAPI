@@ -17,6 +17,8 @@ public partial class PdichecklistMaster
 
     public bool? Isactive { get; set; }
 
+    public bool IsTestData { get; set; }
+
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedDate { get; set; }

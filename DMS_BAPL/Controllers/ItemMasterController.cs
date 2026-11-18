@@ -44,7 +44,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var items = await _itemMasterService.GetAllItemMastersAsync(grpidno, search);
+                string? effectiveDealerCode = null;
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    effectiveDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(effectiveDealerCode))
+                        return Forbid();
+                }
+                var items = await _itemMasterService.GetAllItemMastersAsync(grpidno, search, effectiveDealerCode);
                 return Ok(items);
             }
             catch (Exception ex)
@@ -61,7 +68,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
-                var file = await _itemMasterService.DownloadItemMasterExcel();
+                string? effectiveDealerCode = null;
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    effectiveDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(effectiveDealerCode))
+                        return Forbid();
+                }
+                var file = await _itemMasterService.DownloadItemMasterExcel(effectiveDealerCode);
 
                 return File(
                     file,
@@ -110,7 +124,8 @@ namespace DMS_BAPL_Api.Controllers
                     file,
                     userId,
                     CanEditRestrictedItemFields(),
-                    IsDealer());
+                    IsDealer(),
+                    GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext));
 
                 return Ok(new
                 {
@@ -230,6 +245,13 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Forbid();
+                }
+
                 var items = await _itemMasterService.GetItemsWithHSNTaxGroupId(groupId, dealerCode);
 
                 return Ok(items);
@@ -252,6 +274,14 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    insertItemMasterViewModel.Dealercode = tokenDealerCode;
+                }
 
                 var item = await _itemMasterService.UpdateByItemCode(
                     userId,
@@ -291,6 +321,13 @@ namespace DMS_BAPL_Api.Controllers
                     return Unauthorized("User not authorized");
 
                 item.Id = id;
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    item.DealerCode = tokenDealerCode;
+                }
                 var _item = await _itemMasterService.UpdateItemAsync(
                     item,
                     CanEditRestrictedItemFields(),
@@ -324,6 +361,18 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not found");
+
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    items.Dealercode = tokenDealerCode;
+                }
+                else
+                {
+                    items.Dealercode = null;
+                }
 
                 var result = await _itemMasterService.InsertItemAsync(
                     items,

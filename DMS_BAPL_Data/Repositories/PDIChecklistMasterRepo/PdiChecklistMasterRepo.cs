@@ -1,5 +1,4 @@
 ﻿using DMS_BAPL_Data.DBModels;
-using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.InkML;
 using MailKit.Search;
@@ -32,6 +31,7 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                     PdicheckName = pdiChecklistMaster.ChecklistName,
                     Pdidescription = pdiChecklistMaster.ChecklistName,
                     Isactive = pdiChecklistMaster.IsActive,
+                    IsTestData = false,
                     CreatedBy = "Admin",
                     CreatedDate = DateTime.Now
                 };
@@ -83,24 +83,12 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
                 if (entity == null)
                     return (false, "Record not found");
 
-                //  Check relation in child table
-                bool isUsed = await _context.PdichecklistChassisWises
-                    .AnyAsync(x => x.PdichecklistMasterId == pdicheckId);
+                var linkedChecklistRows = await _context.PdichecklistChassisWises
+                    .Where(x => x.PdichecklistMasterId == pdicheckId)
+                    .ToListAsync();
 
-                if (isUsed)
-                {
-                    //  Relation exists → DO NOT DELETE
-                    entity.Isactive = false;
-                    entity.UpdatedBy = "Admin"; // Or set to current user
-                    entity.UpdatedDate = DateTime.Now;
-
-                    await _context.SaveChangesAsync();
-                    return (false, StringConstants.DeletePdiChecklist);
-                }
-
-                //  No relation → HARD DELETE
+                _context.PdichecklistChassisWises.RemoveRange(linkedChecklistRows);
                 _context.PdichecklistMasters.Remove(entity);
-
                 await _context.SaveChangesAsync();
 
                 return (true, "Deleted successfully");
@@ -115,7 +103,8 @@ namespace DMS_BAPL_Data.Repositories.PDIChecklistMasterRepo
         {
             try
             {
-                var query = _context.PdichecklistMasters.AsQueryable();
+                var query = _context.PdichecklistMasters
+                    .Where(x => !x.IsTestData);
                 
 
                 //  Search filter
