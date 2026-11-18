@@ -149,6 +149,8 @@ using DMS_BAPL_Data.Services.VehicleStockTransferService;
 using DMS_BAPL_Data.Services.WarrantyOrderService;
 using DMS_BAPL_Data.Services.ZoneMasterService;
 using DMS_BAPL_Service.Services.EmployeeProfileMasterService;
+using DMS_BAPL_Data.Repositories.LineOrderReportRepo;
+using DMS_BAPL_Data.Services.LineOrderReportService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMS_BAPL_Data.Configurations
@@ -293,6 +295,8 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<ITaxServices, TaxServices>();
             services.AddScoped<IOEMModelWarrantyService, OEMModelWarrantyService>();
             services.AddScoped<IMaterialTransferService, MaterialTransferService>();
+            services.AddScoped<ILineOrderReportRepo, LineOrderReportRepo>();
+            services.AddScoped<ILineOrderReportService, LineOrderReportService>();
             services.AddScoped<IExtendedBatteryWarrantyService, ExtendedBatteryWarrantyService>();
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
             services.AddScoped<IPartInwardService, PartInwardService>();

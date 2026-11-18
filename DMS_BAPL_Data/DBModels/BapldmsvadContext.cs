@@ -5175,6 +5175,7 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
     public virtual DbSet<ZDmsPartDispWarranty> ZDmsPartDispWarranties { get; set; }
     public virtual DbSet<DmsPartDispatch> DmsPartDispatches { get; set; }
+    public virtual DbSet<DmsLineOrderReport> DmsLineOrderReports { get; set; } 
     public virtual DbSet<EbwInvoiceHeader> EbwInvoiceHeaders { get; set; }
     public virtual DbSet<EbwInvoiceDetail> EbwInvoiceDetails { get; set; }
 
@@ -9941,8 +9942,32 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.EndedDate).HasColumnType("datetime");
         });
 
-        OnModelCreatingPartial(modelBuilder);
 
+        modelBuilder.Entity<DmsLineOrderReport>(entity =>
+        {
+            entity.ToTable("DMS_LineOrderReport");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.DocDate).HasColumnType("date");
+            entity.Property(e => e.JobDate).HasColumnType("date");
+            entity.Property(e => e.MaterialDate).HasColumnType("date");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Mrp).HasColumnType("decimal(18, 2)");
+        });
+
+        OnModelCreatingPartial(modelBuilder);
 
     }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
