@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DMS_BAPL_Data.CustomModel;
 
 namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
 {
@@ -16,5 +17,7 @@ namespace DMS_BAPL_Data.Repositories.VehicleDispatchRepo
         Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
         Task<object> InsertVehicleDispatchDetail(VehicleInwardViewModel vehicleInwardViewModel);
         Task<List<VehicleInward>> GetByChassisNosAsync(List<string> chassisNos);
+        Task<ApiResponse> DeleteInvoiceAsync(string invoiceNo, string userId);
+        Task<ApiResponse> DeleteVehiclesAsync(List<string> chassisNos, string userId);
     }
 }

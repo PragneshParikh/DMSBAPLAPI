@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.DBModels;
+﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -14,5 +15,7 @@ namespace DMS_BAPL_Data.Services.VehicleDispatchService
         Task<IEnumerable<VehicleInwardD2DViewModel>> GetVehicleByStatus(string dealerCode, bool status);
         Task<bool> UpdateInvoiceStatus(string invoiceNo, string userId);
         Task<object> InsertVehicleInwardDetail(VehicleInwardViewModel vehicleInwardViewModel);
+        Task<ApiResponse> DeleteInvoice(string invoiceNo, string userId);
+        Task<ApiResponse> DeleteVehicles(List<string> chassisNos, string userId);
     }
 }

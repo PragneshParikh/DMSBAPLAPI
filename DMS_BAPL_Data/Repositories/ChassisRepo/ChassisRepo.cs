@@ -103,31 +103,263 @@ namespace DMS_BAPL_Data.Repositories.ChassisRepo
         }
 
         // Add to ChassisRepo.cs, right after GetChassisDataAsync
+        //public async Task<object> GetGlobalChassisDataAsync(string chassisNumber)
+        //{
+        //    var result = await (from sd in _context.VehicleSaleBillDetails
+        //                        join sh in _context.VehicleSaleBillHeaders on sd.VehicleSaleBillId equals sh.Id
+        //                        where sd.ChassisNo == chassisNumber && !sh.IsDeleted
+        //                        join cust in _context.LedgerMasters on sh.LedgerId equals cust.Id into custInfo
+        //                        from cust in custInfo.DefaultIfEmpty()
+        //                        join st in _context.States on cust.State equals st.StateId into stateInfo
+        //                        from st in stateInfo.DefaultIfEmpty()
+        //                        join ct in _context.Cities on cust.City equals ct.CityId into cityInfo
+        //                        from ct in cityInfo.DefaultIfEmpty()
+        //                        select new
+        //                        {
+        //                            ChassisNo = sd.ChassisNo,
+        //                            SaleDate = sh.SaleDate,
+        //                            DealerCode = sh.DealerCode,
+        //                            CustomerName = sh.CustomerName ?? (cust != null ? cust.LedgerName : null),
+        //                            MobileNo = cust != null ? cust.MobileNumber : null,
+        //                            Address = cust != null ? cust.Address : null,
+        //                            Pincode = cust != null ? cust.Pin : null,
+        //                            StateName = st != null ? st.StateName : null,
+        //                            CityName = ct != null ? ct.CityName : null
+        //                        }).FirstOrDefaultAsync();
+
+        //    return result;
+        //}
+
         public async Task<object> GetGlobalChassisDataAsync(string chassisNumber)
         {
-            var result = await (from sd in _context.VehicleSaleBillDetails
-                                join sh in _context.VehicleSaleBillHeaders on sd.VehicleSaleBillId equals sh.Id
-                                where sd.ChassisNo == chassisNumber && !sh.IsDeleted
-                                join cust in _context.LedgerMasters on sh.LedgerId equals cust.Id into custInfo
-                                from cust in custInfo.DefaultIfEmpty()
-                                join st in _context.States on cust.State equals st.StateId into stateInfo
-                                from st in stateInfo.DefaultIfEmpty()
-                                join ct in _context.Cities on cust.City equals ct.CityId into cityInfo
-                                from ct in cityInfo.DefaultIfEmpty()
-                                select new
-                                {
-                                    ChassisNo = sd.ChassisNo,
-                                    SaleDate = sh.SaleDate,
-                                    DealerCode = sh.DealerCode,
-                                    CustomerName = sh.CustomerName ?? (cust != null ? cust.LedgerName : null),
-                                    MobileNo = cust != null ? cust.MobileNumber : null,
-                                    Address = cust != null ? cust.Address : null,
-                                    Pincode = cust != null ? cust.Pin : null,
-                                    StateName = st != null ? st.StateName : null,
-                                    CityName = ct != null ? ct.CityName : null
-                                }).FirstOrDefaultAsync();
+            chassisNumber = (chassisNumber ?? "").Trim();
+            if (chassisNumber == "") return null;
 
-            return result;
+            var row = await (
+                from sd in _context.VehicleSaleBillDetails
+                join sh in _context.VehicleSaleBillHeaders on sd.VehicleSaleBillId equals sh.Id
+                where sd.ChassisNo == chassisNumber && !sh.IsDeleted
+
+                join cd in _context.ChassisDetails on sd.ChassisNo equals cd.ChassisNo into cdInfo
+                from cd in cdInfo.DefaultIfEmpty()
+
+                let itemCode = sd.ItemCode ?? (cd != null ? cd.ItemCode : null)
+
+                let histRegNo = _context.JobCardServiceHistories
+                    .Where(x => x.ChassisNo == sd.ChassisNo
+                             && x.RegNo != null && x.RegNo != "")
+                    .Select(x => x.RegNo)
+                    .FirstOrDefault()
+
+                join i in _context.ItemMasters on itemCode equals i.Itemcode into itemInfo
+                from i in itemInfo.DefaultIfEmpty()
+
+                join cl in _context.ColorMasters on (i != null ? i.Colorcode : null) equals cl.Colorcode into clInfo
+                from cl in clInfo.DefaultIfEmpty()
+
+                join cust in _context.LedgerMasters on sh.LedgerId equals cust.Id into custInfo
+                from cust in custInfo.DefaultIfEmpty()
+
+                join st in _context.States on cust.State equals st.StateId into stateInfo
+                from st in stateInfo.DefaultIfEmpty()
+
+                join ct in _context.Cities on cust.City equals ct.CityId into cityInfo
+                from ct in cityInfo.DefaultIfEmpty()
+
+                let vc = _context.ChassisBatteryDetails
+                            .Where(x => x.ChassisNo == sd.ChassisNo)
+                            .OrderByDescending(x => x.CreatedDate)
+                            .FirstOrDefault()
+
+                let lot = (from h in _context.LotinspectionHeaders
+                           join d in _context.LotinspectionDetails on h.Id equals d.LotHeaderId
+                           where d.ChassisNo == sd.ChassisNo && h.IsLotInspected == true
+                           select h).FirstOrDefault()
+
+                orderby sh.Id descending     
+                select new
+                {
+                    ChassisNo = sd.ChassisNo,
+                    SaleDate = sh.SaleDate,
+                    DealerCode = sh.DealerCode,
+                    CustomerLedgerId = cust != null ? cust.Id : 0,
+                    CustomerName = sh.CustomerName ?? (cust != null ? cust.LedgerName : null),
+                    MobileNo = cust != null ? cust.MobileNumber : null,
+                    Address = cust != null ? cust.Address : null,
+                    Pincode = cust != null ? cust.Pin : null,
+                    StateName = st != null ? st.StateName : null,
+                    CityName = ct != null ? ct.CityName : null,
+
+                    ModelName = i != null ? i.Itemname : sd.ModelName,
+                    ColourName = cl != null ? cl.Colorname : null,
+                    OemModelName = i != null ? i.Oemmodelname : null,
+
+                    //RegisterNo = (sd.RegNo != null && sd.RegNo.Trim() != "")
+                    //                ? sd.RegNo
+                    //                : (cd != null ? cd.RegNo : null),
+                    RegisterNo =
+                        (sd.RegNo != null && sd.RegNo.Trim() != "") ? sd.RegNo
+                      : (cd != null && cd.RegNo != null && cd.RegNo.Trim() != "") ? cd.RegNo
+                      : histRegNo,
+                    InsuranceExpDate = sd.InsExpDate,
+
+                    InvoiceNo = lot != null ? lot.InvoiceNo : null,
+                    InwardType = lot != null ? lot.InwardType : null,
+
+                    BatteryNumber = vc != null ? vc.BatteryNo : sd.Battery,
+                    ChargerNumber = vc != null ? vc.ChargerNo : sd.ChargerNo,
+                    ControllerNo = vc != null ? vc.ControllerNo : sd.ControllerNo,
+                    ConverterNo = vc != null ? vc.ConverterNo : sd.ConvertorNo,
+                    BatteryMake = vc != null ? vc.BatteryMake : sd.BatteryMake,
+                    BatteryCapacity = vc != null ? vc.BatteryCapacity : sd.BatteryCapacity,
+                    BatteryChemestry = vc != null ? vc.BatteryChemical : sd.BatteryChemical,
+                    MotorNo = vc != null ? vc.MotorNo : null
+                }
+            ).FirstOrDefaultAsync();
+
+            if (row == null) return null;   
+
+            // ---------- 2) OEM model id ----------
+            int oemModelId = 0;
+            if (!string.IsNullOrWhiteSpace(row.OemModelName))
+            {
+                var oemName = row.OemModelName.Trim().ToLower();
+                oemModelId = await _context.OemmodelMasters
+                    .Where(o => o.ModelName.Trim().ToLower() == oemName)
+                    .Select(o => o.Id)
+                    .FirstOrDefaultAsync();
+            }
+
+           
+            var w = await _context.OemmodelWarranties
+                .Where(x => x.OemmodelId == oemModelId)
+                .OrderByDescending(x => x.EffectiveDate)
+                .FirstOrDefaultAsync();
+
+            var expireWarrentyDate = w?.EffectiveDate;
+            if (w != null && w.EffectiveDate != null)
+            {
+                var dur = (int)(w.Duration ?? 0);
+                expireWarrentyDate =
+                    w.DurationType == "MONTH" ? w.EffectiveDate.Value.AddMonths(dur)
+                  : w.DurationType == "YEAR" ? w.EffectiveDate.Value.AddYears(dur)
+                  : w.EffectiveDate;
+            }
+
+            // ---------- 4) Next service due ----------
+            var completedServiceCount = await (
+                from jh in _context.JobCardHeaders
+                join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                where jc.ChassisNo == chassisNumber && jh.Jobtype != 1 && jh.IsDelete != true
+                select jh.Id
+            ).CountAsync();
+
+            var next = await _context.ModelwiseServiceSchedules
+                .Where(x => x.OemmodelId == oemModelId)
+                .OrderBy(x => x.Seqno)
+                .Skip(completedServiceCount)
+                .FirstOrDefaultAsync();
+
+            DateTime? nextServiceDueDate = null;
+            if (next != null)
+                nextServiceDueDate = row.SaleDate.Date.AddDays(next.DaysFrom);
+
+            
+            var prevKms = await _context.JobCardHeaders
+                .Where(j => j.Chassisno == chassisNumber && j.IsDelete != true)
+                .OrderByDescending(j => j.CreatedDate)
+                .Select(j => j.Vehiclekms)
+                .FirstOrDefaultAsync();
+
+        
+            return new
+            {
+                row.ChassisNo,
+                row.SaleDate,
+                row.DealerCode,
+                row.CustomerLedgerId,
+                row.CustomerName,
+                row.MobileNo,
+                row.Address,
+                row.Pincode,
+                row.StateName,
+                row.CityName,
+
+                row.ModelName,
+                row.ColourName,
+                row.RegisterNo,
+                row.InsuranceExpDate,
+                row.InvoiceNo,
+                row.InwardType,
+
+                row.BatteryNumber,
+                row.ChargerNumber,
+                row.ControllerNo,
+                row.ConverterNo,
+                row.BatteryMake,
+                row.BatteryCapacity,
+                row.BatteryChemestry,
+                row.MotorNo,
+
+                OemModelId = oemModelId,
+                OdoReading = w?.Odoreading,
+                Duration = w?.Duration,
+                DurationType = w?.DurationType,
+                ExpireWarrentyDate = expireWarrentyDate,
+
+                NextserviceDueDate = nextServiceDueDate,
+                VehiclePrevKms = prevKms
+            };
+        }
+
+        public async Task<object> SearchGlobalChassisListAsync(string term)
+        {
+            term = (term ?? "").Trim();
+            if (term.Length < 3) return new List<object>();
+
+            var rows = await (
+                from sd in _context.VehicleSaleBillDetails
+                join sh in _context.VehicleSaleBillHeaders on sd.VehicleSaleBillId equals sh.Id
+                where !sh.IsDeleted
+
+                join cd in _context.ChassisDetails on sd.ChassisNo equals cd.ChassisNo into cdInfo
+                from cd in cdInfo.DefaultIfEmpty()
+
+                    //let regNo = (sd.RegNo != null && sd.RegNo.Trim() != "")
+                    //                ? sd.RegNo
+                    //                : (cd != null ? cd.RegNo : null)
+                let histRegNo = _context.JobCardServiceHistories
+                    .Where(x => x.ChassisNo == sd.ChassisNo
+                             && x.RegNo != null && x.RegNo != "")
+                    .Select(x => x.RegNo)
+                    .FirstOrDefault()
+
+                let regNo =
+                    (sd.RegNo != null && sd.RegNo.Trim() != "") ? sd.RegNo
+                  : (cd != null && cd.RegNo != null && cd.RegNo.Trim() != "") ? cd.RegNo
+                  : histRegNo
+
+                where sd.ChassisNo.Contains(term) || (regNo != null && regNo.Contains(term))
+                orderby sh.Id descending
+                select new
+                {
+                    sd.ChassisNo,
+                    RegNo = regNo,
+                    sh.CustomerName,
+                    sh.DealerCode,
+                    sh.SaleDate,
+                    sd.ModelName,
+                    BillId = sh.Id
+                }
+            ).Take(300).ToListAsync();
+
+            return rows
+                .GroupBy(x => x.ChassisNo)
+                .Select(g => g.OrderByDescending(x => x.BillId).First())
+                .OrderBy(x => x.ChassisNo)
+                .Take(20)
+                .Select(x => new { x.ChassisNo, x.RegNo, x.CustomerName, x.DealerCode, x.SaleDate, x.ModelName })
+                .ToList();
         }
 
         public async Task<string> ImportChassisExcelAsync(IFormFile file)

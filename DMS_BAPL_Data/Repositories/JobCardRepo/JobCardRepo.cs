@@ -388,114 +388,240 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 }
                 else
                 {
+
+                    //// ===================== SALE / SERVICE =====================
+                    //var data = await (
+                    //from h in _context.LotinspectionHeaders
+
+                    //join d in _context.LotinspectionDetails
+                    //on h.Id equals d.LotHeaderId
+
+                    //join v in _context.ChassisDetails
+                    //on d.ChassisNo equals v.ChassisNo
+
+                    //// FIXED: same silent-drop risk as the PDI branch — left join.
+                    //join i in _context.ItemMasters
+                    //    on v.ItemCode equals i.Itemcode into itemGroup2
+                    //from i in itemGroup2.DefaultIfEmpty()
+
+                    //    // FIXED: was inner — a sale bill detail row missing for this
+                    //    // chassis (data entry gap) previously hid the whole chassis.
+                    //join vsd in _context.VehicleSaleBillDetails
+                    //    on d.ChassisNo equals vsd.ChassisNo into vsdGroup
+                    //from vsd in vsdGroup.DefaultIfEmpty()
+
+                    //    // FIXED: was inner, and vsh's own fields were never even used in
+                    //    // the projection below — it existed purely as a referential check.
+                    //    // Left join removes an unnecessary way to drop a valid chassis.
+                    //join vsh in _context.VehicleSaleBillHeaders
+                    //    on (vsd != null ? vsd.VehicleSaleBillId : (int?)null) equals vsh.Id into vshGroup
+                    //from vsh in vshGroup.DefaultIfEmpty()
+
+                    //    // FIXED: was inner — a chassis whose customer ledger record is
+                    //    // missing/mismatched no longer disappears entirely.
+                    //join custLg in _context.LedgerMasters
+                    //    on v.LedgerId equals custLg.Id into custLgGroup
+                    //from custLg in custLgGroup.DefaultIfEmpty()
+
+                    //let oemModelNameLower = i != null ? i.Oemmodelname.Trim().ToLower() : null
+
+                    //join o in _context.OemmodelMasters
+                    //on oemModelNameLower
+                    //equals o.ModelName.Trim().ToLower()
+                    //into oGroup
+
+                    //from o in oGroup.DefaultIfEmpty()
+
+                    //let vc = _context.ChassisBatteryDetails
+                    //.Where(x => x.ChassisNo == v.ChassisNo)
+                    //.OrderByDescending(x => x.CreatedDate)
+                    //.FirstOrDefault()
+
+                    //let existingjobCardaftersale = _context.JobCardHeaders
+                    //    .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
+                    //    .OrderByDescending(j => j.CreatedDate)
+                    //    .FirstOrDefault()
+
+                    //where h.IsLotInspected == true
+                    //&& (isSuperAdmin || (v.DealerId != null && v.DealerId.Trim().ToUpper() == normalizedDealerCode))
+                    //&& v.SaleDate != null
+
+                    //select new LotInspectionChassisVM
+                    //{
+                    //    InvoiceNo = h.InvoiceNo,
+                    //    ChassisNumber = d.ChassisNo,
+                    //    CustomerLedgerId = custLg != null ? custLg.Id : 0,
+                    //    CustomerName = custLg != null ? custLg.LedgerName : null,
+                    //    CustomerMobile = custLg != null ? custLg.MobileNumber : null,
+                    //    SaleDate = v.SaleDate,
+                    //    ModelName = i != null ? i.Itemname : null,
+                    //    RegisterNo = v.RegNo,
+                    //    InsuranceExpDate = vsd != null ? vsd.InsExpDate : null,
+                    //    InwardType = h.InwardType,
+                    //    VehiclePrevkms = existingjobCardaftersale != null ? existingjobCardaftersale.Vehiclekms : null,
+
+                    //    BatteryNumber = vc != null ? vc.BatteryNo : null,
+                    //    ChargerNumber = vc != null ? vc.ChargerNo : null,
+                    //    ControllerNo = vc != null ? vc.ControllerNo : null,
+                    //    BatteryMake = vc != null ? vc.BatteryMake : null,
+                    //    BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
+                    //    BatteryChemestry = vc != null ? vc.BatteryChemical : null,
+                    //    ConverterNo = vc != null ? vc.ConverterNo : null,
+                    //    MotorNo = vc != null ? vc.MotorNo : null,
+
+                    //    oemModelId = o != null ? o.Id : 0
+                    //}
+                    //).Distinct().ToListAsync();
+
                     // ===================== SALE / SERVICE =====================
-                    var data = await (
-                    from h in _context.LotinspectionHeaders
+                   
+                    var rows = await (
+                        from vsd in _context.VehicleSaleBillDetails
+                        join vsh in _context.VehicleSaleBillHeaders
+                            on vsd.VehicleSaleBillId equals vsh.Id
 
-                    join d in _context.LotinspectionDetails
-                    on h.Id equals d.LotHeaderId
+                       
+                        join v in _context.ChassisDetails
+                            on vsd.ChassisNo equals v.ChassisNo into vGroup
+                        from v in vGroup.DefaultIfEmpty()
 
-                    join v in _context.ChassisDetails
-                    on d.ChassisNo equals v.ChassisNo
+                        let itemCode = vsd.ItemCode ?? (v != null ? v.ItemCode : null)
 
-                    // FIXED: same silent-drop risk as the PDI branch — left join.
-                    join i in _context.ItemMasters
-                        on v.ItemCode equals i.Itemcode into itemGroup2
-                    from i in itemGroup2.DefaultIfEmpty()
+                        join i in _context.ItemMasters
+                            on itemCode equals i.Itemcode into itemGroup
+                        from i in itemGroup.DefaultIfEmpty()
 
-                        // FIXED: was inner — a sale bill detail row missing for this
-                        // chassis (data entry gap) previously hid the whole chassis.
-                    join vsd in _context.VehicleSaleBillDetails
-                        on d.ChassisNo equals vsd.ChassisNo into vsdGroup
-                    from vsd in vsdGroup.DefaultIfEmpty()
+                        join custLg in _context.LedgerMasters
+                            on (int?)vsh.LedgerId equals (int?)custLg.Id into custGroup
+                        from custLg in custGroup.DefaultIfEmpty()
 
-                        // FIXED: was inner, and vsh's own fields were never even used in
-                        // the projection below — it existed purely as a referential check.
-                        // Left join removes an unnecessary way to drop a valid chassis.
-                    join vsh in _context.VehicleSaleBillHeaders
-                        on (vsd != null ? vsd.VehicleSaleBillId : (int?)null) equals vsh.Id into vshGroup
-                    from vsh in vshGroup.DefaultIfEmpty()
+                        let oemModelNameLower = i != null ? i.Oemmodelname.Trim().ToLower() : null
 
-                        // FIXED: was inner — a chassis whose customer ledger record is
-                        // missing/mismatched no longer disappears entirely.
-                    join custLg in _context.LedgerMasters
-                        on v.LedgerId equals custLg.Id into custLgGroup
-                    from custLg in custLgGroup.DefaultIfEmpty()
+                        join o in _context.OemmodelMasters
+                            on oemModelNameLower equals o.ModelName.Trim().ToLower()
+                            into oGroup
+                        from o in oGroup.DefaultIfEmpty()
 
-                    let oemModelNameLower = i != null ? i.Oemmodelname.Trim().ToLower() : null
+                            // Lot inspection ata optional
+                        let lot = (from h in _context.LotinspectionHeaders
+                                   join d in _context.LotinspectionDetails on h.Id equals d.LotHeaderId
+                                   where d.ChassisNo == vsd.ChassisNo && h.IsLotInspected == true
+                                   select h).FirstOrDefault()
 
-                    join o in _context.OemmodelMasters
-                    on oemModelNameLower
-                    equals o.ModelName.Trim().ToLower()
-                    into oGroup
+                        let vc = _context.ChassisBatteryDetails
+                            .Where(x => x.ChassisNo == vsd.ChassisNo)
+                            .OrderByDescending(x => x.CreatedDate)
+                            .FirstOrDefault()
 
-                    from o in oGroup.DefaultIfEmpty()
+                        let existingJob = _context.JobCardHeaders
+                            .Where(j => j.Chassisno == vsd.ChassisNo && j.IsDelete != true)
+                            .OrderByDescending(j => j.CreatedDate)
+                            .FirstOrDefault()
 
-                    let vc = _context.ChassisBatteryDetails
-                    .Where(x => x.ChassisNo == v.ChassisNo)
-                    .OrderByDescending(x => x.CreatedDate)
-                    .FirstOrDefault()
+                        let histRegNo = _context.JobCardServiceHistories
+                            .Where(x => x.ChassisNo == vsd.ChassisNo
+                                     && x.RegNo != null && x.RegNo != "")
+                            .Select(x => x.RegNo)
+                            .FirstOrDefault()
 
-                    let existingjobCardaftersale = _context.JobCardHeaders
-                        .Where(j => j.Chassisno == v.ChassisNo && j.IsDelete != true)
-                        .OrderByDescending(j => j.CreatedDate)
-                        .FirstOrDefault()
+                        where vsh.IsDeleted != true
+                           && (isSuperAdmin ||
+                               (vsh.DealerCode != null && vsh.DealerCode.Trim().ToUpper() == normalizedDealerCode))
 
-                    where h.IsLotInspected == true
-                    && (isSuperAdmin || (v.DealerId != null && v.DealerId.Trim().ToUpper() == normalizedDealerCode))
-                    && v.SaleDate != null
+                        select new
+                        {
+                            BillId = vsh.Id,   
+                            Vm = new LotInspectionChassisVM
+                            {
+                                InvoiceNo = lot != null ? lot.InvoiceNo : null,
+                                ChassisNumber = vsd.ChassisNo,
+                                CustomerLedgerId = custLg != null ? custLg.Id : 0,
+                                CustomerName = custLg != null ? custLg.LedgerName : vsh.CustomerName,
+                                CustomerMobile = custLg != null ? custLg.MobileNumber : null,
+                                SaleDate = (DateTime?)vsh.SaleDate ?? (v != null ? v.SaleDate : null),
+                                ModelName = i != null ? i.Itemname : vsd.ModelName,
+                                //RegisterNo = vsd.RegNo ?? (v != null ? v.RegNo : null),
+                                RegisterNo = (vsd.RegNo != null && vsd.RegNo.Trim() != "") ? vsd.RegNo : (v != null && v.RegNo != null && v.RegNo.Trim() != "") ? v.RegNo : histRegNo,
+                                InsuranceExpDate = vsd.InsExpDate,
+                                InwardType = lot != null ? lot.InwardType : null,
+                                VehiclePrevkms = existingJob != null ? existingJob.Vehiclekms : null,
 
-                    select new LotInspectionChassisVM
-                    {
-                        InvoiceNo = h.InvoiceNo,
-                        ChassisNumber = d.ChassisNo,
-                        CustomerLedgerId = custLg != null ? custLg.Id : 0,
-                        CustomerName = custLg != null ? custLg.LedgerName : null,
-                        CustomerMobile = custLg != null ? custLg.MobileNumber : null,
-                        SaleDate = v.SaleDate,
-                        ModelName = i != null ? i.Itemname : null,
-                        RegisterNo = v.RegNo,
-                        InsuranceExpDate = vsd != null ? vsd.InsExpDate : null,
-                        InwardType = h.InwardType,
-                        VehiclePrevkms = existingjobCardaftersale != null ? existingjobCardaftersale.Vehiclekms : null,
+                                BatteryNumber = vc != null ? vc.BatteryNo : vsd.Battery,
+                                ChargerNumber = vc != null ? vc.ChargerNo : vsd.ChargerNo,
+                                ControllerNo = vc != null ? vc.ControllerNo : vsd.ControllerNo,
+                                ConverterNo = vc != null ? vc.ConverterNo : vsd.ConvertorNo,
+                                BatteryMake = vc != null ? vc.BatteryMake : null,
+                                BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
+                                BatteryChemestry = vc != null ? vc.BatteryChemical : null,
+                                MotorNo = vc != null ? vc.MotorNo : null,
 
-                        BatteryNumber = vc != null ? vc.BatteryNo : null,
-                        ChargerNumber = vc != null ? vc.ChargerNo : null,
-                        ControllerNo = vc != null ? vc.ControllerNo : null,
-                        BatteryMake = vc != null ? vc.BatteryMake : null,
-                        BatteryCapacity = vc != null ? vc.BatteryCapacity : null,
-                        BatteryChemestry = vc != null ? vc.BatteryChemical : null,
-                        ConverterNo = vc != null ? vc.ConverterNo : null,
-                        MotorNo = vc != null ? vc.MotorNo : null,
+                                oemModelId = o != null ? o.Id : 0
+                            }
+                        }
+                    ).ToListAsync();
 
-                        oemModelId = o != null ? o.Id : 0
-                    }
-                    ).Distinct().ToListAsync();
+                  
+                    var data = rows
+                        .GroupBy(x => x.Vm.ChassisNumber)
+                        .Select(g => g.OrderByDescending(x => x.BillId).First().Vm)
+                        .ToList();
+
+
+                    //foreach (var item in data)
+                    //{
+                    //    if (!item.SaleDate.HasValue)
+                    //        continue;
+
+                    //    var completedServiceCount = await (
+                    //    from jh in _context.JobCardHeaders
+                    //    join jc in _context.JobCardCustomers
+                    //    on jh.Id equals jc.JobCardHeaderId
+                    //    where jc.ChassisNo == item.ChassisNumber
+                    //    && jh.Jobtype != 1
+                    //    select jh.Id
+                    //    ).CountAsync();
+
+                    //    var nextSchedule = await _context.ModelwiseServiceSchedules
+                    //    .Where(x => x.OemmodelId == item.oemModelId)
+                    //    .OrderBy(x => x.Seqno)
+                    //    .Skip(completedServiceCount)
+                    //    .FirstOrDefaultAsync();
+
+                    //    if (nextSchedule != null)
+                    //    {
+                    //        item.NextserviceDueDate =
+                    //        item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
+                    //    }
+                    //}
+
+                    var chassisNos = data.Select(d => d.ChassisNumber).ToList();
+
+                    var serviceCounts = await (
+                        from jh in _context.JobCardHeaders
+                        join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
+                        where chassisNos.Contains(jc.ChassisNo) && jh.Jobtype != 1
+                        group jh by jc.ChassisNo into g
+                        select new { ChassisNo = g.Key, Count = g.Count() }
+                    ).ToDictionaryAsync(x => x.ChassisNo, x => x.Count);
+
+                   
+                    var schedules = await _context.ModelwiseServiceSchedules
+                        .OrderBy(x => x.Seqno)
+                        .ToListAsync();
+                    var schedulesByModel = schedules
+                        .GroupBy(x => x.OemmodelId)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Seqno).ToList());
 
                     foreach (var item in data)
                     {
-                        if (!item.SaleDate.HasValue)
-                            continue;
+                        if (!item.SaleDate.HasValue) continue;
 
-                        var completedServiceCount = await (
-                        from jh in _context.JobCardHeaders
-                        join jc in _context.JobCardCustomers
-                        on jh.Id equals jc.JobCardHeaderId
-                        where jc.ChassisNo == item.ChassisNumber
-                        && jh.Jobtype != 1
-                        select jh.Id
-                        ).CountAsync();
+                        int done = serviceCounts.TryGetValue(item.ChassisNumber, out var c) ? c : 0;
+                        int modelId = item.oemModelId ?? 0;                      
 
-                        var nextSchedule = await _context.ModelwiseServiceSchedules
-                        .Where(x => x.OemmodelId == item.oemModelId)
-                        .OrderBy(x => x.Seqno)
-                        .Skip(completedServiceCount)
-                        .FirstOrDefaultAsync();
-
-                        if (nextSchedule != null)
+                        if (schedulesByModel.TryGetValue(modelId, out var list) && list.Count > done)   
                         {
-                            item.NextserviceDueDate =
-                            item.SaleDate.Value.Date.AddDays(nextSchedule.DaysFrom);
+                            item.NextserviceDueDate = item.SaleDate.Value.Date.AddDays(list[done].DaysFrom);
                         }
                     }
 
