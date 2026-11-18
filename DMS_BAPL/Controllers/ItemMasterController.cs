@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Drawing.Command;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -17,6 +18,17 @@ namespace DMS_BAPL_Api.Controllers
     public class ItemMasterController : ControllerBase
     {
         private readonly IitemMasterService _itemMasterService;
+
+        private bool CanEditRestrictedItemFields() =>
+            User.Claims.Any(claim =>
+                (claim.Type == ClaimTypes.Role || claim.Type == "role") &&
+                (claim.Value.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                 claim.Value.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)));
+
+        private bool IsDealer() =>
+            User.Claims.Any(claim =>
+                (claim.Type == ClaimTypes.Role || claim.Type == "role") &&
+                claim.Value.Equals("Dealer", StringComparison.OrdinalIgnoreCase));
 
         public ItemMasterController(IitemMasterService itemservice)
         {
@@ -94,7 +106,11 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var result = await _itemMasterService.ImportItemExcelAsync(file, userId);
+                var result = await _itemMasterService.ImportItemExcelAsync(
+                    file,
+                    userId,
+                    CanEditRestrictedItemFields(),
+                    IsDealer());
 
                 return Ok(new
                 {
@@ -237,7 +253,11 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var item = await _itemMasterService.UpdateByItemCode(userId, insertItemMasterViewModel);
+                var item = await _itemMasterService.UpdateByItemCode(
+                    userId,
+                    insertItemMasterViewModel,
+                    CanEditRestrictedItemFields(),
+                    IsDealer());
 
                 if (item == null)
                     return NotFound("Item not found with the provided item code.");
@@ -247,6 +267,10 @@ namespace DMS_BAPL_Api.Controllers
                     message = "Item updated sucessfully.",
                     data = item
                 });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception)
             {
@@ -262,12 +286,24 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized("User not authorized");
+
                 item.Id = id;
-                var _item = await _itemMasterService.UpdateItemAsync(item);
+                var _item = await _itemMasterService.UpdateItemAsync(
+                    item,
+                    CanEditRestrictedItemFields(),
+                    userId,
+                    IsDealer());
                 if (_item == null)
                     return NotFound($"Item with id {id} not found.");
 
                 return Ok(_item);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {
@@ -289,7 +325,11 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not found");
 
-                var result = await _itemMasterService.InsertItemAsync(items, userId);
+                var result = await _itemMasterService.InsertItemAsync(
+                    items,
+                    userId,
+                    CanEditRestrictedItemFields(),
+                    IsDealer());
                 return Ok(new
                 {
 
@@ -297,6 +337,10 @@ namespace DMS_BAPL_Api.Controllers
                     Data = result
                 });
 
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {
