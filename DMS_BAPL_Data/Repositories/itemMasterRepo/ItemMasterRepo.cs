@@ -80,7 +80,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Displayname = item.Displayname;
                     existingItem.Oemmodelname = item.Oemmodelname;
                     existingItem.SupplierId = item.SupplierId;
-                    existingItem.DealerCode = item.Dealercode;
                     existingItem.Uom = item.UOM;
 
 
@@ -144,7 +143,7 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
             }
         }
         //Get all items from the database
-        public async Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search)
+        public async Task<List<ItemMasterViewModel>> GetAllItemsAsync(int? grpidno, string? search, string? dealerCode = null)
         {
             var query = from i in _context.ItemMasters
                         join c in _context.ColorMasters
@@ -154,6 +153,18 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                         on i.SupplierId equals l.Id into ledgerGroup
                         from l in ledgerGroup.DefaultIfEmpty()
                         select new { i, c, l }; //  keep original entity
+
+            if (string.IsNullOrWhiteSpace(dealerCode))
+            {
+                query = query.Where(x => x.i.DealerCode == null);
+            }
+            else
+            {
+                query = query.Where(x =>
+                    x.i.Status &&
+                    (x.i.DealerCode == null ||
+                     x.i.DealerCode == dealerCode));
+            }
 
             // Filter by Group Id
             if (grpidno.HasValue)
@@ -235,9 +246,21 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
 
             return result;
         }
-        public async Task<List<ItemMaster>> GetAllExcelItemsAsync()
+        public async Task<List<ItemMaster>> GetAllExcelItemsAsync(string? dealerCode = null)
         {
-            return await _context.ItemMasters.ToListAsync();
+            var query = _context.ItemMasters.AsQueryable();
+            if (string.IsNullOrWhiteSpace(dealerCode))
+            {
+                query = query.Where(x => x.DealerCode == null);
+            }
+            else
+            {
+                query = query.Where(x =>
+                    x.Status &&
+                    (x.DealerCode == null ||
+                     x.DealerCode == dealerCode));
+            }
+            return await query.ToListAsync();
         }
         public async Task<ItemMaster> GetItemByCodeAsync(string itemCode)
         {
@@ -332,7 +355,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                 existingItem.IsInventory = item.IsInventory;
                 existingItem.IsInEligibleInput = item.IsInEligibleInput;
                 existingItem.Oemmodelname = item.Oemmodelname;
-                existingItem.DealerCode = item.DealerCode;
                 existingItem.Uom = item.Uom;
                 existingItem.SupplierId = item.SupplierId;
                 existingItem.Status = item.Status;
@@ -593,7 +615,6 @@ namespace DMS_BAPL_Data.Repositories.itemMasterRepo
                     existingItem.Compcode = insertItemMasterViewModel.Compcode;
                     existingItem.Displayname = insertItemMasterViewModel.Displayname;
                     existingItem.Oemmodelname = insertItemMasterViewModel.Oemmodelname;
-                    existingItem.DealerCode = insertItemMasterViewModel.Dealercode;
                     existingItem.SupplierId = insertItemMasterViewModel.SupplierId;
                     existingItem.Uom = insertItemMasterViewModel.UOM;
 

@@ -29,6 +29,13 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Forbid();
+                    model.DealerCode = tokenDealerCode;
+                }
                 var id = await _vehicleSaleBillService.CreateAsync(model);
                 return Ok(id);
             }
@@ -52,6 +59,12 @@ namespace DMS_BAPL_Api.Controllers
             {
                 var result = await _vehicleSaleBillService.GetByIdAsync(id);
                 if (result == null) return NotFound();
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (!string.Equals(result.DealerCode, tokenDealerCode, StringComparison.OrdinalIgnoreCase))
+                        return Forbid();
+                }
                 return Ok(result);
             }
             catch (Exception ex)
@@ -72,6 +85,12 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(dealerCode))
+                        return Forbid();
+                }
                 return Ok(await _vehicleSaleBillService.GetAllAsync(dealerCode, search, fromDate, toDate, erpStatus));
             }
             catch (Exception ex)
