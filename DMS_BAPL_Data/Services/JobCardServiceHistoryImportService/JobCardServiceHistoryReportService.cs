@@ -39,8 +39,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         public const int MaxPageSize = 200;
         /// <summary>Excel export limit - above this the user is asked to narrow the filter</summary>
         public const int MaxExportRows = 200_000;
-        private const string Table = "dbo.JobCardServiceHistory";
-
+        //  private const string Table = "dbo.JobCardServiceHistory";
+        private const string Table = "dbo.DMS_ServiceHistory";
         /// <summary>columns shown in the on-screen tables (the export has all 63 source columns)</summary>
         private static readonly string[] GridColumns =
         {
