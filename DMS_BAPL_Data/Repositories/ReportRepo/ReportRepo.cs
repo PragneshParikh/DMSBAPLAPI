@@ -4306,6 +4306,26 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     InwardQty = (int?)g.Sum(x => x.ItemQty)
                 });
 
+            var localPurchaseCounts = _context.PartsInventories
+                .Where(x =>
+                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                    x.TransType == "P" &&
+                    x.Potype == "LOCAL")
+                .GroupBy(x => new
+                {
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.ItemCode
+                })
+                .Select(g => new
+                {
+                    VendorCode = g.Key.VendorCode,
+                    DealerLocation = g.Key.DealerLocation,
+                    ItemCode = g.Key.ItemCode,
+                    LocalPurchaseQty = (int?)g.Sum(x => x.BatchTransQty)
+                });
+
             var reversedCounts = _context.PartsInventories
                 .Where(x =>
                     x.TransDate >= DateOnly.FromDateTime(fromDate) &&
@@ -4414,6 +4434,22 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into inwardGroup
                         from pic in inwardGroup.DefaultIfEmpty()
 
+                        join lpc in localPurchaseCounts
+                        on new
+                        {
+                            pi.VendorCode,
+                            pi.DealerLocation,
+                            pi.ItemCode
+                        }
+                        equals new
+                        {
+                            lpc.VendorCode,
+                            lpc.DealerLocation,
+                            lpc.ItemCode
+                        }
+                        into localPurchaseGroup
+                        from lpc in localPurchaseGroup.DefaultIfEmpty()
+
                         join rc in reversedCounts
                         on new
                         {
@@ -4493,7 +4529,9 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             SaleCount = sc.SaleQty ?? 0,
 
-                            PurchaseCount = (pic.InwardQty ?? 0) + (rc.ReversedQty ?? 0),
+                            PurchaseCount = (pic.InwardQty ?? 0)
+                                + (rc.ReversedQty ?? 0)
+                                + (lpc.LocalPurchaseQty ?? 0),
 
                             // NEW — net TI/TO quantity in the selected date range.
                             StockAdjustmentQty = sa.AdjustmentQty ?? 0,

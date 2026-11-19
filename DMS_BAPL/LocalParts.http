@@ -1,0 +1,52 @@
+@baseUrl = http://localhost:5215
+@token = replace-with-a-valid-jwt
+@locationId = 1
+@transactionId = 1
+
+### Get workshop locations accessible to the logged-in user
+GET {{baseUrl}}/api/LocalParts/locations
+Authorization: Bearer {{token}}
+
+### Get dealer-created Spares and current stock for a workshop
+GET {{baseUrl}}/api/LocalParts/parts?locationId={{locationId}}
+Authorization: Bearer {{token}}
+
+### Get local-parts receipt transactions
+GET {{baseUrl}}/api/LocalParts/transactions?fromDate=2026-10-20&toDate=2026-11-19&locationId={{locationId}}
+Authorization: Bearer {{token}}
+
+### Get a local-parts transaction for editing
+GET {{baseUrl}}/api/LocalParts/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+
+### Update a local-parts transaction
+PUT {{baseUrl}}/api/LocalParts/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prefix": "LOCAL/2026/001",
+  "date": "2026-11-19T00:00:00Z",
+  "purchaseQuantity": 10
+}
+
+### Delete (void) a local-parts transaction
+DELETE {{baseUrl}}/api/LocalParts/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+
+### Post local parts and increase stock
+POST {{baseUrl}}/api/LocalParts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prefix": "LOCAL/2026/001",
+  "date": "2026-11-19T00:00:00Z",
+  "locationId": {{locationId}},
+  "items": [
+    {
+      "partCode": "PART-EXAMPLE-001",
+      "purchaseQuantity": 10
+    }
+  ]
+}

@@ -297,6 +297,9 @@ namespace DMS_BAPL_Data.Configurations
             services.AddScoped<IMaterialTransferService, MaterialTransferService>();
             services.AddScoped<ILineOrderReportRepo, LineOrderReportRepo>();
             services.AddScoped<ILineOrderReportService, LineOrderReportService>();
+            services.AddScoped<
+                DMS_BAPL_Data.Services.LocalParts.ILocalPartsService,
+                DMS_BAPL_Data.Services.LocalParts.LocalPartsService>();
             services.AddScoped<IExtendedBatteryWarrantyService, ExtendedBatteryWarrantyService>();
             services.AddScoped<IPerformaInvoiceService, PerformaInvoiceService>();
             services.AddScoped<IPartInwardService, PartInwardService>();
