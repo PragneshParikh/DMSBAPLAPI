@@ -26,7 +26,6 @@ Content-Type: application/json
 
 {
   "prefix": "LOCAL/2026/001",
-  "date": "2026-11-19T00:00:00Z",
   "purchaseQuantity": 10
 }
 

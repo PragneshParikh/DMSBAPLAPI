@@ -34,8 +34,8 @@ public sealed record LocalPartsLineRequest
 /// <summary>Payload for posting a local-parts receipt into stock.</summary>
 public sealed record CreateLocalPartsRequest
 {
-    [StringLength(100)]
-    public string? Prefix { get; init; }
+    [Required, StringLength(100)]
+    public required string Prefix { get; init; }
 
     [Required]
     public DateTimeOffset Date { get; init; }
@@ -66,11 +66,8 @@ public sealed record LocalPartsSaveResponse(
 /// <summary>Payload for editing a posted local-parts transaction line.</summary>
 public sealed record UpdateLocalPartsTransactionRequest
 {
-    [StringLength(100)]
-    public string? Prefix { get; init; }
-
-    [Required]
-    public DateTimeOffset Date { get; init; }
+    [Required, StringLength(100)]
+    public required string Prefix { get; init; }
 
     [Range(1, int.MaxValue)]
     public int PurchaseQuantity { get; init; }

@@ -289,8 +289,6 @@ public sealed class LocalPartsService : ILocalPartsService
             throw new LocalPartsValidationException("Transaction data is required.");
         if (id <= 0)
             throw new LocalPartsValidationException("Transaction ID is invalid.");
-        if (request.Date == default)
-            throw new LocalPartsValidationException("Date is required.");
         if (request.PurchaseQuantity <= 0)
             throw new LocalPartsValidationException("Purchase quantity must be greater than zero.");
         if (string.IsNullOrWhiteSpace(createdBy))
@@ -298,13 +296,11 @@ public sealed class LocalPartsService : ILocalPartsService
         if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerScope))
             throw new LocalPartsValidationException("Dealer code is required.");
 
-        var providedPrefix = request.Prefix?.Trim();
-        if (providedPrefix?.Length > 100)
+        var prefix = request.Prefix?.Trim();
+        if (string.IsNullOrWhiteSpace(prefix))
+            throw new LocalPartsValidationException("Prefix is required.");
+        if (prefix.Length > 100)
             throw new LocalPartsValidationException("Prefix must be at most 100 characters.");
-        var prefix = string.IsNullOrWhiteSpace(providedPrefix)
-            ? $"LOCAL-{Guid.NewGuid():N}"
-            : providedPrefix;
-        var transactionDate = DateOnly.FromDateTime(request.Date.UtcDateTime);
 
         await using (var transaction = await _context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
@@ -337,17 +333,6 @@ public sealed class LocalPartsService : ILocalPartsService
                     throw new LocalPartsConflictException(
                         "This transaction cannot be edited because later stock movements already exist for this part and location.");
 
-                var hasMovementAfterNewDate = await _context.PartsInventories.AnyAsync(stock =>
-                    stock.Id != id &&
-                    stock.VendorCode == receipt.VendorCode &&
-                    stock.DealerLocation == receipt.DealerLocation &&
-                    stock.ItemCode == receipt.ItemCode &&
-                    stock.TransDate > transactionDate,
-                    cancellationToken);
-                if (hasMovementAfterNewDate)
-                    throw new LocalPartsConflictException(
-                        "The transaction date cannot be moved before a later stock movement.");
-
                 if (!string.Equals(prefix, receipt.VoucherNo, StringComparison.Ordinal))
                 {
                     var prefixAlreadyUsed = await _context.PartsInventories.AnyAsync(stock =>
@@ -376,7 +361,6 @@ public sealed class LocalPartsService : ILocalPartsService
                 }
 
                 receipt.VoucherNo = prefix;
-                receipt.TransDate = transactionDate;
                 receipt.BatchTransQty = request.PurchaseQuantity;
                 receipt.BatchClosingQty = totalStock;
                 receipt.TotalRate = totalRate;
@@ -468,12 +452,11 @@ public sealed class LocalPartsService : ILocalPartsService
         if (request is null)
             throw new LocalPartsValidationException("Receipt data is required.");
 
-        var providedPrefix = request.Prefix?.Trim();
-        if (providedPrefix?.Length > 100)
+        var prefix = request.Prefix?.Trim();
+        if (string.IsNullOrWhiteSpace(prefix))
+            throw new LocalPartsValidationException("Prefix is required.");
+        if (prefix.Length > 100)
             throw new LocalPartsValidationException("Prefix must be at most 100 characters.");
-        var prefix = string.IsNullOrWhiteSpace(providedPrefix)
-            ? $"LOCAL-{Guid.NewGuid():N}"
-            : providedPrefix;
         if (request.Date == default)
             throw new LocalPartsValidationException("Date is required.");
         if (request.LocationId <= 0)
@@ -539,18 +522,15 @@ public sealed class LocalPartsService : ILocalPartsService
                 throw new LocalPartsValidationException(
                     $"Part '{missingPart}' is not an active Spares item owned by this dealer.");
 
-            if (!string.IsNullOrWhiteSpace(providedPrefix))
-            {
-                var prefixAlreadyUsed = await _context.PartsInventories.AnyAsync(stock =>
-                    stock.VendorCode == location.Dealercode &&
-                    stock.DealerLocation == location.Loccode &&
-                    stock.VoucherNo == prefix &&
-                    stock.TransType == "P",
-                    cancellationToken);
-                if (prefixAlreadyUsed)
-                    throw new LocalPartsConflictException(
-                        $"Prefix '{prefix}' has already been used for a purchase at this location.");
-            }
+            var prefixAlreadyUsed = await _context.PartsInventories.AnyAsync(stock =>
+                stock.VendorCode == location.Dealercode &&
+                stock.DealerLocation == location.Loccode &&
+                stock.VoucherNo == prefix &&
+                stock.TransType == "P",
+                cancellationToken);
+            if (prefixAlreadyUsed)
+                throw new LocalPartsConflictException(
+                    $"Prefix '{prefix}' has already been used for a purchase at this location.");
 
             var currentRows = await _context.PartsInventories
                 .Where(stock =>
