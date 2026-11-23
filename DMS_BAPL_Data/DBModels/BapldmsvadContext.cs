@@ -5176,9 +5176,18 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<ZoneMaster> ZoneMasters { get; set; }
     public virtual DbSet<ZDmsPartDispWarranty> ZDmsPartDispWarranties { get; set; }
     public virtual DbSet<DmsPartDispatch> DmsPartDispatches { get; set; }
-    public virtual DbSet<DmsLineOrderReport> DmsLineOrderReports { get; set; } 
+    public virtual DbSet<DmsLineOrderReport> DmsLineOrderReports { get; set; }
+    public virtual DbSet<DmsJobReport> DmsJobReports { get; set; }
     public virtual DbSet<EbwInvoiceHeader> EbwInvoiceHeaders { get; set; }
     public virtual DbSet<EbwInvoiceDetail> EbwInvoiceDetails { get; set; }
+
+    public virtual DbSet<DmsRepairBill> DmsRepairBills { get; set; }
+    public virtual DbSet<DmsRepairBillItem> DmsRepairBillItems { get; set; }
+
+    public virtual DbSet<DmsMaterialTransfer> DmsMaterialTransfers { get; set; }
+    public virtual DbSet<DmsMaterialTransferItem> DmsMaterialTransferItems { get; set; }
+    public virtual DbSet<DmsMaterialTransferLabor> DmsMaterialTransferLabors { get; set; }
+    public virtual DbSet<DmsVehicleWarranty> DmsVehicleWarranties { get; set; }
 
     public virtual DbSet<WarrantyOrder> WarrantyOrders { get; set; }
     public virtual DbSet<WarrantyOrderDetail> WarrantyOrderDetails { get; set; }
@@ -9973,6 +9982,109 @@ public partial class BapldmsvadContext : DbContext
             entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Mrp).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<DmsRepairBill>(entity =>
+        {
+            entity.ToTable("DMS_RepairBill");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime2"); // kinva "date" tumchya DB type nusar
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        });
+
+        modelBuilder.Entity<DmsRepairBillItem>(entity =>
+        {
+            entity.ToTable("DMS_RepairBillItem");
+            entity.HasKey(e => e.Id);
+
+           // entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.WavRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotAmnt).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<DmsMaterialTransfer>(entity =>
+        {
+            entity.ToTable("DMS_MaterialTransfer");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DocDate).HasColumnType("datetime2");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        });
+
+        modelBuilder.Entity<DmsMaterialTransferItem>(entity =>
+        {
+            entity.ToTable("DMS_MaterialTransferItem");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 3)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstPer).HasColumnType("decimal(9, 2)");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstPer).HasColumnType("decimal(9, 2)");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstPer).HasColumnType("decimal(9, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Discount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Mrp).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<DmsMaterialTransferLabor>(entity =>
+        {
+            entity.ToTable("DMS_MaterialTransferLabor");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LbrRate).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CgstAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<DmsJobReport>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("DMS_JobReport");
+
+            entity.Property(e => e.Kms).HasMaxLength(50);
+            entity.Property(e => e.DealerName).HasMaxLength(200);
+            entity.Property(e => e.DealerCode).HasMaxLength(20);
+            entity.Property(e => e.DealerLocation).HasMaxLength(200);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.State).HasMaxLength(100);
+            entity.Property(e => e.JobNo).HasMaxLength(50);
+            entity.Property(e => e.JobType).HasMaxLength(100);
+            entity.Property(e => e.ServiceHead).HasMaxLength(100);
+            entity.Property(e => e.ServiceType).HasMaxLength(100);
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.MobileNo).HasMaxLength(20);
+            entity.Property(e => e.ChassisNo).HasMaxLength(50);
+            entity.Property(e => e.RegNo).HasMaxLength(50);
+            entity.Property(e => e.EngineNo).HasMaxLength(50);
+            entity.Property(e => e.ItemName).HasMaxLength(200);
+            entity.Property(e => e.ComplaintCode).HasMaxLength(100);
+            entity.Property(e => e.JobStatus).HasMaxLength(50);
+            entity.Property(e => e.BatteryNo).HasMaxLength(50);
+            entity.Property(e => e.BrandName).HasMaxLength(100);
+            entity.Property(e => e.ChargerNo).HasMaxLength(50);
+            entity.Property(e => e.Supervisor).HasMaxLength(100);
+            entity.Property(e => e.Technician).HasMaxLength(100);
+            entity.Property(e => e.CreatedThrough).HasMaxLength(50);
+            entity.Property(e => e.UniqueKey).HasMaxLength(400);
+        });
+
+        modelBuilder.Entity<DmsVehicleWarranty>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("DMS_VehicleWarranty");
         });
 
         OnModelCreatingPartial(modelBuilder);
