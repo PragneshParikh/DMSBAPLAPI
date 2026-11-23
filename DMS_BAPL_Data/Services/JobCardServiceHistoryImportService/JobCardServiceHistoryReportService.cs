@@ -31,7 +31,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 
     /// <summary>
     /// Service History (search by Chassis No / Registration No) and Job Data (dealer + date range) reports on
-    /// BAPLDMSvad.dbo.JobCardServiceHistory. Read-only; all filtering and paging is done in SQL (≈4.8 lakh rows)
+    /// dbo.DMS_ServiceHistory (see JcshTarget). Read-only; all filtering and paging is done in SQL (≈4.8 lakh rows)
     /// using the table's indexes (ChassisNo, RegNo, DealerCode+JobDate). Uses the API's DefaultConnection.
     /// </summary>
     public sealed class JobCardServiceHistoryReportService : IJobCardServiceHistoryReportService
@@ -39,8 +39,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         public const int MaxPageSize = 200;
         /// <summary>Excel export limit - above this the user is asked to narrow the filter</summary>
         public const int MaxExportRows = 200_000;
-        //  private const string Table = "dbo.JobCardServiceHistory";
-        private const string Table = "dbo.DMS_ServiceHistory";
+        private const string Table = JcshTarget.TableName;   // dbo.DMS_ServiceHistory
         /// <summary>columns shown in the on-screen tables (the export has all 63 source columns)</summary>
         private static readonly string[] GridColumns =
         {
@@ -57,8 +56,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 
         private SqlConnection NewConnection()
         {
-            var cs = _config.GetConnectionString(JobCardServiceHistoryImportService.ConnectionName);
-            if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("DefaultConnection is not configured on the API.");
+            var cs = JcshTarget.ConnectionString(_config);
+            if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException($"{JcshTarget.ConnectionName} / {JcshTarget.FallbackConnectionName} is not configured on the API.");
             return new SqlConnection(cs);
         }
 
@@ -427,7 +426,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             if (count > MaxExportRows)
                 throw new ArgumentException($"{count:N0} records match - the Excel export allows up to {MaxExportRows:N0}. Choose one dealer or a shorter date range.");
 
-            // all 63 source columns, Excel headers exactly as in "Jobcard servicehistory.xlsx" (SourceId → "Id")
+            // all 63 source columns, Excel headers exactly as in "Jobcard servicehistory.xlsx"
             var cols = JcshColumns.All;
             var select = string.Join(", ", cols.Select(c => $"[{c.Db}]"));
             await using var cmd = new SqlCommand($"SELECT {select} FROM {Table} {where} ORDER BY {orderBy};", con) { CommandTimeout = 600 };

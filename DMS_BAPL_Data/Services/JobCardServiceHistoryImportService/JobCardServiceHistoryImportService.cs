@@ -19,12 +19,17 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 {
     /// <summary>
     /// Imports "Jobcard servicehistory.xlsx" (DMS_ServiceHistory export, 63 columns, ~4.8 lakh rows, ~140 MB)
-    /// into BAPLDMSvad.dbo.JobCardServiceHistory (the DMS database, same as the rest of the API).
+    /// into dbo.DMS_ServiceHistory (see JcshTarget: "ServiceHistoryConnection" if configured, else "DefaultConnection").
+    /// Changed 23.11.2026 - before that it wrote a separate table, BAPLDMSvad.dbo.JobCardServiceHistory.
     ///
     /// Rules
-    ///  * Only dbo.JobCardServiceHistory is written. JobCardHeader / dbo.JobCards and the Job Card screens are not touched.
-    ///  * All 63 columns are kept (Excel "Id" → SourceId). The literal text "NULL" (how the export writes empty
-    ///    values) is stored as SQL NULL. Nothing is truncated: a value too long / not a number / not a date fails the row.
+    ///  * Only dbo.DMS_ServiceHistory is written. dbo.JobCards and the Job Card screens are not touched.
+    ///  * The table's own columns are read at run time (sys.columns): only columns that exist in the table AND are not
+    ///    identity / computed are written (so Id and the computed JobStatus are never written), and every value is
+    ///    converted to that column's real type and length. Audit columns (ImportBatchId, ImportedBy, SourceFileName,
+    ///    SourceRowNo) are filled only if the table has them.
+    ///  * The literal text "NULL" (how the export writes empty values) is stored as SQL NULL.
+    ///    Nothing is truncated: a value too long / not a number / not a date fails the row.
     ///  * UniqueKey identifies a job. Duplicates inside the file: first row wins, the rest are Skipped.
     ///    UniqueKeys already in the table: Skipped - existing rows are never updated or overwritten.
     ///  * Rows are bulk-copied to a #temp table and inserted with INSERT … WHERE NOT EXISTS, one transaction per batch.
@@ -33,15 +38,13 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
     ///  * Validate / import run as background jobs (the Azure App Service front end cuts requests at ~230 s);
     ///    one job at a time per API instance + sp_getapplock in the database for real imports.
     ///
-    /// Uses the API's existing "DefaultConnection" (BAPLDMSvad) - no separate connection string.
     /// </summary>
     public sealed class JobCardServiceHistoryImportService : IJobCardServiceHistoryImportService
     {
-        public const string ConnectionName = "DefaultConnection";
-        public const string TableName = "dbo.JobCardServiceHistory";
+        public const string ConnectionName = JcshTarget.ConnectionName;
+        public const string TableName = JcshTarget.TableName;
         private const string AppLock = "DMS_JobCardServiceHistoryImport";
         private const int MaxIssuesPerLevel = 1000;
-        private static readonly string[] AuditColumns = { "UniqueKey", "ImportBatchId", "ImportedBy", "SourceFileName", "SourceRowNo" };
         private static readonly TimeSpan UploadTtl = TimeSpan.FromHours(12);
         private static readonly string TempDir = Path.Combine(Path.GetTempPath(), "dms-jcsh-imports");
 
@@ -72,7 +75,99 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             _logger = logger;
         }
 
-        private string? ConnectionString => _config.GetConnectionString(ConnectionName);
+        private string? ConnectionString => JcshTarget.ConnectionString(_config);
+
+        // ═════════════════════════════════════════════════════════════════════
+        // TARGET TABLE SCHEMA (read from the database, not assumed)
+        // ═════════════════════════════════════════════════════════════════════
+        private sealed record TargetColumn(string Name, string DataType, int MaxLength, int Precision, int Scale,
+                                           bool Nullable, bool Identity, bool Computed, string? Default);
+
+        /// <summary>Columns used by one run: the file columns that are written, in order, with the table's types.</summary>
+        private sealed class ColumnSet
+        {
+            public List<JcshColumn> List = new();
+            public Dictionary<string, int> Index = new(StringComparer.OrdinalIgnoreCase);
+            /// <summary>table column → DEFAULT expression, for NOT NULL columns that have one</summary>
+            public Dictionary<string, string> Defaults = new(StringComparer.OrdinalIgnoreCase);
+            public List<string> AuditColumns = new();
+            public List<string> NotWritten = new();
+            public int I(string key) => Index.TryGetValue(key, out var i) ? i : -1;
+
+            public static ColumnSet From(IEnumerable<JcshColumn> cols)
+            {
+                var set = new ColumnSet();
+                foreach (var c in cols) { set.Index[c.Key] = set.List.Count; set.List.Add(c); }
+                return set;
+            }
+        }
+
+        private static async Task<Dictionary<string, TargetColumn>> LoadTargetAsync(SqlConnection con, CancellationToken ct)
+        {
+            const string sql =
+                "SELECT c.name, t.name, c.max_length, c.precision, c.scale, c.is_nullable, c.is_identity, c.is_computed, dc.definition " +
+                "FROM sys.columns c JOIN sys.types t ON t.user_type_id = c.user_type_id " +
+                "LEFT JOIN sys.default_constraints dc ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id " +
+                "WHERE c.object_id = OBJECT_ID(@t, N'U');";
+            var result = new Dictionary<string, TargetColumn>(StringComparer.OrdinalIgnoreCase);
+            await using var cmd = new SqlCommand(sql, con) { CommandTimeout = 30 };
+            cmd.Parameters.Add("@t", SqlDbType.NVarChar, 256).Value = TableName;
+            await using var rd = await cmd.ExecuteReaderAsync(ct);
+            while (await rd.ReadAsync(ct))
+            {
+                var type = rd.GetString(1).ToLowerInvariant();
+                int len = rd.GetInt16(2);
+                if (len > 0 && type is "nvarchar" or "nchar") len /= 2;
+                result[rd.GetString(0)] = new TargetColumn(rd.GetString(0), type, len, rd.GetByte(3), rd.GetByte(4),
+                    rd.GetBoolean(5), rd.GetBoolean(6), rd.GetBoolean(7), rd.IsDBNull(8) ? null : rd.GetString(8));
+            }
+            return result;
+        }
+
+        private static readonly string[] AuditCandidates = { "ImportBatchId", "ImportedBy", "SourceFileName", "SourceRowNo" };
+
+        /// <summary>File columns that exist in the table and can be written, typed like the table.</summary>
+        private static ColumnSet BuildColumnSet(Dictionary<string, TargetColumn> target)
+        {
+            var set = new ColumnSet();
+            foreach (var c in JcshColumns.All)
+            {
+                if (!target.TryGetValue(c.Db, out var t) || t.Identity || t.Computed) { set.NotWritten.Add(c.Key); continue; }
+                var required = c.Required || (!t.Nullable && t.Default == null);
+                JcshColumn typed = t.DataType switch
+                {
+                    "char" or "nchar" or "varchar" or "nvarchar" => c with { Db = t.Name, Type = JcshType.Text, Length = t.MaxLength < 0 ? int.MaxValue : t.MaxLength, Required = required },
+                    "text" or "ntext" or "xml" or "sql_variant" => c with { Db = t.Name, Type = JcshType.Text, Length = int.MaxValue, Required = required },
+                    "int" or "smallint" or "tinyint" => c with { Db = t.Name, Type = JcshType.Int, Required = required },
+                    "bigint" => c with { Db = t.Name, Type = JcshType.Decimal, Precision = 19, Scale = 0, Required = required },
+                    "decimal" or "numeric" => c with { Db = t.Name, Type = JcshType.Decimal, Precision = t.Precision, Scale = t.Scale, Required = required },
+                    "money" => c with { Db = t.Name, Type = JcshType.Decimal, Precision = 19, Scale = 4, Required = required },
+                    "smallmoney" => c with { Db = t.Name, Type = JcshType.Decimal, Precision = 10, Scale = 4, Required = required },
+                    "float" or "real" => c with { Db = t.Name, Type = JcshType.Decimal, Precision = 38, Scale = 10, Required = required },
+                    "date" => c with { Db = t.Name, Type = JcshType.Date, Required = required },
+                    "datetime" or "datetime2" or "smalldatetime" or "datetimeoffset" => c with { Db = t.Name, Type = JcshType.DateTime, Required = required },
+                    "bit" => c with { Db = t.Name, Type = JcshType.Bit, Required = required },
+                    _ => c with { Db = t.Name, Type = JcshType.Text, Length = 4000, Required = required }
+                };
+                set.Index[typed.Key] = set.List.Count;
+                set.List.Add(typed);
+                if (!t.Nullable && t.Default != null) set.Defaults[t.Name] = t.Default;
+            }
+            set.AuditColumns = AuditCandidates.Where(a => target.TryGetValue(a, out var t) && !t.Identity && !t.Computed).ToList();
+            return set;
+        }
+
+        /// <summary>Why the table cannot take this import, or null when it can.</summary>
+        private static string? CheckColumnSet(ColumnSet set, Dictionary<string, TargetColumn> target)
+        {
+            var key = new[] { "UniqueKey", "DealerCode", "JobNo", "JobDate" }.Where(k => set.I(k) < 0).ToList();
+            if (key.Count > 0) return $"{TableName} has no writable column(s): {string.Join(", ", key)}.";
+            var written = set.List.Select(c => c.Db).Concat(set.AuditColumns).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var blocked = target.Values.Where(t => !t.Nullable && t.Default == null && !t.Identity && !t.Computed && !written.Contains(t.Name))
+                                       .Select(t => t.Name).ToList();
+            if (blocked.Count > 0) return $"{TableName} has NOT NULL column(s) without a default that are not in the file: {string.Join(", ", blocked)}.";
+            return null;
+        }
 
         // ═════════════════════════════════════════════════════════════════════
         // FIELDS
@@ -171,28 +266,37 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         {
             var cs = ConnectionString;
             if (string.IsNullOrWhiteSpace(cs))
-                return (false, false, $"Connection string '{ConnectionName}' is not configured on the API. Validation runs without the database duplicate check; import is disabled.");
+                return (false, false, $"Connection string '{JcshTarget.ConnectionName}' / '{JcshTarget.FallbackConnectionName}' is not configured on the API. Validation runs without the database duplicate check; import is disabled.");
             try
             {
                 var b = new SqlConnectionStringBuilder(cs) { ConnectTimeout = 15 };
                 await using var con = new SqlConnection(b.ConnectionString);
                 await con.OpenAsync(ct);
                 // table must exist AND have every column this import writes (guards against an unrelated table of the same name)
-                await using var cmd = new SqlCommand($"SELECT c.name FROM sys.columns c WHERE c.object_id = OBJECT_ID(N'{TableName}', N'U')", con) { CommandTimeout = 15 };
-                var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                await using (var rd = await cmd.ExecuteReaderAsync(ct))
-                    while (await rd.ReadAsync(ct)) found.Add(rd.GetString(0));
-                if (found.Count == 0)
-                    return (true, false, $"Connected to {b.InitialCatalog}, but {TableName} does not exist yet - run 01_Create_JobCardServiceHistory.sql (after approval). Import is disabled until then.");
-                var missing = JcshColumns.All.Select(c => c.Db).Concat(AuditColumns).Where(n => !found.Contains(n)).ToList();
-                if (missing.Count > 0)
-                    return (true, false, $"{TableName} exists in {b.InitialCatalog} but is missing column(s): {string.Join(", ", missing)}. Import is disabled - check the table against 01_Create_JobCardServiceHistory.sql.");
-                return (true, true, $"Connected to {b.InitialCatalog}; {TableName} found ({found.Count} columns).");
+                var target = await LoadTargetAsync(con, ct);
+                if (target.Count == 0)
+                    return (true, false, $"Connected to {b.InitialCatalog} ({JcshTarget.ConnectionLabel(_config)}), but {TableName} does not exist there. " +
+                                         $"If it is in another database, add connection string \"{JcshTarget.ConnectionName}\" for that database. Import is disabled.");
+                var set = BuildColumnSet(target);
+                var problem = CheckColumnSet(set, target);
+                if (problem != null) return (true, false, problem + " Import is disabled.");
+                var skipped = set.NotWritten.Count > 0 ? $" Not written (identity / computed / not in table): {string.Join(", ", set.NotWritten)}." : "";
+                // duplicate check per batch looks rows up by UniqueKey - without an index each batch scans the whole table
+                await using (var ix = new SqlCommand(
+                    "SELECT COUNT(*) FROM sys.index_columns ic JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id " +
+                    "WHERE ic.object_id = OBJECT_ID(@t, N'U') AND ic.key_ordinal = 1 AND c.name = N'UniqueKey';", con) { CommandTimeout = 15 })
+                {
+                    ix.Parameters.Add("@t", SqlDbType.NVarChar, 256).Value = TableName;
+                    if (Convert.ToInt32(await ix.ExecuteScalarAsync(ct)) == 0)
+                        skipped += " Note: UniqueKey has no index, so the duplicate check scans the whole table for every batch (slow on lakhs of rows) - an index on UniqueKey is recommended before the full import.";
+                }
+                return (true, true, $"Connected to {b.InitialCatalog}; {TableName} found ({target.Count} columns, {set.List.Count} filled from the file).{skipped}" +
+                                    " Rows whose UniqueKey is already in the table are skipped.");
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Service history destination check failed");
-                return (true, false, "Could not connect to the DMS database: " + ex.GetBaseException().Message);
+                return (true, false, $"Could not connect to the service history database ({JcshTarget.ConnectionLabel(_config)}): " + ex.GetBaseException().Message);
             }
         }
 
@@ -331,17 +435,22 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                 lock (job.Sync) st.DuplicateCheckedAgainstDb = useDb;
                 if (opt.DryRun && !useDb && destMsg != null) AddIssue(job, 0, "Warning", destMsg);
 
+                // columns written this run: the table's real columns and types (defaults when there is no database)
+                var set = ColumnSet.From(JcshColumns.All);
                 if (useDb)
                 {
                     con = await OpenAsync(cs!, ct);
+                    set = BuildColumnSet(await LoadTargetAsync(con, ct));
                     if (!opt.DryRun) await AcquireLockAsync(con, ct);
-                    await CreateStageAsync(con, ct);
+                    await CreateStageAsync(con, set, ct);
+                    if (set.NotWritten.Count > 0)
+                        AddIssue(job, 0, "Info", $"Not written (identity, computed or not in {TableName}): {string.Join(", ", set.NotWritten)}.");
                 }
 
                 // column index of every mapped field in the sheet
                 var colIndex = new Dictionary<string, int>();
                 foreach (var kv in opt.Mapping) colIndex[kv.Key] = up.Headers.IndexOf(kv.Value) + 1;
-                var cols = JcshColumns.All;
+                var cols = set.List;
                 var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var nullText = new int[cols.Count];
                 var batch = new List<ParsedRow>(opt.BatchSize);
@@ -361,7 +470,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                     if (rowNo > toRow) break;
                     lock (job.Sync) { st.RowsRead = rowNo - fromRow + 1; if (st.Phase.StartsWith("Reading")) st.Phase = opt.DryRun ? "Validating rows…" : "Importing rows…"; }
 
-                    var pr = ParseRow(job, row, cols, colIndex, nullText);
+                    var pr = ParseRow(job, row, set, colIndex, nullText);
                     if (pr == null) continue;   // error already recorded
 
                     if (!seen.Add(pr.UniqueKey.TrimEnd()))
@@ -374,13 +483,13 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                     batch.Add(pr);
                     if (batch.Count >= opt.BatchSize)
                     {
-                        consecutiveFailures = await FlushAsync(job, batch, ++batchNo, opt.DryRun, useDb, cs, importBatchId, userId, up.FileName, () => con, c => con = c, consecutiveFailures, ct);
+                        consecutiveFailures = await FlushAsync(job, batch, ++batchNo, opt.DryRun, useDb, cs, set, importBatchId, userId, up.FileName, () => con, c => con = c, consecutiveFailures, ct);
                         batch.Clear();
                     }
                 }
                 if (batch.Count > 0)
                 {
-                    consecutiveFailures = await FlushAsync(job, batch, ++batchNo, opt.DryRun, useDb, cs, importBatchId, userId, up.FileName, () => con, c => con = c, consecutiveFailures, ct);
+                    consecutiveFailures = await FlushAsync(job, batch, ++batchNo, opt.DryRun, useDb, cs, set, importBatchId, userId, up.FileName, () => con, c => con = c, consecutiveFailures, ct);
                     batch.Clear();
                 }
 
@@ -428,8 +537,10 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         }
 
         // ─────────────────────────────────────────────────────────────── parse + validate one row
-        private ParsedRow? ParseRow(Job job, LargeExcelRow row, IReadOnlyList<JcshColumn> cols, Dictionary<string, int> colIndex, int[] nullText)
+        private ParsedRow? ParseRow(Job job, LargeExcelRow row, ColumnSet set, Dictionary<string, int> colIndex, int[] nullText)
         {
+            var cols = set.List;
+            int IndexOf(string key) => set.I(key);
             var rowNo = row.RowNumber();
             var values = new object?[cols.Count];
             var errors = new List<string>();
@@ -455,17 +566,20 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             }
 
             var pr = new ParsedRow { RowNo = rowNo, Values = values };
-            string? S(string key) { var idx = IndexOf(key); return idx >= 0 ? values[idx]?.ToString() : null; }
+            string? S(string key) { var idx = IndexOf(key); return idx >= 0 ? (values[idx] is DateTime d ? d.ToString("yyyy-MM-dd") : values[idx]?.ToString()) : null; }
+            object? V(string key) { var idx = IndexOf(key); return idx >= 0 ? values[idx] : null; }
             pr.UniqueKey = S("UniqueKey") ?? "";
             pr.JobNo = S("JobNo");
             pr.ChassisNo = S("ChassisNo");
             pr.DealerCode = S("DealerCode") ?? "";
-            pr.NetTotal = values[IndexOf("NetTotal")] is decimal nt ? nt : 0m;
-            pr.JobDate = values[IndexOf("JobDate")] as DateTime?;
+            pr.NetTotal = V("NetTotal") is decimal nt ? nt : 0m;
+            pr.JobDate = V("JobDate") as DateTime?;
 
             foreach (var c in cols.Where(c => c.Required))
                 if (values[IndexOf(c.Key)] == null && !errors.Any(e => e.StartsWith(c.Key + ":")))
-                    errors.Add($"{c.Key} is blank (mandatory)");
+                    errors.Add(JcshColumns.ByKey.TryGetValue(c.Key, out var def) && def.Required
+                        ? $"{c.Key} is blank (mandatory)"
+                        : $"{c.Key} is blank, but the table column is NOT NULL");
 
             if (errors.Count > 0)
             {
@@ -475,7 +589,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             }
 
             if (pr.ChassisNo == null) warnings.Add("ChassisNo is blank");
-            if (values[IndexOf("DealerCode")] is string dc && values[IndexOf("JobDate")] is DateTime jd && values[IndexOf("JobNo")] is int jn)
+            if (V("DealerCode") is string dc && V("JobDate") is DateTime jd && S("JobNo") is string jn)
             {
                 var composite = $"{dc}{jn}{jd:yyyy-MM-dd}{pr.ChassisNo}";
                 if (!string.Equals(composite, pr.UniqueKey, StringComparison.Ordinal))
@@ -489,8 +603,6 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             return pr;
         }
 
-        private static readonly Dictionary<string, int> _index = JcshColumns.All.Select((c, i) => (c.Key, i)).ToDictionary(x => x.Key, x => x.i, StringComparer.OrdinalIgnoreCase);
-        private static int IndexOf(string key) => _index[key];
 
         private static readonly string[] DateFormats =
         {
@@ -510,7 +622,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                     if (v.IsNumber) s = NumberText(v.GetNumber());
                     else if (v.IsDateTime) s = v.GetDateTime().TimeOfDay == TimeSpan.Zero ? v.GetDateTime().ToString("yyyy-MM-dd") : v.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss");
                     else s = v.ToString(CultureInfo.InvariantCulture);
-                    if (s.Length > c.Length) throw new FormatException($"{s.Length} characters, column allows {c.Length} (value not truncated)");
+                    if (c.Length != int.MaxValue && s.Length > c.Length) throw new FormatException($"{s.Length} characters, column allows {c.Length} (value not truncated)");
                     return s;
                 }
                 case JcshType.Int:
@@ -604,26 +716,29 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                 throw new InvalidOperationException("Another Jobcard servicehistory import is running (database lock held). Try again later.");
         }
 
-        private static string StageDdl()
+        private static string StageType(JcshColumn c) =>
+            c.Type == JcshType.Text && (c.Length == int.MaxValue || c.Length > 4000) ? "nvarchar(max)" : c.SqlType;
+
+        private static string StageDdl(ColumnSet set)
         {
             var sb = new StringBuilder("CREATE TABLE #jcsh_stage (RowNo int NOT NULL");
-            foreach (var c in JcshColumns.All)
-                sb.Append($", [{c.Db}] {c.SqlType}{(c.Type == JcshType.Text ? " COLLATE DATABASE_DEFAULT" : "")} NULL");
+            foreach (var c in set.List)
+                sb.Append($", [{c.Db}] {StageType(c)}{(c.Type == JcshType.Text ? " COLLATE DATABASE_DEFAULT" : "")} NULL");
             sb.Append(");");
             return sb.ToString();
         }
 
-        private static async Task CreateStageAsync(SqlConnection con, CancellationToken ct)
+        private static async Task CreateStageAsync(SqlConnection con, ColumnSet set, CancellationToken ct)
         {
-            await using var cmd = new SqlCommand("IF OBJECT_ID('tempdb..#jcsh_stage') IS NOT NULL DROP TABLE #jcsh_stage; " + StageDdl(), con) { CommandTimeout = 60 };
+            await using var cmd = new SqlCommand("IF OBJECT_ID('tempdb..#jcsh_stage') IS NOT NULL DROP TABLE #jcsh_stage; " + StageDdl(set), con) { CommandTimeout = 60 };
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        private static DataTable NewTable()
+        private static DataTable NewTable(ColumnSet set)
         {
             var t = new DataTable();
             t.Columns.Add("RowNo", typeof(int));
-            foreach (var c in JcshColumns.All)
+            foreach (var c in set.List)
                 t.Columns.Add(c.Db, c.Type switch
                 {
                     JcshType.Int => typeof(int),
@@ -635,23 +750,25 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             return t;
         }
 
-        private static readonly string ColumnList = string.Join(", ", JcshColumns.All.Select(c => $"[{c.Db}]"));
-        private static readonly string StageColumnList = string.Join(", ", JcshColumns.All.Select(c => $"s.[{c.Db}]"));
+        private static string ColumnList(ColumnSet set) => string.Join(", ", set.List.Select(c => $"[{c.Db}]"));
+        /// <summary>stage values; a NOT NULL column with a DEFAULT gets that default when the file cell is empty</summary>
+        private static string StageColumnList(ColumnSet set) => string.Join(", ", set.List.Select(c =>
+            set.Defaults.TryGetValue(c.Db, out var def) ? $"COALESCE(s.[{c.Db}], {def})" : $"s.[{c.Db}]"));
 
         private const string ExistingSql =
-            "SELECT s.RowNo FROM #jcsh_stage s WHERE EXISTS (SELECT 1 FROM " + TableName + " t {0} WHERE t.UniqueKey = s.UniqueKey);";
+            "SELECT s.RowNo FROM #jcsh_stage s WHERE EXISTS (SELECT 1 FROM " + TableName + " t {0} WHERE t.UniqueKey = s.UniqueKey COLLATE DATABASE_DEFAULT);";
 
         /// <summary>Checks one batch against the table and (real import) inserts the new rows in one transaction.
         /// Returns the new consecutive-failure count.</summary>
         private async Task<int> FlushAsync(Job job, List<ParsedRow> batch, int batchNo, bool dryRun, bool useDb, string? cs,
-            Guid importBatchId, string userId, string fileName, Func<SqlConnection?> getCon, Action<SqlConnection> setCon, int consecutiveFailures, CancellationToken ct)
+            ColumnSet set, Guid importBatchId, string userId, string fileName, Func<SqlConnection?> getCon, Action<SqlConnection> setCon, int consecutiveFailures, CancellationToken ct)
         {
             var st = job.Status;
             HashSet<int> existing = new();
 
             if (useDb)
             {
-                var table = NewTable();
+                var table = NewTable(set);
                 foreach (var r in batch)
                 {
                     var dr = table.NewRow();
@@ -671,7 +788,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                             con = await OpenAsync(cs!, ct);
                             setCon(con);
                             if (!dryRun) await AcquireLockAsync(con, ct);
-                            await CreateStageAsync(con, ct);
+                            await CreateStageAsync(con, set, ct);
                         }
                         lock (job.Sync) st.Phase = $"{(dryRun ? "Checking" : "Importing")} batch {batchNo} ({batch.Count:N0} rows)…";
 
@@ -691,9 +808,14 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                         var inserted = 0;
                         if (!dryRun)
                         {
-                            var sql = $"INSERT INTO {TableName} ({ColumnList}, ImportBatchId, ImportedBy, SourceFileName, SourceRowNo) " +
-                                      $"SELECT {StageColumnList}, @batch, @by, @file, s.RowNo FROM #jcsh_stage s " +
-                                      $"WHERE NOT EXISTS (SELECT 1 FROM {TableName} t WITH (UPDLOCK, HOLDLOCK) WHERE t.UniqueKey = s.UniqueKey);";
+                            // audit columns only when the table has them
+                            var auditValue = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                { ["ImportBatchId"] = "@batch", ["ImportedBy"] = "@by", ["SourceFileName"] = "@file", ["SourceRowNo"] = "s.RowNo" };
+                            var auditCols = string.Concat(set.AuditColumns.Select(a => $", [{a}]"));
+                            var auditVals = string.Concat(set.AuditColumns.Select(a => ", " + auditValue[a]));
+                            var sql = $"INSERT INTO {TableName} ({ColumnList(set)}{auditCols}) " +
+                                      $"SELECT {StageColumnList(set)}{auditVals} FROM #jcsh_stage s " +
+                                      $"WHERE NOT EXISTS (SELECT 1 FROM {TableName} t WITH (UPDLOCK, HOLDLOCK) WHERE t.UniqueKey = s.UniqueKey COLLATE DATABASE_DEFAULT);";
                             await using var ins = new SqlCommand(sql, con, tx) { CommandTimeout = 600 };
                             ins.Parameters.Add("@batch", SqlDbType.UniqueIdentifier).Value = importBatchId;
                             ins.Parameters.Add("@by", SqlDbType.NVarChar, 100).Value = Truncate(userId, 100);
@@ -739,7 +861,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
                 if (existing.Contains(r.RowNo))
                 {
                     lock (job.Sync) st.SkippedExisting++;
-                    AddIssue(job, r.RowNo, "Skipped", "UniqueKey already in dbo.JobCardServiceHistory - existing row kept, not overwritten.", r);
+                    AddIssue(job, r.RowNo, "Skipped", $"UniqueKey already in {TableName} - existing row kept, not overwritten.", r);
                     continue;
                 }
                 lock (job.Sync)

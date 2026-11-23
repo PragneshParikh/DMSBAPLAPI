@@ -10,7 +10,7 @@ namespace DMS_BAPL_Api.Controllers
 {
     /// <summary>
     /// Job card creation (Android app): look a vehicle up in the imported service history
-    /// (BAPLDMSvad.dbo.JobCardServiceHistory = DMS_IOT_DATA.dbo.DMS_ServiceHistory import) by Chassis No or
+    /// (dbo.DMS_ServiceHistory - see JcshTarget; was BAPLDMSvad.dbo.JobCardServiceHistory until 23.11.2026) by Chassis No or
     /// Registration No - typed or read by OCR - and return its details to pre-fill the job card.
     ///
     /// Added 18.11.2026, dealer scope added 19.11.2026. Additive only: no existing endpoint, service or table changed.
@@ -27,7 +27,7 @@ namespace DMS_BAPL_Api.Controllers
     [ApiController]
     public class JobCardServiceHistoryLookupController : ControllerBase
     {
-        private const string Table = "dbo.JobCardServiceHistory";
+        private const string Table = JcshTarget.TableName;
         private const int SuggestPerKind = 15;
 
         private readonly IJobCardServiceHistoryReportService _report;
@@ -113,8 +113,8 @@ namespace DMS_BAPL_Api.Controllers
             if (s.Length < 2) return new List<JcshSuggestion>();
             if (s.Length > 30) s = s[..30];
 
-            var cs = _config.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("DefaultConnection is not configured on the API.");
+            var cs = JcshTarget.ConnectionString(_config);
+            if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException($"{JcshTarget.ConnectionName} / {JcshTarget.FallbackConnectionName} is not configured on the API.");
 
             var result = new List<JcshSuggestion>();
             await using var con = new SqlConnection(cs);

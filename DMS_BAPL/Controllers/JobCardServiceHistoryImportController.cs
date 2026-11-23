@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DMS_BAPL_Api.Controllers
 {
     /// <summary>
-    /// Jobcard Servicehistory Excel → BAPLDMSvad.dbo.JobCardServiceHistory (Utility menu). Admin / SuperAdmin only.
+    /// Jobcard Servicehistory Excel → dbo.DMS_ServiceHistory (JcshTarget; Utility menu). Admin / SuperAdmin only.
     ///   GET    api/jobcard-servicehistory-import/fields
     ///   POST   api/jobcard-servicehistory-import/upload            (file)             → uploadId, headers, mapping, sample rows, destination status
     ///   POST   api/jobcard-servicehistory-import/{uploadId}/run    (JcshRunOptions)   → starts background validate (dryRun) / import job
@@ -111,7 +111,7 @@ namespace DMS_BAPL_Api.Controllers
     }
 
     /// <summary>
-    /// Read API for the imported service history (BAPLDMSvad.dbo.JobCardServiceHistory). Admin / SuperAdmin only.
+    /// Read API for the service history (dbo.DMS_ServiceHistory, see JcshTarget). Admin / SuperAdmin only.
     ///   GET api/jobcard-servicehistory?chassisNo=&amp;regNo=&amp;dealerCode=&amp;jobNo=&amp;fromDate=&amp;toDate=&amp;page=1&amp;pageSize=50
     ///   GET api/jobcard-servicehistory/chassis/{chassisNo}   (latest 500 jobs of one vehicle)
     /// </summary>

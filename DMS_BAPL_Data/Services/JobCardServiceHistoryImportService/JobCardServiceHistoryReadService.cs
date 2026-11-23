@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 {
     /// <summary>
-    /// Read-only access to BAPLDMSvad.dbo.JobCardServiceHistory (imported service history).
+    /// Read-only access to the service history table (JcshTarget: dbo.DMS_ServiceHistory).
     /// Uses the API's DefaultConnection (BAPLDMSvad), same as the import; only SELECTs, all parameterised.
     /// </summary>
     public sealed class JobCardServiceHistoryReadService : IJobCardServiceHistoryReadService
@@ -22,14 +22,15 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 
         public JobCardServiceHistoryReadService(IConfiguration config) { _config = config; }
 
-        private static readonly string Columns =
-            "Id, " + string.Join(", ", JcshColumns.All.Select(c => $"[{c.Db}]")) + ", ImportBatchId, ImportedAtUtc, ImportedBy, SourceFileName, SourceRowNo";
+        // the 63 file columns (Id first); DMS_ServiceHistory has no import-audit columns
+        private static readonly string Columns = string.Join(", ", JcshColumns.All.Select(c => $"[{c.Db}]"));
+        private const string Table = JcshTarget.TableName;
 
         private SqlConnection NewConnection()
         {
-            var cs = _config.GetConnectionString(JobCardServiceHistoryImportService.ConnectionName);
+            var cs = JcshTarget.ConnectionString(_config);
             if (string.IsNullOrWhiteSpace(cs))
-                throw new InvalidOperationException($"Connection string '{JobCardServiceHistoryImportService.ConnectionName}' is not configured on the API.");
+                throw new InvalidOperationException($"Connection string '{JcshTarget.ConnectionName}' / '{JcshTarget.FallbackConnectionName}' is not configured on the API.");
             return new SqlConnection(cs);
         }
 
@@ -42,7 +43,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             if (!string.IsNullOrWhiteSpace(q.ChassisNo)) { where.Append(" AND ChassisNo = @chassis"); ps.Add(new SqlParameter("@chassis", SqlDbType.NVarChar, 30) { Value = q.ChassisNo.Trim() }); }
             if (!string.IsNullOrWhiteSpace(q.RegNo)) { where.Append(" AND RegNo = @reg"); ps.Add(new SqlParameter("@reg", SqlDbType.NVarChar, 30) { Value = q.RegNo.Trim() }); }
             if (!string.IsNullOrWhiteSpace(q.DealerCode)) { where.Append(" AND DealerCode = @dealer"); ps.Add(new SqlParameter("@dealer", SqlDbType.NVarChar, 20) { Value = q.DealerCode.Trim() }); }
-            if (q.JobNo.HasValue) { where.Append(" AND JobNo = @jobNo"); ps.Add(new SqlParameter("@jobNo", SqlDbType.Int) { Value = q.JobNo.Value }); }
+            if (q.JobNo.HasValue) { where.Append(" AND CAST(JobNo AS nvarchar(30)) = @jobNo"); ps.Add(new SqlParameter("@jobNo", SqlDbType.NVarChar, 30) { Value = q.JobNo.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) }); }
             if (q.FromDate.HasValue) { where.Append(" AND JobDate >= @from"); ps.Add(new SqlParameter("@from", SqlDbType.Date) { Value = q.FromDate.Value.Date }); }
             if (q.ToDate.HasValue) { where.Append(" AND JobDate <= @to"); ps.Add(new SqlParameter("@to", SqlDbType.Date) { Value = q.ToDate.Value.Date }); }
 
@@ -50,13 +51,13 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
             await using var con = NewConnection();
             await con.OpenAsync(ct);
 
-            await using (var cnt = new SqlCommand($"SELECT COUNT_BIG(*) FROM dbo.JobCardServiceHistory {where};", con) { CommandTimeout = 60 })
+            await using (var cnt = new SqlCommand($"SELECT COUNT_BIG(*) FROM {Table} {where};", con) { CommandTimeout = 60 })
             {
                 cnt.Parameters.AddRange(ps.Select(Clone).ToArray());
                 result.Total = (long)(await cnt.ExecuteScalarAsync(ct) ?? 0L);
             }
 
-            var sql = $"SELECT {Columns} FROM dbo.JobCardServiceHistory {where} ORDER BY JobDate DESC, Id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
+            var sql = $"SELECT {Columns} FROM {Table} {where} ORDER BY JobDate DESC, Id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
             await using var cmd = new SqlCommand(sql, con) { CommandTimeout = 60 };
             cmd.Parameters.AddRange(ps.Select(Clone).ToArray());
             cmd.Parameters.Add("@skip", SqlDbType.Int).Value = (page - 1) * size;
@@ -69,7 +70,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         {
             await using var con = NewConnection();
             await con.OpenAsync(ct);
-            await using var cmd = new SqlCommand($"SELECT TOP (500) {Columns} FROM dbo.JobCardServiceHistory WHERE ChassisNo = @chassis ORDER BY JobDate DESC, Id DESC;", con) { CommandTimeout = 60 };
+            await using var cmd = new SqlCommand($"SELECT TOP (500) {Columns} FROM {Table} WHERE ChassisNo = @chassis ORDER BY JobDate DESC, Id DESC;", con) { CommandTimeout = 60 };
             cmd.Parameters.Add("@chassis", SqlDbType.NVarChar, 30).Value = chassisNo.Trim();
             return await ReadAsync(cmd, ct);
         }

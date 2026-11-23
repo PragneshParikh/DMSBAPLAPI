@@ -5,7 +5,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
 {
     public enum JcshType { Int, Text, Date, DateTime, Decimal, Bit }
 
-    /// <summary>One of the 63 Excel columns and the BAPLDMSvad.dbo.JobCardServiceHistory column it is stored in.</summary>
+    /// <summary>One of the 63 Excel columns and the dbo.DMS_ServiceHistory column it is stored in (same name).
+    /// Type / Length here are the defaults; at import time they are replaced by the real column types of the table.</summary>
     public sealed record JcshColumn(string Key, string Db, JcshType Type, int Length, int Precision, int Scale, bool Required, string Group)
     {
         public string SqlType => Type switch
@@ -25,7 +26,8 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
     /// Types / lengths were chosen from a full profile of the 4,81,392-row file (03.11.2026):
     /// max text length found → next round size with head-room; numbers that are always whole → int;
     /// amounts → decimal(18,2). Must stay in sync with docs/jobcard-servicehistory/01_Create_JobCardServiceHistory.sql.
-    /// Excel "Id" (source table identity) is kept as SourceId - the new table has its own Id.
+    /// Excel "Id" is the source table identity: the import never writes it (DMS_ServiceHistory.Id is an identity),
+    /// but reads / exports use it as the row Id. Changed 23.11.2026 (was SourceId of dbo.JobCardServiceHistory).
     /// </summary>
     public static class JcshColumns
     {
@@ -37,7 +39,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         public static readonly IReadOnlyList<JcshColumn> All = new List<JcshColumn>
         {
             // ---------- Job ----------
-            new("Id", "SourceId", JcshType.Int, 0, 0, 0, false, "Job"),
+            new("Id", "Id", JcshType.Int, 0, 0, 0, false, "Job"),
             T("DealerCode", 20, "Job", true),
             I("JobNo", "Job", true),
             D("JobDate", "Job", true),

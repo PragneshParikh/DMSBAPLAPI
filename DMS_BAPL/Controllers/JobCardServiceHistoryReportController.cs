@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DMS_BAPL_Api.Controllers
 {
     /// <summary>
-    /// Reports on the imported service history (BAPLDMSvad.dbo.JobCardServiceHistory). Read-only. Admin / SuperAdmin only.
+    /// Reports on the service history (dbo.DMS_ServiceHistory, see JcshTarget). Read-only. Admin / SuperAdmin only.
     ///   GET api/jobcard-servicehistory-report/service-history?search=&amp;page=&amp;pageSize=            Chassis No / Reg No
     ///   GET api/jobcard-servicehistory-report/service-history/export?search=                       .xlsx (all 63 columns)
     ///   GET api/jobcard-servicehistory-report/job-data?dealerCode=&amp;fromDate=&amp;toDate=&amp;page=&amp;pageSize=
