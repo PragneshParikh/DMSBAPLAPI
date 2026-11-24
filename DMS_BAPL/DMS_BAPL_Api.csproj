@@ -23,4 +23,6 @@
     <ProjectReference Include="..\DMS_BAPL_Utils\DMS_BAPL_Utils.csproj" />
   </ItemGroup>
 
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://www.unpkg.com/wrangler/config-schema.json" /></VisualStudio></ProjectExtensions>
+
 </Project>

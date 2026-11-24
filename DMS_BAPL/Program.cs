@@ -108,6 +108,11 @@ builder.Services.AddDbContext<BapldmsvadContext>(options =>
 builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// B2B Job Card (24.11.2026): JobCardScanner database - separate context, own connection string (password kept in
+// user secrets / environment / deployment config, never in source). DefaultConnection above is unchanged.
+builder.Services.AddDbContext<DMS_BAPL_Data.JobCardScanner.JobCardScannerDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("JobCardScannerDb")));
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();

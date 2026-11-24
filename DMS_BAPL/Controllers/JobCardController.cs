@@ -232,7 +232,8 @@ namespace DMS_BAPL_Api.Controllers
                     await _prefixService.UpdateNextNumberByDealerByModule(jobCardDetailsView.JobCardHeader.DealerCode, "job_card");
                     return Ok(new
                     {
-                        message = StringConstants.JobCardDetailsSaved
+                        message = StringConstants.JobCardDetailsSaved,
+                        id = result   // 25.11.2026: new JobCardHeader.Id - the form links the uploaded photos to it
                     });
                 }
                 else
