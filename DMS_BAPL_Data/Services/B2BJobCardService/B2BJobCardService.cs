@@ -842,16 +842,17 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
                 .Select(p => new B2BPhotoDto { Id = p.Id, Url = p.Url, Caption = p.Caption, Stage = p.Stage, CreatedAt = p.CreatedAt })
                 .ToListAsync(ct);
 
-        private static bool IsBlobUrl(string? url) =>
-            Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps
-            && u.Host.EndsWith(".blob.core.windows.net", StringComparison.OrdinalIgnoreCase) && url!.Length <= 500;
+        /// <summary>a photo URL produced by the DMS API (wwwroot/uploads/jobcard-photos, same layout as JobCardScanner)</summary>
+        private static bool IsPhotoUrl(string? url) =>
+            !string.IsNullOrWhiteSpace(url) && url.Length <= 500 && url.Contains("/uploads/jobcard-photos/", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp);
 
         /// <summary>Check-in photos of a job card - same table / Stage the JobCardScanner wizard writes after creating a card.</summary>
         public async Task<List<B2BPhotoDto>> AddPhotosAsync(B2BCaller caller, Guid id, B2BSavePhotosRequest req, CancellationToken ct)
         {
             var photos = req?.Photos ?? new List<B2BPhotoInput>();
             if (photos.Count == 0) throw new B2BValidationException("No photos to save.");
-            if (photos.Any(p => !IsBlobUrl(p.BlobUrl))) throw new B2BValidationException("Invalid photo URL.");
+            if (photos.Any(p => !IsPhotoUrl(p.BlobUrl))) throw new B2BValidationException("Invalid photo URL.");
             if (photos.Any(p => !string.IsNullOrEmpty(p.ContentType) && !p.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
                 throw new B2BValidationException("Only images can be attached.");
             var jc = await LoadForCallerAsync(caller, id, false, ct);

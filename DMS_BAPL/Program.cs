@@ -188,6 +188,17 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAngularApp");
 
+// 25.11.2026 job card photos (B2C + B2B) on this server's disk - same folder layout as JobCardScanner
+// (wwwroot/uploads/jobcard-photos); file names are random GUIDs. Served before the auth middleware so <img> tags work.
+var jobCardPhotoRoot = DMS_BAPL_Api.Helpers.JobCardPhotoStorage.Root(app.Environment.ContentRootPath);
+Directory.CreateDirectory(jobCardPhotoRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(jobCardPhotoRoot),
+    RequestPath = DMS_BAPL_Api.Helpers.JobCardPhotoStorage.RequestPath,
+    ServeUnknownFileTypes = false
+});
+
 app.UseMiddleware<AuthorizationMiddleware>();
 app.UseMiddleware<ApiAuditMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();

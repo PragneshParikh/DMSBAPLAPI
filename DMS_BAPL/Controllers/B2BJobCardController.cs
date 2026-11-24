@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Data.JobCardScanner;
+﻿using DMS_BAPL_Api.Helpers;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Data.Services.B2BJobCardService;
 using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Http;
@@ -37,12 +38,14 @@ namespace DMS_BAPL_Api.Controllers
     {
         private readonly IB2BJobCardService _service;
         private readonly IConfiguration _config;
+        private readonly IWebHostEnvironment _env;
         private readonly ILogger<B2BJobCardController> _logger;
 
-        public B2BJobCardController(IB2BJobCardService service, IConfiguration config, ILogger<B2BJobCardController> logger)
+        public B2BJobCardController(IB2BJobCardService service, IConfiguration config, IWebHostEnvironment env, ILogger<B2BJobCardController> logger)
         {
             _service = service;
             _config = config;
+            _env = env;
             _logger = logger;
         }
 
@@ -137,9 +140,41 @@ namespace DMS_BAPL_Api.Controllers
         public Task<IActionResult> Create([FromBody] B2BJobCardCreateRequest req, CancellationToken ct) =>
             Run(async c => Ok(await _service.CreateAsync(c, req, ct)), "Save B2B job card");
 
+        /// <summary>
+        /// Check-in photos, multipart/form-data: files (1..10 images) + captions (same order, optional). Stored like the
+        /// JobCardScanner upload (wwwroot/uploads/jobcard-photos/{jobCardId}/) and saved in JobCardScanner dbo.JobCardPhotos.
+        /// </summary>
         [HttpPost("{id:guid}/photos")]
-        public Task<IActionResult> AddPhotos(Guid id, [FromBody] B2BSavePhotosRequest req, CancellationToken ct) =>
-            Run(async c => Ok(await _service.AddPhotosAsync(c, id, req, ct)), "Save photos");
+        [RequestSizeLimit(110_000_000)]
+        public Task<IActionResult> AddPhotos(Guid id, [FromForm] List<IFormFile> files, [FromForm] List<string>? captions, CancellationToken ct) =>
+            Run(async c =>
+            {
+                files ??= new List<IFormFile>();
+                if (files.Count == 0) return BadRequest(new { success = false, message = "No photos to save." });
+                var card = await _service.GetAsync(c, id, ct);   // access check (dealer) before anything is written
+                if (!card.CanEdit) return BadRequest(new { success = false, message = $"Job card {card.JobCardNumber} is {card.Status}; photos cannot be added." });
+                if (card.Photos.Count + files.Count > JobCardPhotoStorage.MaxPhotosPerJobCard)
+                    return BadRequest(new { success = false, message = $"A job card can have at most {JobCardPhotoStorage.MaxPhotosPerJobCard} photos." });
+
+                var req = new B2BSavePhotosRequest();
+                try
+                {
+                    for (var i = 0; i < files.Count; i++)
+                    {
+                        var saved = await JobCardPhotoStorage.SaveAsync(files[i], id.ToString(), Request, _config, _env.ContentRootPath, ct);
+                        req.Photos.Add(new B2BPhotoInput
+                        {
+                            FileName = saved.FileName, BlobUrl = saved.Url, ContentType = saved.ContentType, FileSize = saved.Size,
+                            Caption = captions != null && i < captions.Count ? captions[i] : null
+                        });
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return BadRequest(new { success = false, message = ex.Message });
+                }
+                return Ok(await _service.AddPhotosAsync(c, id, req, ct));
+            }, "Save photos");
 
         [HttpPut("{id:guid}")]
         public Task<IActionResult> Update(Guid id, [FromBody] B2BJobCardUpdateRequest req, CancellationToken ct) =>

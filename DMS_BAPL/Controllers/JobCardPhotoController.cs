@@ -1,4 +1,5 @@
-﻿using DMS_BAPL_Utils.Helpers;
+﻿using DMS_BAPL_Api.Helpers;
+using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -8,39 +9,27 @@ namespace DMS_BAPL_Api.Controllers
 {
     /// <summary>
     /// B2C job card Photos tab (25.11.2026) - BAPLDMSvad dbo.JobCardPhoto (create it with docs/JobCardPhoto_B2C.sql).
-    /// The browser uploads each image to Azure Blob with the existing api/files/generate-upload-url write SAS; this
-    /// controller only stores / lists / removes the blob URL rows of a job card. Dealer users can only touch their own
+    /// 25.11.2026: the photos are stored on this API server like JobCardScanner does (wwwroot/uploads/jobcard-photos/b2c-{id}/,
+    /// see Helpers/JobCardPhotoStorage.cs) - no Azure Blob keys needed; the rows keep the photo URL. Dealer users can only touch their own
     /// dealer's job cards (JobCardHeader.DealerCode = dealer code in the JWT). B2B photos use api/b2b-jobcard/{id}/photos.
     ///   GET    api/jobcard-photo/{jobCardHeaderId}
-    ///   POST   api/jobcard-photo/{jobCardHeaderId}     body { photos: [{ fileName, blobUrl, contentType, fileSize, caption }] }
+    ///   POST   api/jobcard-photo/{jobCardHeaderId}     multipart/form-data: files (1..10 images), captions (same order, optional)
     ///   DELETE api/jobcard-photo/photo/{photoId}        soft delete
     /// </summary>
     [Route("api/jobcard-photo")]
     [ApiController]
     public class JobCardPhotoController : ControllerBase
     {
-        private const int MaxPhotosPerJobCard = 10;
+        private const int MaxPhotosPerJobCard = JobCardPhotoStorage.MaxPhotosPerJobCard;
         private readonly IConfiguration _config;
+        private readonly IWebHostEnvironment _env;
         private readonly ILogger<JobCardPhotoController> _logger;
 
-        public JobCardPhotoController(IConfiguration config, ILogger<JobCardPhotoController> logger)
+        public JobCardPhotoController(IConfiguration config, IWebHostEnvironment env, ILogger<JobCardPhotoController> logger)
         {
             _config = config;
+            _env = env;
             _logger = logger;
-        }
-
-        public class PhotoInput
-        {
-            public string? FileName { get; set; }
-            public string? BlobUrl { get; set; }
-            public string? ContentType { get; set; }
-            public long? FileSize { get; set; }
-            public string? Caption { get; set; }
-        }
-
-        public class SavePhotosRequest
-        {
-            public List<PhotoInput> Photos { get; set; } = new();
         }
 
         private SqlConnection Conn() => new(_config.GetConnectionString("DefaultConnection"));
@@ -59,10 +48,6 @@ namespace DMS_BAPL_Api.Controllers
             var own = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext)?.Trim() ?? "";
             return string.Equals(own, dealer.Trim(), StringComparison.OrdinalIgnoreCase) ? dealer : null;
         }
-
-        private static bool IsBlobUrl(string? url) =>
-            Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps
-            && u.Host.EndsWith(".blob.core.windows.net", StringComparison.OrdinalIgnoreCase) && url!.Length <= 1000;
 
         private async Task<IActionResult> Run(Func<CancellationToken, Task<IActionResult>> action, string what, CancellationToken ct)
         {
@@ -110,44 +95,56 @@ namespace DMS_BAPL_Api.Controllers
         }, "Photo list", ct);
 
         [HttpPost("{jobCardHeaderId:int}")]
-        public Task<IActionResult> Save(int jobCardHeaderId, [FromBody] SavePhotosRequest req, CancellationToken ct) => Run(async c =>
+        [RequestSizeLimit(110_000_000)]
+        public Task<IActionResult> Upload(int jobCardHeaderId, [FromForm] List<IFormFile> files, [FromForm] List<string>? captions, CancellationToken ct) => Run(async c =>
         {
-            var photos = req?.Photos ?? new List<PhotoInput>();
-            if (photos.Count == 0) return BadRequest(new { message = "No photos to save." });
-            if (photos.Any(p => !IsBlobUrl(p.BlobUrl))) return BadRequest(new { message = "Invalid photo URL." });
-            if (photos.Any(p => !string.IsNullOrEmpty(p.ContentType) && !p.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
-                return BadRequest(new { message = "Only images can be attached." });
+            files ??= new List<IFormFile>();
+            if (files.Count == 0) return BadRequest(new { message = "No photos to save." });
 
             await using var conn = Conn();
             await conn.OpenAsync(c);
             var dealer = await JobCardDealerAsync(conn, jobCardHeaderId, c);
             if (dealer == null) return NotFound(new { message = "Job card not found." });
 
-            await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(c);
-            await using (var cnt = new SqlCommand("SELECT COUNT(*) FROM dbo.JobCardPhoto WITH (UPDLOCK, HOLDLOCK) WHERE JobCardHeaderId = @id AND IsDeleted = 0", conn, tx))
+            await using (var cnt = new SqlCommand("SELECT COUNT(*) FROM dbo.JobCardPhoto WHERE JobCardHeaderId = @id AND IsDeleted = 0", conn))
             {
                 cnt.Parameters.Add("@id", SqlDbType.Int).Value = jobCardHeaderId;
                 var existing = (int)(await cnt.ExecuteScalarAsync(c) ?? 0);
-                if (existing + photos.Count > MaxPhotosPerJobCard)
+                if (existing + files.Count > MaxPhotosPerJobCard)
                     return BadRequest(new { message = $"A job card can have at most {MaxPhotosPerJobCard} photos." });
             }
-            foreach (var p in photos)
+
+            // files first (all validated) - then the rows in one transaction
+            var saved = new List<JobCardPhotoStorage.Saved>();
+            try
             {
+                foreach (var f in files)
+                    saved.Add(await JobCardPhotoStorage.SaveAsync(f, $"b2c-{jobCardHeaderId}", Request, _config, _env.ContentRootPath, c));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
+            await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(c);
+            for (var i = 0; i < saved.Count; i++)
+            {
+                var p = saved[i];
                 await using var ins = new SqlCommand(@"
                     INSERT INTO dbo.JobCardPhoto (JobCardHeaderId, DealerCode, Stage, FileName, BlobUrl, ContentType, FileSize, Caption, CreatedBy)
                     VALUES (@id, @dealer, 'CheckIn', @name, @url, @type, @size, @caption, @by)", conn, tx);
                 ins.Parameters.Add("@id", SqlDbType.Int).Value = jobCardHeaderId;
                 ins.Parameters.Add("@dealer", SqlDbType.NVarChar, 50).Value = (object?)dealer ?? DBNull.Value;
                 ins.Parameters.Add("@name", SqlDbType.NVarChar, 260).Value = Trunc(p.FileName, 260) ?? "photo";
-                ins.Parameters.Add("@url", SqlDbType.NVarChar, 1000).Value = p.BlobUrl!;
-                ins.Parameters.Add("@type", SqlDbType.NVarChar, 100).Value = (object?)Trunc(p.ContentType, 100) ?? DBNull.Value;
-                ins.Parameters.Add("@size", SqlDbType.BigInt).Value = (object?)p.FileSize ?? DBNull.Value;
-                ins.Parameters.Add("@caption", SqlDbType.NVarChar, 200).Value = (object?)Trunc(p.Caption, 200) ?? DBNull.Value;
+                ins.Parameters.Add("@url", SqlDbType.NVarChar, 1000).Value = p.Url;
+                ins.Parameters.Add("@type", SqlDbType.NVarChar, 100).Value = p.ContentType;
+                ins.Parameters.Add("@size", SqlDbType.BigInt).Value = p.Size;
+                ins.Parameters.Add("@caption", SqlDbType.NVarChar, 200).Value = (object?)Trunc(captions != null && i < captions.Count ? captions[i] : null, 200) ?? DBNull.Value;
                 ins.Parameters.Add("@by", SqlDbType.NVarChar, 100).Value = Trunc(UserId, 100) ?? "";
                 await ins.ExecuteNonQueryAsync(c);
             }
             await tx.CommitAsync(c);
-            return Ok(new { message = $"{photos.Count} photo(s) saved.", count = photos.Count });
+            return Ok(new { message = $"{saved.Count} photo(s) saved.", count = saved.Count });
         }, "Save photos", ct);
 
         [HttpDelete("photo/{photoId:int}")]
