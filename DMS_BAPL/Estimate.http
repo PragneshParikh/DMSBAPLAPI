@@ -1,0 +1,12 @@
+@baseUrl = http://localhost:5215
+@token = REPLACE_WITH_A_VALID_ACCESS_TOKEN
+@estimateId = 1
+
+### Email a saved estimate and return its PDF for printing
+POST {{baseUrl}}/api/Estimate/{{estimateId}}/email
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "customer@example.com"
+}

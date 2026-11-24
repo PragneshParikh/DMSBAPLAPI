@@ -1,6 +1,7 @@
 ﻿using DMS_BAPL_Utils.ViewModels;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace DMS_BAPL_Data.Services.EstimateService
 {
@@ -21,5 +22,6 @@ namespace DMS_BAPL_Data.Services.EstimateService
         Task<List<LabourSearchResultViewModel>> SearchLabourAsync(string query, int maxResults = 20);
 
         Task<byte[]?> DownloadEstimatePdfAsync(int id);
+        Task<byte[]?> EmailEstimatePdfAsync(int id, string toEmail, CancellationToken cancellationToken);
     }
 }
