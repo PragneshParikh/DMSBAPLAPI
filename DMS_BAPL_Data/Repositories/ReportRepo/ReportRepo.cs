@@ -4326,6 +4326,46 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     LocalPurchaseQty = (int?)g.Sum(x => x.BatchTransQty)
                 });
 
+            var d2dIncomingCounts = _context.PartsInventories
+                .Where(x =>
+                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                    x.TransType == "TI" &&
+                    x.Potype == "D2D-TARGET")
+                .GroupBy(x => new
+                {
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.ItemCode
+                })
+                .Select(g => new
+                {
+                    VendorCode = g.Key.VendorCode,
+                    DealerLocation = g.Key.DealerLocation,
+                    ItemCode = g.Key.ItemCode,
+                    D2DIncomingQty = (int?)g.Sum(x => x.BatchTransQty)
+                });
+
+            var d2dOutgoingCounts = _context.PartsInventories
+                .Where(x =>
+                    x.TransDate >= DateOnly.FromDateTime(fromDate) &&
+                    x.TransDate <= DateOnly.FromDateTime(toDate) &&
+                    x.TransType == "TO" &&
+                    x.Potype == "D2D-SOURCE")
+                .GroupBy(x => new
+                {
+                    x.VendorCode,
+                    x.DealerLocation,
+                    x.ItemCode
+                })
+                .Select(g => new
+                {
+                    VendorCode = g.Key.VendorCode,
+                    DealerLocation = g.Key.DealerLocation,
+                    ItemCode = g.Key.ItemCode,
+                    D2DOutgoingQty = (int?)g.Sum(x => x.BatchTransQty)
+                });
+
             var reversedCounts = _context.PartsInventories
                 .Where(x =>
                     x.TransDate >= DateOnly.FromDateTime(fromDate) &&
@@ -4450,6 +4490,38 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into localPurchaseGroup
                         from lpc in localPurchaseGroup.DefaultIfEmpty()
 
+                        join dic in d2dIncomingCounts
+                        on new
+                        {
+                            pi.VendorCode,
+                            pi.DealerLocation,
+                            pi.ItemCode
+                        }
+                        equals new
+                        {
+                            dic.VendorCode,
+                            dic.DealerLocation,
+                            dic.ItemCode
+                        }
+                        into d2dIncomingGroup
+                        from dic in d2dIncomingGroup.DefaultIfEmpty()
+
+                        join doc in d2dOutgoingCounts
+                        on new
+                        {
+                            pi.VendorCode,
+                            pi.DealerLocation,
+                            pi.ItemCode
+                        }
+                        equals new
+                        {
+                            doc.VendorCode,
+                            doc.DealerLocation,
+                            doc.ItemCode
+                        }
+                        into d2dOutgoingGroup
+                        from doc in d2dOutgoingGroup.DefaultIfEmpty()
+
                         join rc in reversedCounts
                         on new
                         {
@@ -4531,7 +4603,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                             PurchaseCount = (pic.InwardQty ?? 0)
                                 + (rc.ReversedQty ?? 0)
-                                + (lpc.LocalPurchaseQty ?? 0),
+                                + (lpc.LocalPurchaseQty ?? 0)
+                                + (dic.D2DIncomingQty ?? 0),
+
+                            D2DOutgoingQty = doc.D2DOutgoingQty ?? 0,
 
                             // NEW — net TI/TO quantity in the selected date range.
                             StockAdjustmentQty = sa.AdjustmentQty ?? 0,
@@ -4569,6 +4644,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     x.GroupType,
                     x.SaleCount,
                     x.PurchaseCount,
+                    x.D2DOutgoingQty,
                     x.StockAdjustmentQty,
                     x.MRP
                 });

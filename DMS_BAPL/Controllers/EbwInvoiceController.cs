@@ -55,7 +55,11 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? dealerCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? dealerCode,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? locationCode)
         {
             try
             {
@@ -65,7 +69,7 @@ namespace DMS_BAPL_Api.Controllers
                     if (string.IsNullOrWhiteSpace(dealerCode))
                         return Forbid();
                 }
-                var result = await _service.GetAllAsync(dealerCode, fromDate, toDate);
+                var result = await _service.GetAllAsync(dealerCode, fromDate, toDate, locationCode);
                 return Ok(new { data = result });
             }
             catch (Exception ex)

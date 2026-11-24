@@ -404,11 +404,94 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                 // entirely server-side.
                 var insuranceParty = await GetLedgerNameAsync(header.InsuranceId);
 
+                var partCodes = header.EstimateDetails
+                    .Where(detail => detail.ItemType.Equals("Part", StringComparison.OrdinalIgnoreCase) &&
+                                     !string.IsNullOrWhiteSpace(detail.ItemCode))
+                    .Select(detail => detail.ItemCode!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var partMetadata = new Dictionary<string, (string? HsnCode, decimal? Mrp)>(
+                    StringComparer.OrdinalIgnoreCase);
+                var partHsnFallback = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                if (partCodes.Count > 0)
+                {
+                    var itemRows = await _context.ItemMasters
+                        .AsNoTracking()
+                        .Where(item => item.DealerCode == header.DealerCode &&
+                                       partCodes.Contains(item.Itemcode))
+                        .Select(item => new { item.Itemcode, item.Hsncode, item.Custprice })
+                        .ToListAsync();
+                    partMetadata = itemRows
+                        .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => ((string?)group.First().Hsncode, (decimal?)group.First().Custprice),
+                            StringComparer.OrdinalIgnoreCase);
+
+                    var partWiseRows = await _context.PartWiseLabourMasters
+                        .AsNoTracking()
+                        .Where(item => item.PartCode != null &&
+                                       partCodes.Contains(item.PartCode) &&
+                                       (item.DealerCode == header.DealerCode || item.DealerCode == null))
+                        .Select(item => new { item.PartCode, item.DealerCode, item.Hsncode })
+                        .ToListAsync();
+                    partHsnFallback = partWiseRows
+                        .Where(item => item.PartCode != null)
+                        .GroupBy(item => item.PartCode!, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group
+                                .OrderByDescending(item => string.Equals(
+                                    item.DealerCode,
+                                    header.DealerCode,
+                                    StringComparison.OrdinalIgnoreCase))
+                                .First()
+                                .Hsncode,
+                            StringComparer.OrdinalIgnoreCase);
+                }
+
+                var labourCodes = header.EstimateDetails
+                    .Where(detail => detail.ItemType.Equals("Labour", StringComparison.OrdinalIgnoreCase) &&
+                                     !string.IsNullOrWhiteSpace(detail.ItemCode))
+                    .Select(detail => detail.ItemCode!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var labourHsnByCode = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                if (labourCodes.Count > 0)
+                {
+                    var labourRows = await _context.LabourMasters
+                        .AsNoTracking()
+                        .Where(labour => labour.LabourCode != null &&
+                                         labourCodes.Contains(labour.LabourCode))
+                        .Select(labour => new { labour.LabourCode, labour.Hsncode })
+                        .ToListAsync();
+                    labourHsnByCode = labourRows
+                        .Where(labour => labour.LabourCode != null)
+                        .GroupBy(labour => labour.LabourCode!, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group.First().Hsncode,
+                            StringComparer.OrdinalIgnoreCase);
+                }
+
                 var lines = header.EstimateDetails.Select(d => new EstimatePrintLineViewModel
                 {
                     ItemType = d.ItemType,
                     ItemCode = d.ItemCode,
                     ItemDescription = d.ItemDescription,
+                    HsnCode = d.ItemType.Equals("Part", StringComparison.OrdinalIgnoreCase)
+                        ? (partMetadata.TryGetValue(d.ItemCode ?? string.Empty, out var itemInfo)
+                            ? itemInfo.HsnCode
+                            : partHsnFallback.TryGetValue(d.ItemCode ?? string.Empty, out var partHsn)
+                                ? partHsn
+                                : null)
+                        : labourHsnByCode.TryGetValue(d.ItemCode ?? string.Empty, out var labourHsn)
+                            ? labourHsn
+                            : null,
+                    Mrp = d.ItemType.Equals("Part", StringComparison.OrdinalIgnoreCase) &&
+                          partMetadata.TryGetValue(d.ItemCode ?? string.Empty, out var partInfo)
+                        ? partInfo.Mrp
+                        : d.Rate,
                     Qty = d.Qty,
                     Rate = d.Rate,
                     DiscountPercent = d.DiscountPercent,
@@ -423,6 +506,8 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
 
                 var parts = lines.Where(x => x.ItemType == "Part").ToList();
                 var labour = lines.Where(x => x.ItemType == "Labour").ToList();
+                var jobCardLookup = await GetJobCardNoLookupAsync(new List<int> { header.Id });
+                var jobCardNo = jobCardLookup.TryGetValue(header.Id, out var jobCard) ? jobCard.JobNo : null;
 
                 return new EstimatePrintViewModel
                 {
@@ -438,6 +523,7 @@ namespace DMS_BAPL_Data.Repositories.EstimateRepo
                     DealerTradeCertNo = dealer?.TradCert,
 
                     EstimationNo = header.EstimationNo,
+                    JobCardNo = jobCardNo,
                     EstimateDate = header.EstimateDate,
                     ChassisNo = header.ChassisNo,
                     Kms = header.Kms,

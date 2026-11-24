@@ -2,6 +2,9 @@
 @token = replace-with-a-valid-jwt
 @locationId = 1
 @transactionId = 1
+@fromLocationId = 1
+@toLocationId = 2
+@d2dBillNo = 1
 
 ### Get workshop locations accessible to the logged-in user
 GET {{baseUrl}}/api/LocalParts/locations
@@ -49,3 +52,45 @@ Content-Type: application/json
     }
   ]
 }
+
+### Get all Parts D2D transactions available to the logged-in dealer
+GET {{baseUrl}}/api/LocalParts/d2d/history
+Authorization: Bearer {{token}}
+
+### Get the next sequential Parts D2D bill number preview
+GET {{baseUrl}}/api/LocalParts/d2d/next-bill-no
+Authorization: Bearer {{token}}
+
+### Get Parts D2D receipt notifications with pending/received status
+GET {{baseUrl}}/api/LocalParts/d2d/notifications
+Authorization: Bearer {{token}}
+
+### Get a Parts D2D receipt by bill number
+GET {{baseUrl}}/api/LocalParts/d2d/receipt/{{d2dBillNo}}
+Authorization: Bearer {{token}}
+
+### Save a Parts D2D transfer (the API assigns the next bill number)
+POST {{baseUrl}}/api/LocalParts/d2d
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prefix": "D2D/2026/001",
+  "date": "2026-11-23T00:00:00Z",
+  "fromLocationId": {{fromLocationId}},
+  "toLocationId": {{toLocationId}},
+  "items": [
+    {
+      "partCode": "PART-EXAMPLE-001",
+      "transferQuantity": 1
+    }
+  ]
+}
+
+### Acknowledge a pending Parts D2D receipt without posting stock a second time
+POST {{baseUrl}}/api/LocalParts/d2d/receipt/{{d2dBillNo}}/accept
+Authorization: Bearer {{token}}
+
+### Cancel a pending Parts D2D receipt and reverse stock when no later movements exist
+DELETE {{baseUrl}}/api/LocalParts/d2d/receipt/{{d2dBillNo}}
+Authorization: Bearer {{token}}

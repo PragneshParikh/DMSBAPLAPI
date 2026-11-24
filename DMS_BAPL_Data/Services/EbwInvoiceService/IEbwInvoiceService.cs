@@ -13,7 +13,7 @@ namespace DMS_BAPL_Data.Services.EbwInvoiceService
         Task<int> SaveAsync(EbwInvoiceSaveViewModel model, string userId);
         //Task<EbwInvoiceHeader?> GetByIdAsync(int id);
         Task<object?> GetByIdAsync(int id);
-        Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);
+        Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate, string? locationCode);
         Task<bool> DeleteAsync(int id);
         Task<object?> GetDealerInfoAsync(string dealerCode);
         Task<List<object>> GetReportDataAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate);

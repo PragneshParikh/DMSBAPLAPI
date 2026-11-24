@@ -1,12 +1,16 @@
 ﻿using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Data.Repositories.EstimateRepo;
+using DMS_BAPL_Data.Services.EmailService;
+using DMS_BAPL_Data.Services.VehicleInfoService;
 using DMS_BAPL_Utils.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Data.Services.EstimateService
@@ -14,10 +18,17 @@ namespace DMS_BAPL_Data.Services.EstimateService
     public class EstimateService : IEstimateService
     {
         private readonly IEstimateRepo _repo;
+        private readonly IEmailService _emailService;
+        private readonly IVehicleInfoService _vehicleInfoService;
 
-        public EstimateService(IEstimateRepo repo)
+        public EstimateService(
+            IEstimateRepo repo,
+            IEmailService emailService,
+            IVehicleInfoService vehicleInfoService)
         {
             _repo = repo;
+            _emailService = emailService;
+            _vehicleInfoService = vehicleInfoService;
         }
 
         public async Task<int> CreateAsync(EstimateCreateViewModel model, string userId)
@@ -260,10 +271,59 @@ namespace DMS_BAPL_Data.Services.EstimateService
 
         public async Task<byte[]?> DownloadEstimatePdfAsync(int id)
         {
-            var model = await _repo.GetEstimatePrintDataAsync(id);
+            var model = await GetEstimatePrintModelAsync(id);
             if (model == null) return null;
 
             return GenerateEstimatePdf(model);
+        }
+
+        public async Task<byte[]?> EmailEstimatePdfAsync(
+            int id,
+            string toEmail,
+            CancellationToken cancellationToken)
+        {
+            var model = await GetEstimatePrintModelAsync(id);
+            if (model == null) return null;
+
+            var pdfBytes = GenerateEstimatePdf(model);
+            var estimateNo = string.IsNullOrWhiteSpace(model.EstimationNo)
+                ? id.ToString(CultureInfo.InvariantCulture)
+                : model.EstimationNo;
+            await _emailService.SendEmailWithPdfAttachmentAsync(
+                toEmail,
+                $"Estimate {estimateNo}",
+                """
+                <p>Dear Customer,</p>
+                <p>Please find your estimate PDF attached for your review. It has been prepared by BGAUSS AUTO PRIVATE LIMITED based on the vehicle and service details provided.</p>
+                <p>For any clarification, please contact your BGAUSS dealership.</p>
+                <p>Thank you,<br/>BGAUSS AUTO PRIVATE LIMITED<br/>BGAUSS DMS</p>
+                """,
+                pdfBytes,
+                $"Estimate_{id}.pdf",
+                cancellationToken);
+
+            return pdfBytes;
+        }
+
+        private async Task<EstimatePrintViewModel?> GetEstimatePrintModelAsync(int id)
+        {
+            var model = await _repo.GetEstimatePrintDataAsync(id);
+            if (model == null) return null;
+
+            if (!string.IsNullOrWhiteSpace(model.ChassisNo))
+            {
+                var vehicleInfo = await _vehicleInfoService.GetVehicleInfoByRegNoChassis(
+                    null,
+                    model.ChassisNo,
+                    model.DealerCode);
+                if (vehicleInfo != null)
+                {
+                    model.RegistrationNo = vehicleInfo.VehicleDetails?.RegNo;
+                    model.VehicleModel = vehicleInfo.VehicleDetails?.ModelName;
+                }
+            }
+
+            return model;
         }
 
         private byte[] GenerateEstimatePdf(EstimatePrintViewModel m)
@@ -271,10 +331,8 @@ namespace DMS_BAPL_Data.Services.EstimateService
             QuestPDF.Settings.License = LicenseType.Community;
 
             string Val(string? v) => string.IsNullOrWhiteSpace(v) ? "-" : v!;
-            string Money(decimal v) => v.ToString("N2");
+            string Money(decimal v) => $"Rs. {v.ToString("N2", CultureInfo.GetCultureInfo("en-IN"))}";
 
-            // Mirrors the Angular `hasInsurance` getter — show the section only if
-            // something was actually captured, not just because the columns exist.
             bool hasInsurance =
                 !string.IsNullOrWhiteSpace(m.InsuranceParty) ||
                 !string.IsNullOrWhiteSpace(m.InsDescription) ||
@@ -283,7 +341,7 @@ namespace DMS_BAPL_Data.Services.EstimateService
                 !string.IsNullOrWhiteSpace(m.PolicyNo) ||
                 m.InsValidTill.HasValue;
 
-            const string HeaderBg = "#6F72A0";
+            const string HeaderBg = "#264f72";
 
             return Document.Create(container =>
             {
@@ -295,114 +353,138 @@ namespace DMS_BAPL_Data.Services.EstimateService
 
                     page.Content().Column(col =>
                     {
-                        // -- Dealer header --
-                        col.Item().AlignCenter().Column(h =>
+                        col.Item().Row(row =>
                         {
-                            if (!string.IsNullOrWhiteSpace(m.DealerName))
-                                h.Item().AlignCenter().Text(m.DealerName).Bold().FontSize(12);
-                            if (!string.IsNullOrWhiteSpace(m.DealerAddress))
-                                h.Item().AlignCenter().Text(m.DealerAddress).FontSize(8);
-                            h.Item().AlignCenter().Text($"Phone: {Val(m.DealerPhone)}   |   Email: {Val(m.DealerEmail)}").FontSize(8);
-                            h.Item().AlignCenter()
-                                .Text($"GSTIN: {Val(m.DealerGstin)}   |   PAN: {Val(m.DealerPan)}   |   Trade Cert No: {Val(m.DealerTradeCertNo)}").FontSize(8);
+                            row.RelativeItem().Column(dealer =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(m.DealerName))
+                                    dealer.Item().Text(m.DealerName).Bold().FontSize(11).FontColor(HeaderBg);
+                                dealer.Item().Text($"Dealer Code: {Val(m.DealerCode)}").FontSize(7);
+                                if (!string.IsNullOrWhiteSpace(m.DealerAddress))
+                                    dealer.Item().Text(m.DealerAddress).FontSize(7);
+                                dealer.Item().Text($"Phone: {Val(m.DealerPhone)}  |  Email: {Val(m.DealerEmail)}")
+                                    .FontSize(7);
+                            });
+                            row.ConstantItem(180).AlignRight().Column(meta =>
+                            {
+                                meta.Item().Text("ESTIMATE").Bold().FontSize(12).FontColor(HeaderBg);
+                                meta.Item().Text($"Estimate No: {Val(m.EstimationNo)}").FontSize(8);
+                                meta.Item().Text($"Date: {m.EstimateDate:dd-MM-yyyy}").FontSize(8);
+                                meta.Item().Text($"Job Card No: {Val(m.JobCardNo?.ToString())}").FontSize(8);
+                            });
                         });
 
-                        col.Item().PaddingTop(4).LineHorizontal(1);
-                        col.Item().AlignCenter().Text("ESTIMATE").Bold().FontSize(13);
-                        col.Item().LineHorizontal(1);
+                        col.Item().PaddingTop(4).LineHorizontal(1).LineColor(HeaderBg);
 
-                        // -- Estimate meta + customer details --
                         void KV(ColumnDescriptor c, string label, string? value)
                         {
                             c.Item().PaddingVertical(1).Row(r =>
                             {
-                                r.ConstantItem(110).Text(label).Bold().FontSize(8);
-                                r.RelativeItem().Text($": {Val(value)}").FontSize(8);
+                                r.ConstantItem(78).Text(label).Bold().FontSize(7);
+                                r.RelativeItem().Text($": {Val(value)}").FontSize(7);
                             });
                         }
 
-                        col.Item().PaddingTop(6).Row(row =>
+                        col.Item().PaddingTop(7).Row(row =>
                         {
-                            row.RelativeItem().Column(left =>
+                            row.RelativeItem().Border(0.5f).BorderColor(Colors.Grey.Medium).Column(box =>
                             {
-                                KV(left, "Customer Name", m.CustomerName);
-                                KV(left, "Mobile", m.CustomerMobile);
-                                KV(left, "Address", m.CustomerAddress);
-                                KV(left, "City / State", $"{m.CustomerCity ?? ""} {m.CustomerState ?? ""}".Trim());
-                                KV(left, "Pin", m.CustomerPin);
-                                KV(left, "Email", m.CustomerEmail);
+                                box.Item().Background(HeaderBg).Padding(4)
+                                    .Text("CUSTOMER DETAILS").Bold().FontSize(8).FontColor(Colors.White);
+                                box.Item().Padding(5).Column(details =>
+                                {
+                                    KV(details, "Customer Name", m.CustomerName);
+                                    KV(details, "Mobile", m.CustomerMobile);
+                                    KV(details, "Address", m.CustomerAddress);
+                                    KV(details, "City", m.CustomerCity);
+                                });
                             });
-                            row.RelativeItem().Column(right =>
+                            row.ConstantItem(8);
+                            row.RelativeItem().Border(0.5f).BorderColor(Colors.Grey.Medium).Column(box =>
                             {
-                                KV(right, "Estimate No", m.EstimationNo);
-                                KV(right, "Estimate Date", m.EstimateDate.ToString("dd-MM-yyyy"));
-                                KV(right, "Chassis No", m.ChassisNo);
-                                KV(right, "Kms", m.Kms?.ToString());
-                                KV(right, "Job Type", m.JobTypeName);
+                                box.Item().Background(HeaderBg).Padding(4)
+                                    .Text("VEHICLE DETAILS").Bold().FontSize(8).FontColor(Colors.White);
+                                box.Item().Padding(5).Column(details =>
+                                {
+                                    KV(details, "Model", m.VehicleModel);
+                                    KV(details, "Registration No", m.RegistrationNo);
+                                    KV(details, "Chassis No", m.ChassisNo);
+                                    KV(details, "Odometer", m.Kms?.ToString());
+                                });
                             });
                         });
 
-                        // -- Insurance (only if captured) --
                         if (hasInsurance)
                         {
-                            col.Item().PaddingTop(8).Text("Insurance Detail").Bold().FontSize(10);
-
-                            col.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Grey.Medium)
-                                .Padding(6).Row(row =>
+                            col.Item().PaddingTop(7).Border(0.5f).BorderColor(Colors.Grey.Medium)
+                                .Column(box =>
                                 {
-                                    row.RelativeItem().Column(left =>
+                                    box.Item().Background(HeaderBg).Padding(4)
+                                        .Text("INSURANCE DETAILS").Bold().FontSize(8).FontColor(Colors.White);
+                                    box.Item().Padding(5).Row(row =>
                                     {
-                                        KV(left, "Insurance Party", m.InsuranceParty);
-                                        KV(left, "Description", m.InsDescription);
-                                        KV(left, "Surveyor Name", m.SurveyorName);
-                                    });
-                                    row.RelativeItem().Column(right =>
-                                    {
-                                        KV(right, "Contact Number", m.ContactNumber);
-                                        KV(right, "Policy No", m.PolicyNo);
-                                        KV(right, "Valid Till", m.InsValidTill?.ToString("dd-MM-yyyy"));
-                                        KV(right, "Zero Depreciation", m.ZeroDepo ? "Yes" : "No");
+                                        row.RelativeItem().Column(left =>
+                                        {
+                                            KV(left, "Insurance Party", m.InsuranceParty);
+                                            KV(left, "Description", m.InsDescription);
+                                            KV(left, "Surveyor Name", m.SurveyorName);
+                                        });
+                                        row.RelativeItem().Column(right =>
+                                        {
+                                            KV(right, "Contact Number", m.ContactNumber);
+                                            KV(right, "Policy No", m.PolicyNo);
+                                            KV(right, "Valid Till", m.InsValidTill?.ToString("dd-MM-yyyy"));
+                                            KV(right, "Zero Depreciation", m.ZeroDepo ? "Yes" : "No");
+                                        });
                                     });
                                 });
                         }
 
-                        // -- Line item table (shared layout for Parts & Labour) --
-                        void RenderLineTable(string title, List<EstimatePrintLineViewModel> lines, decimal subtotal)
+                        void RenderLineTable(
+                            string title,
+                            List<EstimatePrintLineViewModel> lines,
+                            decimal subtotal,
+                            bool isPart)
                         {
-                            if (lines.Count == 0) return;
-
-                            col.Item().PaddingTop(10).Text(title).Bold().FontSize(10);
+                            col.Item().PaddingTop(8).Text(title).Bold().FontSize(9).FontColor(HeaderBg);
+                            if (lines.Count == 0)
+                            {
+                                col.Item().Border(0.5f).BorderColor(Colors.Grey.Medium)
+                                    .Padding(5)
+                                    .Text(isPart ? "No parts added." : "No labour suggested.")
+                                    .FontSize(7);
+                                return;
+                            }
 
                             col.Item().PaddingTop(3).Table(t =>
                             {
                                 t.ColumnsDefinition(c =>
                                 {
-                                    c.ConstantColumn(22);    // S.No
-                                    c.RelativeColumn(1.4f);  // Code
-                                    c.RelativeColumn(2.4f);  // Description
-                                    c.RelativeColumn(0.8f);  // Qty
-                                    c.RelativeColumn(1f);    // Rate
-                                    c.RelativeColumn(0.9f);  // Disc %
-                                    c.RelativeColumn(1.1f);  // CGST
-                                    c.RelativeColumn(1.1f);  // SGST
-                                    c.RelativeColumn(1.1f);  // IGST
-                                    c.RelativeColumn(1.2f);  // Amount
+                                    c.ConstantColumn(22);
+                                    c.RelativeColumn(1.3f);
+                                    c.RelativeColumn(2.5f);
+                                    c.RelativeColumn(0.9f);
+                                    c.RelativeColumn(1f);
+                                    c.ConstantColumn(34);
+                                    c.RelativeColumn(1.2f);
                                 });
 
                                 void HCell(string text, bool right = false)
                                 {
                                     var cell = t.Cell().Background(HeaderBg)
-                                        .Border(0.5f).BorderColor(Colors.Grey.Medium).Padding(3);
+                                        .Border(0.5f).BorderColor(Colors.Grey.Medium).Padding(4);
                                     var span = (right ? cell.AlignRight() : cell).Text(text);
-                                    span.Bold().FontSize(7.5f).FontColor(Colors.White);
+                                    span.Bold().FontSize(7).FontColor(Colors.White);
                                 }
 
                                 t.Header(hr =>
                                 {
-                                    HCell("#"); HCell("Code"); HCell("Description");
-                                    HCell("Qty", right: true); HCell("Rate", right: true);
-                                    HCell("Disc%", right: true);
-                                    HCell("CGST", right: true); HCell("SGST", right: true); HCell("IGST", right: true);
+                                    HCell("#");
+                                    HCell(isPart ? "Item Code" : "Labour Code");
+                                    HCell("Description");
+                                    HCell("HSN");
+                                    HCell(isPart ? "MRP" : "Rate", right: true);
+                                    HCell("Qty", right: true);
                                     HCell("Amount", right: true);
                                 });
 
@@ -410,57 +492,36 @@ namespace DMS_BAPL_Data.Services.EstimateService
                                 foreach (var l in lines)
                                 {
                                     IContainer Body(IContainer c) =>
-                                        c.Border(0.5f).BorderColor(Colors.Grey.Medium).Padding(3);
+                                        c.Border(0.5f).BorderColor(Colors.Grey.Medium).Padding(4);
 
-                                    Body(t.Cell()).Text(sr++.ToString()).FontSize(7.5f);
-                                    Body(t.Cell()).Text(Val(l.ItemCode)).FontSize(7.5f);
-                                    Body(t.Cell()).Text(Val(l.ItemDescription)).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(l.Qty.ToString("0.##")).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(Money(l.Rate)).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(l.DiscountPercent.ToString("0.##")).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(Money(l.CgstAmount)).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(Money(l.SgstAmount)).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(Money(l.IgstAmount)).FontSize(7.5f);
-                                    Body(t.Cell()).AlignRight().Text(Money(l.Amount)).FontSize(7.5f);
+                                    Body(t.Cell()).Text(sr++.ToString()).FontSize(7);
+                                    Body(t.Cell()).Text(Val(l.ItemCode)).FontSize(7);
+                                    Body(t.Cell()).Text(Val(l.ItemDescription)).FontSize(7);
+                                    Body(t.Cell()).Text(Val(l.HsnCode)).FontSize(7);
+                                    Body(t.Cell()).AlignRight()
+                                        .Text(Money(isPart ? l.Mrp ?? l.Rate : l.Rate)).FontSize(7);
+                                    Body(t.Cell()).AlignRight().Text(l.Qty.ToString("0.##")).FontSize(7);
+                                    Body(t.Cell()).AlignRight().Text(Money(l.Amount)).FontSize(7);
                                 }
                             });
 
                             col.Item().PaddingTop(2).Row(r =>
                             {
-                                r.RelativeItem().Text($"Sub Total ({title})").Bold().FontSize(9);
-                                r.ConstantItem(100).AlignRight().Text(Money(subtotal)).Bold().FontSize(9);
+                                r.RelativeItem().Text($"{title} Total").Bold().FontSize(8);
+                                r.ConstantItem(120).AlignRight().Text(Money(subtotal)).Bold().FontSize(8);
                             });
                         }
 
-                        RenderLineTable("Parts", m.Parts, m.TotalPartsAmount);
-                        RenderLineTable("Labour", m.Labour, m.TotalLabourAmount);
+                        RenderLineTable("PART DETAILS", m.Parts, m.TotalPartsAmount, isPart: true);
+                        RenderLineTable("LABOUR DETAILS", m.Labour, m.TotalLabourAmount, isPart: false);
 
-                        // -- Grand Total --
-                        col.Item().PaddingTop(8).Border(1).BorderColor(Colors.Grey.Darken1)
-                            .Background(Colors.Grey.Lighten3).PaddingVertical(6).PaddingHorizontal(8)
+                        col.Item().PaddingTop(7).Border(1).BorderColor(HeaderBg)
+                            .Background(Colors.Grey.Lighten3).PaddingVertical(7).PaddingHorizontal(8)
                             .Row(r =>
                             {
-                                r.RelativeItem().Text("Grand Total").Bold().FontSize(11);
-                                r.ConstantItem(120).AlignRight().Text(Money(m.GrandTotal)).Bold().FontSize(11);
+                                r.RelativeItem().Text("Grand Total").Bold().FontSize(10);
+                                r.ConstantItem(120).AlignRight().Text(Money(m.GrandTotal)).Bold().FontSize(10);
                             });
-
-                        // -- Terms (generic — no confirmed TermandConditionMaster
-                        // module id exists for Estimate; adjust if one should be
-                        // pulled from that master table instead) --
-                        col.Item().PaddingTop(12).Text("Terms & Conditions").Bold().FontSize(9);
-                        col.Item().PaddingLeft(12).Column(tc =>
-                        {
-                            tc.Item().Text("1.  This is an estimate only and not a final invoice. Actual charges may vary.").FontSize(8);
-                            tc.Item().Text("2.  Prices are valid for 7 days from the estimate date.").FontSize(8);
-                            tc.Item().Text("3.  Taxes as applicable.").FontSize(8);
-                        });
-
-                        // -- Signatures --
-                        col.Item().PaddingTop(30).Row(r =>
-                        {
-                            r.RelativeItem().Text("Customer Signature").Bold().FontSize(9);
-                            r.RelativeItem().AlignRight().Text($"For {Val(m.DealerName)}").Bold().FontSize(9);
-                        });
                     });
                 });
             }).GeneratePdf();

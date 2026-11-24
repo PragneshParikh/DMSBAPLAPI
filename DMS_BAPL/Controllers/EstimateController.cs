@@ -1,8 +1,11 @@
 ﻿using DMS_BAPL_Data.Services.EstimateService;
 using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DMS_BAPL_Api.Controllers
@@ -12,10 +15,12 @@ namespace DMS_BAPL_Api.Controllers
     public class EstimateController : ControllerBase
     {
         private readonly IEstimateService _service;
+        private readonly ILogger<EstimateController> _logger;
 
-        public EstimateController(IEstimateService service)
+        public EstimateController(IEstimateService service, ILogger<EstimateController> logger)
         {
             _service = service;
+            _logger = logger;
         }
         [HttpPost]
         public async Task<IActionResult> Create(EstimateCreateViewModel model)
@@ -259,6 +264,55 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> EmailEstimate(
+            int id,
+            [FromBody] SendEstimateEmailRequest request,
+            CancellationToken cancellationToken)
+        {
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized("User not authorized");
+
+            try
+            {
+                var estimate = await _service.GetByIdAsync(id);
+                if (estimate == null) return NotFound("Estimate not found");
+
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                if (!isAdmin)
+                {
+                    string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    if (string.IsNullOrWhiteSpace(tokenDealerCode))
+                        return Unauthorized("Dealer code not found.");
+                    if (!string.Equals(
+                            estimate.DealerCode,
+                            tokenDealerCode,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Forbid();
+                    }
+                }
+
+                var pdfBytes = await _service.EmailEstimatePdfAsync(id, request.Email, cancellationToken);
+                if (pdfBytes == null) return NotFound("Estimate not found");
+
+                return File(pdfBytes, "application/pdf", $"Estimate_{id}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to email estimate {EstimateId}.", id);
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new { message = "Unable to email the estimate PDF." });
             }
         }
     }

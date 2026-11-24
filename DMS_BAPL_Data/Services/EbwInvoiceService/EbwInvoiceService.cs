@@ -15,8 +15,8 @@ namespace DMS_BAPL_Data.Services.EbwInvoiceService
         public EbwInvoiceService(IEbwInvoiceRepo repo) { _repo = repo; }
 
         public Task<int> SaveAsync(EbwInvoiceSaveViewModel model, string userId) => _repo.SaveAsync(model, userId);
-        public Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
-           => _repo.GetAllAsync(dealerCode, fromDate, toDate);
+        public Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate, string? locationCode)
+           => _repo.GetAllAsync(dealerCode, fromDate, toDate, locationCode);
         //public Task<EbwInvoiceHeader?> GetByIdAsync(int id) => _repo.GetByIdAsync(id);
         public Task<object?> GetByIdAsync(int id) => _repo.GetByIdAsync(id);
         public Task<bool> DeleteAsync(int id) => _repo.DeleteAsync(id);

@@ -22,6 +22,77 @@ public sealed class LocalPartsController : ControllerBase
         _logger = logger;
     }
 
+    [HttpPost("d2d")]
+    [ProducesResponseType(typeof(PartsD2DSaveResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SavePartsD2D(
+        [FromBody] CreatePartsD2DRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(createdBy))
+            return Unauthorized("User not authorized.");
+
+        try
+        {
+            var result = await _localPartsService.SaveD2DAsync(
+                request,
+                dealerCode,
+                canAccessAllDealers,
+                createdBy,
+                cancellationToken);
+            return Ok(result);
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save parts D2D transfer.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to save parts D2D transfer.");
+        }
+    }
+
+    [HttpGet("d2d/next-bill-no")]
+    [ProducesResponseType(typeof(PartsD2DBillNoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetNextPartsD2DBillNo(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var d2DBillNo = await _localPartsService.GetNextD2DBillNoAsync(cancellationToken);
+            return Ok(new PartsD2DBillNoResponse(d2DBillNo));
+        }
+        catch (LocalPartsConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get the next Parts D2D bill number.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to get the next D2D bill number.");
+        }
+    }
+
     [HttpGet("locations")]
     [ProducesResponseType(typeof(IReadOnlyList<LocalPartsLocationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -45,6 +116,355 @@ public sealed class LocalPartsController : ControllerBase
         {
             _logger.LogError(ex, "Failed to fetch local-parts workshop locations.");
             return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch workshop locations.");
+        }
+    }
+
+    [HttpGet("d2d/locations")]
+    [ProducesResponseType(typeof(IReadOnlyList<LocalPartsLocationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetD2DWorkshopLocations(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var locations = await _localPartsService.GetWorkshopLocationsAsync(
+                null,
+                true,
+                cancellationToken);
+            return Ok(locations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch D2D destination workshop locations.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch workshop locations.");
+        }
+    }
+
+    [HttpGet("d2d/transactions")]
+    [ProducesResponseType(typeof(IReadOnlyList<PartsD2DTransactionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetD2DTransactions(
+        [FromQuery] int fromLocationId,
+        [FromQuery] int toLocationId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var transactions = await _localPartsService.GetD2DTransactionsAsync(
+                fromLocationId,
+                toLocationId,
+                dealerCode,
+                canAccessAllDealers,
+                cancellationToken);
+            return Ok(transactions);
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch D2D transactions for locations {FromLocationId} and {ToLocationId}.",
+                fromLocationId,
+                toLocationId);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch D2D transactions.");
+        }
+    }
+
+    [HttpGet("d2d/history")]
+    [ProducesResponseType(typeof(IReadOnlyList<PartsD2DTransactionResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetD2DHistory(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var transactions = await _localPartsService.GetD2DHistoryAsync(
+                dealerCode,
+                canAccessAllDealers,
+                cancellationToken);
+            return Ok(transactions);
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch Parts D2D history.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch Parts D2D history.");
+        }
+    }
+
+    [HttpGet("d2d/notifications")]
+    [ProducesResponseType(typeof(IReadOnlyList<PartsD2DNotificationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetD2DNotifications(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (canAccessAllDealers)
+            return Ok(Array.Empty<PartsD2DNotificationResponse>());
+        if (string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var notifications = await _localPartsService.GetD2DNotificationsAsync(
+                dealerCode,
+                cancellationToken);
+            return Ok(notifications);
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch Parts D2D notifications.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch Parts D2D notifications.");
+        }
+    }
+
+    [HttpGet("d2d/receipt/{d2dBillNo}")]
+    [ProducesResponseType(typeof(PartsD2DReceiptResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetD2DReceipt(
+        string d2dBillNo,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out _))
+            return Forbid();
+        if (string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        try
+        {
+            var receipt = await _localPartsService.GetD2DReceiptAsync(
+                d2dBillNo,
+                dealerCode,
+                cancellationToken);
+            return Ok(receipt);
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch D2D receipt {D2DBillNo}.", d2dBillNo);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to fetch D2D receipt.");
+        }
+    }
+
+    [HttpPost("d2d/receipt/{d2dBillNo}/accept")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AcceptD2DReceipt(
+        string d2dBillNo,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out _))
+            return Forbid();
+        if (string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        var receivedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(receivedBy))
+            return Unauthorized("User not authorized.");
+
+        try
+        {
+            await _localPartsService.AcceptD2DReceiptAsync(
+                d2dBillNo,
+                dealerCode,
+                receivedBy,
+                cancellationToken);
+            return NoContent();
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to accept D2D receipt {D2DBillNo}.", d2dBillNo);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to accept D2D receipt.");
+        }
+    }
+
+    [HttpDelete("d2d/receipt/{d2dBillNo}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RejectD2DReceipt(
+        string d2dBillNo,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out _))
+            return Forbid();
+        if (string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        var rejectedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(rejectedBy))
+            return Unauthorized("User not authorized.");
+
+        try
+        {
+            await _localPartsService.RejectD2DReceiptAsync(
+                d2dBillNo,
+                dealerCode,
+                rejectedBy,
+                cancellationToken);
+            return NoContent();
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (LocalPartsConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reject D2D receipt {D2DBillNo}.", d2dBillNo);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to reject D2D receipt.");
+        }
+    }
+
+    [HttpPut("d2d/transactions/{transactionId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateD2DTransaction(
+        int transactionId,
+        [FromBody] UpdatePartsD2DTransactionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(updatedBy))
+            return Unauthorized("User not authorized.");
+
+        try
+        {
+            await _localPartsService.UpdateD2DTransactionAsync(
+                transactionId,
+                request,
+                dealerCode,
+                canAccessAllDealers,
+                updatedBy,
+                cancellationToken);
+            return Ok(new { message = "D2D transfer line updated." });
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (LocalPartsConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update D2D transaction {TransactionId}.", transactionId);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to update D2D transaction.");
+        }
+    }
+
+    [HttpDelete("d2d/transactions/{transactionId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteD2DTransaction(
+        int transactionId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
+            return Forbid();
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
+            return Unauthorized("Dealer code not found.");
+
+        var deletedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(deletedBy))
+            return Unauthorized("User not authorized.");
+
+        try
+        {
+            await _localPartsService.DeleteD2DTransactionAsync(
+                transactionId,
+                dealerCode,
+                canAccessAllDealers,
+                deletedBy,
+                cancellationToken);
+            return NoContent();
+        }
+        catch (LocalPartsValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (LocalPartsNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (LocalPartsConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete D2D transaction {TransactionId}.", transactionId);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to delete D2D transaction.");
         }
     }
 
