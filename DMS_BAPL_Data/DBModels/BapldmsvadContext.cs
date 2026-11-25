@@ -5188,6 +5188,9 @@ public partial class BapldmsvadContext : DbContext
     public virtual DbSet<DmsMaterialTransferItem> DmsMaterialTransferItems { get; set; }
     public virtual DbSet<DmsMaterialTransferLabor> DmsMaterialTransferLabors { get; set; }
     public virtual DbSet<DmsVehicleWarranty> DmsVehicleWarranties { get; set; }
+    public virtual DbSet<DmsZeroHoursJobData> DmsZeroHoursJobData { get; set; }
+    public virtual DbSet<NewZeroHoursJobHeader> NewZeroHoursJobHeaders { get; set; }
+    public virtual DbSet<NewZeroHoursJobDetail> NewZeroHoursJobDetails { get; set; }
 
     public virtual DbSet<WarrantyOrder> WarrantyOrders { get; set; }
     public virtual DbSet<WarrantyOrderDetail> WarrantyOrderDetails { get; set; }
@@ -10085,6 +10088,115 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.ToTable("DMS_VehicleWarranty");
+        });
+
+        modelBuilder.Entity<DmsZeroHoursJobData>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("DMS_ZeroHoursJobData");
+
+            entity.Property(e => e.FfrPer).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Kms).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.EstimatedJobExpenses).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.LabourHours).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Parts).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Accessory).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Oil).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Labour).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OutsideWork).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalWoTax).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.GstAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IgstAmnt).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.NetTotal).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<NewZeroHoursJobHeader>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("NewZeroHoursJobHeader");
+
+            entity.HasIndex(e => new { e.DealerCode, e.LocationCode, e.JobDate }, "IX_NewZeroHoursJobHeader_Dealer_Loc_Date")
+                .IsDescending(false, false, true);
+
+            entity.Property(e => e.CompName).HasMaxLength(200);
+            entity.Property(e => e.DealerCode).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DealerState).HasMaxLength(100);
+            entity.Property(e => e.DealerType).HasMaxLength(50);
+            entity.Property(e => e.LocationCode).HasMaxLength(50);
+            entity.Property(e => e.LocationName).HasMaxLength(200);
+
+            entity.Property(e => e.JobNo).HasMaxLength(100);
+            entity.Property(e => e.JobCategory).HasMaxLength(100);
+            entity.Property(e => e.DocNo).HasMaxLength(100);
+            entity.Property(e => e.JobStatus).HasMaxLength(100);
+            entity.Property(e => e.InTime).HasMaxLength(50);
+            entity.Property(e => e.CloseTime).HasMaxLength(50);
+
+            entity.Property(e => e.Model).HasMaxLength(150);
+            entity.Property(e => e.BrandName).HasMaxLength(150);
+            entity.Property(e => e.PartyName).HasMaxLength(200);
+            entity.Property(e => e.PartyMobile).HasMaxLength(50);
+            entity.Property(e => e.Supervisor).HasMaxLength(150);
+            entity.Property(e => e.Technician).HasMaxLength(150);
+            entity.Property(e => e.KMS).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ServiceHead).HasMaxLength(150);
+            entity.Property(e => e.JobType).HasMaxLength(150);
+            entity.Property(e => e.RegNo).HasMaxLength(100);
+            entity.Property(e => e.MotorNo).HasMaxLength(150);
+            entity.Property(e => e.ChassisNo).HasMaxLength(150);
+            entity.Property(e => e.CopnNo).HasMaxLength(100);
+            entity.Property(e => e.ChargerNo).HasMaxLength(150);
+            entity.Property(e => e.ControllerNo).HasMaxLength(150);
+            entity.Property(e => e.ConverterNo).HasMaxLength(150);
+            entity.Property(e => e.CreateThrough).HasMaxLength(100);
+
+            entity.Property(e => e.EstimatedJobExpenses).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.PartsAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.LabourAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.TotalWoTax).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.GstAmnt).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.IgstAmnt).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.NetTotal).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsDelete).HasDefaultValue(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<NewZeroHoursJobDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("NewZeroHoursJobDetail");
+
+            entity.HasIndex(e => e.ZeroHoursHeaderId, "IX_NewZeroHoursJobDetail_HeaderId");
+
+            entity.Property(e => e.SourceType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.ItemCode).HasMaxLength(100);
+            entity.Property(e => e.ItemDesc).HasMaxLength(300);
+            entity.Property(e => e.IssueType).HasMaxLength(50);
+
+            entity.Property(e => e.Qty).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.Rate).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.TaxableAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.GstAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.IgstAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+
+            entity.Property(e => e.IsDelete).HasDefaultValue(false);
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.ZeroHoursHeader)
+                .WithMany(p => p.NewZeroHoursJobDetails)
+                .HasForeignKey(d => d.ZeroHoursHeaderId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_NewZeroHoursJobDetail_Header");
         });
 
         OnModelCreatingPartial(modelBuilder);
