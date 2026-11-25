@@ -281,6 +281,8 @@ namespace DMS_BAPL_Data.Configurations
                                DMS_BAPL_Data.Services.JobCardServiceHistoryImportService.JobCardServiceHistoryReportService>();
             services.AddScoped<DMS_BAPL_Data.Services.MenuMasterAdminService.IMenuMasterAdminService,
                                DMS_BAPL_Data.Services.MenuMasterAdminService.MenuMasterAdminService>();   // Menu Master screen (create menus / pages, give roles)
+            services.AddScoped<DMS_BAPL_Data.Services.B2BJobCardService.IB2BJobCardService,
+                               DMS_BAPL_Data.Services.B2BJobCardService.B2BJobCardService>();   // B2B Job Card on the JobCardScanner database
             services.AddScoped<ILotInspectionService, LotInspectionService>();
             services.AddScoped<ILotInspectionDetailsService, LotInspectionDetailsService>();
             services.AddScoped<IReceiptEntryService, ReceiptEntryService>();

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using DMS_BAPL_Data.DBModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -301,7 +302,6 @@ public sealed class LocalPartsService : ILocalPartsService
             throw new LocalPartsValidationException("Prefix is required.");
         if (prefix.Length > 100)
             throw new LocalPartsValidationException("Prefix must be at most 100 characters.");
-
         await using (var transaction = await _context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken))
@@ -614,6 +614,881 @@ public sealed class LocalPartsService : ILocalPartsService
                 location.Id,
                 location.Locname,
                 savedLines);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<PartsD2DTransactionResponse>> GetD2DTransactionsAsync(
+        int fromLocationId,
+        int toLocationId,
+        string? dealerScope,
+        bool canAccessAllDealers,
+        CancellationToken cancellationToken)
+    {
+        if (fromLocationId <= 0 || toLocationId <= 0)
+            throw new LocalPartsValidationException("Select both from and to workshop locations.");
+        if (fromLocationId == toLocationId)
+            throw new LocalPartsValidationException("From and to locations must be different.");
+
+        var fromLocation = await GetWorkshopLocationAsync(
+            fromLocationId,
+            null,
+            true,
+            cancellationToken);
+        var toLocation = await GetWorkshopLocationAsync(
+            toLocationId,
+            null,
+            true,
+            cancellationToken);
+        if (!canAccessAllDealers &&
+            !string.Equals(fromLocation.Dealercode, dealerScope, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(toLocation.Dealercode, dealerScope, StringComparison.OrdinalIgnoreCase))
+            throw new LocalPartsNotFoundException(
+                "D2D transaction was not found or is not accessible.");
+        if (string.Equals(fromLocation.Loccode, toLocation.Loccode, StringComparison.OrdinalIgnoreCase))
+            throw new LocalPartsValidationException("From and to locations must be different.");
+
+        var transferRows = await (
+            from source in _context.PartsInventories.AsNoTracking()
+            join target in _context.PartsInventories.AsNoTracking()
+                on new { source.BatchNo, source.ItemCode } equals new { target.BatchNo, target.ItemCode }
+            where source.VendorCode == fromLocation.Dealercode &&
+                  source.DealerLocation == fromLocation.Loccode &&
+                  source.Potype == "D2D-SOURCE" &&
+                  source.BatchNo != null &&
+                  target.VendorCode == toLocation.Dealercode &&
+                  target.DealerLocation == toLocation.Loccode &&
+                  target.Potype == "D2D-TARGET"
+            orderby source.TransDate descending, source.Id descending
+            select new { Source = source, Target = target })
+            .ToListAsync(cancellationToken);
+
+        if (transferRows.Count == 0)
+            return Array.Empty<PartsD2DTransactionResponse>();
+        var sourceRows = transferRows.Select(row => row.Source).ToList();
+
+        var partCodes = sourceRows
+            .Select(stock => stock.ItemCode)
+            .Distinct()
+            .ToList();
+        var itemDescriptions = await _context.ItemMasters
+            .AsNoTracking()
+            .Where(item =>
+                item.DealerCode == fromLocation.Dealercode &&
+                partCodes.Contains(item.Itemcode))
+            .Select(item => new { item.Itemcode, item.Itemdesc })
+            .ToListAsync(cancellationToken);
+        var descriptionByPart = itemDescriptions
+            .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Itemdesc,
+                StringComparer.OrdinalIgnoreCase);
+
+        var transactions = new List<PartsD2DTransactionResponse>(sourceRows.Count);
+        foreach (var transferRow in transferRows)
+        {
+            var source = transferRow.Source;
+            var target = transferRow.Target;
+
+            var description = descriptionByPart.TryGetValue(source.ItemCode, out var itemDescription)
+                ? itemDescription
+                : source.ItemCode;
+            var isIncomingForCaller =
+                !canAccessAllDealers &&
+                string.Equals(toLocation.Dealercode, dealerScope, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(fromLocation.Dealercode, dealerScope, StringComparison.OrdinalIgnoreCase);
+            transactions.Add(new PartsD2DTransactionResponse(
+                source.Id,
+                source.BatchNo!,
+                source.VoucherNo,
+                new DateTimeOffset(source.TransDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                new DateTimeOffset(source.CreatedDate),
+                new DateTimeOffset(target.PostTransaction == 1
+                    ? target.UpdatedDate ?? target.CreatedDate
+                    : target.CreatedDate),
+                fromLocation.Loccode,
+                fromLocation.Locname,
+                fromLocation.Dealercode,
+                toLocation.Loccode,
+                toLocation.Locname,
+                toLocation.Dealercode,
+                source.ItemCode,
+                description,
+                source.BatchTransQty,
+                source.BatchOpeningQty,
+                source.BatchClosingQty,
+                target.BatchOpeningQty,
+                target.BatchClosingQty,
+                isIncomingForCaller ? target.PurchaseRate : source.PurchaseRate,
+                isIncomingForCaller,
+                target.PostTransaction == 1));
+        }
+
+        return transactions;
+    }
+
+    public async Task<IReadOnlyList<PartsD2DTransactionResponse>> GetD2DHistoryAsync(
+        string? dealerScope,
+        bool canAccessAllDealers,
+        CancellationToken cancellationToken)
+    {
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerScope))
+            throw new LocalPartsValidationException("Dealer code is required.");
+
+        var transferRows = await (
+            from source in _context.PartsInventories.AsNoTracking()
+            join target in _context.PartsInventories.AsNoTracking()
+                on new { source.BatchNo, source.ItemCode } equals new { target.BatchNo, target.ItemCode }
+            where source.Potype == "D2D-SOURCE" &&
+                  source.BatchNo != null &&
+                  target.Potype == "D2D-TARGET" &&
+                  (canAccessAllDealers ||
+                   source.VendorCode == dealerScope ||
+                   target.VendorCode == dealerScope)
+            orderby source.TransDate descending, source.Id descending
+            select new { Source = source, Target = target })
+            .ToListAsync(cancellationToken);
+
+        if (transferRows.Count == 0)
+            return Array.Empty<PartsD2DTransactionResponse>();
+
+        var locations = await _context.LocationMasters
+            .AsNoTracking()
+            .Where(location => location.Locareaidno == 2)
+            .Select(location => new
+            {
+                location.Dealercode,
+                location.Loccode,
+                location.Locname
+            })
+            .ToListAsync(cancellationToken);
+        var locationNameByKey = locations
+            .GroupBy(
+                location => $"{location.Dealercode}\u001f{location.Loccode}",
+                StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Locname,
+                StringComparer.OrdinalIgnoreCase);
+
+        var partCodes = transferRows.Select(row => row.Source.ItemCode).Distinct().ToList();
+        var itemDescriptions = new List<(string? DealerCode, string Itemcode, string Itemdesc)>();
+        foreach (var partCodeChunk in partCodes.Chunk(1000))
+        {
+            var chunkDescriptions = await _context.ItemMasters
+                .AsNoTracking()
+                .Where(item => partCodeChunk.Contains(item.Itemcode))
+                .Select(item => new { item.DealerCode, item.Itemcode, item.Itemdesc })
+                .ToListAsync(cancellationToken);
+            itemDescriptions.AddRange(chunkDescriptions.Select(item =>
+                (item.DealerCode, item.Itemcode, item.Itemdesc)));
+        }
+
+        var descriptionByKey = itemDescriptions
+            .GroupBy(item => $"{item.DealerCode}\u001f{item.Itemcode}", StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Itemdesc,
+                StringComparer.OrdinalIgnoreCase);
+
+        return transferRows.Select(row =>
+        {
+            var source = row.Source;
+            var target = row.Target;
+            var fromLocationKey = $"{source.VendorCode}\u001f{source.DealerLocation}";
+            var toLocationKey = $"{target.VendorCode}\u001f{target.DealerLocation}";
+            var fromLocationName = locationNameByKey.TryGetValue(fromLocationKey, out var fromName)
+                ? fromName
+                : source.DealerLocation;
+            var toLocationName = locationNameByKey.TryGetValue(toLocationKey, out var toName)
+                ? toName
+                : target.DealerLocation;
+            var itemKey = $"{source.VendorCode}\u001f{source.ItemCode}";
+            var description = descriptionByKey.TryGetValue(itemKey, out var itemDescription)
+                ? itemDescription
+                : source.ItemCode;
+            var isIncomingForCaller =
+                !canAccessAllDealers &&
+                string.Equals(target.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(source.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase);
+
+            return new PartsD2DTransactionResponse(
+                source.Id,
+                source.BatchNo!,
+                source.VoucherNo,
+                new DateTimeOffset(source.TransDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                new DateTimeOffset(source.CreatedDate),
+                new DateTimeOffset(target.PostTransaction == 1
+                    ? target.UpdatedDate ?? target.CreatedDate
+                    : target.CreatedDate),
+                source.DealerLocation,
+                fromLocationName,
+                source.VendorCode ?? string.Empty,
+                target.DealerLocation,
+                toLocationName,
+                target.VendorCode ?? string.Empty,
+                source.ItemCode,
+                description,
+                source.BatchTransQty,
+                source.BatchOpeningQty,
+                source.BatchClosingQty,
+                target.BatchOpeningQty,
+                target.BatchClosingQty,
+                isIncomingForCaller ? target.PurchaseRate : source.PurchaseRate,
+                isIncomingForCaller,
+                target.PostTransaction == 1);
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<PartsD2DNotificationResponse>> GetD2DNotificationsAsync(
+        string dealerScope,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(dealerScope))
+            throw new LocalPartsValidationException("Dealer code is required.");
+
+        var transactions = await GetD2DHistoryAsync(dealerScope, false, cancellationToken);
+        return transactions
+            .Where(transaction => transaction.IsIncomingForCaller)
+            .GroupBy(transaction => transaction.D2DBillNo, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var first = group.First();
+                return new PartsD2DNotificationResponse(
+                    first.D2DBillNo,
+                    first.Prefix,
+                    first.Date,
+                    first.ReceivedDate,
+                    first.FromLocationName,
+                    first.FromDealerCode,
+                    group.Count(),
+                    group.All(transaction => transaction.IsReceived));
+            })
+            .OrderByDescending(notification => notification.ReceivedDate)
+            .ToList();
+    }
+
+    public async Task<PartsD2DReceiptResponse> GetD2DReceiptAsync(
+        string d2dBillNo,
+        string dealerScope,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(d2dBillNo))
+            throw new LocalPartsValidationException("D2D bill number is required.");
+
+        var transactions = await GetD2DHistoryAsync(dealerScope, false, cancellationToken);
+        var receiptLines = transactions
+            .Where(transaction =>
+                string.Equals(transaction.D2DBillNo, d2dBillNo, StringComparison.OrdinalIgnoreCase) &&
+                transaction.IsIncomingForCaller)
+            .ToList();
+        if (receiptLines.Count == 0)
+            throw new LocalPartsNotFoundException("D2D receipt was not found or is not accessible.");
+
+        var toDealerCode = receiptLines[0].ToDealerCode;
+        var partCodes = receiptLines.Select(line => line.PartCode).ToList();
+        var items = await _context.ItemMasters
+            .AsNoTracking()
+            .Where(item => item.DealerCode == toDealerCode && partCodes.Contains(item.Itemcode))
+            .Select(item => new { item.Itemcode, item.Hsncode })
+            .ToListAsync(cancellationToken);
+        var hsnByPart = items
+            .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Hsncode ?? string.Empty,
+                StringComparer.OrdinalIgnoreCase);
+
+        var firstLine = receiptLines[0];
+        return new PartsD2DReceiptResponse(
+            firstLine.D2DBillNo,
+            firstLine.Prefix,
+            firstLine.Date,
+            firstLine.CreatedDate,
+            firstLine.FromLocationCode,
+            firstLine.FromLocationName,
+            firstLine.FromDealerCode,
+            firstLine.ToLocationCode,
+            firstLine.ToLocationName,
+            receiptLines.All(line => line.IsReceived),
+            receiptLines.Select(line => new PartsD2DReceiptItemResponse(
+                line.PartCode,
+                line.Description,
+                hsnByPart.TryGetValue(line.PartCode, out var hsnCode) ? hsnCode : string.Empty,
+                line.TransferQuantity,
+                line.Rate)).ToList());
+    }
+
+    public async Task AcceptD2DReceiptAsync(
+        string d2dBillNo,
+        string dealerScope,
+        string receivedBy,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(d2dBillNo) ||
+            string.IsNullOrWhiteSpace(dealerScope) ||
+            string.IsNullOrWhiteSpace(receivedBy))
+            throw new LocalPartsValidationException("D2D receipt, dealer and user information are required.");
+
+        var targets = await _context.PartsInventories
+            .Where(stock =>
+                stock.BatchNo == d2dBillNo &&
+                stock.Potype == "D2D-TARGET" &&
+                stock.VendorCode == dealerScope)
+            .ToListAsync(cancellationToken);
+        if (targets.Count == 0)
+            throw new LocalPartsNotFoundException("D2D receipt was not found or is not accessible.");
+
+        foreach (var target in targets)
+        {
+            target.PostTransaction = 1;
+            target.UpdatedBy = receivedBy;
+            target.UpdatedDate = DateTime.Now;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RejectD2DReceiptAsync(
+        string d2dBillNo,
+        string dealerScope,
+        string rejectedBy,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(d2dBillNo) ||
+            string.IsNullOrWhiteSpace(dealerScope) ||
+            string.IsNullOrWhiteSpace(rejectedBy))
+            throw new LocalPartsValidationException("D2D receipt, dealer and user information are required.");
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+        try
+        {
+            var targets = await _context.PartsInventories
+                .Where(stock =>
+                    stock.BatchNo == d2dBillNo &&
+                    stock.Potype == "D2D-TARGET" &&
+                    stock.VendorCode == dealerScope)
+                .ToListAsync(cancellationToken);
+            if (targets.Count == 0)
+                throw new LocalPartsNotFoundException("D2D receipt was not found or is not accessible.");
+            if (targets.Any(target => target.PostTransaction == 1))
+                throw new LocalPartsConflictException("This D2D receipt has already been marked as received.");
+
+            var sources = await _context.PartsInventories
+                .Where(stock =>
+                    stock.BatchNo == d2dBillNo &&
+                    stock.Potype == "D2D-SOURCE")
+                .ToListAsync(cancellationToken);
+            if (sources.Count != targets.Count)
+                throw new LocalPartsConflictException(
+                    "The matching source entries were not found; this transfer cannot be rejected.");
+
+            foreach (var target in targets)
+            {
+                var source = sources.FirstOrDefault(row =>
+                    string.Equals(row.ItemCode, target.ItemCode, StringComparison.OrdinalIgnoreCase));
+                if (source is null)
+                    throw new LocalPartsConflictException(
+                        "A matching source entry was not found; this transfer cannot be rejected.");
+                await EnsureD2DLineIsLatestAsync(source, target, cancellationToken);
+            }
+
+            var rejectedAt = DateTime.Now;
+            foreach (var source in sources)
+            {
+                source.Potype = "D2D-VOID-SOURCE";
+                source.BatchTransQty = 0;
+                source.BatchClosingQty = source.BatchOpeningQty;
+                source.TotalRate = 0;
+                source.UpdatedBy = rejectedBy;
+                source.UpdatedDate = rejectedAt;
+            }
+
+            foreach (var target in targets)
+            {
+                target.Potype = "D2D-VOID-TARGET";
+                target.BatchTransQty = 0;
+                target.BatchClosingQty = target.BatchOpeningQty;
+                target.TotalRate = 0;
+                target.UpdatedBy = rejectedBy;
+                target.UpdatedDate = rejectedAt;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task UpdateD2DTransactionAsync(
+        int transactionId,
+        UpdatePartsD2DTransactionRequest request,
+        string? dealerScope,
+        bool canAccessAllDealers,
+        string updatedBy,
+        CancellationToken cancellationToken)
+    {
+        if (transactionId <= 0)
+            throw new LocalPartsValidationException("Transaction ID is invalid.");
+        if (request is null || request.TransferQuantity <= 0)
+            throw new LocalPartsValidationException("Transfer quantity must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(updatedBy))
+            throw new LocalPartsValidationException("Authenticated user information is required.");
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerScope))
+            throw new LocalPartsValidationException("Dealer code is required.");
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+        try
+        {
+            var (source, target) = await GetAccessibleD2DLineAsync(
+                transactionId,
+                dealerScope,
+                canAccessAllDealers,
+                cancellationToken);
+            await EnsureD2DLineIsLatestAsync(source, target, cancellationToken);
+
+            if (source.BatchOpeningQty < request.TransferQuantity)
+                throw new LocalPartsValidationException(
+                    $"Transfer quantity cannot exceed source stock before this transfer ({source.BatchOpeningQty}).");
+
+            int sourceClosing;
+            int targetClosing;
+            decimal sourceTotalRate;
+            decimal targetTotalRate;
+            try
+            {
+                sourceClosing = checked(source.BatchOpeningQty - request.TransferQuantity);
+                targetClosing = checked(target.BatchOpeningQty + request.TransferQuantity);
+                sourceTotalRate = checked(source.PurchaseRate * request.TransferQuantity);
+                targetTotalRate = checked(target.PurchaseRate * request.TransferQuantity);
+            }
+            catch (OverflowException)
+            {
+                throw new LocalPartsValidationException(
+                    "The updated stock quantity or amount exceeds the supported range.");
+            }
+
+            source.BatchTransQty = request.TransferQuantity;
+            source.BatchClosingQty = sourceClosing;
+            source.TotalRate = sourceTotalRate;
+            source.UpdatedBy = updatedBy;
+            source.UpdatedDate = DateTime.Now;
+
+            target.BatchTransQty = request.TransferQuantity;
+            target.BatchClosingQty = targetClosing;
+            target.TotalRate = targetTotalRate;
+            target.UpdatedBy = updatedBy;
+            target.UpdatedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task DeleteD2DTransactionAsync(
+        int transactionId,
+        string? dealerScope,
+        bool canAccessAllDealers,
+        string deletedBy,
+        CancellationToken cancellationToken)
+    {
+        if (transactionId <= 0)
+            throw new LocalPartsValidationException("Transaction ID is invalid.");
+        if (string.IsNullOrWhiteSpace(deletedBy))
+            throw new LocalPartsValidationException("Authenticated user information is required.");
+        if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerScope))
+            throw new LocalPartsValidationException("Dealer code is required.");
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+        try
+        {
+            var (source, target) = await GetAccessibleD2DLineAsync(
+                transactionId,
+                dealerScope,
+                canAccessAllDealers,
+                cancellationToken);
+            await EnsureD2DLineIsLatestAsync(source, target, cancellationToken);
+
+            source.Potype = "D2D-VOID-SOURCE";
+            source.BatchTransQty = 0;
+            source.BatchClosingQty = source.BatchOpeningQty;
+            source.TotalRate = 0;
+            source.UpdatedBy = deletedBy;
+            source.UpdatedDate = DateTime.Now;
+
+            target.Potype = "D2D-VOID-TARGET";
+            target.BatchTransQty = 0;
+            target.BatchClosingQty = target.BatchOpeningQty;
+            target.TotalRate = 0;
+            target.UpdatedBy = deletedBy;
+            target.UpdatedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private async Task<(PartsInventory Source, PartsInventory Target)> GetAccessibleD2DLineAsync(
+        int transactionId,
+        string? dealerScope,
+        bool canAccessAllDealers,
+        CancellationToken cancellationToken)
+    {
+        var source = await _context.PartsInventories
+            .Where(stock => stock.Id == transactionId && stock.Potype == "D2D-SOURCE")
+            .FirstOrDefaultAsync(cancellationToken);
+        if (source is null || string.IsNullOrWhiteSpace(source.BatchNo) ||
+            string.IsNullOrWhiteSpace(source.VendorCode))
+            throw new LocalPartsNotFoundException(
+                "D2D transaction was not found or is not accessible.");
+
+        var target = await _context.PartsInventories
+            .Where(stock =>
+                stock.Potype == "D2D-TARGET" &&
+                stock.BatchNo == source.BatchNo &&
+                stock.ItemCode == source.ItemCode)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (target is null || string.IsNullOrWhiteSpace(target.VendorCode) ||
+            string.IsNullOrWhiteSpace(target.DealerLocation))
+            throw new LocalPartsConflictException(
+                "The matching destination stock entry was not found; this transfer cannot be changed.");
+        if (!canAccessAllDealers &&
+            !string.Equals(source.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(target.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase))
+            throw new LocalPartsNotFoundException(
+                "D2D transaction was not found or is not accessible.");
+
+        return (source, target);
+    }
+
+    private async Task EnsureD2DLineIsLatestAsync(
+        PartsInventory source,
+        PartsInventory target,
+        CancellationToken cancellationToken)
+    {
+        var sourceHasLaterMovement = await HasLaterStockMovementAsync(source, cancellationToken);
+        var targetHasLaterMovement = await HasLaterStockMovementAsync(target, cancellationToken);
+        var sourceHasOtherFinalRow = await HasOtherFinalStockRowAsync(source, cancellationToken);
+        var targetHasOtherFinalRow = await HasOtherFinalStockRowAsync(target, cancellationToken);
+        if (source.FinalStockFlag != "Y" ||
+            target.FinalStockFlag != "Y" ||
+            sourceHasLaterMovement ||
+            targetHasLaterMovement ||
+            sourceHasOtherFinalRow ||
+            targetHasOtherFinalRow)
+            throw new LocalPartsConflictException(
+                "This transfer cannot be edited or deleted because later stock movements exist, or the stock ledger is no longer at this transfer.");
+    }
+
+    private Task<bool> HasOtherFinalStockRowAsync(
+        PartsInventory stockRow,
+        CancellationToken cancellationToken) =>
+        _context.PartsInventories.AnyAsync(stock =>
+            stock.Id != stockRow.Id &&
+            stock.VendorCode == stockRow.VendorCode &&
+            stock.DealerLocation == stockRow.DealerLocation &&
+            stock.ItemCode == stockRow.ItemCode &&
+            stock.FinalStockFlag == "Y",
+            cancellationToken);
+
+    private Task<bool> HasLaterStockMovementAsync(
+        PartsInventory stockRow,
+        CancellationToken cancellationToken) =>
+        _context.PartsInventories.AnyAsync(stock =>
+            stock.Id != stockRow.Id &&
+            stock.VendorCode == stockRow.VendorCode &&
+            stock.DealerLocation == stockRow.DealerLocation &&
+            stock.ItemCode == stockRow.ItemCode &&
+            (stock.TransDate > stockRow.TransDate ||
+             (stock.TransDate == stockRow.TransDate && stock.Id > stockRow.Id)),
+            cancellationToken);
+
+    public async Task<string> GetNextD2DBillNoAsync(CancellationToken cancellationToken)
+    {
+        var existingBillNumbers = await _context.PartsInventories
+            .Where(stock => stock.Potype == "D2D-SOURCE" || stock.Potype == "D2D-VOID-SOURCE")
+            .Select(stock => stock.BatchNo)
+            .ToListAsync(cancellationToken);
+        var latestBillNumber = existingBillNumbers
+            .Select(value => long.TryParse(
+                value,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var number) ? number : 0)
+            .DefaultIfEmpty()
+            .Max();
+        if (latestBillNumber == long.MaxValue)
+            throw new LocalPartsConflictException("The D2D bill number sequence is exhausted.");
+
+        return (latestBillNumber + 1).ToString(CultureInfo.InvariantCulture);
+    }
+
+    public async Task<PartsD2DSaveResponse> SaveD2DAsync(
+        CreatePartsD2DRequest request,
+        string? dealerScope,
+        bool canAccessAllDealers,
+        string createdBy,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+            throw new LocalPartsValidationException("D2D transfer data is required.");
+
+        var prefix = request.Prefix?.Trim();
+        if (string.IsNullOrWhiteSpace(prefix))
+            throw new LocalPartsValidationException("Prefix is required.");
+        if (prefix.Length > 100)
+            throw new LocalPartsValidationException("Prefix must be at most 100 characters.");
+        if (request.Date == default)
+            throw new LocalPartsValidationException("Date is required.");
+        if (request.FromLocationId <= 0)
+            throw new LocalPartsValidationException("Select the from workshop location.");
+        if (request.ToLocationId <= 0)
+            throw new LocalPartsValidationException("Select the to workshop location.");
+        if (request.FromLocationId == request.ToLocationId)
+            throw new LocalPartsValidationException("From and to locations must be different.");
+        if (request.Items is null || request.Items.Count == 0)
+            throw new LocalPartsValidationException("Add at least one part.");
+        if (string.IsNullOrWhiteSpace(createdBy))
+            throw new LocalPartsValidationException("Authenticated user information is required.");
+
+        var quantitiesByPart = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in request.Items)
+        {
+            if (line is null)
+                throw new LocalPartsValidationException("Every transfer line must contain a part.");
+
+            var partCode = line.PartCode?.Trim();
+            if (string.IsNullOrWhiteSpace(partCode))
+                throw new LocalPartsValidationException("Part code is required for every line.");
+            if (line.TransferQuantity <= 0)
+                throw new LocalPartsValidationException($"Transfer quantity for '{partCode}' must be greater than zero.");
+
+            try
+            {
+                quantitiesByPart[partCode] = checked(
+                    quantitiesByPart.GetValueOrDefault(partCode) + line.TransferQuantity);
+            }
+            catch (OverflowException)
+            {
+                throw new LocalPartsValidationException(
+                    $"Combined transfer quantity for '{partCode}' exceeds the supported range.");
+            }
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+
+        try
+        {
+            var fromLocation = await GetWorkshopLocationAsync(
+                request.FromLocationId,
+                dealerScope,
+                canAccessAllDealers,
+                cancellationToken);
+            var toLocation = await GetWorkshopLocationAsync(
+                request.ToLocationId,
+                dealerScope,
+                true,
+                cancellationToken);
+
+            var fromLocationCode = fromLocation.Loccode;
+            var toLocationCode = toLocation.Loccode;
+
+            if (string.Equals(fromLocationCode, toLocationCode, StringComparison.OrdinalIgnoreCase))
+                throw new LocalPartsValidationException("From and to locations must be different.");
+
+            var prefixAlreadyUsed = await _context.PartsInventories.AnyAsync(stock =>
+                stock.VoucherNo == prefix &&
+                (stock.Potype == "D2D-SOURCE" || stock.Potype == "D2D-VOID-SOURCE"),
+                cancellationToken);
+            if (prefixAlreadyUsed)
+                throw new LocalPartsConflictException(
+                    $"Prefix '{prefix}' has already been used for a D2D transfer.");
+
+            var d2dBillNo = await GetNextD2DBillNoAsync(cancellationToken);
+
+            var partCodes = quantitiesByPart.Keys.ToList();
+            var fromItems = await _context.ItemMasters
+                .Where(item =>
+                    item.DealerCode == fromLocation.Dealercode &&
+                    item.Grpidno == 1 &&
+                    item.Status &&
+                    partCodes.Contains(item.Itemcode))
+                .ToListAsync(cancellationToken);
+            var fromItemsByPart = fromItems
+                .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+            var toItems = await _context.ItemMasters
+                .Where(item =>
+                    item.DealerCode == toLocation.Dealercode &&
+                    item.Grpidno == 1 &&
+                    partCodes.Contains(item.Itemcode))
+                .ToListAsync(cancellationToken);
+            var toItemsByPart = toItems
+                .GroupBy(item => item.Itemcode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var partCode in partCodes)
+            {
+                if (!fromItemsByPart.ContainsKey(partCode))
+                    throw new LocalPartsValidationException(
+                        $"Part '{partCode}' is not an active Spares item for the from dealer.");
+            }
+
+            var fromRows = await _context.PartsInventories
+                .Where(stock =>
+                    stock.VendorCode == fromLocation.Dealercode &&
+                    stock.DealerLocation == fromLocationCode &&
+                    stock.FinalStockFlag == "Y" &&
+                    partCodes.Contains(stock.ItemCode))
+                .ToListAsync(cancellationToken);
+            var toRows = await _context.PartsInventories
+                .Where(stock =>
+                    stock.VendorCode == toLocation.Dealercode &&
+                    stock.DealerLocation == toLocationCode &&
+                    stock.FinalStockFlag == "Y" &&
+                    partCodes.Contains(stock.ItemCode))
+                .ToListAsync(cancellationToken);
+
+            var fromStock = fromRows
+                .GroupBy(stock => stock.ItemCode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(stock => (long)stock.BatchClosingQty), StringComparer.OrdinalIgnoreCase);
+            var toStock = toRows
+                .GroupBy(stock => stock.ItemCode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(stock => (long)stock.BatchClosingQty), StringComparer.OrdinalIgnoreCase);
+
+            var transferBatchId = d2dBillNo;
+            var transferDate = DateOnly.FromDateTime(request.Date.UtcDateTime);
+            var createdDate = DateTime.Now;
+            var responses = new List<PartsD2DLineResponse>(partCodes.Count);
+
+            foreach (var partCode in partCodes)
+            {
+                var quantity = quantitiesByPart[partCode];
+                var sourceOpening = fromStock.TryGetValue(partCode, out var sourceStock) ? sourceStock : 0;
+                var targetOpening = toStock.TryGetValue(partCode, out var targetStock) ? targetStock : 0;
+
+                if (sourceOpening < quantity)
+                    throw new LocalPartsValidationException(
+                        $"Insufficient stock for part '{partCode}'. Available: {sourceOpening}, Transfer: {quantity}.");
+
+                int sourceClosing;
+                int targetClosing;
+                decimal sourceRate;
+                decimal targetRate;
+                var targetItemRate = toItemsByPart.TryGetValue(partCode, out var targetItem)
+                    ? targetItem.Ipurrate
+                    : fromItemsByPart[partCode].Ipurrate;
+                try
+                {
+                    sourceClosing = checked((int)sourceOpening - quantity);
+                    targetClosing = checked((int)targetOpening + quantity);
+                    sourceRate = checked(fromItemsByPart[partCode].Ipurrate * quantity);
+                    targetRate = checked(targetItemRate * quantity);
+                }
+                catch (OverflowException)
+                {
+                    throw new LocalPartsValidationException(
+                        $"Stock total or amount for part '{partCode}' exceeds the supported range.");
+                }
+
+                responses.Add(new PartsD2DLineResponse(
+                    partCode,
+                    fromItemsByPart[partCode].Itemdesc,
+                    quantity,
+                    (int)sourceOpening,
+                    sourceClosing,
+                    (int)targetOpening,
+                    targetClosing,
+                    fromItemsByPart[partCode].Ipurrate));
+
+                _context.PartsInventories.Add(new PartsInventory
+                {
+                    TransId = Guid.NewGuid().ToString(),
+                    ItemCode = partCode,
+                    VoucherNo = prefix,
+                    TransType = "TO",
+                    BatchNo = transferBatchId,
+                    BatchOpeningQty = (int)sourceOpening,
+                    BatchTransQty = quantity,
+                    BatchClosingQty = sourceClosing,
+                    TransDate = transferDate,
+                    DealerLocation = fromLocationCode,
+                    VendorCode = fromLocation.Dealercode,
+                    FinalStockFlag = "Y",
+                    TotalRate = sourceRate,
+                    PurchaseRate = fromItemsByPart[partCode].Ipurrate,
+                    Potype = "D2D-SOURCE",
+                    PostTransaction = 0,
+                    CreatedBy = createdBy,
+                    CreatedDate = createdDate
+                });
+
+                _context.PartsInventories.Add(new PartsInventory
+                {
+                    TransId = Guid.NewGuid().ToString(),
+                    ItemCode = partCode,
+                    VoucherNo = prefix,
+                    TransType = "TI",
+                    BatchNo = transferBatchId,
+                    BatchOpeningQty = (int)targetOpening,
+                    BatchTransQty = quantity,
+                    BatchClosingQty = targetClosing,
+                    TransDate = transferDate,
+                    DealerLocation = toLocationCode,
+                    VendorCode = toLocation.Dealercode,
+                    FinalStockFlag = "Y",
+                    TotalRate = targetRate,
+                    PurchaseRate = targetItemRate,
+                    Potype = "D2D-TARGET",
+                    PostTransaction = 0,
+                    CreatedBy = createdBy,
+                    CreatedDate = createdDate
+                });
+            }
+
+            foreach (var row in fromRows)
+                row.FinalStockFlag = "N";
+            foreach (var row in toRows)
+                row.FinalStockFlag = "N";
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return new PartsD2DSaveResponse(
+                prefix,
+                transferBatchId,
+                request.Date,
+                fromLocationCode,
+                toLocationCode,
+                responses);
         }
         catch
         {

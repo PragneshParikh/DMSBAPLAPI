@@ -123,6 +123,11 @@ builder.Services.AddDbContext<BapldmsvadContext>(options =>
 builder.Services.AddDbContext<BAPLdbIdentityContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// B2B Job Card (24.11.2026): JobCardScanner database - separate context, own connection string (password kept in
+// user secrets / environment / deployment config, never in source). DefaultConnection above is unchanged.
+builder.Services.AddDbContext<DMS_BAPL_Data.JobCardScanner.JobCardScannerDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("JobCardScannerDb")));
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BAPLdbIdentityContext>()
     .AddDefaultTokenProviders();
@@ -197,6 +202,17 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowAngularApp");
+
+// 25.11.2026 job card photos (B2C + B2B) on this server's disk - same folder layout as JobCardScanner
+// (wwwroot/uploads/jobcard-photos); file names are random GUIDs. Served before the auth middleware so <img> tags work.
+var jobCardPhotoRoot = DMS_BAPL_Api.Helpers.JobCardPhotoStorage.Root(app.Environment.ContentRootPath);
+Directory.CreateDirectory(jobCardPhotoRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(jobCardPhotoRoot),
+    RequestPath = DMS_BAPL_Api.Helpers.JobCardPhotoStorage.RequestPath,
+    ServeUnknownFileTypes = false
+});
 
 app.UseMiddleware<AuthorizationMiddleware>();
 app.UseMiddleware<ApiAuditMiddleware>();

@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>1ea5cddd-19d3-46b4-836b-69a83db2e5b5</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,5 +23,7 @@
     <ProjectReference Include="..\DMS_BAPL_Data\DMS_BAPL_Data.csproj" />
     <ProjectReference Include="..\DMS_BAPL_Utils\DMS_BAPL_Utils.csproj" />
   </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://www.unpkg.com/wrangler/config-schema.json" /></VisualStudio></ProjectExtensions>
 
 </Project>

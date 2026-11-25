@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace DMS_BAPL_Utils.ViewModels
 {
@@ -149,6 +150,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public string ItemType { get; set; } = string.Empty; // "Part" or "Labour"
         public string? ItemCode { get; set; }
         public string? ItemDescription { get; set; }
+        public string? HsnCode { get; set; }
+        public decimal? Mrp { get; set; }
         public decimal Qty { get; set; }
         public decimal Rate { get; set; }
         public decimal DiscountPercent { get; set; }
@@ -172,8 +175,11 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? DealerPan { get; set; }
         public string? DealerTradeCertNo { get; set; }
         public string? EstimationNo { get; set; }
+        public int? JobCardNo { get; set; }
         public DateTime EstimateDate { get; set; }
         public string? ChassisNo { get; set; }
+        public string? RegistrationNo { get; set; }
+        public string? VehicleModel { get; set; }
         public int? Kms { get; set; }
         public string? JobTypeName { get; set; }
         public string? InsuranceParty { get; set; }
@@ -197,5 +203,13 @@ namespace DMS_BAPL_Utils.ViewModels
         public decimal TotalPartsAmount { get; set; }
         public decimal TotalLabourAmount { get; set; }
         public decimal GrandTotal { get; set; }
+    }
+
+    /// <summary>Recipient address for emailing a saved estimate PDF.</summary>
+    public sealed record SendEstimateEmailRequest
+    {
+        /// <summary>Email address that should receive the estimate PDF.</summary>
+        [Required, EmailAddress]
+        public required string Email { get; init; }
     }
 }

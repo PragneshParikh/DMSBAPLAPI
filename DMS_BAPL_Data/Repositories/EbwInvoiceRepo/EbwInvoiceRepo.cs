@@ -193,7 +193,11 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
             };
         }
 
-        public async Task<List<object>> GetAllAsync(string? dealerCode, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<object>> GetAllAsync(
+            string? dealerCode,
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? locationCode)
         {
             var query = _context.EbwInvoiceHeaders.AsQueryable();
 
@@ -205,6 +209,9 @@ namespace DMS_BAPL_Data.Repositories.EbwInvoiceRepo
 
             if (toDate.HasValue)
                 query = query.Where(x => x.InvoiceDate <= toDate.Value.Date.AddDays(1).AddTicks(-1));
+
+            if (!string.IsNullOrWhiteSpace(locationCode))
+                query = query.Where(x => x.LocationCode == locationCode);
 
             var result = await query
                 .OrderByDescending(x => x.Id)
