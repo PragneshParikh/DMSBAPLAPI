@@ -561,7 +561,15 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var jobCards = await _jobCardRepo.GetJobCardByStatus(fromDate, toDate, jobNo, manualJobNo, isClosed, pageIndex, pageSize, dealerCode);
+                bool isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+                string? effectiveDealerCode = isAdmin
+                    ? dealerCode
+                    : GetUserInfoFromToken.GetDealerCode(HttpContext);
+
+                if (!isAdmin && string.IsNullOrWhiteSpace(effectiveDealerCode))
+                    return Forbid();
+
+                var jobCards = await _jobCardRepo.GetJobCardByStatus(fromDate, toDate, jobNo, manualJobNo, isClosed, pageIndex, pageSize, effectiveDealerCode);
 
                 return Ok(jobCards);
             }

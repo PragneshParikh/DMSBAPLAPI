@@ -27,7 +27,9 @@ namespace DMS_BAPL_Utils.ViewModels
             public int? CustomerLedgerId { get; set; }
 
             public int? Scheme { get; set; }
-            public int JobId { get; set; }
+            public int? JobId { get; set; }
+            public Guid? B2BJobCardId { get; set; }
+            public string? B2BJobCardNumber { get; set; }
 
             public string? Remarks { get; set; }
 
@@ -112,7 +114,9 @@ namespace DMS_BAPL_Utils.ViewModels
             public string? PartyName { get; set; }
             public string? ChassisNumber { get; set; }
             public string? RegistrationNo { get; set; }
-            public int JobId { get; set; }
+            public int? JobId { get; set; }
+            public Guid? B2BJobCardId { get; set; }
+            public string? B2BJobCardNumber { get; set; }
             public int? JobCardNo { get; set; }
             public decimal? TotalNetAmount { get; set; }
             public string? RepairBillStatus { get; set; }
@@ -136,7 +140,10 @@ namespace DMS_BAPL_Utils.ViewModels
             public string? MobileNumber { get; set; }
             public string? PartyState { get; set; }
             public int? Scheme { get; set; }
-            public int JobId { get; set; }
+            public int? JobId { get; set; }
+            public Guid? B2BJobCardId { get; set; }
+            public string? B2BJobCardNumber { get; set; }
+            public string? JobTypeName { get; set; }
             public DateOnly? JobInDate { get; set; }
             public int? JobNo { get; set; }
             public string? RegisterNo { get; set; }
@@ -262,6 +269,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public class RepairBillPerformaVM
         {
             public int Id { get; set; }
+            public Guid? B2BJobCardId { get; set; }
+            public string? B2BJobCardNumber { get; set; }
             //Dealer info
             public string? DealerName { get; set; }
             public string? ContactPerson { get; set; }

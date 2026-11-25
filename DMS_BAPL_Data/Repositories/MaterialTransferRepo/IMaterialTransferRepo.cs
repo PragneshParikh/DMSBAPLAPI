@@ -16,6 +16,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
 
         Task<int> DeleteMaterialsByJobId(int jobId, bool isSuperAdmin);
         Task<IEnumerable<MaterialTransferViewModel>> GetMeterialTransferByJobId(int JobId);
+        Task<IEnumerable<MaterialTransferViewModel>> GetMaterialTransferByB2BJobCardId(Guid b2bJobCardId);
         Task<IEnumerable<object>> GetMeterialByJobId(int jobId);
         Task<PagedResponse<object>> GetMaterialTransferDetailsByDealer(
                 string? searchTerm,

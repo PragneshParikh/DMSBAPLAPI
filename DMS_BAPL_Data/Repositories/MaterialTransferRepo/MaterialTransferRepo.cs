@@ -48,6 +48,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                 var entities = materialTransferViewModels.Select(k => new MaterialTransfer
                 {
                     JobId = k.JobId,
+                    B2BJobCardId = k.B2BJobCardId,
                     ItemId = k.ItemId,
                     ItemCode = k.ItemCode,     
                     ItemDesc = k.ItemDesc,
@@ -65,7 +66,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     MaterialPrefix = k.MaterialPrefix,
                     MaterialIssueNumber = k.MaterialIssueNumber,
                     DealerCode = k.DealerCode,           
-                    DealerLocation = k.DealerLocation,   
+                    DealerLocation = k.B2BJobCardId.HasValue ? k.Location : k.DealerLocation,
                     Mrp = k.Mrp,
                     CreatedBy = k.CreatedBy,
                     CreatedDate = k.CreatedDate,
@@ -106,6 +107,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     ItemCode = k.ItemCode,     
                     ItemDesc = k.ItemDesc,
                     JobId = k.JobId,
+                    B2BJobCardId = k.B2BJobCardId,
                     MaterialPrefix = k.MaterialPrefix,
                     MaterialIssueNumber = k.MaterialIssueNumber,
                     RackNo = k.RackNo,
@@ -120,7 +122,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     ValidDays = k.ValidDays,
                     IssueType = k.IssueType,
                     DealerCode = k.DealerCode,           
-                    DealerLocation = k.DealerLocation,   
+                    DealerLocation = k.B2BJobCardId.HasValue ? k.Location : k.DealerLocation,
                     Mrp = k.Mrp,
                     CreatedBy = k.CreatedBy,
                     CreatedDate = k.CreatedDate,
@@ -263,7 +265,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                         on MT.ItemId equals IM.Id
 
                     join JCH in _context.JobCardHeaders
-                        on MT.JobId equals JCH.Id
+                        on MT.JobId equals (int?)JCH.Id
 
                     join DM in _context.DealerMasters
                         on JCH.DealerCode equals DM.Dealercode
@@ -518,7 +520,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     from MT in materialTransferGroup
 
                     join JH in _context.JobCardHeaders
-                        on MT.JobId equals JH.Id
+                        on MT.JobId equals (int?)JH.Id
 
                     join JC in _context.JobCardCustomers
                         on JH.Id equals JC.JobCardHeaderId
@@ -638,7 +640,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     from MT in materialTransferGroup
 
                     join JH in _context.JobCardHeaders
-                        on MT.JobId equals JH.Id
+                        on MT.JobId equals (int?)JH.Id
 
                     join JC in _context.JobCardCustomers
                         on JH.Id equals JC.JobCardHeaderId
@@ -706,7 +708,7 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
                     on mt.ItemId equals im.Id
 
                 join jch in _context.JobCardHeaders
-                    on mt.JobId equals jch.Id
+                    on mt.JobId equals (int?)jch.Id
 
                 where mt.JobId == jobId
 
@@ -729,6 +731,46 @@ namespace DMS_BAPL_Data.Repositories.MaterialTransferRepo
             ).ToListAsync();
 
             return result;
+        }
+
+        async Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferRepo.GetMaterialTransferByB2BJobCardId(Guid b2bJobCardId)
+        {
+            return await (
+                from mt in _context.MaterialTransfers.AsNoTracking()
+                join im in _context.ItemMasters.AsNoTracking()
+                    on mt.ItemId equals im.Id
+                where mt.B2BJobCardId == b2bJobCardId
+                select new MaterialTransferViewModel
+                {
+                    Id = mt.Id,
+                    JobId = mt.JobId,
+                    B2BJobCardId = mt.B2BJobCardId,
+                    ItemId = mt.ItemId,
+                    ItemCode = im.Itemcode,
+                    ItemDesc = im.Itemdesc,
+                    Quantity = mt.Quantity,
+                    ItemRate = mt.ItemRate,
+                    Mrp = mt.Mrp,
+                    RackNo = mt.RackNo,
+                    Bin = mt.Bin,
+                    Technician = mt.Technician,
+                    Ffi = mt.Ffi,
+                    SerialNo = mt.SerialNo,
+                    Remarks = mt.Remarks,
+                    ItemReceived = mt.ItemReceived,
+                    ValidDays = mt.ValidDays,
+                    IssueType = mt.IssueType,
+                    MaterialPrefix = mt.MaterialPrefix,
+                    MaterialIssueNumber = mt.MaterialIssueNumber,
+                    DealerCode = mt.DealerCode,
+                    DealerLocation = mt.DealerLocation,
+                    Location = mt.DealerLocation,
+                    CreatedBy = mt.CreatedBy,
+                    CreatedDate = mt.CreatedDate,
+                    UpdatedBy = mt.UpdatedBy,
+                    UpdatedDate = mt.UpdatedDate
+                }
+            ).ToListAsync();
         }
 
         async Task<int> IMaterialTransferRepo.DeleteMaterialsByJobId(int jobId, bool isSuperAdmin)

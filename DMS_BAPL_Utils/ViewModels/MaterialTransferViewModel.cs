@@ -12,7 +12,8 @@ namespace DMS_BAPL_Utils.ViewModels
         public int ItemId { get; set; }
         public string? ItemCode { get; set; }
         public string? ItemDesc { get; set; }
-        public int JobId { get; set; }
+        public int? JobId { get; set; }
+        public Guid? B2BJobCardId { get; set; }
         public string? MaterialPrefix { get; set; }
         public int? MaterialIssueNumber { get; set; }
         public int? RackNo { get; set; }

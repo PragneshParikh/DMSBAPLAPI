@@ -21,7 +21,11 @@ public partial class RepairBillHeader
 
     public int? CustomerLedgerId { get; set; }
 
-    public int JobId { get; set; }
+    public int? JobId { get; set; }
+
+    public Guid? B2BJobCardId { get; set; }
+
+    public string? B2BJobCardNumber { get; set; }
 
     public int? InsuranceId { get; set; }
 
@@ -69,7 +73,7 @@ public partial class RepairBillHeader
 
     public virtual LedgerMaster? Insurance { get; set; }
 
-    public virtual JobCardHeader Job { get; set; } = null!;
+    public virtual JobCardHeader? Job { get; set; }
 
     public virtual ICollection<RepairBillDetail> RepairBillDetails { get; set; } = new List<RepairBillDetail>();
 

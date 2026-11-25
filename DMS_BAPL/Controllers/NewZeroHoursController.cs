@@ -964,16 +964,16 @@ namespace DMSBAPLAPI.Controllers
 
                 var materialsByJobId = await _context.MaterialTransfers
                     .AsNoTracking()
-                    .Where(m => !m.IsDelete && jobCardIds.Contains(m.JobId))
-                    .GroupBy(m => m.JobId)
+                    .Where(m => !m.IsDelete && m.JobId.HasValue && jobCardIds.Contains(m.JobId.Value))
+                    .GroupBy(m => m.JobId!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
                 var repairBillsByJobId = await _context.RepairBillHeaders
                     .AsNoTracking()
                     .Include(r => r.RepairBillDetails)
                         .ThenInclude(d => d.PartItem)
-                    .Where(r => !r.IsDelete && jobCardIds.Contains(r.JobId))
-                    .GroupBy(r => r.JobId)
+                    .Where(r => !r.IsDelete && r.JobId.HasValue && jobCardIds.Contains(r.JobId.Value))
+                    .GroupBy(r => r.JobId!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
                 var userName = GetCurrentUserName();

@@ -166,11 +166,16 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<List<PartWiseLabourMasterRateViewModel>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLabourRateDropDown(string oemmodelName, int customerLedgerId, string dealerCode)
+        public async Task<IActionResult> GetLabourRateDropDown(
+            string oemmodelName,
+            int? customerLedgerId,
+            string dealerCode,
+            [FromQuery] string? customerState = null)
         {
             try
             {
-                var result = await _labourMasterRepo.GetLabourRateDropDowns(oemmodelName, customerLedgerId, dealerCode);
+                var result = await _labourMasterRepo.GetLabourRateDropDowns(
+                    oemmodelName, customerLedgerId, dealerCode, customerState);
                 return Ok(result);
             }
             catch (Exception ex)

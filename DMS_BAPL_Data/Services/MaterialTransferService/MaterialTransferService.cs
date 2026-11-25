@@ -48,6 +48,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
         async Task<string> IMaterialTransferService.GetIssueIdAsync() => await _materialTransferRepo.GetIssueIdAsync();
         async Task<IEnumerable<object>> IMaterialTransferService.GetMeterialByJobId(int jobId) => await _materialTransferRepo.GetMeterialByJobId(jobId);
         Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferService.GetMeterialTransferByJobId(int JobId) => _materialTransferRepo.GetMeterialTransferByJobId(JobId);
+        Task<IEnumerable<MaterialTransferViewModel>> IMaterialTransferService.GetMaterialTransferByB2BJobCardId(Guid b2bJobCardId) => _materialTransferRepo.GetMaterialTransferByB2BJobCardId(b2bJobCardId);
         async Task<PagedResponse<object>> IMaterialTransferService.GetMaterialTransferDetailsByDealer(string? searchTerm, string? dealerCode, int pageIndex, int pageSize, DateTime? fromDate, DateTime? toDate)
         => await _materialTransferRepo.GetMaterialTransferDetailsByDealer(searchTerm, dealerCode, pageIndex, pageSize, fromDate, toDate);
 
@@ -62,7 +63,8 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     Location = g.First().Location,
                     DealerCode = g.First().DealerCode,
                     CreatedBy = g.First().CreatedBy,
-                    CreatedDate = g.First().CreatedDate
+                    CreatedDate = g.First().CreatedDate,
+                    B2BJobCardId = g.First().B2BJobCardId
                 })
                 .ToList();
 
@@ -83,7 +85,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     VendorCode = item.DealerCode,
                     TotalRate = 100.00M,
                     PurchaseRate = 110.00M,
-                    Potype = "B2C",
+                    Potype = item.B2BJobCardId.HasValue ? "B2B" : "B2C",
                     PostTransaction = 0,
                     CreatedBy = item.CreatedBy,
                     CreatedDate = item.CreatedDate
@@ -98,7 +100,10 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
 
         async Task<int> IMaterialTransferService.UpdateMaterialDetails(List<MaterialTransferViewModel> materialTransferViewModels)
         {
-            var existingItems = await _materialTransferRepo.GetMeterialTransferByJobId(materialTransferViewModels[0].JobId);
+            var source = materialTransferViewModels[0];
+            var existingItems = source.B2BJobCardId.HasValue
+                ? await _materialTransferRepo.GetMaterialTransferByB2BJobCardId(source.B2BJobCardId.Value)
+                : await _materialTransferRepo.GetMeterialTransferByJobId(source.JobId!.Value);
 
             var groupedItems = materialTransferViewModels
                 .GroupBy(x => x.ItemCode)
@@ -109,7 +114,8 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     Location = g.First().Location,
                     DealerCode = g.First().DealerCode,
                     CreatedBy = g.First().CreatedBy,
-                    CreatedDate = g.First().CreatedDate
+                    CreatedDate = g.First().CreatedDate,
+                    B2BJobCardId = g.First().B2BJobCardId
                 })
                 .ToList();
 
@@ -139,7 +145,7 @@ namespace DMS_BAPL_Data.Services.MaterialTransferService
                     VendorCode = item.DealerCode,
                     TotalRate = 100.00M,
                     PurchaseRate = 110.00M,
-                    Potype = "B2C",
+                    Potype = item.B2BJobCardId.HasValue ? "B2B" : "B2C",
                     PostTransaction = 0,
                     CreatedBy = item.CreatedBy,
                     CreatedDate = item.CreatedDate
