@@ -274,7 +274,7 @@ namespace DMS_BAPL_Utils.ViewModels
     {
         public int? JobNo { get; set; }
         public string? ChassisNo { get; set; }
-        public string LocationName { get; set; }
+        public string? LocationName { get; set; }
         public int? JobCardCustomerId { get; set; }
         public string? CustomerName { get; set; }
         public string? ModelName { get; set; }

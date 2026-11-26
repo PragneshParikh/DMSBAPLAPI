@@ -439,6 +439,8 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
                 var result = await _jobCardRepo.GetCIRJobCardDetails(id);
+                if (result == null)
+                    return NotFound("Job card not found.");
                 return Ok(result);
             }
             catch (Exception ex)
