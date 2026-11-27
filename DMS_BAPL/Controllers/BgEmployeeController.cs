@@ -53,7 +53,8 @@ namespace DMS_BAPL_Data.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                // 27.11.2026 - show the real database error, not "See the inner exception for details"
+                return StatusCode(500, new { message = ex.GetBaseException().Message });
             }
         }
 
@@ -72,7 +73,7 @@ namespace DMS_BAPL_Data.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = ex.GetBaseException().Message });
             }
         }
 
@@ -86,8 +87,16 @@ namespace DMS_BAPL_Data.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var rows = await _service.Delete(id);
-            return rows == 0 ? NotFound() : Ok(new { message = "Employee deleted successfully." });
+            try
+            {
+                var rows = await _service.Delete(id);
+                return rows == 0 ? NotFound(new { message = "Employee not found." }) : Ok(new { message = "Employee deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                // 27.11.2026 - readable reason (e.g. another table still points to this employee)
+                return StatusCode(500, new { message = "Could not delete the employee: " + ex.GetBaseException().Message });
+            }
         }
 
         [HttpGet("{id:int}/roles")]

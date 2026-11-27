@@ -5373,8 +5373,8 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
             entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+            // 27.11.2026 - no length limit: a National / Zonal Head can map hundreds of dealers (comma list); column is VARCHAR(MAX)
             entity.Property(e => e.DealerCode)
-                .HasMaxLength(200)
                 .IsUnicode(false);
             entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
             entity.Property(e => e.Email).HasMaxLength(150);
@@ -5395,14 +5395,11 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.LocationCode)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedEmployeeIds)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedEmployees).IsUnicode(false);
             entity.Property(e => e.MappedZoneIds)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedZones).IsUnicode(false);
             entity.Property(e => e.Mobile)
