@@ -5039,6 +5039,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<Ffirheader> Ffirheaders { get; set; }
 
+    public virtual DbSet<Ffirverification> Ffirverifications { get; set; }
+
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
     public virtual DbSet<FreeServiceClaimDetail> FreeServiceClaimDetails { get; set; }
@@ -6569,6 +6571,17 @@ public partial class BapldmsvadContext : DbContext
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FFIRHeader_JobCardHeader");
+        });
+
+        modelBuilder.Entity<Ffirverification>(entity =>
+        {
+            entity.HasKey(e => e.FfirId);
+            entity.ToTable("FFIRVerification");
+            entity.Property(e => e.FfirId).HasColumnName("FFIRId");
+            entity.Property(e => e.Status).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ReviewedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<Form22Master>(entity =>

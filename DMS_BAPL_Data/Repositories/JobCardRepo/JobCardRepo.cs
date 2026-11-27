@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Data.Repositories.AgreeTaxcodeRepo;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.ViewModels;
@@ -26,10 +27,12 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
     public class JobCardRepo : IJobCardRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly JobCardScannerDbContext _jobCardScannerContext;
 
-        public JobCardRepo(BapldmsvadContext context)
+        public JobCardRepo(BapldmsvadContext context, JobCardScannerDbContext jobCardScannerContext)
         {
             _context = context;
+            _jobCardScannerContext = jobCardScannerContext;
         }
         // bind jobtype dropdown
         public async Task<List<JobCardViewModel>> GetJobtype()
@@ -2575,11 +2578,23 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                                                     JobNo = jh.JobNo,
                                                     ChassisNo = jh.Chassisno,
                                                     CustomerName = jc != null ? jc.CustomerName : null,
+                                                    CustomerMobile = jc != null ? jc.CustomerMobile : null,
                                                     JobCardCustomerId = jc != null ? jc.Id : null,
                                                     ModelName = jc != null ? jc.ModelName : null,
                                                     Vehiclekms = jh.Vehiclekms,
                                                     RegisterNo = jc != null ? jc.RegisterNo : null,
+                                                    MotorNo = jc != null ? jc.MotorNo : null,
+                                                    BatteryNo = jc != null ? jc.BatteryNo : null,
+                                                    BatteryType = _context.JobCardBatteryDetails
+                                                        .Where(b => b.JobCardHeaderId == jh.Id)
+                                                        .Select(b => b.BatteryChemical ?? b.BatteryMake)
+                                                        .FirstOrDefault(),
                                                     Observation = jh.Observation,
+                                                    JobDate = jh.JobinDate,
+                                                    Technician = jh.Technician,
+                                                    ServiceHead = jh.ServiceheadNavigation == null ? null : jh.ServiceheadNavigation.ServiceHeadName,
+                                                    ServiceType = jh.ServicetypeNavigation == null ? null : jh.ServicetypeNavigation.ServiceTypeName,
+                                                    DealerCode = jh.DealerCode,
                                                     Serviceloc = jh.Serviceloc,
                                                     LocationName = loc != null ? loc.Locname : null,
                                                     VehicleSaleDate = jc != null ? jc.SaleDate : null,
@@ -3729,7 +3744,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
             return data;
 
         }
-        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<IssueTypebasedJobDetails>> GetIssueTypebasedJobDetail(string? dealerCode, int? jobNo, string? serviceloc, DateTime? fromDate, DateTime? toDate, string? b2bJobNo = null)
         {
             try
             {
@@ -3763,7 +3778,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                     join jh in _context.JobCardHeaders on rbh.JobId equals jh.Id
                     join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId into jcJ
                     from jc in jcJ.DefaultIfEmpty()
-                    join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode into locJ
+                    join loc in _context.LocationMasters on rbh.LocationCode equals loc.Loccode into locJ
                     from loc in locJ.DefaultIfEmpty()
                     join lg in _context.LedgerMasters on jc.CustomerLedgerId equals lg.Id into lgJ
                     from lg in lgJ.DefaultIfEmpty()
@@ -3789,9 +3804,11 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         select new { rbh, jh, jc, loc, lg, jt, sh, st, vs, ch, chb, ffir };
 
                 // Dynamic Filters
-                if (!string.IsNullOrWhiteSpace(dealerCode)) query = query.Where(x => x.rbh.DealerCode == dealerCode);
+                var dealerCodes = DMS_BAPL_Utils.Helpers.GetUserInfoFromToken.SplitCodes(dealerCode);
+                if (dealerCodes.Count == 1) query = query.Where(x => x.rbh.DealerCode == dealerCodes[0]);
+                else if (dealerCodes.Count > 1) query = query.Where(x => dealerCodes.Contains(x.rbh.DealerCode));
                 if (jobNo.HasValue && jobNo.Value > 0) query = query.Where(x => x.jh.JobNo == jobNo.Value);
-                if (!string.IsNullOrWhiteSpace(serviceloc) && serviceloc.Trim().ToLower() != "null") query = query.Where(x => x.jh.Serviceloc == serviceloc);
+                if (!string.IsNullOrWhiteSpace(serviceloc) && serviceloc.Trim().ToLower() != "null") query = query.Where(x => x.rbh.LocationCode == serviceloc);
                 //if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value);
                 //if (toDate.HasValue) query = query.Where(x => x.rbh.CreatedDate <= toDate.Value);
                 if (fromDate.HasValue) query = query.Where(x => x.rbh.CreatedDate >= fromDate.Value.Date);
@@ -3830,10 +3847,14 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                         RepairBillHeaderId = x.rbh.Id,
                         JobcardId = x.jh.Id,
                         JobNo = x.jh.JobNo,
+                        Jobprefix = x.jh.Jobprefix,
+                        JobCardNumber = null,
+                        RecordType = "B2C",
+                        DealerCode = x.jh.DealerCode,
                         JobType = x.jt != null ? x.jt.JobTypeName : null,
                         JobInDate = x.jh.JobinDate,
-                        JobLocation = x.loc != null ? x.loc.Locname : null,
-                        JobLocationCode = x.loc != null ? x.loc.Loccode : x.jh.Serviceloc,
+                        JobLocation = x.loc != null ? x.loc.Locname : x.rbh.LocationCode,
+                        JobLocationCode = x.rbh.LocationCode,
                         serviceHead = x.sh != null ? x.sh.ServiceHeadName : null,
                         serviceType = x.st != null ? x.st.ServiceTypeName : null,
                         CustomerLedgerId = x.lg != null ? x.lg.Id : 0,
@@ -3855,6 +3876,96 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 .Select(g => g.First())
                 .ToList();
 
+                            var b2bJobNumberFilter = !string.IsNullOrWhiteSpace(b2bJobNo)
+                                ? b2bJobNo.Trim()
+                                : jobNo.HasValue && jobNo.Value > 0 ? jobNo.Value.ToString() : null;
+                            var b2bHeadersQuery = _context.RepairBillHeaders
+                                .AsNoTracking()
+                                .Where(x => x.B2BJobCardId.HasValue
+                                    && x.IsDelete != true
+                                    && x.RepairbillStatus == "Billed"
+                                    && x.RepairBillDetails.Any(d => d.IssutypeId == 2));
+                            if (dealerCodes.Count == 1)
+                                b2bHeadersQuery = b2bHeadersQuery.Where(x => x.DealerCode == dealerCodes[0]);
+                            else if (dealerCodes.Count > 1)
+                                b2bHeadersQuery = b2bHeadersQuery.Where(x => dealerCodes.Contains(x.DealerCode));
+                            if (!string.IsNullOrWhiteSpace(serviceloc) && serviceloc.Trim().ToLower() != "null")
+                                b2bHeadersQuery = b2bHeadersQuery.Where(x => x.LocationCode == serviceloc);
+                            if (fromDate.HasValue)
+                                b2bHeadersQuery = b2bHeadersQuery.Where(x => x.CreatedDate >= fromDate.Value.Date);
+                            if (toDate.HasValue)
+                            {
+                                var toEnd = toDate.Value.Date.AddDays(1);
+                                b2bHeadersQuery = b2bHeadersQuery.Where(x => x.CreatedDate < toEnd);
+                            }
+
+                            var b2bHeaders = await b2bHeadersQuery
+                                .Select(x => new
+                                {
+                                    x.Id,
+                                    x.B2BJobCardId,
+                                    x.B2BJobCardNumber,
+                                    x.BillNo,
+                                    x.DealerCode,
+                                    x.LocationCode,
+                                    x.CreatedDate
+                                })
+                                .ToListAsync();
+
+                            if (b2bHeaders.Count > 0)
+                            {
+                                var b2bIds = b2bHeaders.Select(x => x.B2BJobCardId!.Value).Distinct().ToList();
+                                var b2bCardsById = new Dictionary<Guid, JcsJobCard>();
+                                foreach (var idBatch in b2bIds.Chunk(1000))
+                                {
+                                    var cards = await _jobCardScannerContext.JobCards
+                                        .AsNoTracking()
+                                        .Include(x => x.Vehicle)
+                                        .Include(x => x.Customer)
+                                        .Where(x => idBatch.Contains(x.Id))
+                                        .ToListAsync();
+
+                                    foreach (var card in cards)
+                                        b2bCardsById[card.Id] = card;
+                                }
+
+                                foreach (var bill in b2bHeaders)
+                                {
+                                    b2bCardsById.TryGetValue(bill.B2BJobCardId!.Value, out var card);
+                                    var cardNumber = string.IsNullOrWhiteSpace(bill.B2BJobCardNumber)
+                                        ? card?.JobCardNumber
+                                        : bill.B2BJobCardNumber;
+                                    if (!string.IsNullOrWhiteSpace(b2bJobNumberFilter)
+                                        && !(cardNumber ?? string.Empty).Contains(b2bJobNumberFilter, StringComparison.OrdinalIgnoreCase))
+                                        continue;
+
+                                    result.Add(new IssueTypebasedJobDetails
+                                    {
+                                        RepairBillHeaderId = bill.Id,
+                                        JobcardId = 0,
+                                        B2BJobCardId = bill.B2BJobCardId,
+                                        JobCardNumber = cardNumber,
+                                        RecordType = "B2B",
+                                        DealerCode = bill.DealerCode,
+                                        JobType = card?.BaplJobType ?? string.Empty,
+                                        JobInDate = card == null ? null : DateOnly.FromDateTime(card.CreatedAt),
+                                        JobLocation = card?.BaplServiceLocation ?? bill.LocationCode,
+                                        JobLocationCode = bill.LocationCode,
+                                        serviceHead = card?.BaplServiceHeadName ?? string.Empty,
+                                        serviceType = card?.BaplServiceTypeName ?? string.Empty,
+                                        CustomerLedgerId = 0,
+                                        CustomerName = card?.Customer?.Name ?? string.Empty,
+                                        ChassisNo = card?.Vehicle?.Vin ?? string.Empty,
+                                        ModelName = card?.Vehicle?.Model ?? string.Empty,
+                                        MotorNo = card?.Vehicle?.MotorNo ?? string.Empty,
+                                        Vehiclekms = card == null ? null : Convert.ToInt32(card.OdometerAtCheckIn),
+                                        RegistrationNo = card?.Vehicle?.RegNo ?? string.Empty,
+                                        SaleDate = card?.Vehicle?.PurchaseDate?.ToDateTime(TimeOnly.MinValue),
+                                        RepairBillNo = bill.BillNo,
+                                        RepairBillDate = bill.CreatedDate
+                                    });
+                                }
+                            }
 
                 if (!result.Any()) return result;
 

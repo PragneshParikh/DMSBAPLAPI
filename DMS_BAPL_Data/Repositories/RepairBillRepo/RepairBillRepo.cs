@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Data.Repositories.JobCardRepo;
 using DMS_BAPL_Data.Services.MaterialTransferService;
 using DMS_BAPL_Utils.ViewModels;
@@ -18,12 +19,18 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
     {
 
         private readonly BapldmsvadContext _context;
+        private readonly JobCardScannerDbContext _jobCardScannerContext;
         private readonly IMaterialTransferService _materialTransferService;
         private readonly IJobCardRepo _jobCardRepo;
 
-        public RepairBillRepo(BapldmsvadContext context, IMaterialTransferService  materialTransferService, IJobCardRepo jobCardRepo)
+        public RepairBillRepo(
+            BapldmsvadContext context,
+            JobCardScannerDbContext jobCardScannerContext,
+            IMaterialTransferService materialTransferService,
+            IJobCardRepo jobCardRepo)
         {
             _context = context;
+            _jobCardScannerContext = jobCardScannerContext;
             _materialTransferService = materialTransferService;
             _jobCardRepo = jobCardRepo;
         }
@@ -280,6 +287,50 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     .OrderByDescending(x => x.Id)
                     .ToListAsync();
 
+                var b2bBills = result
+                    .Where(x => x.B2BJobCardId.HasValue)
+                    .ToList();
+                if (b2bBills.Count > 0)
+                {
+                    var b2bDetailsById = new Dictionary<Guid, (string? JobCardNumber, string? CustomerName, string? RegistrationNo, string? ChassisNo)>();
+                    foreach (var idBatch in b2bBills.Select(x => x.B2BJobCardId!.Value).Distinct().Chunk(1000))
+                    {
+                        var cards = await _jobCardScannerContext.JobCards
+                            .AsNoTracking()
+                            .Where(x => idBatch.Contains(x.Id))
+                            .Select(x => new
+                            {
+                                x.Id,
+                                x.JobCardNumber,
+                                CustomerName = x.Customer == null ? null : x.Customer.Name,
+                                RegistrationNo = x.Vehicle == null ? null : x.Vehicle.RegNo,
+                                ChassisNo = x.Vehicle == null ? null : x.Vehicle.Vin
+                            })
+                            .ToListAsync();
+                        foreach (var card in cards)
+                            b2bDetailsById[card.Id] = (
+                                card.JobCardNumber,
+                                card.CustomerName,
+                                card.RegistrationNo,
+                                card.ChassisNo);
+                    }
+
+                    foreach (var bill in b2bBills)
+                    {
+                        if (!b2bDetailsById.TryGetValue(bill.B2BJobCardId!.Value, out var details))
+                            continue;
+
+                        if (string.IsNullOrWhiteSpace(bill.B2BJobCardNumber))
+                            bill.B2BJobCardNumber = details.JobCardNumber;
+                        if (string.IsNullOrWhiteSpace(bill.PartyName))
+                            bill.PartyName = details.CustomerName;
+                        if (string.IsNullOrWhiteSpace(bill.RegistrationNo))
+                            bill.RegistrationNo = details.RegistrationNo;
+                        if (string.IsNullOrWhiteSpace(bill.ChassisNumber))
+                            bill.ChassisNumber = details.ChassisNo;
+                    }
+                }
+
                 return result;
             }
             catch (Exception ex)
@@ -371,107 +422,108 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                        TotalTaxableAmount = rbh.TotalTaxableAmount ?? 0,
                        TotalNetAmount = rbh.TotalNetAmount ?? 0,
                        AmountRecived = rbh.AmountReceived ?? 0
-                   },
-
-                   RepairBillDetail = rbh.RepairBillDetails
-                       .Select(d => new RepairBillUpdateDetailVM
-                       {
-                           Id = d.Id,
-                           ItemType = d.ItemType,
-
-                           MaterialId = d.MaterialId ?? 0,
-                           PartItemId = d.PartItemId ?? 0,
-                           LabourId = d.LabourMasterId ?? 0,
-                           PartWiseLabourId = d.PartWiseLabourId ?? 0,
-                           DealerState = dl != null ? dl.State : null,
-
-
-
-                           // NEW
-                           PartCode = d.PartItem != null
-                                ? d.PartItem.Itemcode
-                                : "",
-
-                           PartDesc = d.PartItem != null
-                           ? d.PartItem.Itemdesc
-                           : "",
-                           Cgst = d.LabourMasterId > 0
-                           ? d.LabourMaster.Cgst
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.Cgst
-                           : 0,
-                           Sgst = d.LabourMasterId > 0
-                           ? d.LabourMaster.Sgst
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.Sgst
-                           : 0,
-                           Igst = d.LabourMasterId > 0
-                           ? d.LabourMaster.Igst
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.Igst
-                           : 0,
-                           //Cgst = d.PartItem != null
-                           //? d.PartItem.Cgst
-                           //: 0,
-                           //Sgst = d.PartItem != null
-                           //? d.PartItem.Sgst
-                           //: 0,
-                           //Igst = d.PartItem != null
-                           //? d.PartItem.Igst
-                           //: 0,
-                           LabourCode = d.LabourMasterId > 0
-                           ? d.LabourMaster.LabourCode
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.LabourCode
-                           : "",
-
-                           LabourDescription = d.LabourMasterId > 0
-                           ? d.LabourMaster.LabourDescription
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.LabourName
-                           : "",
-
-                           Qty = d.LabourQty ?? 0,
-                           Rate = d.LabourRate ?? 0,
-                           PartHsnCode = d.PartItem != null
-                           ? d.PartItem.Hsncode
-                           : "",
-                           PartMRP = d.PartItem != null
-                            ? d.PartItem.Custprice
-                            : 0,
-                           LabourHsnCode = d.LabourMasterId > 0
-                           ? d.LabourMaster.Hsncode
-                           : d.PartWiseLabour != null
-                           ? d.PartWiseLabour.Hsncode : "",
-
-                           PartQty = d.PartQty ?? 0,
-                           PartRate = d.PartRate ?? 0,
-                           TotalTaxPer = d.TotalTaxPer ?? 0,
-
-                           DiscountValue = d.DiscountValue ?? 0,
-                           Discount = d.LabourDiscount ?? 0,
-                           DiscountType = d.DiscountType,
-
-                           PartDiscount = d.PartDiscount ?? 0,
-
-
-                           TaxableAmount = d.LabourTaxblAmount ?? 0,
-                           NetAmount = d.LabourNetAmount ?? 0,
-
-                           PartTaxbleAmount = d.PartTaxblAmount ?? 0,
-                           PartNetAmount = d.PartNetAmount ?? 0,
-
-                           CgstAmount = d.Cgstamount ?? 0,
-                           SgstAmount = d.Sgstamount ?? 0,
-                           IgstAmount = d.Igstamount ?? 0,
-
-                           IssueType = d.IssutypeId ?? 0,
-
-                           //IsAutoGenerated = d.IsAutoGenerated
-                       })
-                       .ToList()
+                   }
                }
            ).FirstOrDefaultAsync();
+
+                if (billedResult == null)
+                    return null;
+
+                var dealerState = billedResult.RepairBillheader.DealerState;
+                billedResult.RepairBillDetail = await _context.RepairBillDetails
+                    .AsNoTracking()
+                    .Where(d => d.RepairBillId == id)
+                    .Select(d => new RepairBillUpdateDetailVM
+                    {
+                        Id = d.Id,
+                        ItemType = d.ItemType,
+                        MaterialId = d.MaterialId ?? 0,
+                        PartItemId = d.PartItemId ?? 0,
+                        LabourId = d.LabourMasterId ?? 0,
+                        PartWiseLabourId = d.PartWiseLabourId ?? 0,
+                        DealerState = dealerState,
+                        PartCode = d.PartItem != null ? d.PartItem.Itemcode : "",
+                        PartDesc = d.PartItem != null ? d.PartItem.Itemdesc : "",
+                        Cgst = d.LabourMaster != null
+                            ? d.LabourMaster.Cgst
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.Cgst : d.PartItem != null ? d.PartItem.Cgst : 0,
+                        Sgst = d.LabourMaster != null
+                            ? d.LabourMaster.Sgst
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.Sgst : d.PartItem != null ? d.PartItem.Sgst : 0,
+                        Igst = d.LabourMaster != null
+                            ? d.LabourMaster.Igst
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.Igst : d.PartItem != null ? d.PartItem.Igst : 0,
+                        LabourCode = d.LabourMaster != null
+                            ? d.LabourMaster.LabourCode
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.LabourCode : "",
+                        LabourDescription = d.LabourMaster != null
+                            ? d.LabourMaster.LabourDescription
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.LabourName : "",
+                        Qty = d.LabourQty ?? 0,
+                        Rate = d.LabourRate ?? 0,
+                        PartHsnCode = d.PartItem != null ? d.PartItem.Hsncode : "",
+                        PartMRP = d.PartItem != null ? d.PartItem.Custprice : 0,
+                        LabourHsnCode = d.LabourMaster != null
+                            ? d.LabourMaster.Hsncode
+                            : d.PartWiseLabour != null ? d.PartWiseLabour.Hsncode : "",
+                        PartQty = d.PartQty ?? 0,
+                        PartRate = d.PartRate ?? 0,
+                        FscRate = d.Fscrate ?? 0,
+                        TotalTaxPer = d.TotalTaxPer ?? 0,
+                        DiscountValue = d.DiscountValue ?? 0,
+                        Discount = d.LabourDiscount ?? 0,
+                        DiscountType = d.DiscountType,
+                        PartDiscount = d.PartDiscount ?? 0,
+                        TaxableAmount = d.LabourTaxblAmount ?? 0,
+                        NetAmount = d.LabourNetAmount ?? 0,
+                        PartTaxbleAmount = d.PartTaxblAmount ?? 0,
+                        PartNetAmount = d.PartNetAmount ?? 0,
+                        CgstAmount = d.Cgstamount ?? 0,
+                        SgstAmount = d.Sgstamount ?? 0,
+                        IgstAmount = d.Igstamount ?? 0,
+                        IssueType = d.IssutypeId ?? 0
+                    })
+                    .ToListAsync();
+
+                var header = billedResult?.RepairBillheader;
+                if (header?.B2BJobCardId is Guid b2bJobCardId)
+                {
+                    var b2bJobCard = await _jobCardScannerContext.JobCards
+                        .AsNoTracking()
+                        .Where(x => x.Id == b2bJobCardId)
+                        .Select(x => new
+                        {
+                            x.JobCardNumber,
+                            x.CreatedAt,
+                            x.BaplJobType,
+                            x.BaplServiceHeadName,
+                            Technician = x.BaplTechnicianName ?? x.AssignedTechnicianName,
+                            x.OdometerAtCheckIn,
+                            CustomerName = x.Customer == null ? null : x.Customer.Name,
+                            CustomerMobile = x.Customer == null ? null : x.Customer.Mobile,
+                            CustomerState = x.Customer == null ? null : x.Customer.State,
+                            ModelName = x.Vehicle == null ? null : x.Vehicle.Model,
+                            RegisterNo = x.Vehicle == null ? null : x.Vehicle.RegNo,
+                            ChassisNo = x.Vehicle == null ? null : x.Vehicle.Vin
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (b2bJobCard != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(header.B2BJobCardNumber))
+                            header.B2BJobCardNumber = b2bJobCard.JobCardNumber;
+                        header.JobTypeName ??= b2bJobCard.BaplJobType;
+                        header.JobInDate ??= DateOnly.FromDateTime(b2bJobCard.CreatedAt);
+                        header.RegisterNo ??= b2bJobCard.RegisterNo;
+                        header.ModelName ??= b2bJobCard.ModelName;
+                        header.VehicleKms ??= Convert.ToInt32(b2bJobCard.OdometerAtCheckIn);
+                        header.ChassisNo ??= b2bJobCard.ChassisNo;
+                        header.Technician ??= b2bJobCard.Technician;
+                        header.PartyName ??= b2bJobCard.CustomerName;
+                        header.MobileNumber ??= b2bJobCard.CustomerMobile;
+                        header.PartyState ??= b2bJobCard.CustomerState;
+                    }
+                }
 
                 return billedResult;
             }
@@ -494,10 +546,22 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                                      // header.RepairbillStatus is set.
                 .FirstOrDefaultAsync(x => x.Id == model.RepairBillheader.Id);
 
-                if (header == null
-                    || header.JobId != model.RepairBillheader.JobId
-                    || header.B2BJobCardId != model.RepairBillheader.B2BJobCardId)
+                if (header == null)
                     return false;
+
+                var isB2BRepairBill = header.B2BJobCardId.HasValue;
+                if (isB2BRepairBill
+                    ? header.B2BJobCardId != model.RepairBillheader.B2BJobCardId
+                        || model.RepairBillheader.JobId.GetValueOrDefault() > 0
+                    : header.JobId != model.RepairBillheader.JobId
+                        || model.RepairBillheader.B2BJobCardId.HasValue)
+                    return false;
+
+                if (isB2BRepairBill)
+                {
+                    header.JobId = null;
+                    header.B2BJobCardNumber = model.RepairBillheader.B2BJobCardNumber;
+                }
 
                 // Header Update
                 header.BillType = model.RepairBillheader.BillType;
@@ -574,7 +638,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         {
                             detail.ItemType = item.ItemType;
                             detail.MaterialId = item.MaterialId > 0 ? item.MaterialId : null;
-                            detail.PartItemId = item.PartItemId;
+                            detail.PartItemId = item.PartItemId > 0 ? item.PartItemId : null;
 
                             detail.LabourMasterId = item.LabourId > 0 ? item.LabourId : null;
 
@@ -663,10 +727,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
 
             }
-            catch (Exception ex)
+            catch
             {
-                return false;
-                throw new Exception(ex.Message);
+                throw;
             }
         }
         //public async Task<int> DeleteRepairbill(int repairbillId, string role, string userId)

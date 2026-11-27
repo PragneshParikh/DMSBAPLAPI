@@ -277,10 +277,19 @@ namespace DMS_BAPL_Utils.ViewModels
         public string? LocationName { get; set; }
         public int? JobCardCustomerId { get; set; }
         public string? CustomerName { get; set; }
+        public string? CustomerMobile { get; set; }
         public string? ModelName { get; set; }
         public int? Vehiclekms { get; set; }
         public string? RegisterNo { get; set; }
+        public string? MotorNo { get; set; }
+        public string? BatteryNo { get; set; }
+        public string? BatteryType { get; set; }
         public string? Observation { get; set; }
+        public DateOnly? JobDate { get; set; }
+        public string? Technician { get; set; }
+        public string? ServiceHead { get; set; }
+        public string? ServiceType { get; set; }
+        public string? DealerCode { get; set; }
         public List<ComplaintVM> Complaints { get; set; }
         public string? actionTaken { get; set; }
         public DateTime? VehicleSaleDate { get; set; }
@@ -415,10 +424,15 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? PartWiseLabourId { get; set; }
         public int JobcardId { get; set; }
         public int? JobNo { get; set; }
+        public string? Jobprefix { get; set; }
+        public Guid? B2BJobCardId { get; set; }
+        public string? JobCardNumber { get; set; }
+        public string RecordType { get; set; } = "B2C";
         public string JobType { get; set; }
         public DateOnly? JobInDate { get; set; }
         public string JobLocation { get; set; }
         public string? JobLocationCode { get; set; }
+        public string? DealerCode { get; set; }
         public string serviceHead { get; set; }
         public string serviceType { get; set; }
         public string CustomerName { get; set; }

@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.Repositories.UwLineItemRepo;
+using DMS_BAPL_Utils.Helpers;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -33,6 +34,15 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+
+                    filter.DealerCode = string.Join(",", allowedDealerCodes);
+                }
+
                 var result = await _uwLineItemRepo.SearchUwLineItems(filter);
                 return Ok(result);
             }
