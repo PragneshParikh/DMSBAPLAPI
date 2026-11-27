@@ -48,6 +48,8 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
         //            on jc.Id equals rb.JobId
 
         //        join sh in _context.ServiceHeads
+
+
         //            on jc.Servicehead equals sh.Id
 
         //        join st in _context.ServiceTypes
@@ -177,8 +179,16 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
             return await (
                 from jc in _context.JobCardHeaders
 
-                join rb in _context.RepairBillHeaders
-                    on jc.Id equals rb.JobId
+                //join rb in _context.RepairBillHeaders
+                //    on jc.Id equals rb.JobId
+                //join rb in _context.RepairBillHeaders
+                //    on jc.Id equals rb.JobId into billGroup
+                //from rb in billGroup.Where(x => x.IsDelete != true).DefaultIfEmpty()
+                from rb in _context.RepairBillHeaders
+                    .Where(r => r.JobId == jc.Id && r.IsDelete != true)
+                    .OrderByDescending(r => r.Id)
+                    .Take(1)
+                    .DefaultIfEmpty()
 
                 join sh in _context.ServiceHeads
                     on jc.Servicehead equals sh.Id
@@ -200,6 +210,7 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                 join vsd in _context.VehicleSaleBillDetails
                     on jc.Chassisno equals vsd.ChassisNo into saleBillGroup
                 from vsd in saleBillGroup.DefaultIfEmpty()
+                    //  from vsd in _context.VehicleSaleBillDetails.Where(v => v.ChassisNo == jc.Chassisno).Take(1).DefaultIfEmpty()
 
                     // Vehicle Sale Bill Header (Left Join)
                 join vsh in _context.VehicleSaleBillHeaders
@@ -252,18 +263,19 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     //      && jc.Servicehead == 3
                     //      && (jc.Servicetype == 3 || jc.Servicetype == 6)
                 where (string.IsNullOrEmpty(dealerCode) || jc.DealerCode == dealerCode)
-                          && rb.IsDelete != true
-                          && jc.Servicehead == 3
-                          && (jc.Servicetype == 3 || jc.Servicetype == 6)
-                         orderby jc.Id descending
+                      && jc.Servicehead == 3
+                      && (jc.Servicetype == 3 || jc.Servicetype == 6)
+                orderby jc.Id descending
 
                 select new PendingApprovalJobCardViewModel
                 {
                     JobCardId = jc.Id,
                     JobNo = jc.JobNo,
                     JobDate = jc.JobinDate,
-                    RepairBillNo = rb.BillNo,
-                    RepairBillDate = rb.CreatedDate,
+                    //RepairBillNo = rb.BillNo,
+                    //RepairBillDate = rb.CreatedDate,
+                    RepairBillNo = rb != null ? rb.BillNo : 0,
+                    RepairBillDate = rb != null ? rb.CreatedDate : default,
                     RegistrationNo = cd != null ? cd.RegNo : null,
                     ChassisNo = jc.Chassisno,
                     MotorNo = cbd != null ? cbd.BatteryNo : null,
@@ -271,9 +283,10 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     PartyName = lm != null ? lm.LedgerName : null,
                     MobileNo = lm != null ? lm.MobileNumber : null,
                     SaleDate = vsh.SaleDate,
-                    Days = vsh != null
-                        ? EF.Functions.DateDiffDay(vsh.SaleDate, DateTime.Today)
-                        : (int?)null,
+                    //Days = vsh != null
+                    //    ? EF.Functions.DateDiffDay(vsh.SaleDate, DateTime.Today)
+                    //    : (int?)null,
+                    Days = vsh != null ? EF.Functions.DateDiffDay(vsh.SaleDate, DateTime.Today) : 0,
                     Supervisor = jc.Supervisor,
                     Technician = jc.Technician,
                     ModelName = vsd != null ? vsd.ModelName : null,
@@ -339,12 +352,14 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
         //}
 
 
-        async Task<PagedResponse<FreeServiceClaimHeaderViewModel>> IFreeServiceClaimRepo.GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex)
+        async Task<PagedResponse<FreeServiceClaimHeaderViewModel>> IFreeServiceClaimRepo.GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex, DateTime? fromDate, DateTime? toDate)
         {
             try
             {
                 var query = _context.FreeServiceClaimHeaders
                 .Where(x => string.IsNullOrEmpty(dealerCode) || x.DealerCode == dealerCode)
+                .Where(x => fromDate == null || x.ClaimDate >= fromDate)                              
+                .Where(x => toDate == null || x.ClaimDate < toDate.Value.AddDays(1))                  
                 .AsNoTracking();
 
                 int totalRecords = await query.CountAsync();
@@ -395,7 +410,8 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                         ApprovedCount = c?.Approved ?? 0,
                         RejectedCount = c?.Rejected ?? 0,
                         PendingCount = c?.Pending ?? 0,
-                        Status = status
+                        Status = status,
+                        InvoiceNo = item.InvoiceNo
                     };
                 }).ToList();
 
@@ -457,9 +473,10 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     on jc.Chassisno equals cbd.ChassisNo into batteryGroup
                 from cbd in batteryGroup.DefaultIfEmpty()
 
-                join vsd in _context.VehicleSaleBillDetails
-                    on jc.Chassisno equals vsd.ChassisNo into saleBillGroup
-                from vsd in saleBillGroup.DefaultIfEmpty()
+                    //join vsd in _context.VehicleSaleBillDetails
+                    //    on jc.Chassisno equals vsd.ChassisNo into saleBillGroup
+                    //from vsd in saleBillGroup.DefaultIfEmpty()
+                from vsd in _context.VehicleSaleBillDetails.Where(v => v.ChassisNo == jc.Chassisno).Take(1).DefaultIfEmpty()
 
                 join vsh in _context.VehicleSaleBillHeaders
                     on vsd.VehicleSaleBillId equals vsh.Id into saleBillHeaderGroup
@@ -702,7 +719,7 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
         //}
 
 
-        async Task<IEnumerable<object>> IFreeServiceClaimRepo.GetPendingApprovalClaims(string? dealerCode)
+        async Task<IEnumerable<object>> IFreeServiceClaimRepo.GetPendingApprovalClaims(string? dealerCode, DateTime? fromDate, DateTime? toDate, bool includeProcessed)
         {
             return await (
                 from fscd in _context.FreeServiceClaimDetails
@@ -713,8 +730,12 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                 join jc in _context.JobCardHeaders
                     on fscd.JobId equals jc.Id
 
-                join rb in _context.RepairBillHeaders
-                    on jc.Id equals rb.JobId
+                //join rb in _context.RepairBillHeaders
+                //    on jc.Id equals rb.JobId
+                from rb in _context.RepairBillHeaders
+                    .Where(r => r.JobId == jc.Id && r.IsDelete != true)
+                    .OrderByDescending(r => r.Id)
+                    .Take(1)
 
                 join sh in _context.ServiceHeads
                     on jc.Servicehead equals sh.Id
@@ -730,9 +751,10 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     on jc.Chassisno equals cbd.ChassisNo into batteryGroup
                 from cbd in batteryGroup.DefaultIfEmpty()
 
-                join vsd in _context.VehicleSaleBillDetails
-                    on jc.Chassisno equals vsd.ChassisNo into saleBillGroup
-                from vsd in saleBillGroup.DefaultIfEmpty()
+                    //join vsd in _context.VehicleSaleBillDetails
+                    //    on jc.Chassisno equals vsd.ChassisNo into saleBillGroup
+                    //from vsd in saleBillGroup.DefaultIfEmpty()
+                from vsd in _context.VehicleSaleBillDetails.Where(v => v.ChassisNo == jc.Chassisno).Take(1).DefaultIfEmpty()
 
                 join vsh in _context.VehicleSaleBillHeaders
                     on vsd.VehicleSaleBillId equals vsh.Id into saleBillHeaderGroup
@@ -768,9 +790,13 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     on dlm.City equals city.CityId into cityGroup
                 from city in cityGroup.DefaultIfEmpty()
 
-                where fscd.IsApproved == null
-                       && rb.IsDelete != true
-                      && (string.IsNullOrEmpty(dealerCode) || fsch.DealerCode == dealerCode)
+                    //where fscd.IsApproved == null
+                    //       && rb.IsDelete != true
+                    //      && (string.IsNullOrEmpty(dealerCode) || fsch.DealerCode == dealerCode)
+                where (includeProcessed || fscd.IsApproved == null)
+              && (fromDate == null || fsch.ClaimDate >= fromDate)
+              && (toDate == null || fsch.ClaimDate < toDate.Value.AddDays(1))
+              && (string.IsNullOrEmpty(dealerCode) || fsch.DealerCode == dealerCode)   
 
                 orderby fsch.CreatedDate descending
 
@@ -865,6 +891,28 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        async Task<string> IFreeServiceClaimRepo.GenerateInvoice(int id, string userId)
+        {
+            var header = await _context.FreeServiceClaimHeaders.FirstOrDefaultAsync(x => x.Id == id)
+                ?? throw new Exception("Claim not found.");
+            if (!string.IsNullOrEmpty(header.InvoiceNo)) return header.InvoiceNo;
+
+            var details = await _context.FreeServiceClaimDetails.Where(d => d.HeaderClaimId == id).ToListAsync();
+            if (details.Any(d => d.IsApproved == null)) throw new Exception("Claim has pending jobs.");
+            if (!details.Any(d => d.IsApproved == true)) throw new Exception("No job is approved.");
+
+            var now = DateTime.Now;
+            int fyStart = now.Month >= 4 ? now.Year : now.Year - 1;
+            int next = await _context.FreeServiceClaimHeaders
+                .CountAsync(x => x.DealerCode == header.DealerCode && x.InvoiceNo != null) + 1;
+
+            header.InvoiceNo = $"FSI/{header.DealerCode}/{fyStart % 100}-{(fyStart + 1) % 100}/{next:000}";
+            header.InvoiceDate = now;
+            header.InvoiceBy = userId;
+            await _context.SaveChangesAsync();
+            return header.InvoiceNo;
         }
     }
 }

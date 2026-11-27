@@ -27,5 +27,9 @@ public partial class FreeServiceClaimHeader
 
     public string? UpdatedDate { get; set; }
 
+    public string? InvoiceNo { get; set; }
+    public DateTime? InvoiceDate { get; set; }
+    public string? InvoiceBy { get; set; }
+
     public virtual ICollection<FreeServiceClaimDetail> FreeServiceClaimDetails { get; set; } = new List<FreeServiceClaimDetail>();
 }

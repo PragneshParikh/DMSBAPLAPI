@@ -43,5 +43,6 @@ namespace DMS_BAPL_Utils.ViewModels
         public int RejectedCount { get; set; }
         public int PendingCount { get; set; }
         public string? Status { get; set; }
+        public string? InvoiceNo { get; set; }
     }
 }

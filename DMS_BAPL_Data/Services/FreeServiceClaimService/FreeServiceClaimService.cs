@@ -66,7 +66,7 @@ namespace DMS_BAPL_Data.Services.FreeServiceClaimService
             }
         }
         Task<IEnumerable<PendingApprovalJobCardViewModel>> IFreeServiceClaimService.GetPendingApprovalJobCard(string? dealerCode) => _freeServiceClaimRepo.GetPendingApprovalJobCard(dealerCode);
-        Task<PagedResponse<FreeServiceClaimHeaderViewModel>> IFreeServiceClaimService.GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex) => _freeServiceClaimRepo.GetWarrantyClaimByDealerCode(dealerCode, pageSize, pageIndex);
+        Task<PagedResponse<FreeServiceClaimHeaderViewModel>> IFreeServiceClaimService.GetWarrantyClaimByDealerCode(string dealerCode, int pageSize, int pageIndex, DateTime? fromDate, DateTime? toDate) => _freeServiceClaimRepo.GetWarrantyClaimByDealerCode(dealerCode, pageSize, pageIndex,fromDate,toDate);
         Task<object?> IFreeServiceClaimService.GetClaimById(int Id) => _freeServiceClaimRepo.GetClaimById(Id);
         public async Task<bool> Update(FreeServiceClaimViewModel freeServiceClaimViewModel)
         {
@@ -105,15 +105,20 @@ namespace DMS_BAPL_Data.Services.FreeServiceClaimService
             }
         }
 
-        public async Task<IEnumerable<object>> GetPendingApprovalClaims(string? dealerCode)
+        public async Task<IEnumerable<object>> GetPendingApprovalClaims(string? dealerCode, DateTime? fromDate, DateTime? toDate, bool includeProcessed)
         {
 
-            return await _freeServiceClaimRepo.GetPendingApprovalClaims(dealerCode);
+            return await _freeServiceClaimRepo.GetPendingApprovalClaims(dealerCode, fromDate, toDate, includeProcessed);
         }
 
         public async Task<bool> ApproveRejectClaimDetails(List<ApproveRejectDetailViewModel> items, string userId)
         {
             return await _freeServiceClaimRepo.ApproveRejectClaimDetails(items, userId);
+        }
+
+        public async Task<string> GenerateInvoice(int id, string userId)
+        {
+            return await _freeServiceClaimRepo.GenerateInvoice(id, userId);
         }
 
     }
