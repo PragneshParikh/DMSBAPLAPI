@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Helpers;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
 using DMS_BAPL_Utils.Helpers;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -81,35 +82,6 @@ namespace DMS_BAPL_Data.Services.RoleWiseMenuRightService
         //    }
         //}
 
-        /// <summary>26.11.2026 - AspNetRoles ids of the roles mapped to the logged-in BG employee.</summary>
-        private async Task<List<string>> GetBgEmployeeRoleIdsAsync()
-        {
-            try
-            {
-                var email = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-                if (string.IsNullOrWhiteSpace(email)) return new List<string>();
-                var e = email.Trim().ToLower();
-
-                var roleNames = await (
-                    from m in _dmsContext.BgEmployeeRoleMappings
-                    join emp in _dmsContext.BgEmployeeMasters on m.BgEmployeeId equals emp.Id
-                    where emp.IsActive && emp.EmailId != null && emp.EmailId.ToLower() == e
-                    select m.RoleName
-                ).Distinct().ToListAsync();
-                if (roleNames.Count == 0) return new List<string>();
-
-                var upper = roleNames.Select(r => r.Trim().ToUpperInvariant()).ToList();
-                return await _identitycontext.Roles
-                    .Where(r => r.NormalizedName != null && upper.Contains(r.NormalizedName))
-                    .Select(r => r.Id)
-                    .ToListAsync();
-            }
-            catch
-            {
-                return new List<string>();
-            }
-        }
-
         public async Task<IEnumerable<RoleWiseMenuRight>> GetMenuRightByRoleId(string? roleId)
         {
             if (string.IsNullOrEmpty(roleId))
@@ -131,10 +103,24 @@ namespace DMS_BAPL_Data.Services.RoleWiseMenuRightService
 
                 roleIds.AddRange(identityRoleIds);
 
-                // 26.11.2026 - same rule as the sidebar (MenuService): the roles ticked for a BG employee in
-                // BG Employee Master also grant page access. Without this the sidebar showed e.g. Warranty Claim
-                // (from the "Service" role) but the page guard - which reads these rights - refused to open it.
-                roleIds.AddRange(await GetBgEmployeeRoleIdsAsync());
+                // 27.11.2026 - same rule as the sidebar (MenuService): for a BG employee the roles ticked in
+                // BG Employee Master replace the generic "Employee" role, and employee-wise rights
+                // (BgEmployeeMenuRight) override everything. These rights drive the page guard AND the
+                // Add / Edit / Delete / Print buttons (MenuAccessService).
+                var bgEmp = await BgEmployeeAccess.ResolveAsync(_dmsContext,
+                    _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value);
+                if (bgEmp?.HasOwnRights == true)
+                    return BgEmployeeAccess.AsRoleRights(bgEmp.OwnRights!);
+
+                if (bgEmp != null && bgEmp.MappedRoleIds.Count > 0)
+                {
+                    var employeeRoleIds = await _identitycontext.Roles
+                        .Where(r => r.NormalizedName == "EMPLOYEE")
+                        .Select(r => r.Id)
+                        .ToListAsync();
+                    roleIds = roleIds.Where(id => !employeeRoleIds.Contains(id)).ToList();
+                    roleIds.AddRange(bgEmp.MappedRoleIds);
+                }
                 roleIds = roleIds.Distinct().ToList();
 
                 if (roleIds.Count == 0)
