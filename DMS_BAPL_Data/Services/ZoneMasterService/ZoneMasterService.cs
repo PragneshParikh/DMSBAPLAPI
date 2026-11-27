@@ -20,6 +20,10 @@ namespace DMS_BAPL_Data.Services.ZoneMasterService
             GetDealersByZoneAsync(string zone)
                 => _repo.GetDealersByZoneAsync(zone);
 
+        // 26.11.2026
+        public Task<ZoneDealerCountResponse> GetZoneDealerCountsAsync()
+            => _repo.GetZoneDealerCountsAsync();
+
         public Task<ZoneMasterViewModel>
             GetZoneByIdAsync(int id)
                 => _repo.GetZoneByIdAsync(id);

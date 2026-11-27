@@ -752,10 +752,45 @@ namespace DMS_BAPL_Api.Controllers
                     if (locationLoginResult != null)
                         return locationLoginResult;
 
+                    // 26.11.2026 - BG employee saved in BG Employee Master without an AspNetUsers login
+                    // (the old save skipped a failed login silently). If the email + password match the
+                    // active BgEmployeeMaster row, create the login (role Employee) now and continue.
+                    var bgEmp = await _bgEmployeeMasterService.GetByEmail(normalizedUsername);
+                    if (bgEmp != null)
+                    {
+                        if (!bgEmp.IsActive)
+                            return Unauthorized(new { message = "Employee account is inactive." });
+
+                        var stored = bgEmp.Password ?? string.Empty;
+                        var typed = model.Password ?? string.Empty;
+                        bool same = stored.Length > 0 && stored.Length == typed.Length &&
+                            System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                                Encoding.UTF8.GetBytes(stored), Encoding.UTF8.GetBytes(typed));
+                        if (!same)
+                            return Unauthorized(new { message = "Login not created yet for this employee, or the password does not match the one set in BG Employee Master." });
+
+                        var newUser = new ApplicationUser
+                        {
+                            UserName = normalizedUsername.ToLowerInvariant(),
+                            Email = normalizedUsername.ToLowerInvariant(),
+                            EmailConfirmed = true
+                        };
+                        var created = await _userManager.CreateAsync(newUser, typed);
+                        if (!created.Succeeded)
+                        {
+                            var why = string.Join(" ", created.Errors.Select(e => e.Description));
+                            _logger.LogWarning("BG employee login creation failed for {Email}: {Why}", normalizedUsername, why);
+                            return BadRequest(new { message = $"Login could not be created: {why}" });
+                        }
+                        await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
+                        _logger.LogInformation("BG employee login created at first sign-in for {Email}", normalizedUsername);
+                        user = newUser;
+                    }
+
                     // No AspNetUsers login yet — check if this email belongs to a dealer in
                     // DealerMaster that was never linked (e.g. added via ERP/SQL import), and
                     // auto-provision their login + Dealer role on the spot.
-                    try
+                    if (user == null) try
                     {
                         user = await _dealerMasterService.EnsureDealerUserFromEmailAsync(normalizedUsername);
                     }

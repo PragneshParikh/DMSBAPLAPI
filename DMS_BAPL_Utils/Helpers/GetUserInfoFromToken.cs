@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 
 namespace DMS_BAPL_Utils.Helpers
@@ -37,11 +39,14 @@ namespace DMS_BAPL_Utils.Helpers
         {
             try
             {
-                var role = context.User?.FindFirst(ClaimTypes.Role)?.Value;
+                // 26.11.2026 - a user can have more than one role (e.g. Dealer + SuperAdmin).
+                // FindFirst only looked at the first role claim, so such a SuperAdmin was treated
+                // as a dealer and every report was cut to his own dealer code. Check all role claims.
+                var roles = context.User?.FindAll(ClaimTypes.Role).Select(c => c.Value) ?? Enumerable.Empty<string>();
 
-                return role != null &&
-               (role.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
-                role.Equals("superadmin", StringComparison.OrdinalIgnoreCase));
+                return roles.Any(role =>
+                    role.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
+                    role.Equals("superadmin", StringComparison.OrdinalIgnoreCase));
             }
             catch (Exception ex)
             {
@@ -65,6 +70,44 @@ namespace DMS_BAPL_Utils.Helpers
 
             // Empty = admin user, no dealer restriction applied
             return string.Empty;
+        }
+
+        // ── 26.11.2026 dealer scope (BG employees carry several dealer codes, comma separated) ──
+
+        /// <summary>Dealer codes the logged-in user may see. Empty list = no restriction (admin / superadmin).</summary>
+        public static List<string> GetAllowedDealerCodes(HttpContext context)
+        {
+            if (GetUserGroup(context)) return new List<string>();
+            return SplitCodes(GetDealerCodeFromToken(context));
+        }
+
+        public static List<string> SplitCodes(string? codes) =>
+            (codes ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(c => !string.Equals(c, "ALL", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(c, "undefined", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(c, "null", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        /// <summary>
+        /// The dealer filter a report should use:
+        ///  - admin / superadmin: what was asked for (blank = all dealers)
+        ///  - dealer / employee: what was asked for when every asked code is one of theirs,
+        ///    otherwise all of their own dealer codes (comma separated for an employee with several dealers).
+        /// </summary>
+        public static string? ScopeDealerCode(HttpContext context, string? requested)
+        {
+            if (GetUserGroup(context)) return requested;
+
+            var allowed = SplitCodes(GetDealerCodeFromToken(context));
+            if (allowed.Count == 0) return requested;
+
+            var asked = SplitCodes(requested);
+            if (asked.Count > 0 && asked.All(a => allowed.Contains(a, StringComparer.OrdinalIgnoreCase)))
+                return string.Join(",", asked);
+
+            return string.Join(",", allowed);
         }
 
         public static string GetLocationCodeFromToken(HttpContext httpContext)

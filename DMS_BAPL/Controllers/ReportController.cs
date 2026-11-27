@@ -134,7 +134,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
@@ -171,7 +171,7 @@ namespace DMS_BAPL_Api.Controllers
                 // ── Dealer restriction: token always wins ─────────────────────
                 string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                 if (!string.IsNullOrEmpty(tokenDealerCode))
-                    dealerCode = tokenDealerCode;
+                    dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 // ─────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetDealerWiseStockReportAsync(dealerCode);
@@ -205,7 +205,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -244,7 +244,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
@@ -280,7 +280,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -311,7 +311,7 @@ namespace DMS_BAPL_Api.Controllers
                 // ── Dealer restriction ────────────────────────────────────────────
                 string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                 if (!string.IsNullOrEmpty(tokenDealerCode))
-                    dealerCode = tokenDealerCode;
+                    dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 // ─────────────────────────────────────────────────────────────────
 
                 var result = await _reportService.GetReportSummaryStatsAsync(dealerCode, fromDate, toDate);
@@ -348,7 +348,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -383,7 +383,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
 
                 var result = await _reportService.GetTotalSaleReportDealerWiseAsync(fromDate, toDate, dealerCode);
@@ -415,7 +415,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
 
                 var result = await _reportService.GetModelWiseSaleCountReportAsync(fromDate, toDate, dealerCode);
@@ -447,7 +447,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
 
                 var result = await _reportService.GetModelWiseStockCountReportAsync(dealerCode, fromDate, toDate);
@@ -492,7 +492,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -531,7 +531,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 var result =
@@ -613,7 +613,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -668,7 +668,7 @@ namespace DMS_BAPL_Api.Controllers
             {
                 string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                 if (!string.IsNullOrEmpty(tokenDealerCode))
-                    dealerCode = tokenDealerCode;
+                    dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
             }
             // ─────────────────────────────────────────────────────────────────
 
@@ -698,7 +698,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -790,7 +790,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────
 
@@ -827,7 +827,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────
 
@@ -945,7 +945,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
@@ -985,7 +985,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
 
                 var result = await _reportService.GetModelWiseVariantStockCountReportAsync(dealerCode, fromDate, toDate);
@@ -1022,7 +1022,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
@@ -1066,7 +1066,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     // ── Location restriction: logins pinned to one location can't
                     // widen the report to the rest of the dealer's locations by
@@ -1120,7 +1120,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -1157,7 +1157,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 _logger.LogInformation("Material Transfer Report Export API called");
@@ -1199,7 +1199,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 _logger.LogInformation("Repair Bill Report API called");
@@ -1235,7 +1235,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 _logger.LogInformation("Repair Bill Report Export API called");
@@ -1277,7 +1277,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 _logger.LogInformation("Comparison Report API called");
@@ -1312,7 +1312,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
                 }
 
                 _logger.LogInformation("Comparison Report Export API called");
@@ -1341,7 +1341,7 @@ namespace DMS_BAPL_Api.Controllers
             {
                 if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
                 {
-                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                     if (string.IsNullOrWhiteSpace(dealerCode))
                         return Unauthorized("Dealer code not found");
                 }
@@ -1381,7 +1381,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrWhiteSpace(tokenDealerCode))
                     return Unauthorized("Dealer code not found");
 
-                request.DealerCode = tokenDealerCode;
+                request.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, request.DealerCode);
             }
 
             try
@@ -1531,7 +1531,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        dealerCode = tokenDealerCode;
+                        dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 // ─────────────────────────────────────────────────────────────────
 
@@ -1572,7 +1572,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
@@ -1614,7 +1614,7 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     string tokenDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
                     if (!string.IsNullOrEmpty(tokenDealerCode))
-                        filter.DealerCode = tokenDealerCode;
+                        filter.DealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, filter.DealerCode);
 
                     string tokenLocationCode = GetUserInfoFromToken.GetLocationCodeFromToken(HttpContext);
                     string liveLocationCode = await GetLiveLocationCodeAsync(tokenLocationCode);
@@ -1656,7 +1656,7 @@ namespace DMS_BAPL_Api.Controllers
             {
                 if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
                 {
-                    dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+                    dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
 
                     if (string.IsNullOrWhiteSpace(dealerCode))
                         return Unauthorized("Dealer code not found");

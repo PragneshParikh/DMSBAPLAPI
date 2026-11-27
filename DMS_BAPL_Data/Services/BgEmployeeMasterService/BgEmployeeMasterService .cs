@@ -285,6 +285,14 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 if (existingEmployee != null)
                     throw new InvalidOperationException("An employee with this email already exists.");
 
+                // 26.11.2026 - check the password against the Identity rules BEFORE saving anything
+                if (!string.IsNullOrWhiteSpace(model.EmailId) && !string.IsNullOrWhiteSpace(model.Password))
+                {
+                    var pwdError = await ValidatePasswordAsync(model.EmailId, model.Password);
+                    if (pwdError != null)
+                        throw new InvalidOperationException($"Password not accepted: {pwdError}");
+                }
+
                 await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
                 var entity = MapToEntity(model);
                 entity.CreatedBy = model.CreatedBy ?? "admin";
@@ -296,32 +304,13 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                 if (model.RoleMappings?.Any() == true)
                     await _repo.SaveRoleMappings(savedEmployee.Id, model.RoleMappings);
 
+                // 26.11.2026 - login creation used to fail silently (only Console.WriteLine), so the
+                // employee was saved without an AspNetUsers row and could never log in.
                 if (!string.IsNullOrWhiteSpace(savedEmployee.EmailId))
                 {
-                    try
-                    {
-                        var existingUser = await _userManager.FindByNameAsync(savedEmployee.EmailId);
-                        if (existingUser == null)
-                        {
-                            var newUser = new ApplicationUser
-                            {
-                                UserName = savedEmployee.EmailId,
-                                Email = savedEmployee.EmailId,
-                                EmailConfirmed = true
-                            };
-                            var passwordToUse = !string.IsNullOrWhiteSpace(model.Password)
-                                ? model.Password : StringConstants.BgEmployeeDefaultPassword;
-                            var userResult = await _userManager.CreateAsync(newUser, passwordToUse);
-                            if (userResult.Succeeded)
-                                await _userManager.AddToRoleAsync(newUser, StringConstants.BgEmployeeText);
-                            else
-                                Console.WriteLine($"Login creation failed: {string.Join(", ", userResult.Errors.Select(e => e.Description))}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Login creation exception: {ex.Message}");
-                    }
+                    var loginError = await EnsureEmployeeLoginAsync(savedEmployee.EmailId, model.Password, resetPassword: false);
+                    if (loginError != null)
+                        throw new InvalidOperationException($"Employee saved, but the login was not created: {loginError} Fix it and click Update.");
                 }
 
                 return savedEmployee;
@@ -347,9 +336,73 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
                 await _repo.SaveRoleMappings(model.Id, model.RoleMappings ?? new List<RoleMappingDto>());
 
+                // 26.11.2026 - Update never touched the login: an employee saved without a login (or whose
+                // login creation failed) could never sign in, and a changed password was never applied.
+                if (result > 0 && !string.IsNullOrWhiteSpace(model.EmailId))
+                {
+                    var loginError = await EnsureEmployeeLoginAsync(model.EmailId.Trim().ToLowerInvariant(), model.Password, resetPassword: true);
+                    if (loginError != null)
+                        throw new InvalidOperationException($"Employee updated, but the login could not be saved: {loginError}");
+                }
+
                 return result;
             }
             catch { throw; }
+        }
+
+        // =====================================================
+        // LOGIN (AspNetUsers) - 26.11.2026
+        // =====================================================
+
+        private async Task<string?> ValidatePasswordAsync(string email, string password)
+        {
+            var probe = new ApplicationUser { UserName = email, Email = email };
+            var errors = new List<string>();
+            foreach (var v in _userManager.PasswordValidators)
+            {
+                var r = await v.ValidateAsync(_userManager, probe, password);
+                if (!r.Succeeded) errors.AddRange(r.Errors.Select(e => e.Description));
+            }
+            return errors.Count == 0 ? null : string.Join(" ", errors.Distinct());
+        }
+
+        /// <summary>
+        /// Makes sure the employee can log in: creates the AspNetUsers row (role "Employee") when missing,
+        /// adds the role when missing, and - when resetPassword and a password is given - sets that password.
+        /// Returns null when OK, otherwise the reason.
+        /// </summary>
+        private async Task<string?> EnsureEmployeeLoginAsync(string email, string? password, bool resetPassword)
+        {
+            var user = await _userManager.FindByNameAsync(email) ?? await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
+                var pwd = !string.IsNullOrWhiteSpace(password) ? password : StringConstants.BgEmployeeDefaultPassword;
+                var created = await _userManager.CreateAsync(user, pwd);
+                if (!created.Succeeded)
+                    return string.Join(" ", created.Errors.Select(e => e.Description));
+            }
+            else if (resetPassword && !string.IsNullOrWhiteSpace(password) && !await _userManager.CheckPasswordAsync(user, password))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var reset = await _userManager.ResetPasswordAsync(user, token, password);
+                if (!reset.Succeeded)
+                    return string.Join(" ", reset.Errors.Select(e => e.Description));
+            }
+
+            if (!await _userManager.IsInRoleAsync(user, StringConstants.BgEmployeeText))
+            {
+                var role = await _userManager.AddToRoleAsync(user, StringConstants.BgEmployeeText);
+                if (!role.Succeeded)
+                    return string.Join(" ", role.Errors.Select(e => e.Description));
+            }
+
+            // a locked-out login (too many wrong passwords) is released when the admin saves the employee
+            if (await _userManager.IsLockedOutAsync(user))
+                await _userManager.SetLockoutEndDateAsync(user, null);
+
+            return null;
         }
 
         public async Task<int> UpdateStatus(int id, bool isActive)

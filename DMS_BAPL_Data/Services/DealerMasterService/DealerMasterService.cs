@@ -417,7 +417,10 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         }
 
         public Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel) => _dealerMasterRepo.UpdateByDealerCode(userId, dealerMasterViewModel);
-        Task<PagedResponse<DealerMaster>> IDealerMasterService.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode) => _dealerMasterRepo.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode);
+        Task<PagedResponse<DealerMaster>> IDealerMasterService.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode, string? status, string? city, string? state) => _dealerMasterRepo.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode, status, city, state);
+
+        // 26.11.2026 Dealer Master filters
+        public Task<List<DealerFilterOptionViewModel>> GetDealerFilterOptions(string? dealerCode) => _dealerMasterRepo.GetDealerFilterOptions(dealerCode);
 
         public async Task<DealerImportResultViewModel> ImportDealerExcelAsync(IFormFile file, string userId)
         {

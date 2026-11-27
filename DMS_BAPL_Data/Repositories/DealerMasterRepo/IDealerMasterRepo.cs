@@ -1,4 +1,4 @@
-using DMS_BAPL_Data.CustomModel;
+﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
 using DMS_BAPL_Utils.ViewModels;
 using DocumentFormat.OpenXml.Math;
@@ -27,7 +27,9 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
         Task SaveAsync();
         Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate);
         Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
-        Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
+        Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode, string? status = null, string? city = null, string? state = null);
+        // 26.11.2026 Dealer Master filters: dealer / city / state / status lists
+        Task<List<DealerFilterOptionViewModel>> GetDealerFilterOptions(string? dealerCode);
         Task<DealerMaster> GetDealerByEmail(string email);
     }
 }

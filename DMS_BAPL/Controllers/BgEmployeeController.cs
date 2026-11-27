@@ -65,6 +65,11 @@ namespace DMS_BAPL_Data.Controllers
                 var rows = await _service.Update(model);
                 return rows == 0 ? NotFound() : Ok(new { message = "Employee updated successfully." });
             }
+            catch (InvalidOperationException ex)
+            {
+                // 26.11.2026 - login problems come back as a readable 409 (same as Create)
+                return Conflict(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });

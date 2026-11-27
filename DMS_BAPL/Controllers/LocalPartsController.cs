@@ -192,8 +192,16 @@ public sealed class LocalPartsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<PartsD2DTransactionResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetD2DHistory(CancellationToken cancellationToken)
     {
-        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
-            return Forbid();
+        string? dealerCode;
+        bool canAccessAllDealers;
+        if (!TryGetCallerScope(out dealerCode, out canAccessAllDealers))
+        {
+            // 26.11.2026 - BG employees (role Employee) may read the history of their mapped dealers
+            if (!User.IsInRole("Employee"))
+                return Forbid();
+            dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+            canAccessAllDealers = false;
+        }
         if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerCode))
             return Unauthorized("Dealer code not found.");
 
@@ -220,8 +228,19 @@ public sealed class LocalPartsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<PartsD2DNotificationResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetD2DNotifications(CancellationToken cancellationToken)
     {
-        if (!TryGetCallerScope(out var dealerCode, out var canAccessAllDealers))
-            return Forbid();
+        string? dealerCode;
+        bool canAccessAllDealers;
+        if (!TryGetCallerScope(out dealerCode, out canAccessAllDealers))
+        {
+            // 26.11.2026 - BG employees (role Employee): incoming D2D notifications of their mapped dealers.
+            // Before this they got 403 and the top bar showed "Unable to load Parts D2D notifications".
+            if (!User.IsInRole("Employee"))
+                return Forbid();
+            dealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext);
+            canAccessAllDealers = false;
+            if (string.IsNullOrWhiteSpace(dealerCode))
+                return Ok(Array.Empty<PartsD2DNotificationResponse>());
+        }
         if (canAccessAllDealers)
             return Ok(Array.Empty<PartsD2DNotificationResponse>());
         if (string.IsNullOrWhiteSpace(dealerCode))

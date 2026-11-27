@@ -21,6 +21,8 @@
     {
         public string? Search { get; set; }
         public string? DealerCode { get; set; }
+        /// <summary>26.11.2026 - "active" / "inactive" / blank = all</summary>
+        public string? Status { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
