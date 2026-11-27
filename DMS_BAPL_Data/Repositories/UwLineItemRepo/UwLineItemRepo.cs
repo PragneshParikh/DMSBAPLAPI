@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Data.Repositories.WarrantyOrderRepo;
 using DMS_BAPL_Data.Repositories.WarrantyInvoiceRepo;
 using DMS_BAPL_Utils.ViewModels;
@@ -13,15 +14,18 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
     public class UwLineItemRepo : IUwLineItemRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly JobCardScannerDbContext _jobCardScannerContext;
         private readonly IWarrantyOrderRepo _warrantyOrderRepo;
         private readonly IWarrantyInvoiceRepo _warrantyInvoiceRepo;
 
         public UwLineItemRepo(
             BapldmsvadContext context,
+            JobCardScannerDbContext jobCardScannerContext,
             IWarrantyOrderRepo warrantyOrderRepo,
             IWarrantyInvoiceRepo warrantyInvoiceRepo)
         {
             _context = context;
+            _jobCardScannerContext = jobCardScannerContext;
             _warrantyOrderRepo = warrantyOrderRepo;
             _warrantyInvoiceRepo = warrantyInvoiceRepo;
         }
@@ -72,8 +76,14 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                         join u in _context.UwLineItems on d.Id equals u.WarrantyJcclaimDetailId
                         select new { d, c, u };
 
-            if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                query = query.Where(x => x.c.DealerCode == filter.DealerCode);
+            var dealerCodes = (filter.DealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (dealerCodes.Length == 1)
+                query = query.Where(x => x.c.DealerCode == dealerCodes[0]);
+            else if (dealerCodes.Length > 1)
+                query = query.Where(x => dealerCodes.Contains(x.c.DealerCode));
 
             if (filter.DateFrom.HasValue)
                 query = query.Where(x => x.c.ClaimDate >= filter.DateFrom.Value);
@@ -179,12 +189,6 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                 decimal sgstAmt = rbd?.Sgstamount ?? 0;
                 decimal igstAmt = rbd?.Igstamount ?? 0;
 
-                var jobCardHeader = c.JobCardHeaderId.HasValue
-                    ? await _context.JobCardHeaders
-                        .Include(j => j.ServiceheadNavigation)
-                        .FirstOrDefaultAsync(j => j.Id == c.JobCardHeaderId.Value)
-                    : null;
-
                 var supplier = c.SupplierId.HasValue
                     ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == c.SupplierId.Value)
                     : null;
@@ -196,23 +200,85 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                         .FirstOrDefaultAsync()
                     : null;
 
-                var customerLedger = c.CustomerLedgerId.HasValue
-                    ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == c.CustomerLedgerId.Value)
-                    : null;
-
                 var repairBillHeader = c.RepairBillHeaderId.HasValue
                     ? await _context.RepairBillHeaders.FirstOrDefaultAsync(r => r.Id == c.RepairBillHeaderId.Value)
                     : null;
 
+                var b2bJobCardId = repairBillHeader?.B2BJobCardId;
+                if (!b2bJobCardId.HasValue && c.Ffirid.HasValue)
+                {
+                    b2bJobCardId = await _context.Ffirheaders
+                        .AsNoTracking()
+                        .Where(f => f.Id == c.Ffirid.Value)
+                        .Select(f => f.B2BJobCardId)
+                        .FirstOrDefaultAsync();
+                }
+
+                var b2bJobCard = b2bJobCardId is Guid linkedB2bJobCardId
+                    ? await _jobCardScannerContext.JobCards
+                        .AsNoTracking()
+                        .Include(j => j.Vehicle)
+                        .Include(j => j.Customer)
+                        .FirstOrDefaultAsync(j => j.Id == linkedB2bJobCardId)
+                    : null;
+                if (b2bJobCard == null && !string.IsNullOrWhiteSpace(repairBillHeader?.B2BJobCardNumber))
+                {
+                    var b2bJobCardNumber = repairBillHeader.B2BJobCardNumber.Trim();
+                    b2bJobCard = await _jobCardScannerContext.JobCards
+                        .AsNoTracking()
+                        .Include(j => j.Vehicle)
+                        .Include(j => j.Customer)
+                        .FirstOrDefaultAsync(j => j.JobCardNumber == b2bJobCardNumber);
+                }
+
+                var jobCardHeaderId = c.JobCardHeaderId
+                    ?? (b2bJobCard == null ? repairBillHeader?.JobId : null);
+                var jobCardHeader = jobCardHeaderId.HasValue
+                    ? await _context.JobCardHeaders
+                        .Include(j => j.ServiceheadNavigation)
+                        .Include(j => j.ServicetypeNavigation)
+                        .FirstOrDefaultAsync(j => j.Id == jobCardHeaderId.Value)
+                    : null;
+                var jobCardCustomer = jobCardHeaderId.HasValue
+                    ? await _context.JobCardCustomers
+                        .Where(x => x.JobCardHeaderId == jobCardHeaderId.Value)
+                        .OrderByDescending(x => x.CreatedDate)
+                        .FirstOrDefaultAsync()
+                    : null;
+                var customerLedgerId = c.CustomerLedgerId ?? jobCardCustomer?.CustomerLedgerId;
+                var customerLedger = customerLedgerId.HasValue
+                    ? await _context.LedgerMasters.FirstOrDefaultAsync(l => l.Id == customerLedgerId.Value)
+                    : null;
+
+                var chassisNo = c.ChassisNo
+                    ?? jobCardCustomer?.ChassisNo
+                    ?? jobCardHeader?.Chassisno;
                 var chassisBattery = await _context.ChassisBatteryDetails
-                    .Where(x => x.ChassisNo == c.ChassisNo)
+                    .Where(x => x.ChassisNo == chassisNo)
                     .OrderByDescending(x => x.CreatedDate)
                     .FirstOrDefaultAsync();
 
                 var chassisDetail = await _context.ChassisDetails
-                    .FirstOrDefaultAsync(x => x.ChassisNo == c.ChassisNo);
+                    .FirstOrDefaultAsync(x => x.ChassisNo == chassisNo);
 
-                var jobCardNo = jobCardHeader != null ? $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo}" : null;
+                var locationCode = b2bJobCard?.BaplServiceLocationCode
+                    ?? jobCardHeader?.Serviceloc
+                    ?? c.LocationCode
+                    ?? repairBillHeader?.LocationCode;
+                var locationQuery = _context.LocationMasters
+                    .Where(location => location.Loccode == locationCode);
+                if (!string.IsNullOrWhiteSpace(c.DealerCode))
+                    locationQuery = locationQuery.Where(location => location.Dealercode == c.DealerCode);
+                var locationName = !string.IsNullOrWhiteSpace(locationCode)
+                    ? await locationQuery.Select(location => location.Locname).FirstOrDefaultAsync()
+                    : null;
+                locationName ??= c.LocationName;
+
+                var jobCardNo = b2bJobCard?.JobCardNumber
+                    ?? repairBillHeader?.B2BJobCardNumber
+                    ?? (jobCardHeader == null
+                        ? null
+                        : $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo ?? jobCardHeader.ManualjobNo}");
                 var invoiceNo = repairBillHeader != null ? $"{repairBillHeader.Prefix}{repairBillHeader.BillNo}" : null;
 
                 decimal totalGstAmount = cgstAmt + sgstAmt + igstAmt;
@@ -228,14 +294,16 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     ClaimPrefix = c.ClaimPrefix,
                     ClaimNo = c.ClaimNo,
                     ClaimDate = c.ClaimDate,
-                    ChassisNo = c.ChassisNo,
+                    ChassisNo = chassisNo,
                     SupplierName = supplier?.LedgerName,
                     JobCardNo = jobCardNo,
-                    JobCardDate = jobCardHeader?.CreatedDate,
+                    JobCardDate = b2bJobCard?.CreatedAt
+                        ?? jobCardHeader?.JobinDate?.ToDateTime(TimeOnly.MinValue)
+                        ?? jobCardHeader?.CreatedDate,
 
                     DealerCompanyName = dealerCompanyName,
-                    LocationCode = c.LocationCode,
-                    LocationName = c.LocationName,
+                    LocationCode = locationCode,
+                    LocationName = locationName,
 
                     ItemType = d.ItemType,
                     ItemCode = itemCode,
@@ -266,16 +334,25 @@ namespace DMS_BAPL_Data.Repositories.UwLineItemRepo
                     SgstPercent = sgstPct,
                     IgstPercent = igstPct,
 
-                    ServiceHead = jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
-                    MotorNo = chassisBattery?.MotorNo,
+                    ServiceHead = b2bJobCard?.BaplServiceHeadName ?? jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
+                    ServiceType = b2bJobCard?.BaplServiceTypeName ?? jobCardHeader?.ServicetypeNavigation?.ServiceTypeName,
+                    MotorNo = b2bJobCard?.Vehicle?.MotorNo ?? chassisBattery?.MotorNo ?? jobCardCustomer?.MotorNo,
                     InvoiceNo = invoiceNo,
                     InvoiceDate = repairBillHeader?.CreatedDate,
-                    Kms = jobCardHeader?.Vehiclekms,
+                    Kms = b2bJobCard != null
+                        ? Convert.ToInt32(b2bJobCard.OdometerAtCheckIn)
+                        : jobCardHeader?.Vehiclekms,
 
-                    CustomerName = customerLedger?.LedgerName,
-                    MobileNumber = customerLedger?.MobileNumber,
+                    CustomerName = b2bJobCard?.Customer?.Name
+                        ?? jobCardCustomer?.CustomerName
+                        ?? customerLedger?.LedgerName,
+                    MobileNumber = b2bJobCard?.Customer?.Mobile
+                        ?? jobCardCustomer?.CustomerMobile
+                        ?? customerLedger?.MobileNumber,
 
-                    SaleDate = chassisDetail?.SaleDate,
+                    SaleDate = b2bJobCard?.Vehicle?.PurchaseDate?.ToDateTime(TimeOnly.MinValue)
+                        ?? chassisDetail?.SaleDate
+                        ?? jobCardCustomer?.SaleDate,
                     ClaimAccount = c.ClaimAccount,
 
                     PartCode = !isLabour ? itemCode : null,

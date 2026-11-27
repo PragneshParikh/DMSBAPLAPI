@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -14,10 +15,12 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
     public class WarrantyOrderRepo : IWarrantyOrderRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly JobCardScannerDbContext _jobCardScannerContext;
 
-        public WarrantyOrderRepo(BapldmsvadContext context)
+        public WarrantyOrderRepo(BapldmsvadContext context, JobCardScannerDbContext jobCardScannerContext)
         {
             _context = context;
+            _jobCardScannerContext = jobCardScannerContext;
         }
 
         public async Task<int> InsertWarrantyOrder(WarrantyOrderViewModel model, string userId)
@@ -454,6 +457,28 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 .Where(g => g.WarrantyOrderHeaderId == id)
                 .ToListAsync();
 
+            var claimIds = gridRows.Select(g => g.WarrantyJcclaimId).Distinct().ToList();
+            var recordTypeByClaimId = await (
+                from claim in _context.WarrantyJcclaims
+                join bill in _context.RepairBillHeaders
+                    on claim.RepairBillHeaderId equals bill.Id into bills
+                from bill in bills.DefaultIfEmpty()
+                join ffirHeader in _context.Ffirheaders
+                    on claim.Ffirid equals ffirHeader.Id into ffirHeaders
+                from ffirHeader in ffirHeaders.DefaultIfEmpty()
+                where claimIds.Contains(claim.Id)
+                select new
+                {
+                    claim.Id,
+                    RecordType = (bill != null
+                            && (bill.B2BJobCardId.HasValue
+                                || (bill.B2BJobCardNumber != null && bill.B2BJobCardNumber != "")))
+                        || (ffirHeader != null && ffirHeader.B2BJobCardId.HasValue)
+                        ? "B2B"
+                        : "B2C"
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.RecordType);
+
            
             var approvalByClaimId = header.WarrantyOrderDetails
                 .ToDictionary(d => d.WarrantyJcclaimId, d => d.IsApproved);
@@ -471,6 +496,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                         ClaimDate = first.ClaimDate,
                         JobCardNo = first.JobCardNo,
                         JobCardDate = first.JobCardDate,
+                        RecordType = recordTypeByClaimId.TryGetValue(grp.Key, out var recordType) ? recordType : null,
                         InvoiceNo = first.InvoiceNo,
                         InvoiceDate = first.InvoiceDate,
                         ServiceHead = first.ServiceHead,
@@ -540,6 +566,11 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             var query = _context.WarrantyOrders
                 .Include(x => x.WarrantyOrderDetails)
                 .AsQueryable();
+
+            var dealerCodes = (filter.DealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (dealerCodes.Length > 0)
+                query = query.Where(x => dealerCodes.Contains(x.DealerCode!));
 
             if (!filter.IncludeInactive)
                 query = query.Where(x => x.IsActive);
@@ -699,12 +730,73 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 .Select(x => x.MotorNo)
                 .FirstOrDefaultAsync();
 
-            var locationName = claim.JobCardHeader != null
-                ? await _context.LocationMasters
-                    .Where(l => l.Loccode == claim.JobCardHeader.Serviceloc)
-                    .Select(l => l.Locname)
+            var b2bJobCardId = claim.RepairBillHeader?.B2BJobCardId;
+            if (!b2bJobCardId.HasValue && claim.Ffirid.HasValue)
+            {
+                b2bJobCardId = await _context.Ffirheaders
+                    .AsNoTracking()
+                    .Where(x => x.Id == claim.Ffirid.Value)
+                    .Select(x => x.B2BJobCardId)
+                    .FirstOrDefaultAsync();
+            }
+
+            var b2bJobCard = b2bJobCardId is Guid linkedB2bJobCardId
+                ? await _jobCardScannerContext.JobCards
+                    .AsNoTracking()
+                    .Where(x => x.Id == linkedB2bJobCardId)
+                    .Select(x => new
+                    {
+                        x.JobCardNumber,
+                        x.CreatedAt,
+                        x.BaplServiceHeadName,
+                        x.BaplServiceLocationCode,
+                        x.OdometerAtCheckIn,
+                        MotorNo = x.Vehicle == null ? null : x.Vehicle.MotorNo
+                    })
                     .FirstOrDefaultAsync()
                 : null;
+
+            if (b2bJobCard == null && !string.IsNullOrWhiteSpace(claim.RepairBillHeader?.B2BJobCardNumber))
+            {
+                var b2bJobCardNumber = claim.RepairBillHeader.B2BJobCardNumber.Trim();
+                b2bJobCard = await _jobCardScannerContext.JobCards
+                    .AsNoTracking()
+                    .Where(x => x.JobCardNumber == b2bJobCardNumber)
+                    .Select(x => new
+                    {
+                        x.JobCardNumber,
+                        x.CreatedAt,
+                        x.BaplServiceHeadName,
+                        x.BaplServiceLocationCode,
+                        x.OdometerAtCheckIn,
+                        MotorNo = x.Vehicle == null ? null : x.Vehicle.MotorNo
+                    })
+                    .FirstOrDefaultAsync();
+            }
+
+            var jobCardHeader = claim.JobCardHeader;
+            if (jobCardHeader == null
+                && !b2bJobCardId.HasValue
+                && claim.RepairBillHeader?.JobId is int dmsJobCardId)
+            {
+                jobCardHeader = await _context.JobCardHeaders
+                    .AsNoTracking()
+                    .Include(x => x.ServiceheadNavigation)
+                    .FirstOrDefaultAsync(x => x.Id == dmsJobCardId);
+            }
+
+            var locationCode = b2bJobCard?.BaplServiceLocationCode
+                ?? jobCardHeader?.Serviceloc
+                ?? claim.LocationCode
+                ?? claim.RepairBillHeader?.LocationCode;
+            var locationQuery = _context.LocationMasters
+                .Where(location => location.Loccode == locationCode);
+            if (!string.IsNullOrWhiteSpace(claim.DealerCode))
+                locationQuery = locationQuery.Where(location => location.Dealercode == claim.DealerCode);
+            var locationName = !string.IsNullOrWhiteSpace(locationCode)
+                ? await locationQuery.Select(location => location.Locname).FirstOrDefaultAsync()
+                : null;
+            locationName ??= claim.LocationName;
 
             return new WarrantyJCClaimFullViewModel
             {
@@ -713,25 +805,36 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 ClaimNo = claim.ClaimNo,
                 ClaimDate = claim.ClaimDate,
                 ChassisNo = claim.ChassisNo,
+                RecordType = b2bJobCardId.HasValue
+                    || !string.IsNullOrWhiteSpace(claim.RepairBillHeader?.B2BJobCardNumber)
+                    ? "B2B"
+                    : "B2C",
 
-                JobCardNo = claim.JobCardHeader != null
-                    ? $"{claim.JobCardHeader.Jobprefix}{claim.JobCardHeader.JobNo}"
-                    : null,
-                JobCardDate = claim.JobCardHeader?.JobinDate?.ToDateTime(TimeOnly.MinValue),
+                JobCardNo = b2bJobCard?.JobCardNumber
+                    ?? claim.RepairBillHeader?.B2BJobCardNumber
+                    ?? (jobCardHeader == null
+                        ? null
+                        : $"{jobCardHeader.Jobprefix}{jobCardHeader.JobNo ?? jobCardHeader.ManualjobNo}"),
+                JobCardDate = b2bJobCard?.CreatedAt
+                    ?? jobCardHeader?.JobinDate?.ToDateTime(TimeOnly.MinValue)
+                    ?? jobCardHeader?.CreatedDate,
 
                 InvoiceNo = claim.RepairBillHeader != null
                     ? $"{claim.RepairBillHeader.Prefix}{claim.RepairBillHeader.BillNo}"
                     : null,
                 InvoiceDate = claim.RepairBillHeader?.CreatedDate,
 
-                ServiceHead = claim.JobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
-                Kms = claim.JobCardHeader?.Vehiclekms,
+                ServiceHead = b2bJobCard?.BaplServiceHeadName
+                    ?? jobCardHeader?.ServiceheadNavigation?.ServiceHeadName,
+                Kms = b2bJobCard == null
+                    ? (decimal?)jobCardHeader?.Vehiclekms
+                    : Convert.ToDecimal(b2bJobCard.OdometerAtCheckIn),
 
-                MotorNo = motorNo,
+                MotorNo = b2bJobCard?.MotorNo ?? motorNo,
                 PartyName = claim.Supplier?.LedgerName,
 
                 SupplierId = claim.SupplierId,
-                ServiceLocation = claim.JobCardHeader?.Serviceloc,
+                ServiceLocation = locationCode,
                 LocationName = locationName,
 
                 Details = claim.WarrantyJcclaimDetails.Select(d =>
@@ -1057,8 +1160,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             if (string.IsNullOrWhiteSpace(searchText))
                 return new List<string>();
 
+            var dealerCodes = (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (dealerCodes.Length == 0)
+                return new List<string>();
+
             return await _context.WarrantyOrders
-                .Where(x => x.DealerCode == dealerCode && x.BatchNo.Contains(searchText))
+                .Where(x => dealerCodes.Contains(x.DealerCode!) && x.BatchNo.Contains(searchText))
                 .Select(x => x.BatchNo)
                 .Distinct()
                 .OrderByDescending(b => b)
@@ -1071,8 +1181,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
             if (string.IsNullOrWhiteSpace(searchText))
                 return new List<string>();
 
+            var dealerCodes = (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (dealerCodes.Length == 0)
+                return new List<string>();
+
             return await _context.WarrantyOrders
-                .Where(x => x.DealerCode == dealerCode && x.OrderNo.Contains(searchText))
+                .Where(x => dealerCodes.Contains(x.DealerCode!) && x.OrderNo.Contains(searchText))
                 .Select(x => x.OrderNo)
                 .Distinct()
                 .OrderByDescending(o => o)
@@ -1081,8 +1198,15 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
         }
         public async Task<List<LocationDropdownItemViewModel>> GetDistinctOrderLocations(string dealerCode)
         {
+            var dealerCodes = (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (dealerCodes.Length == 0)
+                return new List<LocationDropdownItemViewModel>();
+
             var distinctCodes = await _context.WarrantyOrders
-                .Where(x => x.DealerCode == dealerCode && x.IsActive && !string.IsNullOrWhiteSpace(x.Location))
+                .Where(x => dealerCodes.Contains(x.DealerCode!) && x.IsActive && !string.IsNullOrWhiteSpace(x.Location))
                 .Select(x => x.Location)
                 .Distinct()
                 .ToListAsync();
@@ -1091,7 +1215,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyOrderRepo
                 return new List<LocationDropdownItemViewModel>();
 
             var names = await _context.LocationMasters
-                .Where(l => distinctCodes.Contains(l.Loccode))
+                .Where(l => dealerCodes.Contains(l.Dealercode!) && distinctCodes.Contains(l.Loccode))
                 .Select(l => new { l.Loccode, l.Locname })
                 .ToListAsync();
 

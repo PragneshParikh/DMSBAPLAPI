@@ -47,7 +47,7 @@ namespace DMS_BAPL_Api.Controllers
             if (!header.B2BJobCardId.HasValue)
                 return (null, null, null);
 
-            if (header.JobId.HasValue)
+            if (header.JobId.GetValueOrDefault() > 0)
                 return (StatusCodes.Status400BadRequest, "A repair bill cannot reference both a B2B and DMS job card.", null);
 
             try
@@ -279,7 +279,12 @@ namespace DMS_BAPL_Api.Controllers
                 else
                 {
                     _logger.LogError("Failed to update repair bill.");
-                    return StatusCode(500, new { Success = false, Message = "An error occurred while updating the repair bill." });
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = "The repair bill or its linked job card changed. Reload the bill and try again."
+                    });
+
                 }
 
             }
