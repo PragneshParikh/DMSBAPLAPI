@@ -18,6 +18,10 @@ namespace DMS_BAPL_Utils.ViewModels
         public bool Exact { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 50;
+        /// <summary>grid column to sort on (whitelisted on the API); null = Job Date</summary>
+        public string? SortBy { get; set; }
+        /// <summary>"asc" / "desc" (default desc)</summary>
+        public string? SortDir { get; set; }
     }
 
     public class JcshJobDataQuery

@@ -140,7 +140,25 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         public async Task<JcshReportPage> ServiceHistoryAsync(JcshServiceHistoryQuery q, CancellationToken ct)
         {
             var (where, ps) = ServiceHistoryFilter(q);
-            return await PageAsync(where, ps, "JobDate DESC, Id DESC", q.Page, q.PageSize, withDealers: false, ct);
+            return await PageAsync(where, ps, ServiceHistoryOrder(q), q.Page, q.PageSize, withDealers: false, ct);
+        }
+
+        /// <summary>header sort keys the Service History grid may send → table column (anything else = Job Date)</summary>
+        private static readonly Dictionary<string, string> SortColumns = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["JobDate"] = "JobDate", ["DealerCode"] = "DealerCode", ["Location"] = "Location", ["JobNo"] = "JobNo",
+            ["JobType"] = "JobType", ["ServiceHead"] = "ServiceHead", ["Model"] = "Model", ["ChassisNo"] = "ChassisNo",
+            ["RegNo"] = "RegNo", ["PartyName"] = "PartyName", ["KMS"] = "KMS", ["Technician"] = "Technician",
+            ["DocNo"] = "DocNo", ["InvoiceDate"] = "InvoiceDate", ["Parts"] = "Parts", ["Labour"] = "Labour",
+            ["GSTAmount"] = "GSTAmount", ["NetTotal"] = "NetTotal", ["JobStatus"] = "JobStatus"
+        };
+
+        /// <summary>ORDER BY from the whitelist only (never the raw request text); Id breaks ties so paging is stable</summary>
+        private static string ServiceHistoryOrder(JcshServiceHistoryQuery q)
+        {
+            var col = q.SortBy != null && SortColumns.TryGetValue(q.SortBy.Trim(), out var c) ? c : "JobDate";
+            var dir = string.Equals(q.SortDir?.Trim(), "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
+            return $"[{col}] {dir}, Id {dir}";
         }
 
         /// <summary>jobs per History Card print - a picked vehicle rarely has more than a few dozen</summary>
@@ -403,7 +421,7 @@ namespace DMS_BAPL_Data.Services.JobCardServiceHistoryImportService
         public async Task<int> ExportServiceHistoryAsync(JcshServiceHistoryQuery q, Stream output, CancellationToken ct)
         {
             var (where, ps) = ServiceHistoryFilter(q);
-            return await ExportAsync(where, ps, "JobDate DESC, Id DESC", "Service History", output, ct);
+            return await ExportAsync(where, ps, ServiceHistoryOrder(q), "Service History", output, ct);
         }
 
         public async Task<int> ExportJobDataAsync(JcshJobDataQuery q, Stream output, CancellationToken ct)

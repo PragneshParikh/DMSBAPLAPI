@@ -293,13 +293,16 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
                         throw new InvalidOperationException($"Password not accepted: {pwdError}");
                 }
 
-                await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: 0);
                 var entity = MapToEntity(model);
                 entity.CreatedBy = model.CreatedBy ?? "admin";
                 entity.CreatedDate = DateTime.Now;
                 entity.UpdatedBy = model.CreatedBy ?? "admin";
                 entity.UpdatedDate = DateTime.Now;
                 var savedEmployee = await _repo.Create(entity);
+
+                // 27.11.2026 - take the dealers off other employees only AFTER this employee is saved:
+                // a failed save used to leave the other employees without their dealers
+                await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: savedEmployee.Id);
 
                 if (model.RoleMappings?.Any() == true)
                     await _repo.SaveRoleMappings(savedEmployee.Id, model.RoleMappings);
@@ -326,13 +329,15 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
         {
             try
             {
-                await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: model.Id);
-
                 var entity = MapToEntity(model);
                 entity.UpdatedBy = model.UpdatedBy ?? "admin";
                 entity.UpdatedDate = DateTime.Now;
 
                 var result = await _repo.Update(entity);
+
+                // 27.11.2026 - only after this employee saved (see Create)
+                if (result > 0)
+                    await UnassignConflictingDealers(model.DealerCode, excludeEmployeeId: model.Id);
 
                 await _repo.SaveRoleMappings(model.Id, model.RoleMappings ?? new List<RoleMappingDto>());
 
@@ -410,8 +415,21 @@ namespace DMS_BAPL_Data.Services.BgEmployeeMasterService
 
         public async Task<int> Delete(int id)
         {
-            try { return await _repo.Delete(id); }
-            catch { throw; }
+            // 27.11.2026 - the AspNetUsers login stays (other tables may point to it) but is locked,
+            // so a deleted employee can no longer sign in. Saving a new employee with the same email unlocks it.
+            var emp = await _repo.GetById(id);
+            var rows = await _repo.Delete(id);
+            if (rows > 0 && !string.IsNullOrWhiteSpace(emp?.EmailId))
+            {
+                var email = emp!.EmailId!.Trim().ToLowerInvariant();
+                var user = await _userManager.FindByNameAsync(email) ?? await _userManager.FindByEmailAsync(email);
+                if (user != null)
+                {
+                    await _userManager.SetLockoutEnabledAsync(user, true);
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+                }
+            }
+            return rows;
         }
 
         public Task<BgEmployeeMaster?> GetByEmail(string email) => _repo.GetByEmail(email);
