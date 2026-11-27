@@ -160,5 +160,8 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public bool? IsDelete { get; set; }
 
+        public string VerificationStatus { get; set; } = "Pending";
+
+        public string? VerificationRemarks { get; set; }
     }
 }

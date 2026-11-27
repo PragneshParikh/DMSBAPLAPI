@@ -17,6 +17,10 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
 
         Task<List<FFIRViewModelList>> GetFFIRDetailListing(string dealerCode, string? search);
 
+        Task<List<FFIRVerificationViewModel>> GetVerificationList(DateTime? fromDate, DateTime? toDate, string? dealerCode, string? status, CancellationToken cancellationToken);
+
+        Task<bool> SetVerificationStatus(int ffirId, string status, string? remarks, string reviewedBy, CancellationToken cancellationToken);
+
         Task<FFIRViewModel> GetFFIRById(int id);
 
         Task<bool> UpdateFFIRAsync(int id, FFIRViewModel model);

@@ -1,5 +1,6 @@
 ﻿using DMS_BAPL_Data.CustomModel;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.Helpers;
 using DMS_BAPL_Data.Repositories.MenuMasterRepo;
 using DMS_BAPL_Data.Repositories.RoleRepo;
 using DMS_BAPL_Data.Repositories.RoleWiseMenuRightRepo;
@@ -133,36 +134,6 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
         //        throw;
         //    }
         //}
-        /// <summary>26.11.2026 - AspNetRoles ids of the roles mapped to the logged-in BG employee.</summary>
-        private async Task<List<string>> GetBgEmployeeRoleIdsAsync()
-        {
-            try
-            {
-                var email = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-                if (string.IsNullOrWhiteSpace(email)) return new List<string>();
-                var e = email.Trim().ToLower();
-
-                var roleNames = await (
-                    from m in _dmsContext.BgEmployeeRoleMappings
-                    join emp in _dmsContext.BgEmployeeMasters on m.BgEmployeeId equals emp.Id
-                    where emp.IsActive && emp.EmailId != null && emp.EmailId.ToLower() == e
-                    select m.RoleName
-                ).Distinct().ToListAsync();
-                if (roleNames.Count == 0) return new List<string>();
-
-                var upper = roleNames.Select(r => r.Trim().ToUpperInvariant()).ToList();
-                return await _context.Roles
-                    .Where(r => r.NormalizedName != null && upper.Contains(r.NormalizedName))
-                    .Select(r => r.Id)
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "GetMenuItems: could not read BG employee roles");
-                return new List<string>();
-            }
-        }
-
         public async Task<List<MenuMasterViewModel>> GetMenuItems()
         {
             try
@@ -185,18 +156,35 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     .ToListAsync();
                 roleIds.AddRange(userRoles.Select(x => x.RoleId));
 
-                // 26.11.2026 - BG employees: the roles ticked in BG Employee Master (Sales / Service roles,
-                // stored in BgEmployeeRoleMapping) were never used for the sidebar - only the generic
-                // "Employee" login role was. Add them, so menus granted to e.g. the "Service" role in
-                // Role Menu Rights (Warranty Claim, ...) show up for that employee.
-                roleIds.AddRange(await GetBgEmployeeRoleIdsAsync());
+                // 27.11.2026 - BG employees: the roles ticked in BG Employee Master (Service / Sales ...) decide the
+                // menus. The generic "Employee" login role is dropped then - otherwise pages removed from
+                // "Service" in Role Menu Rights still showed because "Employee" had them. Employee-wise rights
+                // (BgEmployeeMenuRight) override both.
+                var bgEmp = await BgEmployeeAccess.ResolveAsync(_dmsContext,
+                    _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value);
+                if (bgEmp != null && bgEmp.MappedRoleIds.Count > 0)
+                {
+                    var employeeRoleIds = await _context.Roles
+                        .Where(r => r.NormalizedName == "EMPLOYEE")
+                        .Select(r => r.Id)
+                        .ToListAsync();
+                    roleIds = roleIds.Where(id => !employeeRoleIds.Contains(id)).ToList();
+                    roleIds.AddRange(bgEmp.MappedRoleIds);
+                }
                 roleIds = roleIds.Distinct().ToList();
 
                 var roleRights = new List<RoleWiseMenuRight>();
-                foreach (var rid in roleIds)
+                if (bgEmp?.HasOwnRights == true)
                 {
-                    var rights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(rid);
-                    roleRights.AddRange(rights);
+                    roleRights = BgEmployeeAccess.AsRoleRights(bgEmp.OwnRights!);
+                }
+                else
+                {
+                    foreach (var rid in roleIds)
+                    {
+                        var rights = await _roleWiseMenuRightRepo.GetMenuRightByRoleId(rid);
+                        roleRights.AddRange(rights);
+                    }
                 }
 
                 var allowedSubMenuIds = roleRights

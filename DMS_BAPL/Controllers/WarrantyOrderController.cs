@@ -156,6 +156,8 @@ namespace DMS_BAPL_Api.Controllers
 
                 if (result == null)
                     return NotFound($"Warranty Order with Id {id} not found.");
+                if (!CanAccessDealer(result.DealerCode))
+                    return NotFound($"Warranty Order with Id {id} not found.");
 
                 return Ok(result);
             }
@@ -173,6 +175,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+                    filter.DealerCode = string.Join(",", allowedDealerCodes);
+                }
+
                 var result = await _warrantyOrderService.SearchWarrantyOrders(filter);
                 return Ok(result);
             }
@@ -208,6 +218,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                var claimDealerCode = await _context.WarrantyJcclaims
+                    .AsNoTracking()
+                    .Where(x => x.Id == id)
+                    .Select(x => x.DealerCode)
+                    .FirstOrDefaultAsync();
+                if (!CanAccessDealer(claimDealerCode))
+                    return NotFound($"Warranty Claim with Id {id} not found.");
+
                 var result = await _warrantyOrderService.GetWarrantyJCClaimById(id);
 
                 if (result == null)
@@ -230,6 +248,10 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                var order = await _warrantyOrderService.GetWarrantyOrderById(id);
+                if (order == null || !CanAccessDealer(order.DealerCode))
+                    return NotFound($"Warranty Order with Id {id} not found.");
+
                 var pdfBytes = await _warrantyOrderService.GenerateWarrantyOrderPdf(id);
                 return File(pdfBytes, "application/pdf", $"WarrantyOrder_{id}.pdf");
             }
@@ -251,6 +273,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+                    dealerCode = string.Join(",", allowedDealerCodes);
+                }
+
                 var result = await _warrantyOrderService.SearchBatchNos(dealerCode, searchText);
                 return Ok(result);
             }
@@ -268,6 +298,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+                    dealerCode = string.Join(",", allowedDealerCodes);
+                }
+
                 var result = await _warrantyOrderService.SearchOrderNos(dealerCode, searchText);
                 return Ok(result);
             }
@@ -285,6 +323,14 @@ namespace DMS_BAPL_Api.Controllers
         {
             try
             {
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+                    dealerCode = string.Join(",", allowedDealerCodes);
+                }
+
                 var result = await _warrantyOrderService.GetDistinctOrderLocations(dealerCode);
                 return Ok(result);
             }
@@ -321,6 +367,8 @@ namespace DMS_BAPL_Api.Controllers
                 // Get saved Warranty Order + Grid Details
                 var (payload, order) =
                     await BuildErpPayload(request.OrderId);
+                if (!CanAccessDealer(order.DealerCode))
+                    return NotFound($"Warranty Order with Id {request.OrderId} not found.");
 
                 // No Part rows
                 if (payload.PoLine == null ||
@@ -656,6 +704,16 @@ namespace DMS_BAPL_Api.Controllers
                     ex,
                     "Failed to write APITracking row");
             }
+        }
+
+        private bool CanAccessDealer(string? dealerCode)
+        {
+            if (GetUserInfoFromToken.GetUserGroup(HttpContext))
+                return true;
+
+            var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+            return !string.IsNullOrWhiteSpace(dealerCode)
+                && allowedDealerCodes.Contains(dealerCode.Trim(), StringComparer.OrdinalIgnoreCase);
         }
     }
 }

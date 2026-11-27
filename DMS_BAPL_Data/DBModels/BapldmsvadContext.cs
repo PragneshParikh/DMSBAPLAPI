@@ -5039,6 +5039,8 @@ public partial class BapldmsvadContext : DbContext
 
     public virtual DbSet<Ffirheader> Ffirheaders { get; set; }
 
+    public virtual DbSet<Ffirverification> Ffirverifications { get; set; }
+
     public virtual DbSet<Form22Master> Form22Masters { get; set; }
 
     public virtual DbSet<FreeServiceClaimDetail> FreeServiceClaimDetails { get; set; }
@@ -5373,8 +5375,8 @@ public partial class BapldmsvadContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
             entity.Property(e => e.DateOfJoin).HasColumnType("datetime");
+            // 27.11.2026 - no length limit: a National / Zonal Head can map hundreds of dealers (comma list); column is VARCHAR(MAX)
             entity.Property(e => e.DealerCode)
-                .HasMaxLength(200)
                 .IsUnicode(false);
             entity.Property(e => e.EffectiveDate).HasColumnType("datetime");
             entity.Property(e => e.Email).HasMaxLength(150);
@@ -5395,14 +5397,11 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.LocationCode)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedEmployeeIds)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedEmployees).IsUnicode(false);
             entity.Property(e => e.MappedZoneIds)
-                .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.MappedZones).IsUnicode(false);
             entity.Property(e => e.Mobile)
@@ -6569,6 +6568,17 @@ public partial class BapldmsvadContext : DbContext
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FFIRHeader_JobCardHeader");
+        });
+
+        modelBuilder.Entity<Ffirverification>(entity =>
+        {
+            entity.HasKey(e => e.FfirId);
+            entity.ToTable("FFIRVerification");
+            entity.Property(e => e.FfirId).HasColumnName("FFIRId");
+            entity.Property(e => e.Status).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.ReviewedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<Form22Master>(entity =>

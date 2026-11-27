@@ -252,6 +252,7 @@ namespace DMS_BAPL_Data.JobCardScanner
         public string? JobTypeName { get; set; }
         public int? ServiceHeadId { get; set; }
         public string? ServiceHeadName { get; set; }
+        public string? ServiceTypeName { get; set; }
         public string Priority { get; set; } = "";
         public string? ServiceLocationCode { get; set; }
         public string? ServiceLocationName { get; set; }

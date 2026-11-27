@@ -185,14 +185,22 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
         //            : 0
         //    }).ToList();
         //}
-        public async Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode)
+        public async Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string? dealerCode)
         {
-            var claims = await _context.WarrantyJcclaims
+            var query = _context.WarrantyJcclaims
                 .Include(x => x.Supplier)
                 .Include(x => x.JobCardHeader)
+                .Include(x => x.RepairBillHeader)
+                .Include(x => x.Ffir)
                 .Include(x => x.WarrantyJcclaimDetails)
-                .Where(x => x.DealerCode == dealerCode
-                    && !_context.WarrantyOrderDetails.Any(vod => vod.WarrantyJcclaimId == x.Id))
+                .Where(x => !_context.WarrantyOrderDetails.Any(vod => vod.WarrantyJcclaimId == x.Id));
+
+            var dealerCodes = (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (dealerCodes.Length > 0)
+                query = query.Where(x => dealerCodes.Contains(x.DealerCode!));
+
+            var claims = await query
                 .OrderByDescending(x => x.CreatedDate)
                 .ToListAsync();
 
@@ -210,9 +218,14 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 ClaimDate = c.ClaimDate,
                 ChassisNo = c.ChassisNo,
                 SupplierName = c.Supplier != null ? c.Supplier.LedgerName : null,
-                JobCardNo = c.JobCardHeader != null
-                    ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
-                    : null,
+                JobCardNo = c.RepairBillHeader?.B2BJobCardNumber
+                    ?? (c.JobCardHeader != null
+                        ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
+                        : null),
+                RecordType = c.RepairBillHeader?.B2BJobCardId.HasValue == true
+                    || c.Ffir?.B2BJobCardId.HasValue == true
+                    ? "B2B"
+                    : "B2C",
 
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails
@@ -288,6 +301,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
             var query = _context.WarrantyJcclaims
                 .Include(x => x.Supplier)
                 .Include(x => x.JobCardHeader)
+                .Include(x => x.RepairBillHeader)
                 .Include(x => x.WarrantyJcclaimDetails)
                 .AsQueryable();
 
@@ -334,7 +348,8 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
                 SupplierName = c.Supplier != null ? c.Supplier.LedgerName : null,
                 JobCardNo = c.JobCardHeader != null
                     ? $"{c.JobCardHeader.Jobprefix}{c.JobCardHeader.JobNo}"
-                    : null,
+                    : c.RepairBillHeader?.B2BJobCardNumber,
+                RecordType = c.RepairBillHeader?.B2BJobCardId.HasValue == true ? "B2B" : "B2C",
 
                 TotalAmount = c.WarrantyJcclaimDetails != null
                     ? c.WarrantyJcclaimDetails

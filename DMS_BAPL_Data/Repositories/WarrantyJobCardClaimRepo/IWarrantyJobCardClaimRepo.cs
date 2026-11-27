@@ -15,7 +15,7 @@ namespace DMS_BAPL_Data.Repositories.WarrantyJobCardClaimRepo
 
         Task<bool> UpdateWarrantyJCClaim(WarrantyJCClaimUpdateViewModel model);
 
-        Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string dealerCode);
+        Task<List<WarrantyJCClaimListViewModel>> GetAllWarrantyJCClaims(string? dealerCode);
 
         Task<WarrantyJCClaimSearchResultViewModel> SearchWarrantyJCClaims(WarrantyJCClaimSearchViewModel filter);
 

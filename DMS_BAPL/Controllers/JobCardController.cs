@@ -584,12 +584,34 @@ namespace DMS_BAPL_Api.Controllers
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetIssueTypebasedJobDetails( [FromQuery] string? dealerCode, [FromQuery] int? jobNo,
-                            [FromQuery] string? serviceloc, [FromQuery] DateTime? fromDate,[FromQuery] DateTime? toDate)
+        public async Task<IActionResult> GetIssueTypebasedJobDetails(
+            [FromQuery] string? dealerCode,
+            [FromQuery] int? jobNo,
+            [FromQuery] string? serviceloc,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? b2bJobNo)
         {
             try
             {
-                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetail(dealerCode, jobNo, serviceloc, fromDate, toDate);
+                if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+                {
+                    var allowedDealerCodes = GetUserInfoFromToken.GetAllowedDealerCodes(HttpContext);
+                    if (allowedDealerCodes.Count == 0)
+                        return Forbid();
+
+                    var requestedDealerCodes = GetUserInfoFromToken.SplitCodes(dealerCode);
+                    if (requestedDealerCodes.Count > 0
+                        && requestedDealerCodes.Any(code => !allowedDealerCodes.Contains(code, StringComparer.OrdinalIgnoreCase)))
+                        return Forbid();
+
+                    dealerCode = requestedDealerCodes.Count == 0
+                        ? string.Join(",", allowedDealerCodes)
+                        : string.Join(",", requestedDealerCodes);
+                }
+
+                var jobCardList = await _jobCardRepo.GetIssueTypebasedJobDetail(
+                    dealerCode, jobNo, serviceloc, fromDate, toDate, b2bJobNo);
 
                 return Ok(jobCardList);
             }

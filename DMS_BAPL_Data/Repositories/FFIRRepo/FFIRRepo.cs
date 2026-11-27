@@ -273,7 +273,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                 .ToListAsync();
 
             if (b2bHeaders.Count == 0)
-                return results;
+                return await AddVerificationStatus(results);
 
             var b2bIds = b2bHeaders
                 .Where(x => x.B2BJobCardId.HasValue)
@@ -323,7 +323,411 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                 || (x.JobNo ?? "").Contains(search, StringComparison.OrdinalIgnoreCase));
 
             results.AddRange(b2bRows);
-            return results.OrderByDescending(x => x.Id).ToList();
+            return await AddVerificationStatus(results.OrderByDescending(x => x.Id).ToList());
+        }
+
+        private async Task<List<FFIRViewModelList>> AddVerificationStatus(List<FFIRViewModelList> rows)
+        {
+            if (rows.Count == 0)
+                return rows;
+
+            var ids = rows.Select(x => x.Id).Distinct().ToList();
+            var verificationByFfirId = await _context.Ffirverifications
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.FfirId))
+                .ToDictionaryAsync(x => x.FfirId);
+
+            foreach (var row in rows)
+            {
+                if (!verificationByFfirId.TryGetValue(row.Id, out var verification))
+                    continue;
+
+                row.VerificationStatus = verification.Status;
+                row.VerificationRemarks = verification.Remarks;
+            }
+
+            return rows;
+        }
+
+        public async Task<List<FFIRVerificationViewModel>> GetVerificationList(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? dealerCode,
+            string? status,
+            CancellationToken cancellationToken)
+        {
+            var rows = await (
+                from ffir in _context.Ffirheaders.AsNoTracking()
+                where ffir.B2BJobCardId == null && ffir.IsDelete != true
+                join customerRow in _context.JobCardCustomers.AsNoTracking()
+                    on ffir.JobCardCustomerId equals (int?)customerRow.Id into customerRows
+                from customer in customerRows.DefaultIfEmpty()
+                join jobRow in _context.JobCardHeaders.AsNoTracking()
+                    on ffir.JobCardHeaderId equals (int?)jobRow.Id into jobRows
+                from job in jobRows.DefaultIfEmpty()
+                join dealerRow in _context.DealerMasters.AsNoTracking()
+                    on ffir.DealerCode equals dealerRow.Dealercode into dealerRows
+                from dealer in dealerRows.DefaultIfEmpty()
+                select new FFIRVerificationViewModel
+                {
+                    Id = ffir.Id,
+                    FFIRNumber = ffir.Ffirprefix + ffir.Cirno.ToString(),
+                    FFIRDate = ffir.Cirdate ?? ffir.FailureDate,
+                    DealerCode = ffir.DealerCode,
+                    DealerName = dealer == null ? null : dealer.Compname,
+                    City = dealer == null ? null : dealer.City,
+                    ReportTitle = ffir.ReportTitle,
+                    ReportPreparedBy = ffir.ReportPreparedBy,
+                    TypeOfRoadSurface = ffir.TypeOfRoadSurface,
+                    FFIRRemarks = ffir.Ffirremarks,
+                    ChassisNo = customer == null ? ffir.FfirchassisNo : customer.ChassisNo,
+                    RegisterNo = customer == null ? null : customer.RegisterNo,
+                    CustomerMobile = customer == null ? null : customer.CustomerMobile,
+                    BatteryNo = customer == null ? null : customer.BatteryNo,
+                    Technician = job == null ? null : job.Technician,
+                    JobType = "B2C",
+                    JobCardNumber = job == null ? null : job.JobNo.ToString(),
+                    JobCardDate = job == null || !job.JobinDate.HasValue
+                        ? null
+                        : job.JobinDate.Value.ToDateTime(TimeOnly.MinValue),
+                    ServiceHead = job == null || job.ServiceheadNavigation == null ? null : job.ServiceheadNavigation.ServiceHeadName,
+                    ServiceType = job == null || job.ServicetypeNavigation == null ? null : job.ServicetypeNavigation.ServiceTypeName,
+                    SaleDate = customer == null ? null : customer.SaleDate,
+                    CustomerName = customer == null ? null : customer.CustomerName,
+                    ModelName = customer == null ? null : customer.ModelName,
+                    Purpose = ffir.PurposeOfCir,
+                    NoOfPassenger = ffir.NoOfPassenger,
+                    RepeatFailure = ffir.RepeatFailure,
+                    ChassisModified = ffir.ChassisModified,
+                    CurrentKms = job == null ? null : (double?)job.Vehiclekms,
+                    MotorNo = customer == null ? null : customer.MotorNo,
+                    ChargerNo = null
+                }).ToListAsync(cancellationToken);
+
+            var b2bHeaders = await _context.Ffirheaders
+                .AsNoTracking()
+                .Where(x => x.B2BJobCardId.HasValue && x.IsDelete != true)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Ffirprefix,
+                    x.Cirno,
+                    x.Cirdate,
+                    x.FailureDate,
+                    x.DealerCode,
+                    x.B2BJobCardId,
+                    x.PurposeOfCir,
+                    x.ReportTitle,
+                    x.ReportPreparedBy,
+                    x.TypeOfRoadSurface,
+                    x.Ffirremarks,
+                    x.FfirchassisNo,
+                    x.NoOfPassenger,
+                    x.RepeatFailure,
+                    x.ChassisModified
+                })
+                .ToListAsync(cancellationToken);
+
+            if (b2bHeaders.Count > 0)
+            {
+                var b2bIds = b2bHeaders.Select(x => x.B2BJobCardId!.Value).ToList();
+                var jobCards = await _jobCardScannerContext.JobCards
+                    .AsNoTracking()
+                    .Where(x => b2bIds.Contains(x.Id))
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.JobCardNumber,
+                        x.CreatedAt,
+                        x.OdometerAtCheckIn,
+                        x.BaplServiceHeadName,
+                        x.BaplServiceTypeName,
+                        x.BaplTechnicianName,
+                        CustomerName = x.Customer == null ? null : x.Customer.Name,
+                        CustomerMobile = x.Customer == null ? null : x.Customer.Mobile,
+                        ModelName = x.Vehicle == null ? null : x.Vehicle.Model,
+                        ChassisNo = x.Vehicle == null ? null : x.Vehicle.Vin,
+                        RegisterNo = x.Vehicle == null ? null : x.Vehicle.RegNo,
+                        BatteryNo = x.Vehicle == null ? null : x.Vehicle.BatteryNo,
+                        SaleDate = x.Vehicle == null ? null : x.Vehicle.PurchaseDate,
+                        MotorNo = x.Vehicle == null ? null : x.Vehicle.MotorNo,
+                        ChargerNo = x.Vehicle == null ? null : x.Vehicle.ChargerNo,
+                        DealerName = x.Dealer == null ? null : x.Dealer.Name,
+                        DealerCity = x.Dealer == null ? null : x.Dealer.City
+                    })
+                    .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+                rows.AddRange(b2bHeaders.Select(header =>
+                {
+                    jobCards.TryGetValue(header.B2BJobCardId!.Value, out var job);
+                    return new FFIRVerificationViewModel
+                    {
+                        Id = header.Id,
+                        FFIRNumber = header.Ffirprefix + header.Cirno,
+                        FFIRDate = header.Cirdate ?? header.FailureDate,
+                        DealerCode = header.DealerCode,
+                        DealerName = job?.DealerName,
+                        City = job?.DealerCity,
+                        ReportTitle = header.ReportTitle,
+                        ReportPreparedBy = header.ReportPreparedBy,
+                        TypeOfRoadSurface = header.TypeOfRoadSurface,
+                        FFIRRemarks = header.Ffirremarks,
+                        ChassisNo = job?.ChassisNo ?? header.FfirchassisNo,
+                        RegisterNo = job?.RegisterNo,
+                        CustomerMobile = job?.CustomerMobile,
+                        BatteryNo = job?.BatteryNo,
+                        Technician = job?.BaplTechnicianName,
+                        JobType = "B2B",
+                        JobCardNumber = job?.JobCardNumber,
+                        JobCardDate = job?.CreatedAt,
+                        ServiceHead = job?.BaplServiceHeadName,
+                        ServiceType = job?.BaplServiceTypeName,
+                        SaleDate = job?.SaleDate?.ToDateTime(TimeOnly.MinValue),
+                        CustomerName = job?.CustomerName,
+                        ModelName = job?.ModelName,
+                        Purpose = header.PurposeOfCir,
+                        NoOfPassenger = header.NoOfPassenger,
+                        RepeatFailure = header.RepeatFailure,
+                        ChassisModified = header.ChassisModified,
+                        CurrentKms = job?.OdometerAtCheckIn,
+                        MotorNo = job?.MotorNo,
+                        ChargerNo = job?.ChargerNo
+                    };
+                }));
+            }
+
+            var ffirIds = rows.Select(x => x.Id).Distinct().ToList();
+            if (ffirIds.Count == 0)
+                return rows;
+
+            var jobCardReferences = await _context.Ffirheaders
+                .AsNoTracking()
+                .Where(x => ffirIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.JobCardHeaderId, x.B2BJobCardId, x.FfirchassisNo })
+                .ToListAsync(cancellationToken);
+            var chassisByFfirId = jobCardReferences.ToDictionary(x => x.Id, x => x.FfirchassisNo);
+            var chassisNumbers = jobCardReferences
+                .Select(x => x.FfirchassisNo)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+            var dispatchDates = chassisNumbers.Count == 0
+                ? new Dictionary<string, DateTime>()
+                : await _context.InvoiceDispatches
+                    .AsNoTracking()
+                    .Where(x => x.DispatchType == "VEHICLE"
+                        && x.ChasisNo != null
+                        && chassisNumbers.Contains(x.ChasisNo))
+                    .GroupBy(x => x.ChasisNo!)
+                    .Select(x => new { ChassisNo = x.Key, Date = x.Max(dispatch => dispatch.InvoiceDate) })
+                    .ToDictionaryAsync(x => x.ChassisNo, x => x.Date, cancellationToken);
+            var dmsJobCardIds = jobCardReferences
+                .Where(x => x.JobCardHeaderId.HasValue)
+                .Select(x => x.JobCardHeaderId!.Value)
+                .Distinct()
+                .ToList();
+            var b2bJobCardIds = jobCardReferences
+                .Where(x => x.B2BJobCardId.HasValue)
+                .Select(x => x.B2BJobCardId!.Value)
+                .Distinct()
+                .ToList();
+            var dmsChargerDetails = new List<(int JobCardHeaderId, string ChargerNo)>();
+            if (dmsJobCardIds.Count > 0)
+            {
+                var chargerRows = await _context.JobCardBatteryDetails
+                    .AsNoTracking()
+                    .Where(x => dmsJobCardIds.Contains(x.JobCardHeaderId)
+                        && !string.IsNullOrWhiteSpace(x.ChargerNo))
+                    .Select(x => new { x.JobCardHeaderId, x.ChargerNo })
+                    .ToListAsync(cancellationToken);
+                dmsChargerDetails = chargerRows
+                    .Select(x => (x.JobCardHeaderId, x.ChargerNo!))
+                    .ToList();
+            }
+            var chargerNumbersByJobId = dmsChargerDetails
+                .GroupBy(x => x.JobCardHeaderId)
+                .ToDictionary(x => x.Key, x => string.Join(", ", x.Select(detail => detail.ChargerNo).Distinct()));
+            var dmsJobIdByFfirId = jobCardReferences
+                .Where(x => x.JobCardHeaderId.HasValue)
+                .ToDictionary(x => x.Id, x => x.JobCardHeaderId!.Value);
+            var complaintsByFfirId = new Dictionary<int, List<string>>();
+            var customerVoicesByFfirId = new Dictionary<int, List<string>>();
+
+            if (dmsJobCardIds.Count > 0)
+            {
+                var dmsComplaints = await _context.JobCardComplaints
+                    .AsNoTracking()
+                    .Where(x => dmsJobCardIds.Contains(x.JobCardHeaderId))
+                    .Select(x => new { x.JobCardHeaderId, x.Complaint, x.CustomerVoice })
+                    .ToListAsync(cancellationToken);
+                var ffirIdsByDmsJob = jobCardReferences
+                    .Where(x => x.JobCardHeaderId.HasValue)
+                    .GroupBy(x => x.JobCardHeaderId!.Value)
+                    .ToDictionary(x => x.Key, x => x.Select(reference => reference.Id).ToList());
+
+                foreach (var complaintGroup in dmsComplaints.GroupBy(x => x.JobCardHeaderId))
+                {
+                    if (!ffirIdsByDmsJob.TryGetValue(complaintGroup.Key, out var linkedFfirIds))
+                        continue;
+                    var complaintText = complaintGroup.Select(x => x.Complaint)
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+                    var customerVoice = complaintGroup.Select(x => x.CustomerVoice)
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+                    foreach (var linkedId in linkedFfirIds)
+                    {
+                        complaintsByFfirId[linkedId] = complaintText;
+                        customerVoicesByFfirId[linkedId] = customerVoice;
+                    }
+                }
+            }
+
+            if (b2bJobCardIds.Count > 0)
+            {
+                var b2bComplaints = await _jobCardScannerContext.JobCardComplaints
+                    .AsNoTracking()
+                    .Where(x => b2bJobCardIds.Contains(x.JobCardId))
+                    .Select(x => new { x.JobCardId, x.Description, x.IsCustomerVoice })
+                    .ToListAsync(cancellationToken);
+                var ffirIdsByB2bJob = jobCardReferences
+                    .Where(x => x.B2BJobCardId.HasValue)
+                    .GroupBy(x => x.B2BJobCardId!.Value)
+                    .ToDictionary(x => x.Key, x => x.Select(reference => reference.Id).ToList());
+
+                foreach (var complaintGroup in b2bComplaints.GroupBy(x => x.JobCardId))
+                {
+                    if (!ffirIdsByB2bJob.TryGetValue(complaintGroup.Key, out var linkedFfirIds))
+                        continue;
+                    var complaintText = complaintGroup.Select(x => x.Description)
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+                    var customerVoice = complaintGroup.Where(x => x.IsCustomerVoice)
+                        .Select(x => x.Description)
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+                    foreach (var linkedId in linkedFfirIds)
+                    {
+                        complaintsByFfirId[linkedId] = complaintText;
+                        customerVoicesByFfirId[linkedId] = customerVoice;
+                    }
+                }
+            }
+
+            var observations = await _context.FfirdetailObservations
+                .AsNoTracking()
+                .Where(x => ffirIds.Contains(x.Ffirid))
+                .Select(x => new
+                {
+                    x.Ffirid,
+                    x.ObservationFailedParts,
+                    x.RootCauseofFailure,
+                    x.CorrectiveAction,
+                    x.ResolutionComplaint,
+                    x.PresentStatusofVehicle,
+                    x.VehicleOffRoadReason
+                })
+                .ToListAsync(cancellationToken);
+            var observationsById = observations
+                .GroupBy(x => x.Ffirid)
+                .ToDictionary(x => x.Key, x => x.First());
+
+            var parts = await _context.MainPartAffectedFfirs
+                .AsNoTracking()
+                .Where(x => ffirIds.Contains(x.Ffirid))
+                .Select(x => new { x.Ffirid, x.PartAffectedName, x.PartAffectedDescription })
+                .ToListAsync(cancellationToken);
+            var partsById = parts
+                .GroupBy(x => x.Ffirid)
+                .ToDictionary(x => x.Key, x => string.Join(", ", x
+                    .Select(part => part.PartAffectedName ?? part.PartAffectedDescription)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct()));
+
+            var decisions = await _context.Ffirverifications
+                .AsNoTracking()
+                .Where(x => ffirIds.Contains(x.FfirId))
+                .ToDictionaryAsync(x => x.FfirId, cancellationToken);
+
+            foreach (var row in rows)
+            {
+                if (chassisByFfirId.TryGetValue(row.Id, out var chassisNo)
+                    && !string.IsNullOrWhiteSpace(chassisNo)
+                    && dispatchDates.TryGetValue(chassisNo, out var dispatchDate))
+                    row.DispatchDate = dispatchDate;
+
+                if (dmsJobIdByFfirId.TryGetValue(row.Id, out var dmsJobId)
+                    && chargerNumbersByJobId.TryGetValue(dmsJobId, out var chargerNumber))
+                    row.ChargerNo = chargerNumber;
+
+                if (complaintsByFfirId.TryGetValue(row.Id, out var complaints))
+                    row.Complaint = string.Join("; ", complaints);
+
+                if (customerVoicesByFfirId.TryGetValue(row.Id, out var customerVoices))
+                    row.CustomerVoice = string.Join("; ", customerVoices);
+
+                if (observationsById.TryGetValue(row.Id, out var observation))
+                {
+                    row.DetailedObservation = observation.ObservationFailedParts;
+                    row.RootCause = observation.RootCauseofFailure;
+                    row.CorrectiveAction = observation.CorrectiveAction;
+                    row.QuickSuggestion = observation.ResolutionComplaint;
+                    row.PresentVehicleStatus = observation.PresentStatusofVehicle;
+                    row.VehicleOffRoadReason = observation.VehicleOffRoadReason;
+                }
+
+                if (partsById.TryGetValue(row.Id, out var mainParts))
+                    row.MainPartAffected = mainParts;
+
+                if (decisions.TryGetValue(row.Id, out var decision))
+                {
+                    row.Status = decision.Status;
+                    row.Remarks = decision.Remarks;
+                }
+            }
+
+            if (fromDate.HasValue)
+                rows = rows.Where(x => x.FFIRDate >= fromDate.Value.Date).ToList();
+            if (toDate.HasValue)
+                rows = rows.Where(x => x.FFIRDate < toDate.Value.Date.AddDays(1)).ToList();
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+                rows = rows.Where(x => string.Equals(x.DealerCode, dealerCode, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
+                rows = rows.Where(x => x.Status.Equals(status, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return rows.OrderByDescending(x => x.FFIRDate).ThenByDescending(x => x.Id).ToList();
+        }
+
+        public async Task<bool> SetVerificationStatus(int ffirId, string status, string? remarks, string reviewedBy, CancellationToken cancellationToken)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable, cancellationToken);
+            if (!await _context.Ffirheaders.AnyAsync(x => x.Id == ffirId && x.IsDelete != true, cancellationToken))
+                return false;
+
+            var verification = await _context.Ffirverifications
+                .FirstOrDefaultAsync(x => x.FfirId == ffirId, cancellationToken);
+            if (verification is not null)
+            {
+                if (!verification.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                verification.Status = status;
+                verification.Remarks = remarks;
+                verification.ReviewedBy = reviewedBy;
+                verification.ReviewedDate = DateTime.UtcNow;
+            }
+            else
+            {
+                _context.Ffirverifications.Add(new Ffirverification
+                {
+                    FfirId = ffirId,
+                    Status = status,
+                    Remarks = remarks,
+                    ReviewedBy = reviewedBy,
+                    ReviewedDate = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return true;
         }
 
         public async Task<FFIRViewModel> GetFFIRById(int id)

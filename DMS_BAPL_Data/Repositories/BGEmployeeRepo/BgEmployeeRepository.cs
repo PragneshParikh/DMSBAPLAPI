@@ -167,6 +167,8 @@ namespace DMS_BAPL_Data.Repositories.BgEmployeeMasterRepo
                 if (existing == null)
                     return 0;
 
+                // 27.11.2026 - its role mappings go with it (BgEmployeeMenuRight rows cascade in the DB)
+                _context.BgEmployeeRoleMappings.RemoveRange(_context.BgEmployeeRoleMappings.Where(m => m.BgEmployeeId == id));
                 _context.BgEmployeeMasters.Remove(existing);
                 return await _context.SaveChangesAsync();
             }

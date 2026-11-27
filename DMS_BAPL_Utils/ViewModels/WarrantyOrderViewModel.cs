@@ -55,6 +55,7 @@ namespace DMS_BAPL_Utils.ViewModels
 
     public class WarrantyOrderSearchViewModel
     {
+        public string? DealerCode { get; set; }
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
         public string? BatchNo { get; set; }
@@ -106,6 +107,7 @@ namespace DMS_BAPL_Utils.ViewModels
         public int? ClaimNo { get; set; }
         public DateTime? ClaimDate { get; set; }
         public string? ChassisNo { get; set; }
+        public string? RecordType { get; set; }
         public string? JobCardNo { get; set; }
         public DateTime? JobCardDate { get; set; }
         public string? InvoiceNo { get; set; }

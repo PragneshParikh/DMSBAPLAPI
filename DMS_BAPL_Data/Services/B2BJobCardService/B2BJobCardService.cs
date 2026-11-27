@@ -524,6 +524,7 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
                 JobTypeName = j.BaplJobType,
                 ServiceHeadId = j.BaplServiceHeadId,
                 ServiceHeadName = j.BaplServiceHeadName,
+                ServiceTypeName = j.BaplServiceTypeName,
                 Priority = j.Priority.ToString(),
                 ServiceLocationCode = j.BaplServiceLocationCode,
                 ServiceLocationName = j.BaplServiceLocation,

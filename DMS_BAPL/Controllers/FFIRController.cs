@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Security.Claims;
 
 namespace DMS_BAPL_Api.Controllers
 {
@@ -173,6 +174,128 @@ namespace DMS_BAPL_Api.Controllers
 
         }
 
+        [HttpGet("GetVerificationList")]
+        public async Task<IActionResult> GetVerificationList(
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? dealerCode,
+            [FromQuery] string? status,
+            CancellationToken ct)
+        {
+            var isVerificationUser = IsFFIRVerificationUser();
+            var isDealer = IsDealer();
+            if (!isVerificationUser && !isDealer)
+                return Forbid();
+
+            if (isDealer && !isVerificationUser)
+            {
+                var ownDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext)?.Trim();
+                if (string.IsNullOrWhiteSpace(ownDealerCode))
+                    return Forbid();
+
+                dealerCode = ownDealerCode;
+            }
+
+            if (fromDate.HasValue && toDate.HasValue && fromDate.Value.Date > toDate.Value.Date)
+                return BadRequest(new { message = "Date From cannot be after Date To." });
+
+            var rows = await _ffirRepo.GetVerificationList(fromDate, toDate, dealerCode, status, ct);
+            return Ok(rows);
+        }
+
+        [HttpPut("SetVerificationStatus/{id:int}")]
+        public async Task<IActionResult> SetVerificationStatus(
+            int id,
+            [FromBody] FFIRVerificationDecisionRequest? request,
+            CancellationToken ct)
+        {
+            if (!IsFFIRVerificationUser())
+                return Forbid();
+
+            var requestedStatus = request?.Status?.Trim();
+            var status = string.Equals(requestedStatus, "Approved", StringComparison.OrdinalIgnoreCase)
+                ? "Approved"
+                : string.Equals(requestedStatus, "Rejected", StringComparison.OrdinalIgnoreCase)
+                    ? "Rejected"
+                    : null;
+            if (status is null)
+                return BadRequest(new { message = "Status must be Approved or Rejected." });
+
+            var remarks = status == "Rejected" ? request?.Remarks?.Trim() : null;
+            if (status == "Rejected" && string.IsNullOrWhiteSpace(remarks))
+                return BadRequest(new { message = "Remarks are required when rejecting an FFIR." });
+            if (remarks?.Length > 1000)
+                return BadRequest(new { message = "Remarks cannot exceed 1000 characters." });
+
+            var updated = await _ffirRepo.SetVerificationStatus(
+                id,
+                status,
+                remarks,
+                GetUserInfoFromToken.GetUserIdFromToken(HttpContext),
+                ct);
+            if (!updated)
+            {
+                var existing = await _ffirRepo.GetFFIRById(id);
+                return existing == null
+                    ? NotFound(new { message = "FFIR not found." })
+                    : Conflict(new { message = "This FFIR has already been reviewed." });
+            }
+
+            return Ok(new { id, status, remarks });
+        }
+
+        [HttpGet("GetVerificationAttachments/{id:int}")]
+        public async Task<IActionResult> GetVerificationAttachments(int id, CancellationToken ct)
+        {
+            if (!IsFFIRVerificationUser())
+                return Forbid();
+
+            var ffir = await _ffirRepo.GetFFIRById(id);
+            if (ffir == null)
+                return NotFound(new { message = "FFIR not found." });
+
+            try
+            {
+                await using var connection = CreateConnection();
+                await connection.OpenAsync(ct);
+                await using var command = new SqlCommand(@"
+                    SELECT Id, FileName, FileUrl, ContentType, FileSize, MediaType
+                    FROM dbo.FFIRAttachment
+                    WHERE FFIRId = @ffirId AND IsDeleted = 0
+                    ORDER BY Id", connection);
+                command.Parameters.Add("@ffirId", SqlDbType.Int).Value = id;
+
+                var attachments = new List<object>();
+                await using var reader = await command.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    attachments.Add(new
+                    {
+                        id = reader.GetInt32(0),
+                        fileName = reader.GetString(1),
+                        url = reader.GetString(2),
+                        contentType = reader.GetString(3),
+                        fileSize = reader.GetInt64(4),
+                        mediaType = reader.GetString(5)
+                    });
+                }
+
+                return Ok(attachments);
+            }
+            catch (SqlException ex) when (ex.Number == 208)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Table dbo.FFIRAttachment does not exist. Run 20261126_AddFFIRAttachments.sql on the DMS database."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get verification attachments for FFIR {FFIRId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to load FFIR attachments." });
+            }
+        }
+
         [HttpGet("GetFFIRById/{id}")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -196,6 +319,16 @@ namespace DMS_BAPL_Api.Controllers
                 }
             }
             return Ok(result);
+        }
+
+        [HttpGet("GetFFIRPrintDetails/{id:int}")]
+        public async Task<IActionResult> GetFFIRPrintDetails(int id, CancellationToken ct)
+        {
+            var (ffir, accessError) = await GetAccessibleFFIRAsync(id, ct);
+            if (accessError != null)
+                return accessError;
+
+            return Ok(ffir);
         }
 
         [HttpGet("GetFFIRAttachments/{id:int}")]
@@ -253,6 +386,9 @@ namespace DMS_BAPL_Api.Controllers
             IFormFile file,
             CancellationToken ct)
         {
+            if (IsBGEmployee())
+                return Forbid();
+
             var (ffir, accessError) = await GetAccessibleFFIRAsync(id, ct);
             if (accessError != null) return accessError;
 
@@ -358,7 +494,7 @@ namespace DMS_BAPL_Api.Controllers
                     return (null, NotFound(new { message = "FFIR not found." }));
                 }
             }
-            else if (!GetUserInfoFromToken.GetUserGroup(HttpContext))
+            else if (!GetUserInfoFromToken.GetUserGroup(HttpContext) && !IsBGEmployee())
             {
                 var ownDealerCode = GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext)?.Trim();
                 if (string.IsNullOrWhiteSpace(ownDealerCode)
@@ -368,6 +504,26 @@ namespace DMS_BAPL_Api.Controllers
 
             return (ffir, null);
         }
+
+        private bool IsFFIRVerificationUser()
+        {
+            if (HttpContext.User.Identity?.IsAuthenticated != true)
+                return false;
+
+            return HttpContext.User.FindAll(ClaimTypes.Role)
+                .Any(claim => NormalizeRole(claim.Value) is "admin" or "superadmin" or "bgemployee");
+        }
+
+        private bool IsBGEmployee() =>
+            HttpContext.User.FindAll(ClaimTypes.Role)
+                .Any(claim => NormalizeRole(claim.Value) == "bgemployee");
+
+        private bool IsDealer() =>
+            HttpContext.User.FindAll(ClaimTypes.Role)
+                .Any(claim => NormalizeRole(claim.Value) == "dealer");
+
+        private static string NormalizeRole(string role) =>
+            new(role.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
         private SqlConnection CreateConnection() =>
             new(_configuration.GetConnectionString("DefaultConnection"));
