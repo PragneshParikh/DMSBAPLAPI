@@ -494,11 +494,11 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .ToDictionary(g => g.Key, g => g.ToList());
 
                 var repairBillRows = await _context.RepairBillHeaders
-                    .Where(r => headerIds.Contains(r.JobId) && r.IsDelete != true)   // added IsDelete filter
+                    .Where(r => r.JobId.HasValue && headerIds.Contains(r.JobId.Value) && r.IsDelete != true)
                     .ToListAsync();
 
                 var repairBillLookup = repairBillRows
-                    .GroupBy(r => r.JobId)
+                    .GroupBy(r => r.JobId!.Value)
                     .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
 
                 var ffirRows = await _context.Ffirheaders
@@ -723,10 +723,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             var repairBillRows = await _context.RepairBillHeaders
-                .Where(r => headerIds.Contains(r.JobId))
+                .Where(r => r.JobId.HasValue && headerIds.Contains(r.JobId.Value))
                 .ToListAsync();
             var repairBillLookup = repairBillRows
-                .GroupBy(r => r.JobId)
+                .GroupBy(r => r.JobId!.Value)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
 
             var ffirRows = await _context.Ffirheaders
@@ -3239,7 +3239,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     on mt.ItemId equals im.Id into imJoin
                 from im in imJoin.DefaultIfEmpty()
                 join jh in _context.JobCardHeaders.AsNoTracking()
-                    on mt.JobId equals jh.Id
+                    on mt.JobId equals (int?)jh.Id
                 join jc in _context.JobCardCustomers.AsNoTracking()
                     on jh.Id equals jc.JobCardHeaderId into jcJoin
                 from jc in jcJoin.DefaultIfEmpty()
@@ -3357,10 +3357,10 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
             var repairBillRows = await _context.RepairBillHeaders
                           .AsNoTracking()
-                          .Where(r => headerIds.Contains(r.JobId) && r.IsDelete != true)   // added IsDelete filter
+                          .Where(r => r.JobId.HasValue && headerIds.Contains(r.JobId.Value) && r.IsDelete != true)
                           .ToListAsync();
             var repairBillLookup = repairBillRows
-                .GroupBy(r => r.JobId)
+                .GroupBy(r => r.JobId!.Value)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedDate).First());
 
             var userIds = rows

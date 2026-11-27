@@ -329,6 +329,7 @@ namespace DMS_BAPL_Data.JobCardScanner
         public string? Priority { get; set; }
         public DateTime? ExpectedDeliveryAt { get; set; }
         public string? AssignedTechnicianName { get; set; }
+        public string? CustomerState { get; set; }
     }
 
     public class B2BSaveResultDto

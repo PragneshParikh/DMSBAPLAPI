@@ -1,5 +1,7 @@
 ﻿using DMS_BAPL_Data.CustomModel;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Data.Repositories.RepairBillRepo;
+using DMS_BAPL_Data.Services.B2BJobCardService;
 using DMS_BAPL_Data.Services.PrefixService;
 using DMS_BAPL_Utils.Constants;
 using DMS_BAPL_Utils.Helpers;
@@ -17,12 +19,114 @@ namespace DMS_BAPL_Api.Controllers
         private readonly IRepairBillRepo _repairBillRepo;
         private readonly ILogger<RepairBillController> _logger;
         private readonly IPrefixService _prefixService;
+        private readonly IB2BJobCardService _b2bJobCardService;
 
-        public RepairBillController(IRepairBillRepo repairBillRepo, ILogger<RepairBillController> logger, IPrefixService prefixService)
+        public RepairBillController(IRepairBillRepo repairBillRepo, ILogger<RepairBillController> logger,
+            IPrefixService prefixService, IB2BJobCardService b2bJobCardService)
         {
             _repairBillRepo = repairBillRepo;
             _logger = logger;
             _prefixService = prefixService;
+            _b2bJobCardService = b2bJobCardService;
+        }
+
+        private B2BCaller GetB2BCaller()
+        {
+            var isAdmin = GetUserInfoFromToken.GetUserGroup(HttpContext);
+            return new B2BCaller
+            {
+                UserId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext) ?? "",
+                IsAdmin = isAdmin,
+                DealerCode = isAdmin ? null : GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext)?.Trim()
+            };
+        }
+
+        private async Task<(int? StatusCode, string? Message, B2BJobCardDetailDto? JobCard)> ValidateB2BSourceAsync(
+            RepairBillHeaderVM header)
+        {
+            if (!header.B2BJobCardId.HasValue)
+                return (null, null, null);
+
+            if (header.JobId.HasValue)
+                return (StatusCodes.Status400BadRequest, "A repair bill cannot reference both a B2B and DMS job card.", null);
+
+            try
+            {
+                var jobCard = await _b2bJobCardService.GetAsync(
+                    GetB2BCaller(), header.B2BJobCardId.Value, HttpContext.RequestAborted);
+
+                if (string.IsNullOrWhiteSpace(jobCard.DealerCode))
+                    return (StatusCodes.Status400BadRequest, "The B2B job card has no mapped DMS dealer code.", null);
+
+                if (!string.IsNullOrWhiteSpace(header.DealerCode)
+                    && !string.Equals(header.DealerCode.Trim(), jobCard.DealerCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return (StatusCodes.Status403Forbidden, "The selected B2B job card belongs to a different dealer.", null);
+
+                header.DealerCode = jobCard.DealerCode;
+                header.B2BJobCardNumber = jobCard.JobCardNumber;
+                return (null, null, jobCard);
+            }
+            catch (B2BNotFoundException)
+            {
+                return (StatusCodes.Status404NotFound, "B2B job card not found.", null);
+            }
+            catch (B2BValidationException ex)
+            {
+                return (StatusCodes.Status400BadRequest, ex.Message, null);
+            }
+        }
+
+        private async Task<(int? StatusCode, string? Message, B2BJobCardDetailDto? JobCard)> ValidateB2BSourceAsync(
+            RepairBillUpdateHeaderVM header)
+        {
+            var insertHeader = new RepairBillHeaderVM
+            {
+                JobId = header.JobId,
+                B2BJobCardId = header.B2BJobCardId,
+                B2BJobCardNumber = header.B2BJobCardNumber,
+                DealerCode = header.DealerCode
+            };
+            var validation = await ValidateB2BSourceAsync(insertHeader);
+            header.DealerCode = insertHeader.DealerCode;
+            header.B2BJobCardNumber = insertHeader.B2BJobCardNumber;
+            return validation;
+        }
+
+        private static void PopulateB2BRepairBillHeader(RepairBillUpdateHeaderVM header, B2BJobCardDetailDto jobCard)
+        {
+            header.B2BJobCardNumber = jobCard.JobCardNumber;
+            header.JobTypeName = jobCard.JobTypeName;
+            header.PartyName = jobCard.Customer?.Name;
+            header.MobileNumber = jobCard.Customer?.Mobile;
+            header.PartyState = jobCard.Customer?.State;
+            header.JobInDate = DateOnly.FromDateTime(jobCard.CreatedAt);
+            header.RegisterNo = jobCard.Vehicle?.RegNo;
+            header.ModelName = jobCard.Vehicle?.Model;
+            header.VehicleKms = (int)jobCard.OdometerAtCheckIn;
+            header.ChassisNo = jobCard.Vehicle?.ChassisNo;
+            header.Technician = jobCard.TechnicianName;
+        }
+
+        private static void PopulateB2BPerforma(RepairBillPerformaVM performa, B2BJobCardDetailDto jobCard)
+        {
+            performa.B2BJobCardNumber = jobCard.JobCardNumber;
+            performa.JobTypeName = jobCard.JobTypeName ?? "";
+            performa.JobSourceName = jobCard.JobSourceName ?? "";
+            performa.CustomerName = jobCard.Customer?.Name ?? "";
+            performa.CustomerPhoneNo = jobCard.Customer?.Mobile ?? "";
+            performa.CustomerAddress = jobCard.Customer?.Address ?? "";
+            performa.CustomerState = jobCard.Customer?.State ?? "";
+            performa.CustomerCity = jobCard.Customer?.City ?? "";
+            performa.ChassisNo = jobCard.Vehicle?.ChassisNo ?? "";
+            performa.RegisterationNo = jobCard.Vehicle?.RegNo ?? "";
+            performa.MotorNo = jobCard.Vehicle?.MotorNo ?? "";
+            performa.ModelName = jobCard.Vehicle?.Model ?? "";
+            performa.Color = jobCard.Vehicle?.Color ?? "";
+            performa.JobNo = int.TryParse(jobCard.JobCardNumber, out var jobNo) ? jobNo : null;
+            performa.JobInDate = DateOnly.FromDateTime(jobCard.CreatedAt);
+            performa.ODOReading = (int)jobCard.OdometerAtCheckIn;
+            performa.VehicleSaleDate = jobCard.Vehicle?.PurchaseDate?.ToDateTime(TimeOnly.MinValue);
+            performa.VehicleExpiryDate = jobCard.Vehicle?.InsuranceExpiry?.ToDateTime(TimeOnly.MinValue);
         }
 
         [HttpPost("GetAllRepairBillList")]
@@ -77,6 +181,13 @@ namespace DMS_BAPL_Api.Controllers
                     model.RepairBillheader.DealerCode = tokenDealerCode;
                 }
 
+                var sourceValidation = await ValidateB2BSourceAsync(model.RepairBillheader);
+                if (sourceValidation.StatusCode.HasValue)
+                    return StatusCode(sourceValidation.StatusCode.Value, new { Success = false, Message = sourceValidation.Message });
+                if (!model.RepairBillheader.B2BJobCardId.HasValue
+                    && (!model.RepairBillheader.JobId.HasValue || model.RepairBillheader.JobId.Value <= 0))
+                    return BadRequest(new { Success = false, Message = "A valid B2C or B2B job card is required." });
+
                 var result = await _repairBillRepo.InsertRepairBill(model, userId);
                 if (result > 0)
                 {
@@ -121,6 +232,19 @@ namespace DMS_BAPL_Api.Controllers
                 {
                     return NotFound($"Repair bill with ID {id} not found.");
                 }
+
+                if (result.RepairBillheader.B2BJobCardId is Guid b2bJobCardId)
+                {
+                    var source = await ValidateB2BSourceAsync(new RepairBillHeaderVM
+                    {
+                        B2BJobCardId = b2bJobCardId,
+                        DealerCode = result.RepairBillheader.DealerCode
+                    });
+                    if (source.StatusCode.HasValue)
+                        return StatusCode(source.StatusCode.Value, new { Message = source.Message });
+                    if (source.JobCard is not null)
+                        PopulateB2BRepairBillHeader(result.RepairBillheader, source.JobCard);
+                }
                 return Ok(result);
             }
             catch (Exception ex)
@@ -142,6 +266,10 @@ namespace DMS_BAPL_Api.Controllers
                 string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
+
+                var sourceValidation = await ValidateB2BSourceAsync(model.RepairBillheader);
+                if (sourceValidation.StatusCode.HasValue)
+                    return StatusCode(sourceValidation.StatusCode.Value, new { Success = false, Message = sourceValidation.Message });
 
                 var result = await _repairBillRepo.UpdateRepairBill(model, userId);
                 if (result)
@@ -174,6 +302,20 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
                 var result = await _repairBillRepo.generateRepairBillPerformaDetails(DealerCode, RepairBillId);
+                if (result?.B2BJobCardId is Guid b2bJobCardId)
+                {
+                    var source = await ValidateB2BSourceAsync(new RepairBillHeaderVM
+                    {
+                        B2BJobCardId = b2bJobCardId,
+                        DealerCode = GetUserInfoFromToken.GetUserGroup(HttpContext)
+                            ? null
+                            : GetUserInfoFromToken.GetDealerCodeFromToken(HttpContext)
+                    });
+                    if (source.StatusCode.HasValue)
+                        return StatusCode(source.StatusCode.Value, new { Message = source.Message });
+                    if (source.JobCard is not null)
+                        PopulateB2BPerforma(result, source.JobCard);
+                }
                 return Ok(result);
             }
             catch (Exception ex)

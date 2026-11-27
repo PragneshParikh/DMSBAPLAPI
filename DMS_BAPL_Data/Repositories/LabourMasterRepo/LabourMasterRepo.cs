@@ -652,17 +652,22 @@ namespace DMS_BAPL_Data.Repositories.LabourMasterRepo
         //    return labourRateDropDowns.Concat(labourRateDropDowns).ToList();
         //}
 
-        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(string oemmodelName, int customerLedgerId, string dealerCode)
+        public async Task<List<LabourRateDropDown>> GetLabourRateDropDowns(
+            string oemmodelName, int? customerLedgerId, string dealerCode, string? customerState = null)
         {
-            var CustomerStateId = await _context.LedgerMasters
-                .Where(cs => cs.Id == customerLedgerId)
-                .Select(cs => cs.State)
-                .FirstOrDefaultAsync();
+            var custState = customerState;
+            if (customerLedgerId.HasValue && customerLedgerId.Value > 0)
+            {
+                var customerStateId = await _context.LedgerMasters
+                    .Where(cs => cs.Id == customerLedgerId.Value)
+                    .Select(cs => cs.State)
+                    .FirstOrDefaultAsync();
 
-            var custState = await _context.States
-                .Where(st => st.StateId == CustomerStateId)
-                .Select(st => st.StateName)
-                .FirstOrDefaultAsync();
+                custState = await _context.States
+                    .Where(st => st.StateId == customerStateId)
+                    .Select(st => st.StateName)
+                    .FirstOrDefaultAsync();
+            }
 
             var DealerState = await _context.DealerMasters
                 .Where(ds => ds.Dealercode == dealerCode)

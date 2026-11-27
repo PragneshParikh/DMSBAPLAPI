@@ -1,4 +1,5 @@
 ﻿using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Data.JobCardScanner;
 using DMS_BAPL_Utils.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,10 +13,12 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
     public class FFIRRepo : IFFIRRepo
     {
         private readonly BapldmsvadContext _context;
+        private readonly JobCardScannerDbContext _jobCardScannerContext;
 
-        public FFIRRepo(BapldmsvadContext context)
+        public FFIRRepo(BapldmsvadContext context, JobCardScannerDbContext jobCardScannerContext)
         {
             _context = context;
+            _jobCardScannerContext = jobCardScannerContext;
         }
 
         public async Task<List<PartDropdownviewmodel>> GetPartDropdownlist()
@@ -113,6 +116,7 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                     Cirdate = model.CIRDate,
                     JobCardCustomerId = model.JobCardCustomerId,
                     JobCardHeaderId = model.JobCardHeaderId,
+                    B2BJobCardId = model.B2BJobCardId,
                     PurposeOfCir = model.PurposeOfCIR,
                     FfirchassisNo = model.FFIRChassisNo,
                     FailureDate = model.FailureDate,
@@ -203,23 +207,18 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
 
                     CIRDate = ffir.Cirdate,
 
-                    JobNo = jh.JobNo,
+                    JobNo = jh.JobNo.ToString(),
 
                     jobDate = jh.JobinDate,
+
+                    JobType = "B2C",
 
                     IsDelete = ffir.IsDelete,
 
                     CustomerName = jc.CustomerName,
+                    B2BJobCardId = ffir.B2BJobCardId,
 
-                    ModelName = _context.MainPartAffectedFfirs
-                        .Where(x => x.Ffirid == ffir.Id)
-                        .Join(
-                            _context.ItemMasters,
-                            mf => mf.PartAffectedName,
-                            item => item.Itemcode,
-                            (mf, item) => item.Itemdesc
-                        )
-                        .FirstOrDefault(),
+                    ModelName = jc.ModelName,
 
                     PurposeOfCIR = ffir.PurposeOfCir,
 
@@ -241,14 +240,90 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
 
                     || x.CIRNo.ToString().Contains(search)
 
-                    || x.JobNo.ToString().Contains(search)
+                    || (x.JobNo ?? "").Contains(search)
                 );
             }
 
-            return await query
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+                query = query.Where(x => x.DealerCode == dealerCode);
+
+            var results = await query
                 .Where(x => x.IsDelete != true)
                 .OrderByDescending(x => x.Id)
                 .ToListAsync();
+
+            var b2bHeadersQuery = _context.Ffirheaders
+                .AsNoTracking()
+                .Where(x => x.B2BJobCardId.HasValue && x.IsDelete != true);
+            if (!string.IsNullOrWhiteSpace(dealerCode))
+                b2bHeadersQuery = b2bHeadersQuery.Where(x => x.DealerCode == dealerCode);
+
+            var b2bHeaders = await b2bHeadersQuery
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Ffirprefix,
+                    x.DealerCode,
+                    x.Cirno,
+                    x.Cirdate,
+                    x.B2BJobCardId,
+                    x.FfirchassisNo,
+                    x.PurposeOfCir
+                })
+                .ToListAsync();
+
+            if (b2bHeaders.Count == 0)
+                return results;
+
+            var b2bIds = b2bHeaders
+                .Where(x => x.B2BJobCardId.HasValue)
+                .Select(x => x.B2BJobCardId!.Value)
+                .ToList();
+            var b2bJobCards = await _jobCardScannerContext.JobCards
+                .AsNoTracking()
+                .Where(x => b2bIds.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.JobCardNumber,
+                    x.CreatedAt,
+                    CustomerName = x.Customer != null ? x.Customer.Name : null,
+                    ModelName = x.Vehicle != null ? x.Vehicle.Model : null,
+                    CurrentKms = (int?)x.OdometerAtCheckIn
+                })
+                .ToListAsync();
+            var b2bJobCardsById = b2bJobCards.ToDictionary(x => x.Id);
+
+            var b2bRows = b2bHeaders.Select(header =>
+            {
+                var b2bId = header.B2BJobCardId!.Value;
+                b2bJobCardsById.TryGetValue(b2bId, out var jobCard);
+                return new FFIRViewModelList
+                {
+                    Id = header.Id,
+                    FFIRPrefix = header.Ffirprefix,
+                    DealerCode = header.DealerCode,
+                    CIRNo = header.Cirno,
+                    CIRDate = header.Cirdate,
+                    JobNo = jobCard?.JobCardNumber ?? b2bId.ToString(),
+                    jobDate = jobCard == null ? null : DateOnly.FromDateTime(jobCard.CreatedAt),
+                    JobType = "B2B",
+                    CustomerName = jobCard?.CustomerName ?? "",
+                    ModelName = jobCard?.ModelName ?? header.FfirchassisNo,
+                    PurposeOfCIR = header.PurposeOfCir,
+                    CurrentKms = jobCard?.CurrentKms,
+                    B2BJobCardId = b2bId,
+                    IsDelete = false
+                };
+            }).Where(x => string.IsNullOrWhiteSpace(search)
+                || (x.CustomerName ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (x.ModelName ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (x.PurposeOfCIR ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                || x.CIRNo.ToString().Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (x.JobNo ?? "").Contains(search, StringComparison.OrdinalIgnoreCase));
+
+            results.AddRange(b2bRows);
+            return results.OrderByDescending(x => x.Id).ToList();
         }
 
         public async Task<FFIRViewModel> GetFFIRById(int id)
@@ -261,8 +336,10 @@ namespace DMS_BAPL_Data.Repositories.FFIRRepo
                         Id = x.Id,
                         CIRNo = x.Cirno,
                         FFIRPrefix = x.Ffirprefix,
+                        DealerCode = x.DealerCode,
                         JobCardHeaderId = x.JobCardHeaderId,
                         JobCardCustomerId = x.JobCardCustomerId,
+                        B2BJobCardId = x.B2BJobCardId,
                         CIRDate = x.Cirdate,
                         PurposeOfCIR = x.PurposeOfCir,
                         FFIRChassisNo = x.FfirchassisNo,

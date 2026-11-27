@@ -35,8 +35,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
             try
             {
                 var existingBill = await _context.RepairBillHeaders
-               .Where(x => x.JobId == model.RepairBillheader.JobId
-                        && x.IsDelete != true)
+               .Where(x => x.IsDelete != true
+                        && (model.RepairBillheader.B2BJobCardId.HasValue
+                            ? x.B2BJobCardId == model.RepairBillheader.B2BJobCardId
+                            : x.JobId == model.RepairBillheader.JobId))
                .Select(x => new { x.Id, x.BillNo, x.RepairbillStatus })
                .FirstOrDefaultAsync();
 
@@ -55,6 +57,8 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     CashAccount = model.RepairBillheader.CashAccount,
                     CustomerLedgerId = model.RepairBillheader.CustomerLedgerId == 0 ? null : model.RepairBillheader.CustomerLedgerId,
                     JobId = model.RepairBillheader.JobId,
+                    B2BJobCardId = model.RepairBillheader.B2BJobCardId,
+                    B2BJobCardNumber = model.RepairBillheader.B2BJobCardNumber,
                     InsuranceId = model.RepairBillheader.InsuranceId == 0 ? null : model.RepairBillheader.InsuranceId,
                     InsDecription = model.RepairBillheader.insDescription,
                     SurveyorName = model.RepairBillheader.SurveyorName,
@@ -140,9 +144,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 // (BillNo is a plain non-nullable int on this model, not int? - checked as > 0.)
                 if (string.Equals(RepairBillheader.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
                     && RepairBillheader.BillNo > 0
-                    && RepairBillheader.JobId > 0)
+                    && RepairBillheader.JobId.HasValue
+                    && RepairBillheader.JobId.Value > 0)
                 {
-                    var job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == RepairBillheader.JobId);
+                    var job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == RepairBillheader.JobId.Value);
                     if (job != null)
                     {
                         job.InvoiceNo = $"{RepairBillheader.Prefix}{RepairBillheader.BillNo}";
@@ -151,9 +156,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
 
                 await _context.SaveChangesAsync();
 
-                if (string.Equals(RepairBillheader.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase) && RepairBillheader.JobId > 0)
+                if (string.Equals(RepairBillheader.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
+                    && RepairBillheader.JobId.HasValue && RepairBillheader.JobId.Value > 0)
                 {
-                    await AutoCreateFreeServiceClaimAsync(RepairBillheader.JobId, RepairBillheader.DealerCode, RepairBillheader.LocationCode, userId);
+                    await AutoCreateFreeServiceClaimAsync(RepairBillheader.JobId.Value, RepairBillheader.DealerCode, RepairBillheader.LocationCode, userId);
                 }
 
                 await transaction.CommitAsync();
@@ -176,7 +182,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                     from rb in _context.RepairBillHeaders
 
                     join jh in _context.JobCardHeaders
-                        on rb.JobId equals jh.Id into jhJoin
+                        on rb.JobId equals (int?)jh.Id into jhJoin
                     from jh in jhJoin.DefaultIfEmpty()
 
                     join jc in _context.JobCardCustomers
@@ -261,6 +267,8 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                         ChassisNumber = x.Customer != null ? x.Customer.ChassisNo : null,
                         RegistrationNo = x.Customer != null ? x.Customer.RegisterNo : null,
                         JobCardNo = x.JobCard != null ? x.JobCard.JobNo : null,
+                        B2BJobCardId = x.RepairBill.B2BJobCardId,
+                        B2BJobCardNumber = x.RepairBill.B2BJobCardNumber,
                         TotalNetAmount = x.RepairBill.TotalNetAmount,
                         RepairBillStatus = x.RepairBill.RepairbillStatus,
                         CreatedBy = x.RepairBill.DealerCode,
@@ -288,7 +296,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                from rbh in _context.RepairBillHeaders
 
                join jh in _context.JobCardHeaders
-               on rbh.JobId equals jh.Id into jobJoin
+               on rbh.JobId equals (int?)jh.Id into jobJoin
                from jh in jobJoin.DefaultIfEmpty()
 
                join jc in _context.JobCardCustomers
@@ -341,6 +349,8 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                            : null,
 
                        JobId = rbh.JobId,
+                       B2BJobCardId = rbh.B2BJobCardId,
+                       B2BJobCardNumber = rbh.B2BJobCardNumber,
                        JobInDate = jh.JobinDate,
                        JobNo = jh.JobNo,
                        RegisterNo = jc.RegisterNo,
@@ -484,7 +494,9 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                                      // header.RepairbillStatus is set.
                 .FirstOrDefaultAsync(x => x.Id == model.RepairBillheader.Id);
 
-                if (header == null)
+                if (header == null
+                    || header.JobId != model.RepairBillheader.JobId
+                    || header.B2BJobCardId != model.RepairBillheader.B2BJobCardId)
                     return false;
 
                 // Header Update
@@ -520,13 +532,14 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 // actually assigned instead. (BillNo is a plain non-nullable int here, not int? -
                 // checked as > 0, same as the InsertRepairBill block above.)
                 if (string.Equals(header.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
-                    && header.BillNo > 0)
+                    && header.BillNo > 0
+                    && header.JobId.HasValue)
                 {
                     if (header.Job == null)
                     {
                         // Include(x => x.Job) above should normally cover this, but fall back to an
                         // explicit lookup in case JobId ever points at a header not already tracked.
-                        header.Job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == header.JobId);
+                        header.Job = await _context.JobCardHeaders.FirstOrDefaultAsync(j => j.Id == header.JobId.Value);
                     }
                     if (header.Job != null)
                     {
@@ -641,9 +654,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 }
                 await _context.SaveChangesAsync();
 
-                if (string.Equals(header.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase) && header.JobId > 0)
+                if (string.Equals(header.RepairbillStatus, "Billed", StringComparison.OrdinalIgnoreCase)
+                    && header.JobId.HasValue && header.JobId.Value > 0)
                 {
-                    await AutoCreateFreeServiceClaimAsync(header.JobId, header.DealerCode, header.LocationCode, userId);
+                    await AutoCreateFreeServiceClaimAsync(header.JobId.Value, header.DealerCode, header.LocationCode, userId);
                 }
                 return true;
 
@@ -780,10 +794,10 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 var result = await _context.SaveChangesAsync();
 
 
-                if (repairbillHeader.JobId > 0)
+                if (repairbillHeader.JobId.HasValue && repairbillHeader.JobId.Value > 0)
                 {
                     var jobCardHeader = await _context.JobCardHeaders
-                        .FirstOrDefaultAsync(x => x.Id == repairbillHeader.JobId);
+                        .FirstOrDefaultAsync(x => x.Id == repairbillHeader.JobId.Value);
 
                     if (jobCardHeader != null)
                     {
@@ -821,7 +835,7 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 from dl in dlJoin.DefaultIfEmpty()
 
                 join jh in _context.JobCardHeaders
-                    on rbh.JobId equals jh.Id into jhJoin
+                    on rbh.JobId equals (int?)jh.Id into jhJoin
                 from jh in jhJoin.DefaultIfEmpty()
 
                 join jobType in _context.JobTypes
@@ -873,6 +887,8 @@ namespace DMS_BAPL_Data.Repositories.RepairBillRepo
                 select new RepairBillPerformaVM
                 {
                     Id = rbh.Id,
+                    B2BJobCardId = rbh.B2BJobCardId,
+                    B2BJobCardNumber = rbh.B2BJobCardNumber,
                     BillType = rbh.BillType,
                     Remarks = rbh.Remarks,
                     DealerName = dl != null ? dl.Compname : "",

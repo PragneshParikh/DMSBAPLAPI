@@ -6556,14 +6556,17 @@ public partial class BapldmsvadContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.B2BJobCardId).HasColumnType("uniqueidentifier");
 
             entity.HasOne(d => d.JobCardCustomer).WithMany(p => p.Ffirheaders)
                 .HasForeignKey(d => d.JobCardCustomerId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FFIRHeader_JobCardCustomer");
 
             entity.HasOne(d => d.JobCardHeader).WithMany(p => p.Ffirheaders)
                 .HasForeignKey(d => d.JobCardHeaderId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FFIRHeader_JobCardHeader");
         });
@@ -7826,6 +7829,8 @@ public partial class BapldmsvadContext : DbContext
         {
             entity.ToTable("MaterialTransfer");
 
+            entity.Property(e => e.JobId).IsRequired(false);
+            entity.Property(e => e.B2BJobCardId).HasColumnType("uniqueidentifier");
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -8589,6 +8594,9 @@ public partial class BapldmsvadContext : DbContext
 
             entity.ToTable("RepairBillHeader");
 
+            entity.Property(e => e.JobId).IsRequired(false);
+            entity.Property(e => e.B2BJobCardId).HasColumnType("uniqueidentifier");
+            entity.Property(e => e.B2BJobCardNumber).HasMaxLength(100);
             entity.Property(e => e.AmountReceived)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");

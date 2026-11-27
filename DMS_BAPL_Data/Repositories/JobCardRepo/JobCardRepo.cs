@@ -2560,25 +2560,29 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
                 throw new Exception("Error while fetching service history", ex);
             }
         }
-        public async Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id)
+        public async Task<CIRJobcardViewModel?> GetCIRJobCardDetails(int id)
         {
             var ObjCIRJobcardViewModel = await (from jh in _context.JobCardHeaders
-                                                join jc in _context.JobCardCustomers on jh.Id equals jc.JobCardHeaderId
-                                                join loc in _context.LocationMasters on jh.Serviceloc equals loc.Loccode
+                                                join customerRow in _context.JobCardCustomers
+                                                    on jh.Id equals customerRow.JobCardHeaderId into customerRows
+                                                from jc in customerRows.DefaultIfEmpty()
+                                                join locationRow in _context.LocationMasters
+                                                    on jh.Serviceloc equals locationRow.Loccode into locationRows
+                                                from loc in locationRows.DefaultIfEmpty()
                                                 where jh.Id == id
                                                 select new CIRJobcardViewModel
                                                 {
                                                     JobNo = jh.JobNo,
                                                     ChassisNo = jh.Chassisno,
-                                                    CustomerName = jc.CustomerName,
-                                                    JobCardCustomerId = jc.Id,
-                                                    ModelName = jc.ModelName,
+                                                    CustomerName = jc != null ? jc.CustomerName : null,
+                                                    JobCardCustomerId = jc != null ? jc.Id : null,
+                                                    ModelName = jc != null ? jc.ModelName : null,
                                                     Vehiclekms = jh.Vehiclekms,
-                                                    RegisterNo = jc.RegisterNo,
+                                                    RegisterNo = jc != null ? jc.RegisterNo : null,
                                                     Observation = jh.Observation,
                                                     Serviceloc = jh.Serviceloc,
-                                                    LocationName = loc.Locname,
-                                                    VehicleSaleDate = jc.SaleDate,
+                                                    LocationName = loc != null ? loc.Locname : null,
+                                                    VehicleSaleDate = jc != null ? jc.SaleDate : null,
                                                     Complaints = _context.JobCardComplaints
                                                        .Where(c => c.JobCardHeaderId == jh.Id)
                                                        .Select(c => new ComplaintVM

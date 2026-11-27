@@ -12,7 +12,9 @@ public partial class MaterialTransfer
     public string? ItemCode { get; set; }   
     public string? ItemDesc { get; set; }
 
-    public int JobId { get; set; }
+    public int? JobId { get; set; }
+
+    public Guid? B2BJobCardId { get; set; }
 
     public string? MaterialPrefix { get; set; }
 

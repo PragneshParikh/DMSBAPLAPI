@@ -15,9 +15,11 @@ public partial class Ffirheader
 
     public DateTime? Cirdate { get; set; }
 
-    public int JobCardCustomerId { get; set; }
+    public int? JobCardCustomerId { get; set; }
 
-    public int JobCardHeaderId { get; set; }
+    public int? JobCardHeaderId { get; set; }
+
+    public Guid? B2BJobCardId { get; set; }
 
     public string? PurposeOfCir { get; set; }
 
@@ -53,9 +55,9 @@ public partial class Ffirheader
 
     public virtual ICollection<FfirdetailObservation> FfirdetailObservations { get; set; } = new List<FfirdetailObservation>();
 
-    public virtual JobCardCustomer JobCardCustomer { get; set; } = null!;
+    public virtual JobCardCustomer? JobCardCustomer { get; set; }
 
-    public virtual JobCardHeader JobCardHeader { get; set; } = null!;
+    public virtual JobCardHeader? JobCardHeader { get; set; }
 
     public virtual ICollection<MainPartAffectedFfir> MainPartAffectedFfirs { get; set; } = new List<MainPartAffectedFfir>();
 

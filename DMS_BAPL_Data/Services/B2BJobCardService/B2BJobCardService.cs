@@ -700,6 +700,16 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
                     if (existingVehicleId.HasValue)
                     {
                         vehicle = await _db.Vehicles.FirstAsync(v => v.Id == existingVehicleId.Value, ct);
+                        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == vehicle.CustomerId, ct);
+                        if (customer == null) throw new B2BValidationException("Customer details are missing for this vehicle.");
+                        if (string.IsNullOrWhiteSpace(customer.State))
+                        {
+                            var customerState = Clean(req.CustomerState, 100);
+                            if (string.IsNullOrWhiteSpace(customerState))
+                                throw new B2BValidationException("Customer State is required for tax calculation.");
+                            customer.State = customerState;
+                        }
+
                         // fill only empty details from the form (never overwrite JobCardScanner data)
                         vehicle.RegNo ??= Clean(req.RegNo, 30)?.ToUpperInvariant();
                         vehicle.BatteryNo ??= Clean(req.BatteryNo, 50);
@@ -711,6 +721,10 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
                     }
                     else
                     {
+                        var customerState = Clean(req.CustomerState, 100);
+                        if (string.IsNullOrWhiteSpace(customerState))
+                            throw new B2BValidationException("Customer State is required for tax calculation.");
+
                         var customer = new JcsCustomer
                         {
                             Name = Clean(req.CustomerName, 200)!,
@@ -718,7 +732,7 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
                             Email = Clean(req.CustomerEmail, 200),
                             Address = Clean(req.CustomerAddress, 300),
                             City = Clean(req.CustomerCity, 100),
-                            State = Clean(req.CustomerState, 100),
+                            State = customerState,
                             DealerId = dealer.Id
                         };
                         _db.Customers.Add(customer);
@@ -829,6 +843,12 @@ namespace DMS_BAPL_Data.Services.B2BJobCardService
             if (req.ExpectedDeliveryAt.HasValue)
                 jc.ExpectedDeliveryAt = req.ExpectedDeliveryAt.Value.Kind == DateTimeKind.Local ? req.ExpectedDeliveryAt.Value.ToUniversalTime() : req.ExpectedDeliveryAt.Value;
             if (req.AssignedTechnicianName != null) jc.AssignedTechnicianName = Clean(req.AssignedTechnicianName, 120);
+            if (jc.Customer != null && string.IsNullOrWhiteSpace(jc.Customer.State))
+            {
+                var customerState = Clean(req.CustomerState, 100);
+                if (!string.IsNullOrWhiteSpace(customerState))
+                    jc.Customer.State = customerState;
+            }
             jc.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
             return new B2BSaveResultDto { Id = jc.Id, JobCardNumber = jc.JobCardNumber, Message = $"B2B Job Card {jc.JobCardNumber} updated." };

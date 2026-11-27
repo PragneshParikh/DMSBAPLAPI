@@ -30,7 +30,7 @@ namespace DMS_BAPL_Data.Repositories.JobCardRepo
         //Task<JobCardHeader> GetJobCardById(int Id);
         Task<JsonResult> GetJobCardById(int Id);
         Task<List<ServiceHistoryViewModel>> GetServiceHistoryViewModellist(string chassisNo, int? jobCardId);
-        Task<CIRJobcardViewModel> GetCIRJobCardDetails(int id);
+        Task<CIRJobcardViewModel?> GetCIRJobCardDetails(int id);
         Task<int> GetNextJobNumber(string dealerCode);
         Task<List<MaterialedJobCardListVM>> GetMaterialedJobCardList(int? jobId, string? dealerCode);
         Task<bool> UpdateMaterialTransferStatus(int jobId, bool status);

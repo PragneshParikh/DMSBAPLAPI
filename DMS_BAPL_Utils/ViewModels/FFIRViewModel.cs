@@ -18,9 +18,11 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateTime? CIRDate { get; set; }
 
-        public int JobCardCustomerId { get; set; }
+        public int? JobCardCustomerId { get; set; }
 
-        public int JobCardHeaderId { get; set; }
+        public int? JobCardHeaderId { get; set; }
+
+        public Guid? B2BJobCardId { get; set; }
 
         public string PurposeOfCIR { get; set; }
 
@@ -123,14 +125,18 @@ namespace DMS_BAPL_Utils.ViewModels
 
         public DateTime? CIRDate { get; set; }
 
-        public int? JobNo { get; set; }
+        public string? JobNo { get; set; }
         public DateOnly? jobDate { get; set; }
+
+        public string JobType { get; set; }
 
         public int? CurrentKms { get; set; }
 
-        public int JobCardCustomerId { get; set; }
+        public int? JobCardCustomerId { get; set; }
 
-        public int JobCardHeaderId { get; set; }
+        public int? JobCardHeaderId { get; set; }
+
+        public Guid? B2BJobCardId { get; set; }
 
         public string PurposeOfCIR { get; set; }
 
