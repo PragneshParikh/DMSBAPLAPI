@@ -76,7 +76,9 @@ namespace DMS_BAPL_Api.Controllers
         public async Task<ActionResult> GetWarrantyClaimByDealerCode(
             [FromQuery] string? dealerCode,
             [FromQuery] int pageSize = 10,
-            [FromQuery] int pageIndex = 1)
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
         {
             try
             {
@@ -85,8 +87,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var claims = await _freeServiceClaimService.GetWarrantyClaimByDealerCode(dealerCode, pageSize, pageIndex);
-
+                var claims = await _freeServiceClaimService.GetWarrantyClaimByDealerCode(dealerCode, pageSize, pageIndex, fromDate, toDate);
                 return Ok(claims);
             }
             catch (Exception)
@@ -96,7 +97,11 @@ namespace DMS_BAPL_Api.Controllers
         }
 
         [HttpGet("GetPendingApprovalClaims")]
-        public async Task<ActionResult> GetPendingApprovalClaims([FromQuery] string? dealerCode)
+        public async Task<ActionResult> GetPendingApprovalClaims(
+            [FromQuery] string? dealerCode,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] bool includeProcessed = false)
         {
             try
             {
@@ -105,7 +110,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var claims = await _freeServiceClaimService.GetPendingApprovalClaims(dealerCode);
+                var claims = await _freeServiceClaimService.GetPendingApprovalClaims(dealerCode, fromDate, toDate, includeProcessed);
 
                 return Ok(claims);
             }
@@ -215,6 +220,18 @@ namespace DMS_BAPL_Api.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpPut("GenerateInvoice/{id}")]
+        public async Task<ActionResult> GenerateInvoice(int id)
+        {
+            try
+            {
+                string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+                var invoiceNo = await _freeServiceClaimService.GenerateInvoice(id, userId);
+                return Ok(new { invoiceNo });
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
 

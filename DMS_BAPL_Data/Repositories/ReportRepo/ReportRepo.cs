@@ -4403,6 +4403,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
            on pa.Id equals pd.AdjustmentId
            where pa.AdjustmentDate >= fromDate
            && pa.AdjustmentDate <= toDate
+           && (pa.Remarks == null || pa.Remarks != "OPENING BALANCE")
            group pd by new
            {
                VendorCode = pa.DealerCode,
@@ -4420,6 +4421,24 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                  .FirstOrDefault()
            };
 
+            var openingCounts =
+            from pa in _context.PartStockAdjustments
+            join pd in _context.PartStockAdjustmentDetails on pa.Id equals pd.AdjustmentId
+            where pa.Remarks == "OPENING BALANCE"
+            group pd by new
+            {
+                VendorCode = pa.DealerCode,
+                DealerLocation = pa.LocationCode,
+                ItemCode = pd.PartNo
+            } into g
+            select new
+            {
+                g.Key.VendorCode,
+                g.Key.DealerLocation,
+                g.Key.ItemCode,
+                OpeningQty = (int?)g.Sum(x => x.UpQuantityStg)
+            };
+
             try
             {
                 var data = await (
@@ -4434,6 +4453,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             .Where(x => x.EffectiveDate <= DateTime.Now
                                      && x.AtaxCode != null)
                             .OrderByDescending(x => x.EffectiveDate)
+                             .ThenByDescending(x => x.StateFlag == "O")
                             .Take(1)
                             .DefaultIfEmpty()
 
@@ -4555,6 +4575,22 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         into adjustmentGroup
                         from sa in adjustmentGroup.DefaultIfEmpty()
 
+                        join ob in openingCounts
+                        on new
+                        {
+                            VendorCode = pi.VendorCode ?? "",
+                            DealerLocation = pi.DealerLocation ?? "",
+                            ItemCode = pi.ItemCode ?? ""
+                        }
+                        equals new
+                        {
+                            VendorCode = ob.VendorCode,
+                            DealerLocation = ob.DealerLocation,
+                            ItemCode = ob.ItemCode
+                        }
+                        into openingGroup
+                        from ob in openingGroup.DefaultIfEmpty()
+
                             //where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
                             //      && pi.FinalStockFlag == "Y"
                             //      && im.Grpidno == groupId
@@ -4562,7 +4598,8 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                         && (string.IsNullOrEmpty(locationCode) || pi.DealerLocation == locationCode)
                         && (string.IsNullOrEmpty(locationDealerCode) || pi.VendorCode == locationDealerCode)
                         && pi.FinalStockFlag == "Y"
-                        && im.Grpidno == groupId
+                        //&& im.Grpidno == groupId
+                        && (groupId == 0 || im.Grpidno == groupId)
                         && pi.BatchClosingQty > 0
                         select new
                         {
@@ -4577,6 +4614,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             im.Grpidno,
 
                             GroupType = im.Grpidno == 1 ? "Parts" : "Vehicle",
+                            OpeningBalance = ob.OpeningQty ?? 0,
 
                             pi.VendorCode,
                             pi.DealerLocation,
@@ -4642,6 +4680,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     x.DealerName,
                     x.Locname,
                     x.GroupType,
+                    x.OpeningBalance,
                     x.SaleCount,
                     x.PurchaseCount,
                     x.D2DOutgoingQty,
