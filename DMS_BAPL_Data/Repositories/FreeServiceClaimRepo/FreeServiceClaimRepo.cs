@@ -437,6 +437,8 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
                     ClaimPrefix = x.ClaimPrefix,
                     ClaimNo = x.ClaimNo,
                     ClaimDate = x.ClaimDate,
+                    InvoiceNo = x.InvoiceNo,         
+                    InvoiceDate = x.InvoiceDate,
                     DealerCode = x.DealerCode,
                     LocationCode = x.LocationCode,
                     CreatedBy = x.CreatedBy,
@@ -449,6 +451,42 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
 
             if (header == null)
                 return null;
+
+            var dealerMaster = await _context.DealerMasters
+            .AsNoTracking()
+            .Where(d => d.Dealercode == header.DealerCode)
+            .Select(d => new
+            {
+                Name = d.Compname,
+                Address1 = d.Adress1,
+                Address2 = d.Adress2,
+                City = d.City,
+                State = d.State,
+                Pin = d.Pin,
+                Pan = d.Pan,
+                Phone = !string.IsNullOrEmpty(d.PhoneOff) ? d.PhoneOff : d.Mobile,
+                Gstin = d.CompgstinNo
+            })
+            .FirstOrDefaultAsync();
+
+            var dealerLedger = await _context.LedgerMasters
+                .AsNoTracking()
+                .Where(l => l.LedgerCode == header.DealerCode)
+                .Select(l => new { l.Gstno, l.Pan })
+                .FirstOrDefaultAsync();
+
+            var dealer = dealerMaster == null ? null : new
+            {
+                dealerMaster.Name,
+                dealerMaster.Address1,
+                dealerMaster.Address2,
+                dealerMaster.City,
+                dealerMaster.State,
+                dealerMaster.Pin,
+                dealerMaster.Phone,
+                Pan = !string.IsNullOrWhiteSpace(dealerMaster.Pan) ? dealerMaster.Pan : dealerLedger?.Pan,
+                Gstin = !string.IsNullOrWhiteSpace(dealerMaster.Gstin) ? dealerMaster.Gstin : dealerLedger?.Gstno
+            };
 
             var itemDetails = await (
                 from fscd in _context.FreeServiceClaimDetails
@@ -589,6 +627,9 @@ namespace DMS_BAPL_Data.Repositories.FreeServiceClaimRepo
             result.CreatedDate = header.CreatedDate;
             result.UpdatedBy = header.UpdatedBy;
             result.UpdatedDate = header.UpdatedDate;
+            result.InvoiceNo = header.InvoiceNo;       
+            result.InvoiceDate = header.InvoiceDate;   
+            result.Dealer = dealer;
             result.ItemDetails = itemDetails;
 
             return result;

@@ -42,28 +42,6 @@ namespace DMS_BAPL_Api.Controllers
             return true;
         }
 
-        private IQueryable<DmsJobReport> BuildQuery(HistoricalJobReportFilter filter)
-        {
-            var query = _context.DmsJobReports.AsNoTracking().AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                query = query.Where(x => x.DealerCode == filter.DealerCode);
-
-            if (filter.FromDate.HasValue)
-            {
-                var from = DateOnly.FromDateTime(filter.FromDate.Value.Date);
-                query = query.Where(x => x.JobDate >= from);
-            }
-
-            if (filter.ToDate.HasValue)
-            {
-                var to = DateOnly.FromDateTime(filter.ToDate.Value.Date);
-                query = query.Where(x => x.JobDate <= to);
-            }
-
-            return query;
-        }
-
         [HttpGet("list")]
         [ProducesResponseType(typeof(PagedResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -201,6 +179,40 @@ namespace DMS_BAPL_Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.GetBaseException().Message });
             }
         }
+
+        private IQueryable<DmsJobReport> BuildQuery(HistoricalJobReportFilter filter)
+        {
+            var query = _context.DmsJobReports.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(filter.DealerCode))
+                query = query.Where(x => x.DealerCode == filter.DealerCode);
+
+            if (filter.FromDate.HasValue)
+            {
+                var from = DateOnly.FromDateTime(filter.FromDate.Value.Date);
+                query = query.Where(x => x.JobDate >= from);
+            }
+
+            if (filter.ToDate.HasValue)
+            {
+                var to = DateOnly.FromDateTime(filter.ToDate.Value.Date);
+                query = query.Where(x => x.JobDate <= to);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.SearchText))
+            {
+                var term = filter.SearchText.Trim().ToLower();
+                query = query.Where(x =>
+                    (x.ChassisNo != null && x.ChassisNo.ToLower().Contains(term)) ||
+                    (x.CustomerName != null && x.CustomerName.ToLower().Contains(term)) ||
+                    (x.MobileNo != null && x.MobileNo.ToLower().Contains(term)) ||
+                    (x.RegNo != null && x.RegNo.ToLower().Contains(term)) ||
+                    (x.JobNo != null && x.JobNo.ToLower().Contains(term))
+                );
+            }
+
+            return query;
+        }
     }
 
     public class HistoricalJobReportFilter
@@ -208,6 +220,7 @@ namespace DMS_BAPL_Api.Controllers
         public string? DealerCode { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
+        public string? SearchText { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }
