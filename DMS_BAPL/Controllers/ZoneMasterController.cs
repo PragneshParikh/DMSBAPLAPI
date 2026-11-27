@@ -31,6 +31,14 @@ namespace DMS_BAPL_Api.Controllers
             catch (Exception ex) { return StatusCode(500, new { message = ex.Message }); }
         }
 
+        // GET api/ZoneMaster/GetZoneDealerCounts  (26.11.2026 - dealers per zone, and dealers in no zone)
+        [HttpGet("GetZoneDealerCounts")]
+        public async Task<IActionResult> GetZoneDealerCounts()
+        {
+            try { return Ok(await _service.GetZoneDealerCountsAsync()); }
+            catch (Exception ex) { return StatusCode(500, new { message = ex.Message }); }
+        }
+
         // GET api/ZoneMaster/GetById/{id}
         [HttpGet("GetById/{id}")]
         public async Task<IActionResult> GetById(int id)

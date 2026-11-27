@@ -163,7 +163,10 @@ namespace DMS_BAPL_Api.Controllers
             [FromQuery] string? searchTerm,
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? dealerCode = null)
+            [FromQuery] string? dealerCode = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? city = null,
+            [FromQuery] string? state = null)
         {
             try
             {
@@ -172,7 +175,7 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
-                var delaers = await _dealerMasterService.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode);
+                var delaers = await _dealerMasterService.GetDealerByPaged(searchTerm, pageIndex, pageSize, dealerCode, status, city, state);
 
                 return Ok(delaers);
             }
@@ -303,6 +306,23 @@ namespace DMS_BAPL_Api.Controllers
         /// </summary>
         /// <returns>List of dealers for dropdown</returns>
 
+        /// <summary>
+        /// 26.11.2026 - Dealer Master filters: every dealer with code, name, city, state and active flag
+        /// (Angular builds the Dealer / City / State dropdowns from this). dealerCode = only that dealer.
+        /// </summary>
+        [HttpGet("filter-options")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetDealerFilterOptions([FromQuery] string? dealerCode = null)
+        {
+            string userId = GetUserInfoFromToken.GetUserIdFromToken(HttpContext);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User not authorized");
+
+            var result = await _dealerMasterService.GetDealerFilterOptions(dealerCode);
+            return Ok(new { success = true, data = result });
+        }
+
         [HttpGet("getDealerDropdown")]
         [ProducesResponseType(typeof(IEnumerable<RoleWiseMenuRight>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -316,6 +336,8 @@ namespace DMS_BAPL_Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authorized");
 
+                // 26.11.2026 - dealers / BG employees only get their own (mapped) dealers; admins get what they ask for
+                dealerCode = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 var result = await _dealerMasterService.GetDealerDropdown(dealerCode);
 
                 return Ok(new

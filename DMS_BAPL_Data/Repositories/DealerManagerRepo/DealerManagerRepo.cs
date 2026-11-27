@@ -26,6 +26,11 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                 query = query.Where(x => x.Dealercode == filter.DealerCode);
 
+            // 26.11.2026 status filter
+            var status = (filter.Status ?? "").Trim().ToLower();
+            if (status == "active") query = query.Where(x => x.IsActive);
+            else if (status == "inactive") query = query.Where(x => !x.IsActive);
+
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var s = filter.Search.Trim();
@@ -453,7 +458,7 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
             if (dealer == null || string.IsNullOrWhiteSpace(dealer.Dealercode))
                 return new List<DealerLocationViewModel>();
 
-            return await _context.LocationMasters
+            var list = await _context.LocationMasters
                 .AsNoTracking()
                 .Where(l => l.Dealercode == dealer.Dealercode)
                 .Select(l => new DealerLocationViewModel
@@ -461,9 +466,19 @@ namespace DMS_BAPL_Data.Repositories.DealerManagerRepo
                     Id = l.Id,
                     LocCode = l.Loccode,
                     LocName = l.Locname,
-                    IsActive = l.Active == "Y"
+                    IsActive = l.Active == "Y",
+                    LocAreaIdNo = l.Locareaidno
                 })
                 .ToListAsync();
+
+            // 26.11.2026 - work location type (same ids as Location Master / ERP LocArea_Idno)
+            foreach (var l in list)
+                l.LocArea = l.LocAreaIdNo switch { 1 => "Showroom", 2 => "Workshop", 3 => "Yard", _ => "" };
+
+            return list
+                .OrderBy(l => l.LocAreaIdNo == 0 ? 9 : l.LocAreaIdNo)
+                .ThenBy(l => l.LocCode)
+                .ToList();
         }
 
         public async Task<(bool Success, string? Error)> UpdateLocationsStatusAsync(int dealerId, List<int> locationIds, bool isActive, string updatedBy)

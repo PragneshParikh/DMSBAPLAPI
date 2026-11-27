@@ -24,7 +24,9 @@ namespace DMS_BAPL_Data.Services.DealerMasterService
         Task<DealerMaster> GetDealerByCode(string dealerCode);
         Task<DealerMaster> EditTradeCertificate(string dealerCode, string tradeCertificate);
         Task<object> UpdateByDealerCode(string userId, DealerMasterViewModel dealerMasterViewModel);
-        Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode);
+        Task<PagedResponse<DealerMaster>> GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode, string? status = null, string? city = null, string? state = null);
+        // 26.11.2026 Dealer Master filters: dealer / city / state / status lists
+        Task<List<DealerFilterOptionViewModel>> GetDealerFilterOptions(string? dealerCode);
         Task<object> SyncAllDealerLoginsAsync();
         Task<ApplicationUser> EnsureDealerUserFromEmailAsync(string email);
 

@@ -9,6 +9,7 @@ namespace DMS_BAPL_Data.Services.ZoneMasterService
     {
         Task<IEnumerable<ZoneViewModel>> GetAllZonesAsync();
         Task<IEnumerable<ZoneDealerViewModel>> GetDealersByZoneAsync(string zone);
+        Task<ZoneDealerCountResponse> GetZoneDealerCountsAsync();
         Task<ZoneMasterViewModel> GetZoneByIdAsync(int id);
         Task<ZoneMasterViewModel> CreateZoneAsync(ZoneMasterViewModel model);
         Task<bool> UpdateZoneAsync(ZoneMasterViewModel model);

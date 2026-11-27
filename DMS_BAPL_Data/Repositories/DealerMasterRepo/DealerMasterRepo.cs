@@ -272,10 +272,16 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 .Distinct()
                 .ToListAsync();
 
+            // 26.11.2026 - dealerCode may hold several codes (BG employee mapped to many dealers)
+            var wanted = (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(c => !string.Equals(c, "ALL", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
             var result = await _context.DealerMasters
                 .Where(x =>
                     dealerCodes.Contains(x.Dealercode) &&
-                    (string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode))
+                    (wanted.Count == 0 || wanted.Contains(x.Dealercode)))
                 .Select(x => new DealerDropdownViewModel
                 {
                     Id = x.Id,
@@ -387,7 +393,7 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
 
             return existingDealer;
         }
-        async Task<PagedResponse<DealerMaster>> IDealerMasterRepo.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode)
+        async Task<PagedResponse<DealerMaster>> IDealerMasterRepo.GetDealerByPaged(string? searchTerm, int pageIndex, int pageSize, string? dealerCode, string? status, string? city, string? state)
         {
             var query = _context.DealerMasters.AsNoTracking();
 
@@ -406,6 +412,23 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
             if (!string.IsNullOrWhiteSpace(dealerCode))
             {
                 query = query.Where(c => c.Dealercode == dealerCode);
+            }
+
+            // 26.11.2026 Dealer Master filters (status: active / inactive, blank = all)
+            var st = (status ?? "").Trim().ToLower();
+            if (st == "active") query = query.Where(c => c.IsActive);
+            else if (st == "inactive") query = query.Where(c => !c.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(city))
+            {
+                var ct = city.Trim();
+                query = query.Where(c => c.City.Trim() == ct);
+            }
+
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                var sv = state.Trim();
+                query = query.Where(c => c.State.Trim() == sv);
             }
 
             int totalRecords = await query.CountAsync();
@@ -460,6 +483,24 @@ namespace DMS_BAPL_Data.Repositories.DealerMasterRepository
                 Data = viewModelItems,
                 TotalRecords = totalRecords
             };
+        }
+
+        /// <summary>26.11.2026 - one row per dealer (code, name, city, state, active) for the Dealer Master filter dropdowns.</summary>
+        public async Task<List<DealerFilterOptionViewModel>> GetDealerFilterOptions(string? dealerCode)
+        {
+            return await _context.DealerMasters
+                .AsNoTracking()
+                .Where(x => string.IsNullOrEmpty(dealerCode) || x.Dealercode == dealerCode)
+                .Select(x => new DealerFilterOptionViewModel
+                {
+                    DealerCode = x.Dealercode,
+                    DealerName = x.Compname,
+                    City = x.City,
+                    State = x.State,
+                    IsActive = x.IsActive
+                })
+                .OrderBy(x => x.DealerName)
+                .ToListAsync();
         }
 
         public async Task<DealerMaster> GetDealerByEmail(string email)

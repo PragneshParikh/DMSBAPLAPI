@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using DMS_BAPL_Data.DBModels;
+using DMS_BAPL_Utils.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +74,9 @@ namespace DMSBAPLAPI.Controllers
                 if (string.IsNullOrWhiteSpace(userDealer))
                     throw new UnauthorizedAccessException("DealerCode claim missing.");
 
-                query = query.Where(x => x.DealerCode == userDealer);
+                // 26.11.2026 - a BG employee has several dealers: the chosen one (if it is theirs) or all of them
+                var scoped = GetUserInfoFromToken.SplitCodes(GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode));
+                query = query.Where(x => scoped.Contains(x.DealerCode));
             }
             else if (!string.IsNullOrWhiteSpace(dealerCode) &&
                      !string.Equals(dealerCode.Trim(), "ALL", StringComparison.OrdinalIgnoreCase))
@@ -126,9 +129,10 @@ namespace DMSBAPLAPI.Controllers
 
                 if (!IsSuperAdmin())
                 {
-                    targetDealer = GetUserDealerCode();
-                    if (string.IsNullOrWhiteSpace(targetDealer))
+                    if (string.IsNullOrWhiteSpace(GetUserDealerCode()))
                         return Unauthorized(new { message = "DealerCode claim missing." });
+                    // 26.11.2026 - chosen dealer if it is one of theirs, otherwise all of theirs
+                    targetDealer = GetUserInfoFromToken.ScopeDealerCode(HttpContext, dealerCode);
                 }
                 else if (!string.IsNullOrWhiteSpace(dealerCode) &&
                          !string.Equals(dealerCode.Trim(), "ALL", StringComparison.OrdinalIgnoreCase))
@@ -142,7 +146,8 @@ namespace DMSBAPLAPI.Controllers
 
                 if (!string.IsNullOrWhiteSpace(targetDealer))
                 {
-                    locQuery = locQuery.Where(l => l.Dealercode == targetDealer);
+                    var targets = GetUserInfoFromToken.SplitCodes(targetDealer);
+                    locQuery = locQuery.Where(l => targets.Contains(l.Dealercode));
                 }
 
                 var locations = await locQuery
@@ -871,9 +876,10 @@ namespace DMSBAPLAPI.Controllers
 
                 if (!IsSuperAdmin())
                 {
-                    targetDealer = GetUserDealerCode();
-                    if (string.IsNullOrWhiteSpace(targetDealer))
+                    if (string.IsNullOrWhiteSpace(GetUserDealerCode()))
                         return Unauthorized(new { message = "DealerCode claim missing." });
+                    // 26.11.2026 - chosen dealer if it is one of theirs, otherwise all of theirs
+                    targetDealer = GetUserInfoFromToken.ScopeDealerCode(HttpContext, request?.DealerCode);
                 }
                 else if (!string.IsNullOrWhiteSpace(request?.DealerCode) &&
                          !string.Equals(request.DealerCode.Trim(), "ALL", StringComparison.OrdinalIgnoreCase))
@@ -887,7 +893,8 @@ namespace DMSBAPLAPI.Controllers
 
                 if (!string.IsNullOrWhiteSpace(targetDealer))
                 {
-                    jcQuery = jcQuery.Where(j => j.DealerCode == targetDealer);
+                    var targets = GetUserInfoFromToken.SplitCodes(targetDealer);
+                    jcQuery = jcQuery.Where(j => targets.Contains(j.DealerCode));
                 }
 
                 if (request?.FromDate.HasValue == true)

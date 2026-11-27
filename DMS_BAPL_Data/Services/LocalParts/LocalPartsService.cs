@@ -740,6 +740,11 @@ public sealed class LocalPartsService : ILocalPartsService
         if (!canAccessAllDealers && string.IsNullOrWhiteSpace(dealerScope))
             throw new LocalPartsValidationException("Dealer code is required.");
 
+        // 26.11.2026 - dealerScope may hold several codes (BG employee mapped to many dealers)
+        var scopeCodes = (dealerScope ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
         var transferRows = await (
             from source in _context.PartsInventories.AsNoTracking()
             join target in _context.PartsInventories.AsNoTracking()
@@ -748,8 +753,8 @@ public sealed class LocalPartsService : ILocalPartsService
                   source.BatchNo != null &&
                   target.Potype == "D2D-TARGET" &&
                   (canAccessAllDealers ||
-                   source.VendorCode == dealerScope ||
-                   target.VendorCode == dealerScope)
+                   scopeCodes.Contains(source.VendorCode) ||
+                   scopeCodes.Contains(target.VendorCode))
             orderby source.TransDate descending, source.Id descending
             select new { Source = source, Target = target })
             .ToListAsync(cancellationToken);
@@ -814,8 +819,8 @@ public sealed class LocalPartsService : ILocalPartsService
                 : source.ItemCode;
             var isIncomingForCaller =
                 !canAccessAllDealers &&
-                string.Equals(target.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(source.VendorCode, dealerScope, StringComparison.OrdinalIgnoreCase);
+                scopeCodes.Contains(target.VendorCode ?? string.Empty, StringComparer.OrdinalIgnoreCase) &&
+                !scopeCodes.Contains(source.VendorCode ?? string.Empty, StringComparer.OrdinalIgnoreCase);
 
             return new PartsD2DTransactionResponse(
                 source.Id,

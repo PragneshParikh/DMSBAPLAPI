@@ -56,6 +56,16 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
             return null;
         }
 
+        /// <summary>
+        /// 26.11.2026 - a dealer filter may hold several codes ("CUS0288,CUS0316") for a BG employee
+        /// mapped to more than one dealer. Used as DealerList(x).Contains(row.DealerCode) - EF turns it into IN (...).
+        /// </summary>
+        private static List<string> DealerList(string? dealerCode) =>
+            (dealerCode ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
         private static bool HasDealerFilter(string? dealerCode) =>
                 !string.IsNullOrWhiteSpace(dealerCode)
                 && !dealerCode.Equals("undefined", StringComparison.OrdinalIgnoreCase)
@@ -275,7 +285,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     .AsNoTracking()
                     .Where(vi =>
                         vi.DealerCode != null &&
-                        (!HasDealerFilter(dealerCode) || vi.DealerCode == dealerCode) &&
+                        (!HasDealerFilter(dealerCode) || DealerList(dealerCode).Contains(vi.DealerCode)) &&
                         (!fromDateOnly.HasValue || (vi.InvoiceDate.HasValue && vi.InvoiceDate.Value >= fromDateOnly.Value)) &&
                         (!toDateOnly.HasValue || (vi.InvoiceDate.HasValue && vi.InvoiceDate.Value <= toDateOnly.Value)))
                     .ToListAsync();
@@ -438,7 +448,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                                 select new { jh, jc, jt, sh, st, dm, loc, js };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                    baseQuery = baseQuery.Where(x => x.jh.DealerCode == filter.DealerCode);
+                    baseQuery = baseQuery.Where(x => DealerList(filter.DealerCode).Contains(x.jh.DealerCode));
 
                 if (filter.FromDate.HasValue)
                 {
@@ -594,7 +604,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 IEnumerable<JobReportViewModel> query = allData;
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
-                    query = query.Where(x => x.DealerCode == dealerCode);
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.DealerCode));
 
                 if (fromDate.HasValue)
                     query = query.Where(x => x.JobInDate >= fromDate.Value.Date);
@@ -661,7 +671,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 IEnumerable<JobReportViewModel> query = allData;
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
-                    query = query.Where(x => x.DealerCode == dealerCode);
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.DealerCode));
 
                 if (fromDate.HasValue)
                     query = query.Where(x => x.JobInDate >= fromDate.Value.Date);
@@ -837,7 +847,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 where
                     (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                     && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
-                    && (!HasDealerFilter(dealerCode) || h.DealerCode == dealerCode)
+                    && (!HasDealerFilter(dealerCode) || DealerList(dealerCode).Contains(h.DealerCode))
 
                 select new { h, d, im, dm, lm, city, state, om };
 
@@ -976,7 +986,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     where
                         (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                         && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
-                        && (string.IsNullOrEmpty(dealerCode) || h.DealerCode == dealerCode)
+                        && (string.IsNullOrEmpty(dealerCode) || DealerList(dealerCode).Contains(h.DealerCode))
 
                     select new
                     {
@@ -1094,7 +1104,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     where
                         (!fromDate.HasValue || h.SaleDate.Date >= fromDate.Value.Date)
                         && (!toDate.HasValue || h.SaleDate.Date <= toDate.Value.Date)
-                        && (!HasDealerFilter(dealerCode) || h.DealerCode == dealerCode)
+                        && (!HasDealerFilter(dealerCode) || DealerList(dealerCode).Contains(h.DealerCode))
                         && h.Status != null && h.Status.Trim().ToLower() == "invoiced"
 
                     select new
@@ -1368,7 +1378,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     select new { Vehicle = vi, Dealer = dm, Item = im, Color = cm, LocationMaster = lm };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                    query = query.Where(x => x.Vehicle.DealerCode == filter.DealerCode);
+                    query = query.Where(x => DealerList(filter.DealerCode).Contains(x.Vehicle.DealerCode));
                 if (!string.IsNullOrWhiteSpace(filter.ModelCode))
                     query = query.Where(x => x.Vehicle.ItemCode == filter.ModelCode);
                 if (!string.IsNullOrWhiteSpace(filter.ColorCode))
@@ -1545,7 +1555,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     select new { Vehicle = vi, Dealer = dm, Item = im, SaleHdr = vsh };
 
                 if (HasDealerFilter(dealerCode))
-                    query = query.Where(x => x.Vehicle.DealerCode == dealerCode);
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.Vehicle.DealerCode));
 
                 if (fromDate.HasValue)
                 {
@@ -1647,7 +1657,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
                 {
-                    query = query.Where(x => x.po.CustomerCode == filter.DealerCode);
+                    query = query.Where(x => DealerList(filter.DealerCode).Contains(x.po.CustomerCode));
                 }
 
                 if (filter.FromDate.HasValue)
@@ -1823,7 +1833,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    query = query.Where(x => x.DealerCode == dealerCode).ToList();
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.DealerCode)).ToList();
                 }
 
                 if (fromDate.HasValue)
@@ -1985,7 +1995,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
                 if (!string.IsNullOrWhiteSpace(dealerCode))
                 {
-                    query = query.Where(x => x.DealerCode == dealerCode);
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.DealerCode));
                 }
 
                 if (fromDate.HasValue)
@@ -2106,7 +2116,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
 
 
                 if (HasDealerFilter(filter.DealerCode))
-                    baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
+                    baseQuery = baseQuery.Where(x => DealerList(filter.DealerCode).Contains(x.vh.DealerCode));
 
                 if (filter.FromDate.HasValue)
                     baseQuery = baseQuery.Where(x => x.vh.SaleDate.Date >= filter.FromDate.Value.Date);
@@ -2134,7 +2144,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     baseQuery = baseQuery.Where(x => x.vd.ChassisNo != null && x.vd.ChassisNo.Contains(filter.ChassisNo));
 
                 if (HasDealerFilter(filter.DealerCode))
-                    baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
+                    baseQuery = baseQuery.Where(x => DealerList(filter.DealerCode).Contains(x.vh.DealerCode));
                 baseQuery = baseQuery.Where(x => !x.vh.IsDeleted);
                 var rawRows = await baseQuery.ToListAsync();
                 var financierLookup = await GetFinancierNameLookupAsync();
@@ -2486,7 +2496,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     select new { vd, vh, im, dm, cust, city, state, occ };
 
                 if (HasDealerFilter(filter.DealerCode))
-                    baseQuery = baseQuery.Where(x => x.vh.DealerCode == filter.DealerCode);
+                    baseQuery = baseQuery.Where(x => DealerList(filter.DealerCode).Contains(x.vh.DealerCode));
 
                 if (filter.FromDate.HasValue)
                     baseQuery = baseQuery.Where(x => x.vh.SaleDate.Date >= filter.FromDate.Value.Date);
@@ -2668,7 +2678,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     select new { vi, dm, loc, im, clr, lih };
 
                 if (!string.IsNullOrWhiteSpace(filter.DealerCode))
-                    query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
+                    query = query.Where(x => DealerList(filter.DealerCode).Contains(x.vi.DealerCode));
 
                 if (!string.IsNullOrWhiteSpace(filter.LocationCode))
                     query = query.Where(x => x.vi.LocCode == filter.LocationCode);
@@ -2882,7 +2892,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                     select new { Vehicle = vi, Item = im, Color = cm, SaleHdr = vsh };
 
                 if (HasDealerFilter(dealerCode))
-                    query = query.Where(x => x.Vehicle.DealerCode == dealerCode);
+                    query = query.Where(x => DealerList(dealerCode).Contains(x.Vehicle.DealerCode));
 
                 if (fromDate.HasValue)
                 {
@@ -3032,7 +3042,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 select new { vi, dm, loc, im, clr };
 
             if (HasDealerFilter(filter.DealerCode))
-                query = query.Where(x => x.vi.DealerCode == filter.DealerCode);
+                query = query.Where(x => DealerList(filter.DealerCode).Contains(x.vi.DealerCode));
 
             if (!string.IsNullOrWhiteSpace(filter.LocationCode))
                 query = query.Where(x => x.vi.LocCode == filter.LocationCode);
@@ -3252,7 +3262,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 select new MaterialTransferRawRow { Mt = mt, Im = im, Jh = jh, Jc = jc, Dm = dm, Loc = loc };
 
             if (HasDealerFilter(filter.DealerCode))
-                query = query.Where(x => x.Jh.DealerCode == filter.DealerCode);
+                query = query.Where(x => DealerList(filter.DealerCode).Contains(x.Jh.DealerCode));
 
             if (filter.FromDate.HasValue)
                 query = query.Where(x => x.Mt.CreatedDate.Date >= filter.FromDate.Value.Date);
@@ -3564,7 +3574,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
 
             if (HasDealerFilter(filter.DealerCode))
-                query = query.Where(x => x.Rbh.DealerCode == filter.DealerCode);
+                query = query.Where(x => DealerList(filter.DealerCode).Contains(x.Rbh.DealerCode));
 
             if (filter.FromDate.HasValue)
                 query = query.Where(x => x.Rbh.CreatedDate.HasValue && x.Rbh.CreatedDate.Value.Date >= filter.FromDate.Value.Date);
@@ -3672,7 +3682,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
 
             if (HasDealerFilter(filter.DealerCode))
-                query = query.Where(x => x.Rbh.DealerCode == filter.DealerCode);
+                query = query.Where(x => DealerList(filter.DealerCode).Contains(x.Rbh.DealerCode));
 
             if (filter.FromDate.HasValue)
                 query = query.Where(x => x.Rbh.CreatedDate.HasValue && x.Rbh.CreatedDate.Value.Date >= filter.FromDate.Value.Date);
@@ -4063,7 +4073,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 };
 
             if (HasDealerFilter(filter.DealerCode))
-                query = query.Where(x => x.Header.DealerCode == filter.DealerCode);
+                query = query.Where(x => DealerList(filter.DealerCode).Contains(x.Header.DealerCode));
 
             if (!string.IsNullOrWhiteSpace(filter.ChassisNo))
                 query = query.Where(x => x.ChassisNo.Contains(filter.ChassisNo));
@@ -4558,7 +4568,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                             //where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
                             //      && pi.FinalStockFlag == "Y"
                             //      && im.Grpidno == groupId
-                        where (string.IsNullOrEmpty(dealerCode) || pi.VendorCode == dealerCode)
+                        where (string.IsNullOrEmpty(dealerCode) || DealerList(dealerCode).Contains(pi.VendorCode))
                         && (string.IsNullOrEmpty(locationCode) || pi.DealerLocation == locationCode)
                         && (string.IsNullOrEmpty(locationDealerCode) || pi.VendorCode == locationDealerCode)
                         && pi.FinalStockFlag == "Y"
@@ -5510,7 +5520,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 .AsQueryable();
 
             if (HasDealerFilter(filter.DealerCode))
-                claimsQuery = claimsQuery.Where(c => c.DealerCode == filter.DealerCode);
+                claimsQuery = claimsQuery.Where(c => DealerList(filter.DealerCode).Contains(c.DealerCode));
 
             if (!string.IsNullOrWhiteSpace(filter.LocationCode))
                 claimsQuery = claimsQuery.Where(c => c.LocationCode == filter.LocationCode);
@@ -5949,7 +5959,7 @@ namespace DMS_BAPL_Data.Repositories.ReportRepo
                 where pa.AdjustmentDate >= fromDate.Date
                    && pa.AdjustmentDate < toDate.Date.AddDays(1)
                    && (string.IsNullOrEmpty(dealerCode)
-                       || pa.DealerCode == dealerCode)
+                       || DealerList(dealerCode).Contains(pa.DealerCode))
                    && (string.IsNullOrEmpty(locationCode)
                        || pa.LocationCode == locationCode)
                    && (string.IsNullOrEmpty(locationDealerCode)

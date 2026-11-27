@@ -49,6 +49,9 @@
         public string? LocCode { get; set; }
         public string? LocName { get; set; }
         public bool IsActive { get; set; }
+        /// <summary>26.11.2026 - LocationMaster.Locareaidno: 1 Showroom, 2 Workshop, 3 Yard</summary>
+        public int LocAreaIdNo { get; set; }
+        public string LocArea { get; set; } = string.Empty;
     }
 
     public class BulkUpdateLocationStatusViewModel

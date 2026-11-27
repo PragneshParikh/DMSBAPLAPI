@@ -27,10 +27,12 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
         private readonly IRoleWiseMenuRightRepo _roleWiseMenuRightRepo;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<MenuService> _logger;
+        private readonly BapldmsvadContext _dmsContext;
 
-        public MenuService(IMenuRepo menuRepo, IRoleRepo roleRepo, IHttpContextAccessor httpContextAccessor, IRoleWiseMenuRightRepo roleWiseMenuRightRepo, BAPLdbIdentityContext context, ILogger<MenuService> logger)
+        public MenuService(IMenuRepo menuRepo, IRoleRepo roleRepo, IHttpContextAccessor httpContextAccessor, IRoleWiseMenuRightRepo roleWiseMenuRightRepo, BAPLdbIdentityContext context, ILogger<MenuService> logger, BapldmsvadContext dmsContext)
         {
             _logger = logger;
+            _dmsContext = dmsContext;
             _menuRepo = menuRepo;
             _roleRepo = roleRepo;
             _roleWiseMenuRightRepo = roleWiseMenuRightRepo;
@@ -131,6 +133,36 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
         //        throw;
         //    }
         //}
+        /// <summary>26.11.2026 - AspNetRoles ids of the roles mapped to the logged-in BG employee.</summary>
+        private async Task<List<string>> GetBgEmployeeRoleIdsAsync()
+        {
+            try
+            {
+                var email = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                if (string.IsNullOrWhiteSpace(email)) return new List<string>();
+                var e = email.Trim().ToLower();
+
+                var roleNames = await (
+                    from m in _dmsContext.BgEmployeeRoleMappings
+                    join emp in _dmsContext.BgEmployeeMasters on m.BgEmployeeId equals emp.Id
+                    where emp.IsActive && emp.EmailId != null && emp.EmailId.ToLower() == e
+                    select m.RoleName
+                ).Distinct().ToListAsync();
+                if (roleNames.Count == 0) return new List<string>();
+
+                var upper = roleNames.Select(r => r.Trim().ToUpperInvariant()).ToList();
+                return await _context.Roles
+                    .Where(r => r.NormalizedName != null && upper.Contains(r.NormalizedName))
+                    .Select(r => r.Id)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "GetMenuItems: could not read BG employee roles");
+                return new List<string>();
+            }
+        }
+
         public async Task<List<MenuMasterViewModel>> GetMenuItems()
         {
             try
@@ -152,6 +184,12 @@ namespace DMS_BAPL_Data.Services.MenuMasterService
                     .Where(x => x.UserId == userId)
                     .ToListAsync();
                 roleIds.AddRange(userRoles.Select(x => x.RoleId));
+
+                // 26.11.2026 - BG employees: the roles ticked in BG Employee Master (Sales / Service roles,
+                // stored in BgEmployeeRoleMapping) were never used for the sidebar - only the generic
+                // "Employee" login role was. Add them, so menus granted to e.g. the "Service" role in
+                // Role Menu Rights (Warranty Claim, ...) show up for that employee.
+                roleIds.AddRange(await GetBgEmployeeRoleIdsAsync());
                 roleIds = roleIds.Distinct().ToList();
 
                 var roleRights = new List<RoleWiseMenuRight>();
